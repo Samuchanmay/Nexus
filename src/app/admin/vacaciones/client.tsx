@@ -1,0 +1,150 @@
+"use client";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Vacation } from "@/lib/types";
+import { useToast, Pill, Avatar, Sheet } from "@/components/ui";
+import { useSupabaseMutation } from "@/components/shared";
+import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
+import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
+
+export default function VacAdminClient({ vacations, team }: {
+  vacations: Vacation[];
+  team: { id: string; display_name: string; vacation_balance: number; nexus_color: string | null }[];
+}) {
+  const toast = useToast();
+  const { run, saving } = useSupabaseMutation();
+  const [sel, setSel] = useState<Vacation | null>(null);
+  const [note, setNote] = useState("");
+  const [addToCalendar, setAddToCalendar] = useState(true);
+
+  const decide = async (status: "Aprobada" | "Rechazada") => {
+    if (!sel) return;
+    const target = sel;
+    const ok = await run(async () => {
+      const supabase = createClient();
+      if (status === "Aprobada") {
+        // B4: RPC atómica — valida saldo y descuenta en UNA transacción (sin carreras)
+        const res = await supabase.rpc("approve_vacation", { p_vacation_id: target.id, p_note: note || null });
+        if (res.error) {
+          return { error: { message: res.error.message.includes("Saldo") ? res.error.message : "No se pudo actualizar" } };
+        }
+        if (addToCalendar) window.open(calendarUrl(target), "_blank");
+        return { error: null };
+      }
+      return supabase.from("vacations").update({ status, admin_note: note || null }).eq("id", target.id);
+    }, { ok: status === "Aprobada" ? "Vacaciones aprobadas" : "Solicitud rechazada" });
+    if (ok) { setSel(null); setNote(""); }
+  };
+
+  const pending = vacations.filter((v) => v.status === "Pendiente");
+  const rest = vacations.filter((v) => v.status !== "Pendiente");
+
+  return (
+    <>
+      <header className="pt-8 pb-6">
+        <h1 className="text-[28px] font-bold tracking-tight">Vacaciones</h1>
+        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
+          Aprueba una vez que tengas el visto bueno externo
+        </p>
+      </header>
+
+      {/* Saldos */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-7">
+        {team.map((t) => (
+          <div key={t.id} className="card p-4 flex items-center gap-2.5">
+            <Avatar name={t.display_name} color={t.nexus_color} size={32} />
+            <div>
+              <p className="text-[13px] font-bold">{t.display_name}</p>
+              <p className="text-[11.5px]" style={{ color: "var(--text-2)" }}>{t.vacation_balance} días</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="text-[15px] font-bold mb-3">Pendientes {pending.length > 0 && `(${pending.length})`}</h2>
+      {pending.length === 0 && (
+        <div className="card p-6 text-center mb-7">
+          <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin solicitudes pendientes</p>
+        </div>
+      )}
+      <div className="flex flex-col gap-2.5 mb-7">
+        {pending.map((v) => (
+          <div key={v.id} className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} size={34} />
+              <div>
+                <p className="text-[14px] font-bold">{v.users?.full_name}</p>
+                <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>
+                  {v.start_date} → {v.end_date} · {v.days} días hábiles
+                </p>
+              </div>
+            </div>
+            <button className="btn-primary px-5 py-2.5 text-[13px]" onClick={() => { setSel(v); setNote(""); }}>
+              Revisar
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {rest.length > 0 && (
+        <>
+          <h2 className="text-[15px] font-bold mb-3">Historial</h2>
+          <div className="flex flex-col gap-2.5">
+            {rest.map((v) => (
+              <div key={v.id} className="card px-5 py-3.5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[13.5px] font-bold">{v.users?.display_name} · {v.start_date} → {v.end_date}</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
+                    {v.days} días{v.admin_note && ` · ${v.admin_note}`}
+                  </p>
+                </div>
+                <Pill tone={STATUS_TONE[v.status]}>{v.status}</Pill>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <Sheet open={!!sel} onClose={() => setSel(null)} title="Decidir solicitud">
+        {sel && (
+          <div className="flex flex-col gap-3.5">
+            <div className="rounded-s px-4 py-3" style={{ background: "var(--surface-2)" }}>
+              <p className="text-[14px] font-bold">{sel.users?.full_name}</p>
+              <p className="text-[12.5px] mt-0.5" style={{ color: "var(--text-2)" }}>
+                {sel.start_date} → {sel.end_date} · {sel.days} días hábiles
+              </p>
+            </div>
+            <div className="rounded-s px-4 py-3 text-[12.5px]" style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
+              Recuerda: la aprobación aquí es el paso final, después de tu gestión del VoBo por fuera.
+            </div>
+            <div>
+              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                Nota <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(opcional, visible para el empleado)</span>
+              </label>
+              <input className="field-input" placeholder="Ej. Aprobado con VoBo de dirección"
+                value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+            <label className="flex items-center gap-2.5 text-[13px] font-semibold cursor-pointer">
+              <input type="checkbox" checked={addToCalendar} onChange={(e) => setAddToCalendar(e.target.checked)}
+                className="w-[18px] h-[18px] accent-[var(--accent)]" />
+              Crear evento en Google Calendar al aprobar
+            </label>
+            <div className="flex gap-2.5">
+              <button className="flex-1 py-3 text-[13.5px] rounded-s font-semibold"
+                style={{ background: "var(--danger-tint)", color: "var(--danger)" }}
+                disabled={saving} onClick={() => decide("Rechazada")}>
+                Rechazar
+              </button>
+              <button className="btn-primary btn-ok flex-[2] py-3 text-[14px]" disabled={saving} onClick={() => decide("Aprobada")}>
+                {saving ? "Guardando…" : "Aprobar vacaciones"}
+              </button>
+            </div>
+            <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+              Al aprobar se descuentan {sel.days} días del saldo del empleado.
+            </p>
+          </div>
+        )}
+      </Sheet>
+    </>
+  );
+}
