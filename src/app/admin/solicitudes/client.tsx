@@ -98,8 +98,29 @@ export default function SolicitudesClient({ requests, team }: { requests: CommRe
       if (items.length) await supabase.from("project_checklist").insert(items);
     }
 
-    // Evento en Google Calendar si la solicitud tiene fecha
-    if (addToCalendar && sel.event_date) window.open(requestCalendarUrl(sel), "_blank");
+    // Evento en Google Calendar si la solicitud tiene fecha.
+    // Primero intentamos crearlo de verdad (Edge Function, requiere que quien
+    // aprueba haya dado permiso de Calendar). Si no se puede (por ejemplo,
+    // todavía no reconecta su cuenta de Google), usamos el enlace manual de
+    // siempre para no bloquear la aprobación.
+    if (addToCalendar && sel.event_date) {
+      const start = `${sel.event_date}T${(sel.event_time ?? "09:00:00").slice(0, 8)}`;
+      const startHour = Number((sel.event_time ?? "09:00:00").slice(0, 2));
+      const end = `${sel.event_date}T${String(startHour + 1).padStart(2, "0")}:${(sel.event_time ?? "09:00:00").slice(3, 5)}:00`;
+      const { data: gcalData, error: gcalError } = await supabase.functions.invoke("gcal-create-event", {
+        body: {
+          title: `${TYPE_LABELS[sel.type]} — ${sel.title}`,
+          details: `Proyecto Nexus · ${sel.notes ?? ""}`,
+          location: sel.event_location ?? "",
+          start,
+          end,
+        },
+      });
+      const eventUrl = (gcalData as { ok?: boolean; eventUrl?: string } | null)?.eventUrl;
+      if (gcalError || !eventUrl) {
+        window.open(requestCalendarUrl(sel), "_blank");
+      }
+    }
 
     setSaving(false);
     setSel(null);

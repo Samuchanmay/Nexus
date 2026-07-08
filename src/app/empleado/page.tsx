@@ -26,6 +26,23 @@ export default async function MiDia() {
       .eq("user_id", profile.id),
   ]);
 
+  // Dependencias entre actividades (Plano Maestro §04): qué bloquea a cada proyecto asignado.
+  const projectIds = [...new Set((assignments ?? [])
+    .map((a) => (a.projects as unknown as { id: string } | null)?.id)
+    .filter((id): id is string => !!id))];
+  const { data: deps } = projectIds.length
+    ? await supabase.from("project_dependencies")
+        .select("project_id, projects!project_dependencies_depends_on_project_id_fkey(status, requests(title))")
+        .in("project_id", projectIds)
+    : { data: [] as { project_id: string; projects: { status: string; requests: { title: string } | null } | null }[] };
+  const blockedByOf = new Map<string, string[]>();
+  for (const d of (deps ?? []) as unknown as { project_id: string; projects: { status: string; requests: { title: string } | null } | null }[]) {
+    if (!d.projects || d.projects.status === "completada") continue;
+    const list = blockedByOf.get(d.project_id) ?? [];
+    list.push(d.projects.requests?.title ?? "otra actividad");
+    blockedByOf.set(d.project_id, list);
+  }
+
   const schedule = (sched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
   const day = summarizeDay(today, (att ?? []) as AttendanceRow[], schedule);
   const weekDates = [...new Set((weekAtt ?? []).map((r) => r.date as string))];
@@ -47,6 +64,7 @@ export default async function MiDia() {
         status: p.status,
         priority: p.priority,
         deadline: p.deadline,
+        blockedBy: blockedByOf.get(p.id) ?? [],
       };
     })
     .filter((t): t is NonNullable<typeof t> => t !== null && !["completada", "cancelada"].includes(t.status));

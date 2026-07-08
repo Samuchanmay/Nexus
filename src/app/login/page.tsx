@@ -14,7 +14,19 @@ function LoginInner() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+        // Pedimos permiso de Calendar y Drive (solo archivos de la app) además del login.
+        scopes:
+          "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file",
+        queryParams: {
+          // access_type=offline + prompt=consent: así Google nos da un "permiso permanente"
+          // (refresh token) que dura hasta que la persona lo revoque, en vez de uno que
+          // expira a la hora.
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     });
   };
 

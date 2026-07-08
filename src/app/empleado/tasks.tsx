@@ -1,11 +1,11 @@
 "use client";
 // ═══════════════════════════════════════════════════════════════
-//  Mi Día · diseño v6 fiel al mockup del cliente (U2)
-//  hero + tira semanal + tarea activa + agenda + pendientes + sheet
+//  Mi Día · rediseño sobre el sistema Nexus OS (Card/Badge/Button)
+//  Misma lógica de siempre, solo cambia la piel visual:
 //  Time tracking real: iniciar · pausar · reanudar · finalizar
 //  (pausar = cerrar sesión de tiempo; reanudar = nueva sesión)
 // ═══════════════════════════════════════════════════════════════
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -13,22 +13,24 @@ import { useToast, Sheet } from "@/components/ui";
 import { TYPE_LABELS } from "@/lib/types";
 import { todayMerida, addDays } from "@/lib/tz";
 import { fmtMin } from "@/lib/hours";
+import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } from "@/components/os/ui";
+import { Icon } from "@/components/os/icons";
 
 interface Task {
   assignmentId: string; isLead: boolean; projectId: string;
   title: string; type: string; requester: string | null;
   status: string; priority: string; deadline: string | null;
+  blockedBy: string[];
 }
 interface ChecklistItem { id: string; assignment_id: string; position: number; label: string; done: boolean }
 
-const TYPE_ICONS: Record<string, React.ReactNode> = {
-  cobertura: <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></>,
-  diseno: <><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18z"/></>,
-  video: <><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-4v12l-6-4"/></>,
-  lona: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18"/></>,
-  difusion: <><path d="M4 11v2a1 1 0 001 1h2l4 4V6L7 10H5a1 1 0 00-1 1z"/><path d="M16 8a5 5 0 010 8"/></>,
+const TYPE_ICON: Record<string, string> = {
+  cobertura: "layers", diseno: "sparkle", video: "layers", lona: "layers", difusion: "chart",
 };
 const PRI_LABEL: Record<string, string> = { baja: "Baja", normal: "Normal", alta: "Alta", urgente: "Urgente" };
+const PRI_TONE: Record<string, "neutral" | "warn" | "danger"> = {
+  baja: "neutral", normal: "neutral", alta: "warn", urgente: "danger",
+};
 
 export default function MiDiaClient({ profile, day, week, assignments }: {
   profile: { id: string; displayName: string };
@@ -37,6 +39,8 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
   assignments: Task[];
 }) {
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [evidenceTarget, setEvidenceTarget] = useState<Task | null>(null);
   const router = useRouter();
   const [activeLog, setActiveLog] = useState<{ id: string; assignmentId: string; startedAt: string } | null>(null);
   const [pausedAssignment, setPausedAssignment] = useState<string | null>(null);
@@ -81,6 +85,8 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
   // ── Tracking ──
   const startTask = async (assignmentId: string) => {
     if (activeLog) { toast("Ya tienes una tarea activa — finalízala primero"); return; }
+    const blocking = assignments.find((a) => a.assignmentId === assignmentId)?.blockedBy ?? [];
+    if (blocking.length) { toast(`Bloqueada: depende de "${blocking[0]}"`); return; }
     const supabase = createClient();
     const { data, error } = await supabase.from("task_time_logs")
       .insert({ assignment_id: assignmentId, started_at: new Date().toISOString() })
@@ -141,12 +147,39 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
     router.refresh();
   };
 
-  const addEvidence = async (t: Task) => {
-    const url = window.prompt("Pega el enlace de la evidencia (Drive, foto, archivo):");
-    if (!url) return;
+  const addEvidence = (t: Task) => {
+    setEvidenceTarget(t);
+    fileInputRef.current?.click();
+  };
+
+  // Sube el archivo elegido a Google Drive (real, vía Edge Function). Si la
+  // persona todavía no dio permiso de Drive (o algo falla), caemos al enlace
+  // manual de siempre para no bloquear el trabajo.
+  const handleEvidenceFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const t = evidenceTarget;
+    e.target.value = "";
+    if (!file || !t) return;
+
+    const base64: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
     const supabase = createClient();
-    const { error } = await supabase.from("evidences").insert({ project_id: t.projectId, user_id: profile.id, url });
-    toast(error ? "No se pudo subir" : "Evidencia registrada");
+    const { data, error } = await supabase.functions.invoke("drive-upload", {
+      body: { fileName: file.name, mimeType: file.type || "application/octet-stream", base64 },
+    });
+    let url = (data as { ok?: boolean; url?: string } | null)?.url;
+    if (error || !url) {
+      url = window.prompt("No se pudo subir a Drive automáticamente. Pega el enlace de la evidencia:") ?? "";
+      if (!url) return;
+    }
+    const { error: e2 } = await supabase.from("evidences").insert({ project_id: t.projectId, user_id: profile.id, url });
+    toast(e2 ? "No se pudo guardar" : "Evidencia registrada");
+    router.refresh();
   };
 
   const addComment = async (t: Task) => {
@@ -222,227 +255,231 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
     });
   }, [week]);
 
-  const statusPill = (t: Task) => {
-    if (activeLog?.assignmentId === t.assignmentId) return <span className="v6-status v6-s-blue">En curso</span>;
-    if (t.status === "en_revision") return <span className="v6-status v6-s-purple">Esperando</span>;
-    if (t.status === "en_progreso") return <span className="v6-status v6-s-blue">En curso</span>;
-    if (t.status === "completada") return <span className="v6-status v6-s-green">Listo</span>;
-    return <span className="v6-status v6-s-muted">Pendiente</span>;
+  const statusBadge = (t: Task) => {
+    if (activeLog?.assignmentId === t.assignmentId) return <Badge tone="accent" dot>En curso</Badge>;
+    if (t.status === "en_revision") return <Badge tone="purple">Esperando</Badge>;
+    if (t.status === "en_progreso") return <Badge tone="accent">En curso</Badge>;
+    if (t.status === "completada") return <Badge tone="ok">Listo</Badge>;
+    return <Badge tone="neutral">Pendiente</Badge>;
   };
 
   const agLine = (t: Task) => {
     const mins = baseMin[t.assignmentId] ?? 0;
-    if (t.status === "en_revision") return <p style={{ color: "var(--warn)", fontWeight: 600 }}>Actividad manual · Sin validar</p>;
+    if (t.status === "en_revision") return <p className="text-[12.5px] font-semibold" style={{ color: "var(--warn)" }}>Actividad manual · Sin validar</p>;
     const parts: string[] = [];
     if (activeLog?.assignmentId === t.assignmentId) parts.push("En curso");
     else parts.push(t.status === "en_progreso" ? "En pausa" : "Sin iniciar");
     if (mins > 0) parts.push(fmtMin(mins) + " hoy");
     if (t.deadline) parts.push("Entrega " + new Date(t.deadline + "T12:00:00Z").toLocaleDateString("es-MX", { day: "numeric", month: "short" }));
-    return <p>{parts.join(" · ")}</p>;
+    return <p className="text-[12.5px] text-text-3">{parts.join(" · ")}</p>;
   };
 
-  return (
-    <>
-      {/* ── HERO v6 ── */}
-      <div className="v6-hero">
-        <div>
-          <div className="v6-hero-eyebrow">{dateLabel} · Semana {weekNum}</div>
-          <h1 className="v6-hero-h1">{profile.displayName} 👋</h1>
-          <div className="v6-hero-sub">
-            {assignments.length} tarea{assignments.length !== 1 ? "s" : ""} · {inProgress} en curso · {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""}
-          </div>
-        </div>
-        <div className="v6-timer-box">
-          <div className="v6-timer-lbl">Tiempo activo</div>
-          <div className={`v6-timer-val ${activeLog ? "" : pausedAssignment ? "paused" : "idle"}`}>{timerStr}</div>
-        </div>
-      </div>
+  const current = activeTask ?? pausedTask;
 
-      {/* ── Tira semanal v6 ── */}
-      <div className="v6-week">
+  return (
+    <div className="space-y-5 pb-10">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,.pdf,.doc,.docx,.xlsx,.pptx"
+        onChange={handleEvidenceFile}
+      />
+      {/* ── Hero ── */}
+      <Card className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-3">{dateLabel} · Semana {weekNum}</p>
+          <h1 className="text-[24px] font-bold text-text-1 mt-0.5">{profile.displayName} 👋</h1>
+          <p className="text-[13px] text-text-3 mt-1">
+            {assignments.length} tarea{assignments.length !== 1 ? "s" : ""} · {inProgress} en curso · {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <div className="rounded-m px-4 py-3 text-center sm:text-right bg-surface-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-3">Tiempo activo</p>
+          <p className={`text-[24px] font-bold tabular-nums ${activeLog ? "text-accent" : pausedAssignment ? "" : "text-text-3"}`}
+            style={pausedAssignment && !activeLog ? { color: "var(--warn)" } : undefined}>
+            {timerStr}
+          </p>
+        </div>
+      </Card>
+
+      {/* ── Tira semanal ── */}
+      <div className="grid grid-cols-7 gap-1.5">
         {weekDays.map((d, i) => (
-          <div key={i} className={`v6-wd ${d.today ? "today" : ""} ${d.has ? "whas" : ""}`}>
-            <div className="v6-wl">{d.l}</div>
-            <div className="v6-wn">{d.n}</div>
+          <div key={i}
+            className="rounded-s py-2 text-center"
+            style={{
+              background: d.today ? "var(--accent)" : "var(--surface-2)",
+              color: d.today ? "#fff" : "var(--text-2)",
+            }}>
+            <p className="text-[10px] font-semibold opacity-80">{d.l}</p>
+            <p className="text-[14px] font-bold tabular-nums mt-0.5">{d.n}</p>
+            {d.has && !d.today && <span className="block mx-auto mt-1 h-1 w-1 rounded-full" style={{ background: "var(--accent)" }} />}
           </div>
         ))}
       </div>
 
       {/* ── Tarea activa / pausada ── */}
-      {(activeTask || pausedTask) && (
-        <>
-          <div className="v6-sec-title">Tarea activa</div>
-          <div className="v6-active-card">
-            <div className={`v6-live ${activeTask ? "" : "paused"}`}>
-              <div className="v6-live-dot" />{activeTask ? "En curso ahora" : "En pausa"}
-            </div>
-            <h3>{(activeTask ?? pausedTask)!.title}</h3>
-            <div className="v6-meta">
-              {TYPE_LABELS[(activeTask ?? pausedTask)!.type as keyof typeof TYPE_LABELS] ?? (activeTask ?? pausedTask)!.type}
-              {(activeTask ?? pausedTask)!.requester ? ` · ${(activeTask ?? pausedTask)!.requester}` : ""}
-            </div>
-            <div className="v6-btn-row">
-              {activeTask ? (
-                <button className="v6-ac-btn pause" onClick={pauseTask}>
-                  <svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Pausar
-                </button>
-              ) : (
-                <button className="v6-ac-btn play" onClick={() => startTask(pausedTask!.assignmentId)}>
-                  <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Reanudar
-                </button>
-              )}
-              {activeTask && (
-                <button className="v6-ac-btn stop" onClick={stopTask}>
-                  <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Finalizar
-                </button>
-              )}
-              <button className="v6-ac-btn" onClick={() => addEvidence((activeTask ?? pausedTask)!)}>
-                <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>Evidencia
-              </button>
-              <button className="v6-ac-btn" onClick={() => addComment((activeTask ?? pausedTask)!)}>
-                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Comentar
-              </button>
-              {(activeTask ?? pausedTask)!.isLead && (activeTask ?? pausedTask)!.status === "en_progreso" && (
-                <button className="v6-ac-btn" onClick={() => markReview((activeTask ?? pausedTask)!)}>
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pasar a revisión
-                </button>
-              )}
-            </div>
+      {current && (
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: activeTask ? "var(--ok)" : "var(--warn)" }} />
+            <p className="text-[12.5px] font-bold uppercase tracking-wide" style={{ color: activeTask ? "var(--ok)" : "var(--warn)" }}>
+              {activeTask ? "En curso ahora" : "En pausa"}
+            </p>
           </div>
-        </>
+          <h3 className="text-[17px] font-bold text-text-1">{current.title}</h3>
+          <p className="text-[13px] text-text-3 mt-0.5">
+            {TYPE_LABELS[current.type as keyof typeof TYPE_LABELS] ?? current.type}
+            {current.requester ? ` · ${current.requester}` : ""}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {activeTask ? (
+              <Button variant="subtle" icon="clock" onClick={pauseTask}>Pausar</Button>
+            ) : (
+              <Button variant="primary" icon="plus" onClick={() => startTask(pausedTask!.assignmentId)}>Reanudar</Button>
+            )}
+            {activeTask && <Button variant="danger" icon="check" onClick={stopTask}>Finalizar</Button>}
+            <Button variant="subtle" icon="sparkle" onClick={() => addEvidence(current)}>Evidencia</Button>
+            <Button variant="subtle" icon="inbox" onClick={() => addComment(current)}>Comentar</Button>
+            {current.isLead && current.status === "en_progreso" && (
+              <Button variant="subtle" icon="check" onClick={() => markReview(current)}>Pasar a revisión</Button>
+            )}
+          </div>
+        </Card>
       )}
 
       {/* ── Agenda de hoy ── */}
-      <div className="v6-sec-title">Agenda de hoy</div>
-      <div className="v6-agenda">
-        {assignments.length === 0 && (
-          <div className="v6-ag" style={{ cursor: "default" }}>
-            <div className="v6-ag-stripe" style={{ background: "var(--border-2)" }} />
-            <div className="v6-ag-info"><h4>Sin tareas asignadas</h4><p>Cuando el admin te asigne un proyecto aparecerá aquí</p></div>
+      <Card>
+        <SectionTitle>Agenda de hoy</SectionTitle>
+        {assignments.length === 0 ? (
+          <EmptyState icon="layers" title="Sin tareas asignadas" hint="Cuando el admin te asigne un proyecto aparecerá aquí." />
+        ) : (
+          <div className="space-y-1">
+            {assignments.map((t) => {
+              const isActive = activeLog?.assignmentId === t.assignmentId;
+              const blocked = t.blockedBy.length > 0;
+              const canStart = !isActive && !activeLog && !blocked && ["aprobada", "en_progreso"].includes(t.status);
+              return (
+                <div key={t.assignmentId} className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors">
+                  <span className="grid place-items-center h-9 w-9 rounded-s shrink-0"
+                    style={{
+                      background: isActive ? "var(--accent-tint)" : t.status === "en_revision" ? "var(--warn-tint)" : "var(--surface-2)",
+                      color: isActive ? "var(--accent)" : t.status === "en_revision" ? "var(--warn)" : "var(--text-2)",
+                    }}>
+                    <Icon name={TYPE_ICON[t.type] ?? "layers"} size={17} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-text-1 truncate">{t.title}</p>
+                    {blocked
+                      ? <p className="text-[12.5px] font-semibold" style={{ color: "var(--danger)" }} title={`Depende de: ${t.blockedBy.join(", ")}`}>
+                          🔒 Depende de "{t.blockedBy[0]}"{t.blockedBy.length > 1 ? ` +${t.blockedBy.length - 1}` : ""}
+                        </p>
+                      : agLine(t)}
+                  </div>
+                  {canStart && <Button variant="primary" size="sm" icon="plus" onClick={() => startTask(t.assignmentId)}>Iniciar</Button>}
+                  {statusBadge(t)}
+                </div>
+              );
+            })}
           </div>
         )}
-        {assignments.map((t) => {
-          const isActive = activeLog?.assignmentId === t.assignmentId;
-          const isWaiting = t.status === "en_revision";
-          const stripe = isWaiting ? "var(--warn)" : isActive ? "var(--blue)" : t.status === "completada" ? "var(--accent)" : "var(--border-2)";
-          const icBg = isWaiting ? "var(--warn-tint)" : isActive ? "var(--blue-tint)" : "var(--surface-2)";
-          const icSt = isWaiting ? "var(--warn)" : isActive ? "var(--blue)" : "var(--text-2)";
-          return (
-            <div className="v6-ag" key={t.assignmentId} style={isWaiting ? { borderColor: "var(--warn-tint)" } : undefined}>
-              <div className="v6-ag-stripe" style={{ background: stripe }} />
-              <div className="v6-ag-time">{t.deadline ? new Date(t.deadline + "T12:00:00Z").toLocaleDateString("es-MX", { day: "2-digit", month: "short" }).replace(".", "") : "—"}</div>
-              <div className="v6-ag-ic" style={{ background: icBg }}>
-                <svg viewBox="0 0 24 24" style={{ stroke: icSt, fill: "none", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round" }}>
-                  {TYPE_ICONS[t.type] ?? TYPE_ICONS.diseno}
-                </svg>
-              </div>
-              <div className="v6-ag-info">
-                <h4>{t.title}</h4>
-                {agLine(t)}
-              </div>
-              {!isActive && !activeLog && ["aprobada", "en_progreso"].includes(t.status) && (
-                <button className="v6-ac-btn play" style={{ padding: "8px 13px" }} onClick={() => startTask(t.assignmentId)}>
-                  <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Iniciar
-                </button>
-              )}
-              {statusPill(t)}
-            </div>
-          );
-        })}
-      </div>
+      </Card>
 
       {/* ── Pendientes (checklists) ── */}
       {Object.values(checklists).some((c) => c.length) && (
-        <>
-          <div className="v6-sec-title">Pendientes</div>
-          <div className="v6-pending">
+        <Card>
+          <SectionTitle>Pendientes</SectionTitle>
+          <div className="space-y-1">
             {assignments.flatMap((t) => (checklists[t.assignmentId] ?? []).map((item) => (
-              <div className="v6-pend" key={item.id}>
-                <button className={`v6-pchk ${item.done ? "done" : ""}`} onClick={() => toggleCheck(item)} aria-label="Completar">
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              <div key={item.id} className="flex items-center gap-3 p-2 rounded-s hover:bg-hover transition-colors">
+                <button
+                  onClick={() => toggleCheck(item)} aria-label="Completar"
+                  className="grid place-items-center h-6 w-6 rounded-full shrink-0 border transition-colors"
+                  style={item.done
+                    ? { background: "var(--ok)", borderColor: "var(--ok)", color: "#fff" }
+                    : { borderColor: "var(--border-2)", color: "transparent" }}>
+                  <Icon name="check" size={13} />
                 </button>
-                <div className={`v6-pinfo ${item.done ? "done" : ""}`}>
-                  <h5>{item.label}</h5>
-                  <p>{t.title}</p>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13.5px] font-semibold truncate ${item.done ? "line-through text-text-3" : "text-text-1"}`}>{item.label}</p>
+                  <p className="text-[12px] text-text-3 truncate">{t.title}</p>
                 </div>
-                <span className="v6-pri">{item.done ? "" : PRI_LABEL[t.priority] ?? ""}</span>
+                {!item.done && <Badge tone={PRI_TONE[t.priority] ?? "neutral"}>{PRI_LABEL[t.priority] ?? ""}</Badge>}
               </div>
             )))}
           </div>
-        </>
+        </Card>
       )}
 
       {/* Comenzar jornada rápido si aún no hay entrada hoy */}
       {!day.hasEntry && (
-        <Link href="/fichar" className="v6-ac-btn play" style={{ display: "inline-flex", marginBottom: 30 }}>
-          <svg viewBox="0 0 24 24"><path d="M12 2a8 8 0 00-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 00-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
-          Comenzar jornada
+        <Link href="/fichar"
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-s text-[13px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
+          <Icon name="clock" size={15} /> Comenzar jornada
         </Link>
       )}
 
-      {/* Botón / FAB Agregar actividad (v6) */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-        <button className="v6-add-act-btn" onClick={() => setOpenSheet(true)}>
-          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Agregar actividad
-        </button>
+      {/* Agregar actividad */}
+      <div className="flex justify-center">
+        <Button variant="subtle" icon="plus" onClick={() => setOpenSheet(true)}>Agregar actividad</Button>
       </div>
-      <button className="v6-fab" onClick={() => setOpenSheet(true)} aria-label="Agregar actividad">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <button
+        onClick={() => setOpenSheet(true)} aria-label="Agregar actividad"
+        className="sm:hidden fixed z-40 grid place-items-center h-14 w-14 rounded-full text-white shadow-nx active:scale-95 transition-transform"
+        style={{ right: "18px", bottom: "max(18px, env(safe-area-inset-bottom))", background: "var(--accent)" }}>
+        <Icon name="plus" size={22} />
       </button>
 
-      {/* ── Sheet Agregar actividad (v6) ── */}
+      {/* ── Sheet Agregar actividad ── */}
       <Sheet open={openSheet} onClose={() => setOpenSheet(false)} title="Agregar actividad"
         subtitle="Para trabajo que realizaste y no estaba asignado en el sistema">
-        <div className="v6-notice">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <span>Esta actividad quedará marcada como <strong>sin validar</strong> hasta que el administrador la revise.</span>
+        <div className="flex items-start gap-2.5 p-3 rounded-s mb-4" style={{ background: "var(--warn-tint)" }}>
+          <Icon name="alert" size={16} className="mt-0.5 shrink-0" style={{ color: "var(--warn)" }} />
+          <span className="text-[12.5px]" style={{ color: "var(--warn)" }}>
+            Esta actividad quedará marcada como <strong>sin validar</strong> hasta que el administrador la revise.
+          </span>
         </div>
-        <p className="text-[11px] font-bold uppercase tracking-wider mb-2.5" style={{ color: "var(--text-3)" }}>Tipo de actividad</p>
-        <div className="v6-act-grid">
+        <p className="text-[11px] font-bold uppercase tracking-wider mb-2.5 text-text-3">Tipo de actividad</p>
+        <div className="flex flex-wrap gap-2 mb-4">
           {(Object.keys(TYPE_LABELS) as (keyof typeof TYPE_LABELS)[]).map((k) => (
-            <button key={k} className={`v6-act-opt ${actForm.type === k ? "sel" : ""}`} onClick={() => setActForm((f) => ({ ...f, type: k }))}>
-              <svg viewBox="0 0 24 24">{TYPE_ICONS[k]}</svg>
-              <span>{TYPE_LABELS[k]}</span>
-            </button>
+            <Pill key={k} active={actForm.type === k} onClick={() => setActForm((f) => ({ ...f, type: k }))}>
+              {TYPE_LABELS[k]}
+            </Pill>
           ))}
         </div>
-        <div className="mb-3">
-          <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-2)" }}>¿Qué hiciste?</p>
-          <input className="input" placeholder="Ej. Cubrí reunión de padres sin solicitud formal"
-            value={actForm.title} onChange={(e) => setActForm((f) => ({ ...f, title: e.target.value }))} />
-        </div>
-        <div className="grid grid-cols-2 gap-2.5 mb-3">
-          <div>
-            <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-2)" }}>Fecha</p>
-            <input className="input" type="date" value={actForm.date} max={todayMerida()}
-              onChange={(e) => setActForm((f) => ({ ...f, date: e.target.value }))} />
+        <div className="space-y-3 mb-4">
+          <Field label="¿Qué hiciste?">
+            <Input placeholder="Ej. Cubrí reunión de padres sin solicitud formal"
+              value={actForm.title} onChange={(e) => setActForm((f) => ({ ...f, title: e.target.value }))} />
+          </Field>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label="Fecha">
+              <Input type="date" value={actForm.date} max={todayMerida()}
+                onChange={(e) => setActForm((f) => ({ ...f, date: e.target.value }))} />
+            </Field>
+            <Field label="Tiempo invertido (min)">
+              <Input type="number" min="1" placeholder="90"
+                value={actForm.minutes} onChange={(e) => setActForm((f) => ({ ...f, minutes: e.target.value }))} />
+            </Field>
           </div>
-          <div>
-            <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-2)" }}>Tiempo invertido (min)</p>
-            <input className="input" type="number" min="1" placeholder="90"
-              value={actForm.minutes} onChange={(e) => setActForm((f) => ({ ...f, minutes: e.target.value }))} />
-          </div>
-        </div>
-        <div className="mb-3">
-          <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-2)" }}>¿Quién lo solicitó? <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(opcional)</span></p>
-          <input className="input" placeholder="Nombre o área"
-            value={actForm.requester} onChange={(e) => setActForm((f) => ({ ...f, requester: e.target.value }))} />
-        </div>
-        <div className="mb-4">
-          <p className="text-[12px] font-semibold mb-1.5" style={{ color: "var(--text-2)" }}>Notas <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(opcional)</span></p>
-          <textarea className="input resize-none" rows={2} placeholder="Contexto adicional…"
-            value={actForm.note} onChange={(e) => setActForm((f) => ({ ...f, note: e.target.value }))} />
+          <Field label="¿Quién lo solicitó? (opcional)">
+            <Input placeholder="Nombre o área"
+              value={actForm.requester} onChange={(e) => setActForm((f) => ({ ...f, requester: e.target.value }))} />
+          </Field>
+          <Field label="Notas (opcional)">
+            <textarea rows={2} placeholder="Contexto adicional…"
+              className="w-full rounded-s px-3 py-2 text-[14px] bg-input border border-border text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-[var(--ring)] resize-none"
+              value={actForm.note} onChange={(e) => setActForm((f) => ({ ...f, note: e.target.value }))} />
+          </Field>
         </div>
         <div className="flex gap-2.5">
-          <button className="btn-secondary flex-1" onClick={() => setOpenSheet(false)}>Cancelar</button>
-          <button className="btn-primary btn-ok flex-[2]" disabled={saving} onClick={submitActivity}>
+          <Button variant="subtle" className="flex-1" onClick={() => setOpenSheet(false)}>Cancelar</Button>
+          <Button variant="primary" className="flex-[2]" disabled={saving} onClick={submitActivity}>
             {saving ? "Guardando…" : "Registrar actividad"}
-          </button>
+          </Button>
         </div>
       </Sheet>
-    </>
+    </div>
   );
 }
