@@ -2,20 +2,38 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
-import { Pill } from "@/components/ui";
 import { todayMerida, nowMeridaMinutes } from "@/lib/tz";
+import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/components/os/ui";
 
 /* ═══════════════════════════════════════════════════════════════
-   Resumen admin — fusión del legado cert_nexus:
-   · L1  Banda de alertas inteligentes (sin fichar, urgentes, vacaciones)
-   · L3  Pulso en vivo (presentes/fuera/completaron/vacaciones) + feed
-   Todo derivado de Supabase en el server; sin datos inventados.
+   Hoy · Centro de Operaciones (admin)
+   Rediseño sobre el sistema de diseño Nexus OS (Card/Badge/StatCard),
+   con el mismo contenido real de siempre — nada inventado — más dos
+   bloques nuevos: Actividades activas y Solicitudes por revisar,
+   que reemplazan a los KPIs sueltos por listas accionables reales.
    ═══════════════════════════════════════════════════════════════ */
 
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 const meridaClock = (iso: string) =>
   new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Merida" });
+
+const TYPE_LABEL: Record<string, string> = {
+  cobertura: "Cobertura", diseno: "Diseño", lona: "Lona", video: "Video", difusion: "Difusión",
+};
+const PRIORITY_TONE: Record<string, "danger" | "warn" | "neutral"> = {
+  urgente: "danger", alta: "danger", normal: "neutral", baja: "neutral",
+};
+
+type ProjRow = {
+  id: string; status: string; deadline: string | null; priority: string;
+  requests: { title: string; type: string; requester_name: string | null } | null;
+  project_assignments: {
+    is_lead: boolean;
+    users: { display_name: string; nexus_color: string | null } | null;
+    project_checklist: { done: boolean }[];
+  }[];
+};
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -30,6 +48,7 @@ export default async function AdminDashboard() {
     { data: team }, { data: teamAtt }, { data: allScheds },
     { data: vacsToday }, { data: urgentReqs }, { data: holidayToday },
     { data: reqsToday }, { data: vacsCreatedToday },
+    { data: activeProjectsList }, { data: pendingRequestsList },
   ] = await Promise.all([
     supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "solicitada"),
     supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente"),
@@ -45,6 +64,12 @@ export default async function AdminDashboard() {
     supabase.from("holidays").select("date, name").eq("date", today).maybeSingle(),
     supabase.from("requests").select("id, title, created_at, requester:requester_id(display_name)").gte("created_at", utcDayStart).order("created_at", { ascending: false }).limit(8),
     supabase.from("vacations").select("id, start_date, end_date, created_at, users:user_id(display_name)").gte("created_at", utcDayStart).order("created_at", { ascending: false }).limit(8),
+    supabase.from("projects").select(`
+      id, status, deadline, priority,
+      requests(title, type, requester_name),
+      project_assignments(is_lead, users(display_name, nexus_color), project_checklist(done))
+    `).in("status", ["aprobada", "en_progreso", "en_revision"]),
+    supabase.from("requests").select("id, title, type, requester_name, priority, created_at").eq("status", "solicitada").order("created_at", { ascending: false }),
   ]);
 
   const sched = (mySched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
@@ -73,7 +98,7 @@ export default async function AdminDashboard() {
     vacaciones: presence.filter((p) => p.status === "Vacaciones").length,
   };
 
-  /* ── L1 · Alertas inteligentes ── */
+  /* ── Alertas inteligentes ── */
   const nowMin = nowMeridaMinutes();
   const dow = new Date(`${today}T12:00:00`).getDay(); // 0=dom, 6=sáb
   const isWorkday = dow !== 0 && dow !== 6 && !holidayToday;
@@ -106,7 +131,7 @@ export default async function AdminDashboard() {
     }
   }
 
-  /* ── L3 · Feed de actividad de hoy ── */
+  /* ── Feed de actividad de hoy ── */
   type FeedItem = { key: string; icon: string; text: string; time: string; sort: string };
   const feed: FeedItem[] = [
     ...((teamAtt ?? []) as { id: string; user_id: string; reason: string; time: string }[]).map((a) => ({
@@ -119,7 +144,7 @@ export default async function AdminDashboard() {
     ...((reqsToday ?? []) as unknown as { id: string; title: string; created_at: string; requester: { display_name: string } | null }[]).map((r) => ({
       key: `req-${r.id}`,
       icon: "📝",
-      text: `${r.requester?.display_name ?? "—"} creó la solicitud “${r.title}”`,
+      text: `${r.requester?.display_name ?? "—"} creó la solicitud "${r.title}"`,
       time: meridaClock(r.created_at),
       sort: meridaClock(r.created_at),
     })),
@@ -132,169 +157,195 @@ export default async function AdminDashboard() {
     })),
   ].sort((a, b) => b.sort.localeCompare(a.sort)).slice(0, 12);
 
-  const KPIS = [
-    { label: "Solicitudes por aprobar", value: pendingReqs ?? 0, href: "/admin/solicitudes", tone: "var(--warn)" },
-    { label: "Vacaciones pendientes", value: pendingVacs ?? 0, href: "/admin/vacaciones", tone: "var(--ok)" },
-    { label: "Incidencias pendientes", value: pendingIncs ?? 0, href: "/admin/incidencias", tone: "var(--danger)" },
-    { label: "Proyectos activos", value: activeProjects ?? 0, href: "/admin/proyectos", tone: "var(--accent)" },
-  ];
+  /* ── Actividades activas (progreso real por checklist) ── */
+  const activities = ((activeProjectsList ?? []) as unknown as ProjRow[]).map((p) => {
+    const lead = p.project_assignments.find((a) => a.is_lead)?.users ?? p.project_assignments[0]?.users ?? null;
+    const items = p.project_assignments.flatMap((a) => a.project_checklist ?? []);
+    const done = items.filter((i) => i.done).length;
+    const pct = items.length ? Math.round((done / items.length) * 100) : 0;
+    return {
+      id: p.id,
+      title: p.requests?.title ?? "Actividad",
+      type: p.requests?.type ?? "",
+      deadline: p.deadline,
+      lead,
+      pct,
+    };
+  }).sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999")).slice(0, 6);
 
-  const PULSE = [
-    { label: "Presentes", value: pulse.presentes, dot: "var(--ok)" },
-    { label: "Fuera / comida", value: pulse.fuera, dot: "var(--warn)" },
-    { label: "Completaron", value: pulse.completaron, dot: "var(--text-3)" },
-    { label: "De vacaciones", value: pulse.vacaciones, dot: "#8E5CF7" },
-  ];
+  /* ── Solicitudes por revisar ── */
+  const pendingList = (pendingRequestsList ?? []).slice(0, 6);
 
   const dateLabel = new Date().toLocaleDateString("es-MX", {
     weekday: "long", day: "numeric", month: "long", timeZone: "America/Merida",
   });
+  const hour = Number(new Date().toLocaleTimeString("es-MX", { hour: "2-digit", hour12: false, timeZone: "America/Merida" }));
+  const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+  const firstName = me!.display_name.split(" ")[0];
 
   return (
-    <>
-      <header className="pt-8 pb-5">
-        <p className="text-[13px] capitalize" style={{ color: "var(--text-3)" }}>{dateLabel}</p>
-        <h1 className="text-[28px] md:text-[32px] font-bold tracking-tight">{me!.display_name} 👋</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          Centro de operaciones · CERT Comunicación
+    <div className="space-y-6 pb-10">
+      <header className="pt-2">
+        <p className="text-[13px] capitalize text-text-3">{dateLabel}</p>
+        <h1 className="text-[26px] md:text-[30px] font-bold tracking-tight text-text-1">
+          {greeting}, {firstName} 👋
+        </h1>
+        <p className="text-[13.5px] mt-1 text-text-3">
+          {alerts.length === 0
+            ? "Todo en orden — sin alertas por ahora."
+            : `${alerts.length} cosa${alerts.length > 1 ? "s" : ""} necesita${alerts.length > 1 ? "n" : ""} tu atención hoy.`}
         </p>
       </header>
 
-      {/* ── L1 · Alertas inteligentes ── */}
-      <section className="mb-5">
-        {alerts.length === 0 ? (
-          <div className="card px-4 py-3 flex items-center gap-2.5"
-            style={{ borderColor: "color-mix(in srgb, var(--ok) 35%, transparent)" }}>
-            <span className="text-[15px]">✅</span>
-            <p className="text-[13px] font-semibold" style={{ color: "var(--ok)" }}>
-              Todo en orden — sin alertas por ahora
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {alerts.map((a, i) => (
-              <div key={i} className="card px-4 py-3 flex items-center gap-2.5"
-                style={{
-                  borderColor: `color-mix(in srgb, var(--${a.tone}) 40%, transparent)`,
-                  background: `color-mix(in srgb, var(--${a.tone}) 7%, var(--surface-1))`,
-                }}>
-                <span className="text-[15px]">{a.icon}</span>
-                <p className="text-[13px] font-semibold">{a.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Alertas */}
+      {alerts.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {alerts.map((a, i) => (
+            <Card key={i} pad={false} className="px-4 py-3 flex items-center gap-2.5">
+              <span className="text-[15px]">{a.icon}</span>
+              <p className="text-[13px] font-semibold text-text-1 flex-1">{a.text}</p>
+              <Badge tone={a.tone === "accent" ? "accent" : a.tone}>{a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso"}</Badge>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* ── L3 · Pulso en vivo del equipo ── */}
-      <section className="card px-5 py-3.5 mb-5 flex flex-wrap items-center gap-x-6 gap-y-2">
-        {PULSE.map((p) => (
-          <div key={p.label} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ background: p.dot }} />
-            <span className="text-[17px] font-bold tabular-nums">{p.value}</span>
-            <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{p.label}</span>
-          </div>
-        ))}
-        <Link href="/admin/nexus" className="ml-auto text-[12.5px] font-semibold" style={{ color: "var(--accent)" }}>
-          Ver Gantt del día →
-        </Link>
-      </section>
-
-      {/* KPIs de pendientes */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {KPIS.map((k) => (
-          <Link key={k.label} href={k.href} className="card card-hover p-5">
-            <p className="text-[30px] font-bold tabular-nums" style={{ color: k.tone }}>{k.value}</p>
-            <p className="text-[12px] font-semibold mt-1" style={{ color: "var(--text-2)" }}>{k.label}</p>
-          </Link>
-        ))}
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Link href="/admin/solicitudes"><StatCard label="Solicitudes por revisar" value={String(pendingReqs ?? 0)} icon="inbox" tone="warn" /></Link>
+        <Link href="/admin/proyectos"><StatCard label="Actividades activas" value={String(activeProjects ?? 0)} icon="layers" tone="accent" /></Link>
+        <Link href="/admin/vacaciones"><StatCard label="Vacaciones pendientes" value={String(pendingVacs ?? 0)} icon="sun" tone="purple" /></Link>
+        <Link href="/admin/incidencias"><StatCard label="Incidencias pendientes" value={String(pendingIncs ?? 0)} icon="alert" tone="danger" /></Link>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4 mb-4">
-        {/* Mi Día — admin es superset de empleado */}
-        <section className="card p-5">
+      {/* Dos columnas: actividades activas + solicitudes por revisar */}
+      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
+        <Card>
+          <SectionTitle hint={`${activeProjects ?? 0} en total`}>Actividades activas</SectionTitle>
+          {activities.length === 0 ? (
+            <EmptyState icon="layers" title="Sin actividades activas" hint="Cuando se apruebe una solicitud, aparecerá aquí con su avance." />
+          ) : (
+            <div className="space-y-1">
+              {activities.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-text-1 truncate">{a.title}</p>
+                    <div className="mt-1.5 h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${a.pct}%`, background: "var(--accent)" }} />
+                    </div>
+                  </div>
+                  <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
+                  {a.lead && <Avatar name={a.lead.display_name} color={a.lead.nexus_color ?? undefined} size={28} />}
+                </div>
+              ))}
+            </div>
+          )}
+          <Link href="/admin/proyectos" className="mt-3 w-full h-9 flex items-center justify-center rounded-s text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
+            Ver todas las actividades →
+          </Link>
+        </Card>
+
+        <Card>
+          <SectionTitle hint={`${pendingReqs ?? 0} en total`}>Solicitudes por revisar</SectionTitle>
+          {pendingList.length === 0 ? (
+            <EmptyState icon="inbox" title="Bandeja en cero" hint="No hay solicitudes esperando revisión." />
+          ) : (
+            <div className="space-y-1">
+              {pendingList.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors">
+                  <span className="grid place-items-center h-8 w-8 rounded-s bg-surface-2 text-text-3 shrink-0">📝</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-text-1 truncate">{r.title}</p>
+                    <p className="text-[12px] text-text-3 truncate">{r.requester_name ?? "—"}</p>
+                  </div>
+                  <Badge tone={PRIORITY_TONE[r.priority] ?? "neutral"}>{r.priority}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+          <Link href="/admin/solicitudes" className="mt-3 w-full h-9 flex items-center justify-center rounded-s text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
+            Revisar bandeja →
+          </Link>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* Mi jornada de hoy */}
+        <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[16px] font-bold">Mi jornada de hoy</h2>
-            {myDay.isOpen && myDay.firstIn ? <Pill tone="ok">En curso</Pill>
-              : myDay.firstIn ? <Pill tone="muted">Cerrada</Pill> : <Pill tone="muted">Sin iniciar</Pill>}
+            <SectionTitle>Mi jornada de hoy</SectionTitle>
+            {myDay.isOpen && myDay.firstIn ? <Badge tone="ok" dot>En curso</Badge>
+              : myDay.firstIn ? <Badge tone="neutral">Cerrada</Badge> : <Badge tone="neutral">Sin iniciar</Badge>}
           </div>
           <div className="grid grid-cols-3 gap-2 text-center mb-4">
-            <div className="rounded-s py-3" style={{ background: "var(--surface-2)" }}>
-              <p className="text-[15px] font-bold tabular-nums">{fmtTime(myDay.firstIn)}</p>
-              <p className="text-[10px] font-semibold" style={{ color: "var(--text-3)" }}>Entrada</p>
+            <div className="rounded-s py-3 bg-surface-2">
+              <p className="text-[15px] font-bold tabular-nums text-text-1">{fmtTime(myDay.firstIn)}</p>
+              <p className="text-[10px] font-semibold text-text-3">Entrada</p>
             </div>
-            <div className="rounded-s py-3" style={{ background: "var(--surface-2)" }}>
-              <p className="text-[15px] font-bold tabular-nums">{fmtMin(myDay.totalMin)}</p>
-              <p className="text-[10px] font-semibold" style={{ color: "var(--text-3)" }}>Laborado</p>
+            <div className="rounded-s py-3 bg-surface-2">
+              <p className="text-[15px] font-bold tabular-nums text-text-1">{fmtMin(myDay.totalMin)}</p>
+              <p className="text-[10px] font-semibold text-text-3">Laborado</p>
             </div>
-            <div className="rounded-s py-3" style={{ background: "var(--surface-2)" }}>
+            <div className="rounded-s py-3 bg-surface-2">
               <p className="text-[15px] font-bold tabular-nums" style={{ color: myDay.extraMin > 0 ? "var(--ok)" : undefined }}>
                 {myDay.extraMin > 0 ? `+${fmtMin(myDay.extraMin)}` : "—"}
               </p>
-              <p className="text-[10px] font-semibold" style={{ color: "var(--text-3)" }}>Extra</p>
+              <p className="text-[10px] font-semibold text-text-3">Extra</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/fichar" className="btn-primary flex-1 text-center py-2.5 text-[13px]">Comenzar jornada</Link>
-            <Link href="/empleado" className="btn-secondary flex-1 text-center py-2.5 text-[13px]">Mis tareas</Link>
-          </div>
-        </section>
-
-        {/* Presencia del equipo */}
-        <section className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[16px] font-bold">Equipo hoy</h2>
-            <Link href="/admin/nexus" className="text-[12.5px] font-semibold" style={{ color: "var(--accent)" }}>
-              Ver asistencia →
+            <Link href="/fichar" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-s text-[14px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
+              Comenzar jornada
+            </Link>
+            <Link href="/empleado" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-s text-[14px] font-semibold bg-surface-2 text-text-1 border border-border hover:bg-hover transition-all duration-150">
+              Mis actividades
             </Link>
           </div>
-          <div className="flex flex-col gap-2.5">
+        </Card>
+
+        {/* Equipo hoy */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <SectionTitle>Equipo hoy</SectionTitle>
+            <Link href="/admin/nexus" className="text-[12.5px] font-semibold text-accent">Ver asistencia →</Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3.5 pb-3.5 border-b border-border">
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="ok" dot>{pulse.presentes}</Badge> presentes</span>
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="warn" dot>{pulse.fuera}</Badge> fuera</span>
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="neutral" dot>{pulse.completaron}</Badge> terminaron</span>
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="purple" dot>{pulse.vacaciones}</Badge> vacaciones</span>
+          </div>
+          <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto nx-scroll">
             {presence.map((p) => (
               <div key={p.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-2 h-2 rounded-full"
-                    style={{
-                      background: p.status === "Presente" ? "var(--ok)" :
-                                  p.status === "Fuera" ? "var(--warn)" :
-                                  p.status === "Vacaciones" ? "#8E5CF7" :
-                                  p.status === "Terminó" ? "var(--text-3)" : "var(--danger)",
-                    }} />
-                  <span className="text-[13.5px] font-semibold">{p.display_name}</span>
+                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} />
+                  <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
                 </div>
-                <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{p.status}</span>
+                <span className="text-[12px] font-semibold text-text-3">{p.status}</span>
               </div>
             ))}
           </div>
-        </section>
+        </Card>
       </div>
 
-      {/* ── L3 · Actividad de hoy (feed) ── */}
-      <section className="card p-5 mb-2">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[16px] font-bold">Actividad de hoy</h2>
-          <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}>
-            fichajes · solicitudes · vacaciones
-          </span>
-        </div>
+      {/* Actividad de hoy (feed) */}
+      <Card>
+        <SectionTitle hint="fichajes · solicitudes · vacaciones">Actividad de hoy</SectionTitle>
         {feed.length === 0 ? (
-          <p className="text-[13px] py-4 text-center" style={{ color: "var(--text-3)" }}>
-            Aún no hay actividad registrada hoy
-          </p>
+          <p className="text-[13px] py-4 text-center text-text-3">Aún no hay actividad registrada hoy</p>
         ) : (
           <div className="flex flex-col">
             {feed.map((f) => (
-              <div key={f.key} className="flex items-center gap-3 py-2"
-                style={{ borderBottom: "0.5px solid var(--border)" }}>
+              <div key={f.key} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                 <span className="text-[14px] w-5 text-center shrink-0">{f.icon}</span>
-                <p className="text-[13px] flex-1 min-w-0 truncate">{f.text}</p>
-                <span className="text-[12px] font-semibold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>
-                  {f.time}
-                </span>
+                <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">{f.text}</p>
+                <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{f.time}</span>
               </div>
             ))}
           </div>
         )}
-      </section>
-    </>
+      </Card>
+    </div>
   );
 }
