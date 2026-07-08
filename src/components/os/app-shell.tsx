@@ -28,9 +28,13 @@ const HREF: Record<Role, Record<string, string>> = {
     equipo: "/admin/equipo",
     empleados: "/admin/empleados",
     "dias-inhabiles": "/admin/dias-inhabiles",
+    config: "/admin/config",
+    biblioteca: "/admin/biblioteca",
+    reportes: "/admin/reportes",
   },
   empleado: {
     hoy: "/empleado",
+    calendario: "/empleado/calendario",
     jornada: "/empleado/jornada",
     vacaciones: "/empleado/vacaciones",
     incidencias: "/empleado/incidencias",
