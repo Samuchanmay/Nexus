@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
-import EmpleadoNav from "./nav";
+import { AppShell, roleLabel } from "@/components/os/app-shell";
 
 export default async function EmpleadoLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -16,13 +16,18 @@ export default async function EmpleadoLayout({ children }: { children: React.Rea
 
   return (
     <ToastProvider>
-      <div className="mesh min-h-screen" data-mesh="empleado">
-        <EmpleadoNav profile={{ display_name: profile.display_name, nexus_color: profile.nexus_color, role: profile.role }} />
-        <main className="relative z-[1] max-w-[680px] mx-auto px-5 pb-28">{children}</main>
-        <p className="relative z-[1] text-center text-[10.5px] pb-24 md:pb-6" style={{ color: "var(--text-3)" }}>
-          Hecho con ❤️ por Samu Chan
-        </p>
-      </div>
+      <AppShell
+        role="empleado"
+        ficharAction
+        user={{
+          name: profile.display_name,
+          area: profile.area ?? "",
+          color: profile.nexus_color ?? "#0066FF",
+          roleLabel: roleLabel(profile.role === "admin" ? "admin" : "empleado"),
+        }}
+      >
+        {children}
+      </AppShell>
     </ToastProvider>
   );
 }

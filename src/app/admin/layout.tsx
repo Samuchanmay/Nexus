@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
-import AdminNav from "./nav";
+import { AppShell, roleLabel } from "@/components/os/app-shell";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -15,15 +15,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <ToastProvider>
-      <div className="mesh min-h-screen" data-mesh="admin">
-        <AdminNav profile={{ display_name: profile.display_name, nexus_color: profile.nexus_color }} />
-        <main className="relative z-[1] md:pl-[228px]">
-          <div className="max-w-[1060px] mx-auto px-5 pb-16">{children}</div>
-          <p className="text-center text-[10.5px] pb-8" style={{ color: "var(--text-3)" }}>
-            Hecho con ❤️ por Samu Chan
-          </p>
-        </main>
-      </div>
+      <AppShell
+        role="admin"
+        ficharAction
+        user={{
+          name: profile.display_name,
+          area: profile.area ?? "",
+          color: profile.nexus_color ?? "#5856D6",
+          roleLabel: roleLabel("admin"),
+        }}
+      >
+        {children}
+      </AppShell>
     </ToastProvider>
   );
 }
