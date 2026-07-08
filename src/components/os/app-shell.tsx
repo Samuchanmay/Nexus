@@ -86,15 +86,30 @@ export function AppShell({
     if (href) router.push(href);
   };
 
+  // Barra superior (desktop/tablet): botón con texto. En celular se oculta
+  // porque no cabe bien junto a buscador/tema/campana — ahí usamos el FAB.
   const fichar = ficharAction ? (
     <Link
       href="/fichar"
       className={cx(
-        "inline-flex items-center gap-1.5 h-8 px-3 rounded-s text-[13px] font-semibold whitespace-nowrap",
+        "hidden sm:inline-flex items-center gap-1.5 h-8 px-3 rounded-s text-[13px] font-semibold whitespace-nowrap",
         "bg-surface-2 text-text-1 border border-border hover:bg-hover transition-colors duration-150"
       )}
     >
       <Icon name="clock" size={15} /> Registrar entrada/salida
+    </Link>
+  ) : null;
+
+  // Celular: botón flotante fijo (abajo-derecha), igual de accesible con el
+  // pulgar que la pestaña "Fichar" que tenía el diseño anterior.
+  const ficharFab = ficharAction ? (
+    <Link
+      href="/fichar"
+      aria-label="Registrar entrada o salida"
+      className="sm:hidden fixed z-40 grid place-items-center h-14 w-14 rounded-full text-white shadow-nx active:scale-95 transition-transform"
+      style={{ right: "18px", bottom: "max(18px, env(safe-area-inset-bottom))", background: "var(--accent)" }}
+    >
+      <Icon name="clock" size={22} />
     </Link>
   ) : null;
 
@@ -110,6 +125,7 @@ export function AppShell({
       >
         {children}
       </Shell>
+      {ficharFab}
     </ThemeProvider>
   );
 }
