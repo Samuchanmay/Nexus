@@ -292,3 +292,67 @@ body {
 .v6-act-opt span{ font-size:11px; font-weight:600; }
 .v6-notice{ border-radius:var(--radius-s); padding:12px 14px; font-size:12.5px; line-height:1.5; display:flex; gap:9px; margin-bottom:16px; background:var(--warn-tint); color:var(--warn); }
 .v6-notice svg{ width:15px; height:15px; flex-shrink:0; margin-top:1px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   NEXUS OS · Fundación de tema (oscuro + claro) · Sprint 0
+   Aditivo: re-mapea los tokens v6 a paleta oscura del PRD + tokens
+   nuevos para el shell. No altera los estilos v6 existentes.
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --panel:#FFFFFF;
+  --card:#FFFFFF;
+  --sidebar:#F6F7F9;
+  --input:#FFFFFF;
+  --hover:#F0F1F4;
+  --ring:rgba(0,102,255,.30);
+  --nx-shadow:0 1px 2px rgba(16,22,38,.05), 0 12px 30px rgba(16,22,38,.07);
+}
+:root[data-theme="dark"]{
+  --bg:#0F1115;
+  --surface:#151922;
+  --surface-2:#1A1F2B;
+  --surface-3:#202737;
+  --text-1:#F5F7FA;
+  --text-2:#B7C0D1;
+  --text-3:#7E8798;
+  --accent:#4F8CFF;
+  --blue:#4F8CFF;
+  --ok:#3ECF8E;
+  --warn:#F5A623;
+  --danger:#FF6B6B;
+  --purple:#8B7BFF;
+  --border:#2A3242;
+  --border-2:#333C4F;
+  --accent-tint:rgba(79,140,255,.14);
+  --accent-tint-2:rgba(79,140,255,.08);
+  --blue-tint:rgba(79,140,255,.14);
+  --ok-tint:rgba(62,207,142,.14);
+  --warn-tint:rgba(245,166,35,.14);
+  --danger-tint:rgba(255,107,107,.14);
+  --purple-tint:rgba(139,123,255,.16);
+  --shadow-1:0 1px 0 rgba(255,255,255,.03);
+  --shadow-2:0 10px 30px rgba(0,0,0,.40);
+  --shadow-3:0 24px 60px rgba(0,0,0,.55);
+  --panel:#151922;
+  --card:#1A1F2B;
+  --sidebar:#11151D;
+  --input:#202737;
+  --hover:#232B3B;
+  --ring:rgba(79,140,255,.45);
+  --nx-shadow:0 1px 0 rgba(255,255,255,.03), 0 18px 44px rgba(0,0,0,.50);
+}
+html{ background:var(--bg); }
+body{ transition: background .28s ease, color .28s ease; }
+
+/* Ámbito del nuevo shell (Nexus OS) */
+.nx-os{ font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", sans-serif; color:var(--text-1); -webkit-font-smoothing:antialiased; }
+.nx-os *{ box-sizing:border-box; }
+.nx-scroll{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.nx-scroll::-webkit-scrollbar{ width:10px; height:10px; }
+.nx-scroll::-webkit-scrollbar-thumb{ background:var(--border); border-radius:99px; border:3px solid transparent; background-clip:padding-box; }
+.nx-scroll::-webkit-scrollbar-thumb:hover{ background:var(--text-3); }
+@keyframes nx-pop{ from{ opacity:0; transform:translateY(8px) scale(.985);} to{ opacity:1; transform:none; } }
+@keyframes nx-fade{ from{opacity:0} to{opacity:1} }
+@keyframes nx-slide{ from{opacity:0; transform:translateX(-6px)} to{opacity:1; transform:none} }
+.nx-pop{ animation:nx-pop .22s cubic-bezier(.34,1.4,.64,1) both; }
+.nx-fade{ animation:nx-fade .2s ease both; }
