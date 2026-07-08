@@ -1,6 +1,6 @@
 "use client";
 // Portal del Coordinador/Departamento
-// · Onboarding en primer login (título + contexto)
+// · El onboarding (título, coordinación/departamento) vive en /onboarding
 // · Wizard de 3 pasos: tipo → detalle (con validación de anticipación
 //   72h general, 168h para Lona y Video) → resumen y envío
 import { useMemo, useState } from "react";
@@ -22,30 +22,14 @@ const TYPE_META: { type: RequestType; icon: typeof IconCamera; desc: string; sub
 import { STATUS_TONE } from "@/lib/ui-maps";
 import { requestCalendarUrl } from "@/lib/gcal";
 
-export default function CoordinadorClient({ profile, requests, niveles }: {
-  profile: UserProfile; requests: CommRequest[]; niveles: string[];
+export default function CoordinadorClient({ profile, requests }: {
+  profile: UserProfile; requests: CommRequest[];
 }) {
   const toast = useToast();
   const router = useRouter();
-  const needsOnboarding = !profile.onboarded;
-
-  /* ── Onboarding ── */
-  const [obTitle, setObTitle] = useState(profile.title ?? "");
-  const [obArea, setObArea] = useState(profile.area ?? "");
-  const [obSaving, setObSaving] = useState(false);
-
-  const saveOnboarding = async () => {
-    if (!obTitle.trim() || !obArea.trim()) { toast("Completa ambos campos"); return; }
-    setObSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase.from("users")
-      .update({ title: obTitle.trim(), area: obArea.trim(), onboarded: true })
-      .eq("id", profile.id);
-    setObSaving(false);
-    if (error) { toast("No se pudo guardar"); return; }
-    toast("¡Listo! Bienvenido a Nexus");
-    router.refresh();
-  };
+  // El área real viene del catálogo (coordinaciones/departamentos); el texto
+  // libre "area" se conserva solo como respaldo para perfiles antiguos.
+  const areaLabel = profile.departments?.nombre ?? profile.area ?? "";
 
   /* ── Wizard ── */
   const [step, setStep] = useState(0); // 0 = lista, 1 = tipo, 2 = detalle, 3 = resumen
@@ -81,7 +65,7 @@ export default function CoordinadorClient({ profile, requests, niveles }: {
       requester_id: profile.id,
       requester_type: profile.requester_kind ?? (profile.role === "departamento" ? "departamento" : "coordinador"),
       requester_name: profile.full_name,
-      requester_area: profile.area,
+      requester_area: areaLabel,
       type, subtype: subtypes,
       title: form.title.trim(),
       event_date: form.date || null,
@@ -98,37 +82,6 @@ export default function CoordinadorClient({ profile, requests, niveles }: {
   };
 
   /* ══ Render ══ */
-  if (needsOnboarding) {
-    return (
-      <div className="pt-14 max-w-[440px] mx-auto">
-        <h1 className="text-[26px] font-bold tracking-tight mb-1.5">Antes de empezar 👋</h1>
-        <p className="text-[13.5px] mb-7" style={{ color: "var(--text-2)" }}>
-          Cuéntanos quién eres — esto aparece en tus solicitudes para que Comunicación sepa a quién atiende.
-        </p>
-        <div className="card p-6 flex flex-col gap-4">
-          <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Título</label>
-            <input className="field-input" placeholder="Ej. Mtra., Lic., Dr."
-              value={obTitle} onChange={(e) => setObTitle(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-              Coordinación o departamento
-            </label>
-            <input className="field-input" placeholder="Ej. Coordinación de Preparatoria" list="niveles-list"
-              value={obArea} onChange={(e) => setObArea(e.target.value)} />
-            <datalist id="niveles-list">
-              {niveles.map((n) => <option key={n} value={`Coordinación de ${n}`} />)}
-            </datalist>
-          </div>
-          <button className="btn-primary py-3.5 text-[14.5px]" disabled={obSaving} onClick={saveOnboarding}>
-            {obSaving ? "Guardando…" : "Continuar a Nexus"}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (step === 0) {
     return (
       <>
@@ -137,7 +90,7 @@ export default function CoordinadorClient({ profile, requests, niveles }: {
             {(profile.title ? profile.title + " " : "") + profile.display_name} 👋
           </h1>
           <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            {profile.area} · Solicita apoyo del equipo de Comunicación
+            {areaLabel} · Solicita apoyo del equipo de Comunicación
           </p>
         </header>
 
@@ -306,7 +259,7 @@ export default function CoordinadorClient({ profile, requests, niveles }: {
               <p><span style={{ color: "var(--text-3)" }}>Fecha:</span> {form.date}{form.time && ` · ${form.time}`}</p>
               {form.location && <p><span style={{ color: "var(--text-3)" }}>Lugar:</span> {form.location}</p>}
               {form.notes && <p><span style={{ color: "var(--text-3)" }}>Detalles:</span> {form.notes}</p>}
-              <p><span style={{ color: "var(--text-3)" }}>Solicita:</span> {(profile.title ? profile.title + " " : "") + profile.full_name} · {profile.area}</p>
+              <p><span style={{ color: "var(--text-3)" }}>Solicita:</span> {(profile.title ? profile.title + " " : "") + profile.full_name} · {areaLabel}</p>
             </div>
           </div>
           <div className="rounded-s px-4 py-3 text-[12.5px] flex items-center gap-2"
