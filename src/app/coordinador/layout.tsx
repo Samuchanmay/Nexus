@@ -8,8 +8,9 @@ export default async function CoordinadorLayout({ children }: { children: React.
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase
-    .from("users").select("role").eq("auth_id", user.id).single();
+    .from("users").select("role, onboarded").eq("auth_id", user.id).single();
   if (!profile) redirect("/login?error=no-autorizado");
+  if (!profile.onboarded) redirect("/onboarding");
   if (!["coordinador", "departamento", "admin"].includes(profile.role)) redirect("/");
 
   return (

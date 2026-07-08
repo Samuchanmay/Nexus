@@ -10,6 +10,7 @@ export default async function EmpleadoLayout({ children }: { children: React.Rea
   const { data: profile } = await supabase
     .from("users").select("*").eq("auth_id", user.id).single();
   if (!profile) redirect("/login?error=no-autorizado");
+  if (!profile.onboarded) redirect("/onboarding");
   // Admin es superset de Empleado: también puede entrar aquí
   if (!["empleado", "admin"].includes(profile.role)) redirect("/");
 

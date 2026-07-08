@@ -10,6 +10,7 @@ export default async function Home() {
     .from("users").select("role, onboarded").eq("auth_id", user.id).single();
 
   if (!profile) redirect("/login?error=no-autorizado");
+  if (!profile.onboarded) redirect("/onboarding");
   switch (profile.role) {
     case "admin": redirect("/admin");
     case "rh": redirect("/rh");

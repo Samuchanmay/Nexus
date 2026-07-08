@@ -15,9 +15,18 @@ export interface UserProfile {
   nexus_color: string | null;
   specialties: string[];
   area: string | null;
+  area_id: string | null;
   active: boolean;
   vacation_balance: number;
   onboarded: boolean;
+  departments?: { id: string; nombre: string; tipo: "coordinacion" | "departamento" } | null;
+}
+
+export interface Department {
+  id: string;
+  nombre: string;
+  tipo: "coordinacion" | "departamento";
+  activo: boolean;
 }
 
 export interface Schedule {

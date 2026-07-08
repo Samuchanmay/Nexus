@@ -8,8 +8,9 @@ export default async function RHLayout({ children }: { children: React.ReactNode
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase
-    .from("users").select("role").eq("auth_id", user.id).single();
+    .from("users").select("role, onboarded").eq("auth_id", user.id).single();
   if (!profile) redirect("/login?error=no-autorizado");
+  if (!profile.onboarded) redirect("/onboarding");
   if (!["rh", "admin"].includes(profile.role)) redirect("/");
 
   return (
