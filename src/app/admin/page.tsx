@@ -62,7 +62,7 @@ export default async function AdminDashboard() {
     const status = onVacation.has(u.id) ? "Vacaciones"
       : done ? "Terminó"
       : hasIn ? (last?.type === "Salida" ? "Fuera" : "Presente")
-      : "Sin fichar";
+      : "Sin iniciar";
     return { ...u, status };
   });
 
@@ -84,12 +84,12 @@ export default async function AdminDashboard() {
   }
   if (isWorkday) {
     for (const p of presence) {
-      if (p.status !== "Sin fichar") continue;
+      if (p.status !== "Sin iniciar") continue;
       const s = (allScheds ?? []).find((x) => x.user_id === p.id);
       const start = toMin((s?.start_time ?? "09:00:00").slice(0, 5));
       const expected = start + (s?.tolerance_min ?? 15);
       if (nowMin > expected) {
-        alerts.push({ icon: "⏰", text: `${p.display_name} aún no ficha (se esperaba a las ${hhmm(start)})`, tone: "warn" });
+        alerts.push({ icon: "⏰", text: `${p.display_name} aún no inicia jornada (se esperaba a las ${hhmm(start)})`, tone: "warn" });
       }
     }
   }
@@ -235,7 +235,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/fichar" className="btn-primary flex-1 text-center py-2.5 text-[13px]">Fichar</Link>
+            <Link href="/fichar" className="btn-primary flex-1 text-center py-2.5 text-[13px]">Comenzar jornada</Link>
             <Link href="/empleado" className="btn-secondary flex-1 text-center py-2.5 text-[13px]">Mis tareas</Link>
           </div>
         </section>

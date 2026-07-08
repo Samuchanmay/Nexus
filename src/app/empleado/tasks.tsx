@@ -372,11 +372,11 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
         </>
       )}
 
-      {/* Ficha rápida si aún no hay entrada hoy */}
+      {/* Comenzar jornada rápido si aún no hay entrada hoy */}
       {!day.hasEntry && (
         <Link href="/fichar" className="v6-ac-btn play" style={{ display: "inline-flex", marginBottom: 30 }}>
           <svg viewBox="0 0 24 24"><path d="M12 2a8 8 0 00-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 00-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
-          Fichar entrada
+          Comenzar jornada
         </Link>
       )}
 

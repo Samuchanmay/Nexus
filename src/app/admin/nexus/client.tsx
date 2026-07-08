@@ -45,7 +45,7 @@ function segmentsOf(day: PersonDay["day"], nowMin: number) {
 }
 
 function estadoPill(day: PersonDay["day"]) {
-  if (!day.firstIn) return <Pill tone="muted">Sin fichar</Pill>;
+  if (!day.firstIn) return <Pill tone="muted">Sin iniciar</Pill>;
   if (day.isOpen) {
     const last = day.movements.at(-1);
     if (last?.type === "Salida") {
