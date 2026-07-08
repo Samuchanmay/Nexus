@@ -13,6 +13,7 @@ import { Shell, type ShellUser } from "./shell";
 import { Icon } from "./icons";
 import { cx } from "./ui";
 import { navFor, type Role } from "@/lib/nav";
+export { roleLabel } from "@/lib/nav";
 
 const HREF: Record<Role, Record<string, string>> = {
   admin: {
@@ -45,15 +46,6 @@ const TITLES: Record<string, string> = {
   incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Empleados",
   "dias-inhabiles": "Días inhábiles", reportes: "Reportes", config: "Configuración",
 };
-
-const ROLE_LABEL: Record<Role, string> = {
-  admin: "Administrador", empleado: "Colaborador", coordinador: "Coordinador",
-  departamento: "Departamento", rh: "Recursos Humanos",
-};
-
-export function roleLabel(role: Role) {
-  return ROLE_LABEL[role] ?? role;
-}
 
 export function AppShell({
   role, user, children, actions, ficharAction = false,

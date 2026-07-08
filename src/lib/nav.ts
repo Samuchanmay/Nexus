@@ -37,3 +37,12 @@ export const SECTIONS: { id: NavItem["section"]; label: string }[] = [
 export function navFor(role: Role): NavItem[] {
   return NAV.filter((i) => i.roles === "all" || i.roles.includes(role));
 }
+
+const ROLE_LABEL: Record<Role, string> = {
+  admin: "Administrador", empleado: "Colaborador", coordinador: "Coordinador",
+  departamento: "Departamento", rh: "Recursos Humanos",
+};
+
+export function roleLabel(role: Role): string {
+  return ROLE_LABEL[role] ?? role;
+}
