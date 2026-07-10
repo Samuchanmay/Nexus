@@ -30,6 +30,8 @@ const ONLY_HERE: LinkCard[] = [
     desc: "Agrega tipos nuevos (ej. Podcast) y sus checklists, sin tocar código." },
   { href: "/admin/config/dispositivos", title: "Dispositivos", icon: "device",
     desc: "Teléfonos vinculados a cada persona en /fichar — desactiva los perdidos o reasignados." },
+  { href: "/admin/dev-mode", title: "Modo desarrollador", icon: "layers",
+    desc: "Mapa de todas las pantallas de Nexus, agrupadas por rol — para probar y encontrar errores." },
 ];
 
 const SHORTCUTS: LinkCard[] = [

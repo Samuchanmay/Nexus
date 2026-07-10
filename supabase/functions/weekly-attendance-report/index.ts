@@ -43,6 +43,21 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Body vacío (o no-JSON) = invocación de pg_cron; { manual: true } = botón
+    // "Enviar ahora" en admin/nexus. El switch de app_settings solo apaga el
+    // envío automático — el botón manual siempre funciona.
+    const body = await req.json().catch(() => ({}));
+    const manual = (body as { manual?: boolean })?.manual === true;
+
+    const { data: settings } = await admin
+      .from("app_settings").select("key, value")
+      .in("key", ["weekly_report_enabled", "weekly_report_email"]);
+    const settingsMap = new Map((settings ?? []).map((s) => [s.key, s.value]));
+
+    if (!manual && settingsMap.get("weekly_report_enabled") === "false") {
+      return Response.json({ ok: true, skipped: true, reason: "envio-automatico-desactivado" }, { headers: cors });
+    }
+
     // Semana pasada completa (lunes a domingo). Si se ejecuta un lunes por la
     // mañana, cubre exactamente la semana que acaba de terminar.
     const thisMonday = mondayOf(new Date());
@@ -107,7 +122,8 @@ Deno.serve(async (req) => {
           </td>
         </tr>`).join("");
 
-    const to = Deno.env.get("RRHH_EMAIL") ?? Deno.env.get("NOTIFY_EMAIL") ?? "samuel.chan@cert.edu.mx";
+    const configuredEmail = settingsMap.get("weekly_report_email")?.trim();
+    const to = configuredEmail || Deno.env.get("RRHH_EMAIL") || Deno.env.get("NOTIFY_EMAIL") || "samuel.chan@cert.edu.mx";
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {

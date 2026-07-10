@@ -63,15 +63,16 @@ function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
   return <Pill tone={day.metTarget ? "ok" : "warn"}>{day.metTarget ? "Completa" : "Cerrada"}</Pill>;
 }
 
-export default function AsistenciaClient({ people, states, weekRows }: {
+export default function AsistenciaClient({ people, states, weekRows, reportSettings, today }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[];
+  reportSettings: { enabled: boolean; email: string }; today: string;
 }) {
   const toast = useToast();
   const [view, setView] = useState<"tabla" | "gantt" | "semana">("tabla");
   const [sending, setSending] = useState(false);
   const enviarReporte = async () => {
     setSending(true);
-    const { data, error } = await createClient().functions.invoke("weekly-attendance-report", { body: {} });
+    const { data, error } = await createClient().functions.invoke("weekly-attendance-report", { body: { manual: true } });
     setSending(false);
     const ok = (data as { ok?: boolean } | null)?.ok;
     toast(!error && ok ? "Reporte semanal enviado por correo" : "No se pudo enviar el reporte");
@@ -84,6 +85,33 @@ export default function AsistenciaClient({ people, states, weekRows }: {
     ].join("\n");
     return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   }, [weekRows]);
+  const dayCsvHref = useMemo(() => {
+    const csv = [
+      "Persona,Área,Entrada,Horas laboradas,Objetivo",
+      ...people.map(({ user: u, day }) =>
+        `"${u.display_name}","${u.area ?? ""}",${fmtTime(day.firstIn)},${day.firstIn ? fmtMin(day.totalMin) : "—"},${fmtMin(day.targetMin)}`),
+    ].join("\n");
+    return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
+  }, [people]);
+
+  // ── Switch de envío automático + correo destino (app_settings) ──
+  const [reportEnabled, setReportEnabled] = useState(reportSettings.enabled);
+  const [reportEmail, setReportEmail] = useState(reportSettings.email);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const saveReportSettings = async (next: { enabled?: boolean; email?: string }) => {
+    setSavingSettings(true);
+    const enabled = next.enabled ?? reportEnabled;
+    const email = next.email ?? reportEmail;
+    const supabase = createClient();
+    await Promise.all([
+      supabase.from("app_settings").upsert({ key: "weekly_report_enabled", value: String(enabled) }),
+      supabase.from("app_settings").upsert({ key: "weekly_report_email", value: email }),
+    ]);
+    setReportEnabled(enabled);
+    setReportEmail(email);
+    setSavingSettings(false);
+    toast("Configuración del reporte guardada");
+  };
   const [nowMin, setNowMin] = useState(() => nowMeridaMinutes());
   useEffect(() => {
     const id = setInterval(() => setNowMin(nowMeridaMinutes()), 30_000);
@@ -108,13 +136,46 @@ export default function AsistenciaClient({ people, states, weekRows }: {
             value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "Semana"}
             onChange={(v) => setView(v === "Tabla" ? "tabla" : v === "Gantt" ? "gantt" : "semana")}
           />
+          {view === "tabla" && (
+            <a href={dayCsvHref} download={`asistencia-${today}.csv`}
+              className="btn-secondary px-4 py-2.5 text-[13px]">
+              CSV del día ↓
+            </a>
+          )}
           {view === "semana" && (
             <button className="btn-secondary px-4 py-2.5 text-[13px]" disabled={sending} onClick={enviarReporte}>
-              {sending ? "Enviando…" : "Enviar reporte por correo"}
+              {sending ? "Enviando…" : "Enviar ahora"}
             </button>
           )}
         </div>
       </PageHeader>
+
+      {view === "semana" && (
+        <div className="card p-4 mb-4 flex items-center gap-4 flex-wrap">
+          <button
+            onClick={() => saveReportSettings({ enabled: !reportEnabled })}
+            disabled={savingSettings}
+            className="flex items-center gap-2 text-[13px] font-semibold"
+          >
+            <span className="relative inline-block w-9 h-5 rounded-full transition-colors"
+              style={{ background: reportEnabled ? "var(--ok)" : "var(--surface-2)", border: "1px solid var(--border)" }}>
+              <span className="absolute top-[1px] w-4 h-4 rounded-full bg-white transition-all"
+                style={{ left: reportEnabled ? "18px" : "1px" }} />
+            </span>
+            Envío automático los lunes {reportEnabled ? "activado" : "desactivado"}
+          </button>
+          <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+            <input
+              className="field-input flex-1 text-[13px]" placeholder="correo@cert.edu.mx (deja vacío para el predeterminado)"
+              value={reportEmail} onChange={(e) => setReportEmail(e.target.value)}
+              onBlur={() => { if (reportEmail !== reportSettings.email) saveReportSettings({ email: reportEmail }); }}
+            />
+          </div>
+          <p className="text-[11.5px] w-full" style={{ color: "var(--text-3)" }}>
+            El botón &quot;Enviar ahora&quot; siempre funciona, sin importar este switch — el switch solo controla el envío automático de cada lunes.
+          </p>
+        </div>
+      )}
 
       {view === "tabla" && (
         /* ── Vista tabla (tarjetas por persona) ── */
