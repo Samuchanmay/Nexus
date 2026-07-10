@@ -186,6 +186,12 @@ body {
 .ck-btn-registrar:hover:not(:disabled)  { background: #3B82F6; }
 .ck-btn-registrar:active:not(:disabled) { transform: scale(.98); }
 .ck-btn-registrar:disabled { background: #D1D5DB; color: #9CA3AF; cursor: not-allowed; }
+/* BUG 005 — tras un check-in exitoso, botón principal claro (ir a Mi Día)
+   + botón secundario más discreto (registrar otro movimiento). */
+.ck-btn-primary { background: #3B82F6; }
+.ck-btn-primary:hover { background: #2563EB; }
+.ck-btn-secondary { background: transparent; color: #1E293B; border: 1.5px solid #E2E8F0; }
+.ck-btn-secondary:hover:not(:disabled) { background: #F8FAFC; }
 .ck-resultado { border-radius: 14px; padding: 20px; text-align: center; }
 .ck-resultado.ok        { background: #D1FAE5; color: #065F46; }
 .ck-resultado.error     { background: #FEE2E2; color: #991B1B; }

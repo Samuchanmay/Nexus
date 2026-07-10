@@ -7,6 +7,7 @@
 //  fix B8: el quote del resultado nunca puede duplicarse (re-render).
 // ═══════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { QUOTES_ENTRADA, QUOTES_SALIDA } from "./quotes";
 
@@ -287,7 +288,10 @@ export default function Fichar() {
             {resultado.pausedActivity && (
               <p style={{ fontSize: 12, marginTop: 10, opacity: 0.8 }}>⏸️ Se pausó tu actividad en curso automáticamente.</p>
             )}
-            <button className="ck-btn-registrar" style={{ marginTop: 16 }} onClick={reiniciar}>Nuevo registro</button>
+            <Link href="/" className="ck-btn-registrar ck-btn-primary" style={{ marginTop: 16, display: "block", textAlign: "center", textDecoration: "none" }}>
+              Ir a Mi Día
+            </Link>
+            <button className="ck-btn-registrar ck-btn-secondary" style={{ marginTop: 10 }} onClick={reiniciar}>Nuevo registro</button>
           </div>
         ) : resultado.kind === "queued" ? (
           <div className="ck-resultado pendiente">
