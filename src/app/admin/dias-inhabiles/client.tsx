@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast, Pill } from "@/components/ui";
 import { useSupabaseMutation } from "@/components/shared";
 import { IconPlus, IconX } from "@/components/icons";
+import { mexicanHolidays } from "@/lib/holidays";
 
 const KIND_TONE: Record<string, "accent" | "warn" | "ok" | "muted"> = {
   nacional: "accent", estatal: "warn", empresa: "ok", puente: "muted",
@@ -13,6 +14,18 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ date: "", name: "", kind: "empresa" });
+  const [genYear, setGenYear] = useState(String(new Date().getFullYear()));
+  const { run: runGen, saving: generating } = useSupabaseMutation();
+
+  const generar = () => runGen(async () => {
+    const year = parseInt(genYear);
+    if (!year) return { error: { message: "Año inválido" } };
+    const rows = mexicanHolidays(year).map((h) => ({ date: h.date, name: h.name, kind: "nacional" }));
+    const { error } = await createClient().from("holidays")
+      .upsert(rows, { onConflict: "date", ignoreDuplicates: true });
+    if (error) return { error: { message: "No se pudieron generar" } };
+    return { error: null };
+  }, { ok: `Feriados oficiales de ${genYear} generados` });
 
   const add = async () => {
     if (!form.date || !form.name.trim()) { toast("Fecha y nombre son obligatorios"); return; }
@@ -30,11 +43,20 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
 
   return (
     <>
-      <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Días inhábiles</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          Estos días nunca generan falta y no cuentan para vacaciones
-        </p>
+      <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight">Días inhábiles</h1>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
+            Estos días nunca generan falta y no cuentan para vacaciones
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input type="number" className="field-input w-[100px]" value={genYear}
+            onChange={(e) => setGenYear(e.target.value)} />
+          <button className="btn-secondary px-4 py-2.5 text-[13px]" disabled={generating} onClick={generar}>
+            {generating ? "Generando…" : `Generar feriados oficiales de ${genYear}`}
+          </button>
+        </div>
       </header>
 
       <div className="card p-5 mb-6">

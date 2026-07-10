@@ -2,18 +2,30 @@ import { createClient } from "@/lib/supabase/server";
 import { summarizeDay } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
-import { todayMerida } from "@/lib/tz";
-import AsistenciaClient, { type PersonDay } from "./client";
+import { todayMerida, addDays } from "@/lib/tz";
+import AsistenciaClient, { type PersonDay, type WeekRow } from "./client";
 
-/** Asistencia — server junta los datos; la vista (tabla ⇄ Gantt L2) vive en client.tsx */
+/** Lunes de la semana ISO que contiene la fecha dada (YYYY-MM-DD, sin efectos de zona). */
+function mondayOf(dateIso: string): string {
+  const d = new Date(dateIso + "T12:00:00Z");
+  const day = d.getUTCDay(); // 0=Dom..6=Sáb
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Asistencia — server junta los datos; la vista (tabla ⇄ Gantt ⇄ semana) vive en client.tsx */
 export default async function AsistenciaEquipo() {
   const supabase = await createClient();
   const today = todayMerida();
-  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }] = await Promise.all([
+  const since = addDays(today, -56); // 8 semanas
+
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
     supabase.from("schedules").select("*").is("valid_until", null),
     supabase.from("jornada_states").select("*").eq("activo", true),
+    supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
   ]);
   const states = (jornadaStates ?? []) as JornadaState[];
 
@@ -37,5 +49,29 @@ export default async function AsistenciaEquipo() {
     };
   });
 
-  return <AsistenciaClient people={people} states={states} />;
+  // Desglose semanal por persona (equivalente al reporte semanal del checador legado)
+  const weekRows: WeekRow[] = [];
+  const weekAttRows = (weekAtt ?? []) as AttendanceRow[];
+  for (const u of (team ?? [])) {
+    const sched = (scheds ?? []).find((s) => s.user_id === u.id) as Schedule | undefined;
+    const mySched = sched ?? { target_min: 480, tolerance_min: 15 };
+    const myRows = weekAttRows.filter((r) => r.user_id === u.id);
+    const dates = [...new Set(myRows.map((r) => r.date))];
+    const byWeek = new Map<string, { totalMin: number; extraMin: number; days: number }>();
+    for (const d of dates) {
+      const day = summarizeDay(d, myRows, mySched, states);
+      const wk = mondayOf(d);
+      const acc = byWeek.get(wk) ?? { totalMin: 0, extraMin: 0, days: 0 };
+      acc.totalMin += day.totalMin;
+      acc.extraMin += day.extraMin;
+      if (day.totalMin > 0) acc.days += 1;
+      byWeek.set(wk, acc);
+    }
+    for (const [week, acc] of byWeek) {
+      weekRows.push({ userId: u.id, name: u.display_name, week, ...acc });
+    }
+  }
+  weekRows.sort((a, b) => b.week.localeCompare(a.week) || a.name.localeCompare(b.name));
+
+  return <AsistenciaClient people={people} states={states} weekRows={weekRows} />;
 }

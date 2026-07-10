@@ -59,6 +59,24 @@ const readQueue = (): QueuedReg[] => {
 };
 const writeQueue = (q: QueuedReg[]) => localStorage.setItem(QKEY, JSON.stringify(q));
 
+// ID de dispositivo persistente (I17): un valor aleatorio guardado en este
+// navegador/teléfono, no el user-agent (que sería igual entre dos personas
+// con el mismo modelo). Así la validación antifraude del servidor puede
+// distinguir "mismo teléfono" de "mismo modelo de teléfono".
+const DEVICE_KEY = "nexus_device_id";
+function getDeviceId(): string {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = `dev_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return "sin-almacenamiento";
+  }
+}
+
 export default function Fichar() {
   const [nombre, setNombre] = useState<string>("");
   const [fechaHora, setFechaHora] = useState("Cargando...");
@@ -137,7 +155,7 @@ export default function Fichar() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify({
           reason: reg.reason, lat: reg.lat, lng: reg.lng,
-          captured_at: reg.captured_at, device_id: navigator.userAgent.slice(0, 120),
+          captured_at: reg.captured_at, device_id: getDeviceId(),
         }),
         signal: ctrl.signal,
       });

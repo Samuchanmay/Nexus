@@ -25,6 +25,7 @@ const GROUPS: { label: string; items: LinkCard[] }[] = [
       { href: "/admin/calendario", title: "Calendario del equipo", desc: "Heatmap mensual de asistencia, vacaciones y días inhábiles." },
       { href: "/admin/dias-inhabiles", title: "Días inhábiles", desc: "Fechas que no cuentan como jornada laboral." },
       { href: "/admin/config/estados-jornada", title: "Estados de jornada", desc: "Qué cuenta como tiempo trabajado y qué pausa la actividad en curso." },
+      { href: "/admin/config/dispositivos", title: "Dispositivos", desc: "Teléfonos vinculados a cada persona en /fichar — desactiva los perdidos o reasignados." },
     ],
   },
   {

@@ -13,6 +13,17 @@ const timeFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit"
 const OFICINA_LNG = Number(Deno.env.get("OFICINA_LNG") ?? "-89.529222");
 const RADIO_MAX_M = Number(Deno.env.get("RADIO_MAX_M") ?? "50");
 
+// Mismo mapeo que src/lib/hours.ts (motivos fijos del checador → nombre de
+// estado en jornada_states). Si el estado tiene pausa_actividad = true,
+// pausamos automáticamente la actividad que la persona tenga abierta.
+const SALIDA_REASON_TO_STATE: Record<string, string> = {
+  "Salida a comer": "Comida",
+  "Salida a diligencia": "Diligencia",
+  "Salida a cita médica": "Consulta médica",
+  "Salida a permiso": "Permiso temporal",
+  "Salida a pendientes": "Pendientes",
+};
+
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000;
   const toRad = (d: number) => (d * Math.PI) / 180;
@@ -39,6 +50,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization")! } } },
     );
+    // Cliente de servicio — solo para el vínculo dispositivo↔persona (I17),
+    // que necesita ver dispositivos de OTRAS personas para detectar fraude.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -62,6 +79,27 @@ Deno.serve(async (req) => {
         { ok: false, error: `Fuera de rango: estás a ${dist} m de la oficina (máx ${RADIO_MAX_M} m)` },
         { status: 422, headers: cors },
       );
+    }
+
+    // I17 · Vínculo dispositivo↔persona: si este device_id ya está ligado a
+    // otra persona activa, se rechaza (evita que alguien fiche por otra
+    // persona con su mismo teléfono). Primer uso de un device_id ⇒ se
+    // vincula automáticamente a quien está fichando.
+    const deviceId = typeof device_id === "string" ? device_id.trim().slice(0, 120) : "";
+    if (deviceId) {
+      const { data: known } = await admin
+        .from("known_devices").select("user_id, active").eq("device_id", deviceId).maybeSingle();
+      if (known) {
+        if (!known.active) {
+          return Response.json({ ok: false, error: "Dispositivo desactivado por el administrador" }, { status: 403, headers: cors });
+        }
+        if (known.user_id !== profile.id) {
+          return Response.json({ ok: false, error: "Este dispositivo ya está vinculado a otra persona" }, { status: 403, headers: cors });
+        }
+        await admin.from("known_devices").update({ last_seen_at: new Date().toISOString() }).eq("device_id", deviceId);
+      } else {
+        await admin.from("known_devices").insert({ device_id: deviceId, user_id: profile.id });
+      }
     }
 
     const ENTRADAS = ["Entrada a trabajo", "Regreso de comida", "Regreso de diligencia",
@@ -114,8 +152,42 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: msg }, { status: 409, headers: cors });
     }
 
+    // Pausar automáticamente la actividad en curso si el estado de esta
+    // salida así lo indica (jornada_states.pausa_actividad), o si es fin
+    // de jornada (nunca debe quedar un cronómetro corriendo de un día ya
+    // cerrado). No afecta el total de horas del día, solo el cronómetro
+    // de la actividad/proyecto.
+    let pausedActivity = false;
+    if (type === "Salida") {
+      let shouldPause = reason === "Fin de jornada";
+      if (!shouldPause) {
+        const stateName = SALIDA_REASON_TO_STATE[reason];
+        if (stateName) {
+          const { data: st } = await supabase
+            .from("jornada_states").select("pausa_actividad").eq("nombre", stateName).eq("activo", true).maybeSingle();
+          shouldPause = !!st?.pausa_actividad;
+        }
+      }
+      if (shouldPause) {
+        const { data: myAssignments } = await supabase
+          .from("project_assignments").select("id").eq("user_id", profile.id);
+        const ids = (myAssignments ?? []).map((a) => a.id);
+        if (ids.length) {
+          const { data: openLogs } = await supabase
+            .from("task_time_logs").select("id, started_at")
+            .in("assignment_id", ids).is("ended_at", null);
+          for (const log of openLogs ?? []) {
+            const minutes = Math.max(1, Math.floor((now.getTime() - new Date(log.started_at).getTime()) / 60000));
+            await supabase.from("task_time_logs")
+              .update({ ended_at: now.toISOString(), minutes }).eq("id", log.id);
+            pausedActivity = true;
+          }
+        }
+      }
+    }
+
     // Confirmación REAL: devolvemos el UUID insertado
-    return Response.json({ ok: true, id: data.id, date: data.date, time: data.time, distance_m: dist }, { headers: cors });
+    return Response.json({ ok: true, id: data.id, date: data.date, time: data.time, distance_m: dist, pausedActivity }, { headers: cors });
   } catch {
     return Response.json({ ok: false, error: "Error del servidor" }, { status: 500, headers: cors });
   }

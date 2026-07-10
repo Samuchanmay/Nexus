@@ -5,8 +5,9 @@
 //  Todo con tokens v6; datos 100 % Supabase (server page los junta).
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Pill, SlidingSegments } from "@/components/ui";
+import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
 import { PageHeader } from "@/components/shared";
+import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
@@ -19,6 +20,10 @@ export interface PersonDay {
     targetMin: number; metTarget: boolean; isOpen: boolean;
     movements: { id: string; type: "Entrada" | "Salida"; reason: string; time: string }[];
   };
+}
+
+export interface WeekRow {
+  userId: string; name: string; week: string; totalMin: number; extraMin: number; days: number;
 }
 
 /* ── Geometría del Gantt: eje 08:00 → 22:00 ── */
@@ -58,8 +63,27 @@ function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
   return <Pill tone={day.metTarget ? "ok" : "warn"}>{day.metTarget ? "Completa" : "Cerrada"}</Pill>;
 }
 
-export default function AsistenciaClient({ people, states }: { people: PersonDay[]; states: JornadaState[] }) {
-  const [view, setView] = useState<"tabla" | "gantt">("tabla");
+export default function AsistenciaClient({ people, states, weekRows }: {
+  people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[];
+}) {
+  const toast = useToast();
+  const [view, setView] = useState<"tabla" | "gantt" | "semana">("tabla");
+  const [sending, setSending] = useState(false);
+  const enviarReporte = async () => {
+    setSending(true);
+    const { data, error } = await createClient().functions.invoke("weekly-attendance-report", { body: {} });
+    setSending(false);
+    const ok = (data as { ok?: boolean } | null)?.ok;
+    toast(!error && ok ? "Reporte semanal enviado por correo" : "No se pudo enviar el reporte");
+  };
+  const weekCsvHref = useMemo(() => {
+    const csv = [
+      "Semana (lunes),Persona,Días trabajados,Horas totales,Horas extra",
+      ...weekRows.map((r) =>
+        `${r.week},"${r.name}",${r.days},${(r.totalMin / 60).toFixed(1)},${(r.extraMin / 60).toFixed(1)}`),
+    ].join("\n");
+    return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
+  }, [weekRows]);
   const [nowMin, setNowMin] = useState(() => nowMeridaMinutes());
   useEffect(() => {
     const id = setInterval(() => setNowMin(nowMeridaMinutes()), 30_000);
@@ -78,14 +102,21 @@ export default function AsistenciaClient({ people, states }: { people: PersonDay
         title="Asistencia"
         subtitle="Jornadas del equipo en tiempo real · la comida cuenta como tiempo laborado"
       >
-        <SlidingSegments
-          options={["Tabla", "Gantt"]}
-          value={view === "tabla" ? "Tabla" : "Gantt"}
-          onChange={(v) => setView(v === "Tabla" ? "tabla" : "gantt")}
-        />
+        <div className="flex items-center gap-2.5">
+          <SlidingSegments
+            options={["Tabla", "Gantt", "Semana"]}
+            value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "Semana"}
+            onChange={(v) => setView(v === "Tabla" ? "tabla" : v === "Gantt" ? "gantt" : "semana")}
+          />
+          {view === "semana" && (
+            <button className="btn-secondary px-4 py-2.5 text-[13px]" disabled={sending} onClick={enviarReporte}>
+              {sending ? "Enviando…" : "Enviar reporte por correo"}
+            </button>
+          )}
+        </div>
       </PageHeader>
 
-      {view === "tabla" ? (
+      {view === "tabla" && (
         /* ── Vista tabla (tarjetas por persona) ── */
         <div className="grid md:grid-cols-2 gap-4">
           {people.map(({ user: u, day }) => (
@@ -131,7 +162,8 @@ export default function AsistenciaClient({ people, states }: { people: PersonDay
             </div>
           ))}
         </div>
-      ) : (
+      )}
+      {view === "gantt" && (
         /* ── L2 · Gantt diario con línea "Ahora" ── */
         <div className="card p-5 overflow-x-auto">
           <div className="min-w-[640px]">
@@ -238,6 +270,48 @@ export default function AsistenciaClient({ people, states }: { people: PersonDay
               </span>
             </div>
           </div>
+        </div>
+      )}
+      {view === "semana" && (
+        /* ── Desglose semanal por persona (equivalente al reporte del checador legado) ── */
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Últimas 8 semanas</p>
+            <a href={weekCsvHref} download="asistencia-semanal.csv"
+              className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+              Exportar CSV ↓
+            </a>
+          </div>
+          {weekRows.length === 0 ? (
+            <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin registros en las últimas 8 semanas.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12.5px]">
+                <thead>
+                  <tr style={{ color: "var(--text-3)" }} className="text-left">
+                    <th className="font-semibold pb-2 pr-4">Semana</th>
+                    <th className="font-semibold pb-2 pr-4">Persona</th>
+                    <th className="font-semibold pb-2 pr-4">Días</th>
+                    <th className="font-semibold pb-2 pr-4">Horas totales</th>
+                    <th className="font-semibold pb-2">Extra</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weekRows.map((r) => (
+                    <tr key={`${r.userId}-${r.week}`} className="border-t" style={{ borderColor: "var(--border)" }}>
+                      <td className="py-2 pr-4 tabular-nums">{r.week}</td>
+                      <td className="py-2 pr-4 font-semibold">{r.name}</td>
+                      <td className="py-2 pr-4 tabular-nums">{r.days}</td>
+                      <td className="py-2 pr-4 tabular-nums">{fmtMin(r.totalMin)}</td>
+                      <td className="py-2 tabular-nums" style={{ color: r.extraMin > 0 ? "var(--ok)" : "var(--text-3)" }}>
+                        {r.extraMin > 0 ? `+${fmtMin(r.extraMin)}` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </>
