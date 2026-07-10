@@ -13,8 +13,35 @@ export async function GET(request: Request) {
       // Whitelist: si el correo no está en public.users, negar acceso
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from("users").select("id").eq("auth_id", user.id).single();
+
+        const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const admin = serviceUrl && serviceKey ? createServiceClient(serviceUrl, serviceKey) : null;
+
+        // BUG 001 — primer login de una persona invitada de antemano: el
+        // admin ya creó su perfil con su correo oficial (para asignarle
+        // rol, coordinación, etc.) pero todavía no tiene cuenta de Google
+        // vinculada (auth_id vacío). Si no la encontramos por auth_id,
+        // buscamos por correo y vinculamos esta cuenta a ese perfil ya
+        // existente, en vez de rechazarla. Usa la llave de servicio porque
+        // el perfil, antes de vincularse, no le pertenece todavía a este
+        // usuario según las políticas normales (RLS).
+        if (!profile && user.email && admin) {
+          const { data: preloaded } = await admin
+            .from("users").select("id")
+            .ilike("email", user.email)
+            .is("auth_id", null)
+            .maybeSingle();
+          if (preloaded) {
+            const { data: linked } = await admin
+              .from("users").update({ auth_id: user.id }).eq("id", preloaded.id)
+              .select("id").single();
+            profile = linked;
+          }
+        }
+
         if (!profile) {
           await supabase.auth.signOut();
           return NextResponse.redirect(`${origin}/login?error=no-autorizado`);
@@ -32,25 +59,20 @@ export async function GET(request: Request) {
         const refreshToken = session?.provider_refresh_token;
         const accessToken = session?.provider_token;
 
-        if (refreshToken) {
-          const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-          const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-          if (serviceUrl && serviceKey) {
-            const admin = createServiceClient(serviceUrl, serviceKey);
-            await admin.from("google_oauth_tokens").upsert(
-              {
-                user_id: profile.id,
-                refresh_token: refreshToken,
-                access_token: accessToken ?? null,
-                access_token_expires_at: accessToken
-                  ? new Date(Date.now() + 55 * 60 * 1000).toISOString()
-                  : null,
-                scope:
-                  "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file",
-              },
-              { onConflict: "user_id" },
-            );
-          }
+        if (refreshToken && admin) {
+          await admin.from("google_oauth_tokens").upsert(
+            {
+              user_id: profile.id,
+              refresh_token: refreshToken,
+              access_token: accessToken ?? null,
+              access_token_expires_at: accessToken
+                ? new Date(Date.now() + 55 * 60 * 1000).toISOString()
+                : null,
+              scope:
+                "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file",
+            },
+            { onConflict: "user_id" },
+          );
         }
       }
       return NextResponse.redirect(origin);
