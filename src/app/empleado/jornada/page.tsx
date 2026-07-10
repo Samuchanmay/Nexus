@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { Pill } from "@/components/ui";
 import { todayMerida, addDays } from "@/lib/tz";
@@ -11,18 +12,20 @@ export default async function Jornada() {
     .from("users").select("id, display_name").eq("auth_id", user!.id).single();
 
   const since = addDays(todayMerida(), -30);
-  const [{ data: att }, { data: sched }, { data: hols }] = await Promise.all([
+  const [{ data: att }, { data: sched }, { data: hols }, { data: jornadaStates }] = await Promise.all([
     supabase.from("attendance").select("*").eq("user_id", profile!.id)
       .gte("date", since).order("date", { ascending: false }).order("time"),
     supabase.from("schedules").select("*").eq("user_id", profile!.id).is("valid_until", null).limit(1).single(),
     supabase.from("holidays").select("date"),
+    supabase.from("jornada_states").select("*").eq("activo", true),
   ]);
+  const states = (jornadaStates ?? []) as JornadaState[];
 
   const schedule = (sched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
   const holidaySet = new Set((hols ?? []).map((h) => h.date as string));
   const rows = (att ?? []) as AttendanceRow[];
   const dates = [...new Set(rows.map((r) => r.date))];
-  const days = dates.map((d) => summarizeDay(d, rows, schedule));
+  const days = dates.map((d) => summarizeDay(d, rows, schedule, states));
   const totalMin = days.reduce((s, d) => s + d.totalMin, 0);
   const totalExtra = days.reduce((s, d) => s + d.extraMin, 0);
 
@@ -89,7 +92,7 @@ export default async function Jornada() {
                   </div>
                 ))}
                 <div className="flex justify-between px-5 py-2.5 text-[12.5px] font-bold">
-                  <span style={{ color: "var(--text-2)" }}>Total (comida incluida)</span>
+                  <span style={{ color: "var(--text-2)" }}>Total trabajado</span>
                   <span className="tabular-nums">{fmtMin(d.totalMin)}{d.extraMin > 0 && <span style={{ color: "var(--ok)" }}> · +{fmtMin(d.extraMin)} extra</span>}</span>
                 </div>
               </div>

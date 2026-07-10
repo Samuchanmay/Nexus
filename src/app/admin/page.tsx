@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay, fmtMin, fmtTime } from "@/lib/hours";
+import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes } from "@/lib/tz";
 import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/components/os/ui";
@@ -49,6 +50,7 @@ export default async function AdminDashboard() {
     { data: vacsToday }, { data: urgentReqs }, { data: holidayToday },
     { data: reqsToday }, { data: vacsCreatedToday },
     { data: activeProjectsList }, { data: pendingRequestsList },
+    { data: jornadaStates },
   ] = await Promise.all([
     supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "solicitada"),
     supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente"),
@@ -70,30 +72,35 @@ export default async function AdminDashboard() {
       project_assignments(is_lead, users(display_name, nexus_color), project_checklist(done))
     `).in("status", ["aprobada", "en_progreso", "en_revision"]),
     supabase.from("requests").select("id, title, type, requester_name, priority, created_at").eq("status", "solicitada").order("created_at", { ascending: false }),
+    supabase.from("jornada_states").select("*").eq("activo", true),
   ]);
 
+  const states = (jornadaStates ?? []) as JornadaState[];
+  const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
+
   const sched = (mySched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
-  const myDay = summarizeDay(today, (myAtt ?? []) as AttendanceRow[], sched);
+  const myDay = summarizeDay(today, (myAtt ?? []) as AttendanceRow[], sched, states);
 
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));
   const onVacation = new Set((vacsToday ?? []).map((v) => v.user_id));
 
-  /* ── Presencia por persona (estado en vivo) ── */
+  /* ── Presencia por persona (estado en vivo, Plano Maestro §10) ── */
   const presence = (team ?? []).map((u) => {
     const rows = (teamAtt ?? []).filter((a) => a.user_id === u.id);
     const hasIn = rows.some((r) => r.reason === "Entrada a trabajo");
     const done = rows.some((r) => r.reason === "Fin de jornada");
     const last = rows.at(-1);
+    const liveState = last ? stateAfter(last) : null;
     const status = onVacation.has(u.id) ? "Vacaciones"
       : done ? "Terminó"
-      : hasIn ? (last?.type === "Salida" ? "Fuera" : "Presente")
+      : hasIn && liveState ? liveState
       : "Sin iniciar";
-    return { ...u, status };
+    return { ...u, status, color: stateColor.get(status) ?? null };
   });
 
   const pulse = {
-    presentes: presence.filter((p) => p.status === "Presente").length,
-    fuera: presence.filter((p) => p.status === "Fuera").length,
+    presentes: presence.filter((p) => p.status === TRABAJANDO).length,
+    fuera: presence.filter((p) => !["Vacaciones", "Terminó", "Sin iniciar", TRABAJANDO].includes(p.status)).length,
     completaron: presence.filter((p) => p.status === "Terminó").length,
     vacaciones: presence.filter((p) => p.status === "Vacaciones").length,
   };
@@ -322,7 +329,10 @@ export default async function AdminDashboard() {
                   <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} />
                   <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
                 </div>
-                <span className="text-[12px] font-semibold text-text-3">{p.status}</span>
+                <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
+                  {p.color && <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.color }} />}
+                  {p.status}
+                </span>
               </div>
             ))}
           </div>

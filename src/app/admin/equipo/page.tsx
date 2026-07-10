@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay } from "@/lib/hours";
+import { summarizeDay, stateAfter } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Priority, RequestType, Incident } from "@/lib/types";
 import { todayMerida } from "@/lib/tz";
 import EquipoClient, { type TeamMember } from "./client";
@@ -8,7 +9,7 @@ import EquipoClient, { type TeamMember } from "./client";
 export default async function Equipo() {
   const supabase = await createClient();
   const today = todayMerida();
-  const [{ data: team }, { data: assignments }, { data: att }, { data: scheds }, { data: vacs }, { data: incs }] =
+  const [{ data: team }, { data: assignments }, { data: att }, { data: scheds }, { data: vacs }, { data: incs }, { data: jornadaStates }] =
     await Promise.all([
       supabase.from("users").select("id, display_name, full_name, nexus_color, specialties, area")
         .eq("active", true).in("role", ["admin", "empleado"]),
@@ -20,7 +21,10 @@ export default async function Equipo() {
         .in("status", ["Aprobada", "Pendiente"]).gte("end_date", today).order("start_date").limit(40),
       supabase.from("incidents").select("user_id, kind, start_date, end_date, status")
         .eq("status", "Pendiente").order("start_date"),
+      supabase.from("jornada_states").select("*").eq("activo", true),
     ]);
+  const states = (jornadaStates ?? []) as JornadaState[];
+  const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
 
   const rows = (att ?? []) as AttendanceRow[];
   const members: TeamMember[] = (team ?? []).map((u) => {
@@ -29,7 +33,10 @@ export default async function Equipo() {
       return a.user_id === u.id && p && !["completada", "cancelada"].includes(p.status);
     });
     const sched = (scheds ?? []).find((s) => s.user_id === u.id) as Schedule | undefined;
-    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 });
+    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 }, states);
+    const myRows = rows.filter((r) => r.user_id === u.id);
+    const last = myRows.at(-1);
+    const liveState = day.isOpen && last ? stateAfter(last) : null;
     return {
       id: u.id,
       display_name: u.display_name,
@@ -50,6 +57,7 @@ export default async function Equipo() {
       today: {
         firstIn: day.firstIn, totalMin: day.totalMin, targetMin: day.targetMin,
         isOpen: day.isOpen, movesCount: day.movements.length,
+        stateName: liveState, stateColor: liveState ? (stateColor.get(liveState) ?? null) : null,
       },
       upcomingVacs: (vacs ?? []).filter((v) => v.user_id === u.id)
         .map((v) => ({ start_date: v.start_date, end_date: v.end_date, status: v.status })),

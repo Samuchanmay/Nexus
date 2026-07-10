@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida } from "@/lib/tz";
 import AsistenciaClient, { type PersonDay } from "./client";
@@ -8,11 +9,13 @@ import AsistenciaClient, { type PersonDay } from "./client";
 export default async function AsistenciaEquipo() {
   const supabase = await createClient();
   const today = todayMerida();
-  const [{ data: team }, { data: att }, { data: scheds }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
     supabase.from("schedules").select("*").is("valid_until", null),
+    supabase.from("jornada_states").select("*").eq("activo", true),
   ]);
+  const states = (jornadaStates ?? []) as JornadaState[];
 
   const rows = (att ?? []) as AttendanceRow[];
   const people: PersonDay[] = (team ?? []).map((u) => {
@@ -22,7 +25,7 @@ export default async function AsistenciaEquipo() {
       end_time: sched?.end_time ?? "18:00:00",
       target_min: sched?.target_min ?? 480,
     };
-    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 });
+    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 }, states);
     return {
       user: { id: u.id, display_name: u.display_name, area: u.area, nexus_color: u.nexus_color },
       schedule,
@@ -34,5 +37,5 @@ export default async function AsistenciaEquipo() {
     };
   });
 
-  return <AsistenciaClient people={people} />;
+  return <AsistenciaClient people={people} states={states} />;
 }

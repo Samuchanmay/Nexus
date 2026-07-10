@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { SlidingSegments, Avatar, Pill } from "@/components/ui";
 import { summarizeDay, fmtMin } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
 import { IconDownload } from "@/components/icons";
 import { todayMerida, addDays } from "@/lib/tz";
@@ -13,9 +14,9 @@ type Member = { id: string; full_name: string; display_name: string; nexus_color
 const PERIODS = ["Semana", "Quincena", "Mes", "Trimestre"];
 const PERIOD_DAYS: Record<string, number> = { Semana: 7, Quincena: 15, Mes: 30, Trimestre: 92 };
 
-export default function RHClient({ team, attendance, schedules, vacations, holidays }: {
+export default function RHClient({ team, attendance, schedules, vacations, holidays, states }: {
   team: Member[]; attendance: AttendanceRow[]; schedules: Schedule[];
-  vacations: Vacation[]; holidays: { date: string; name: string }[];
+  vacations: Vacation[]; holidays: { date: string; name: string }[]; states: JornadaState[];
 }) {
   const [period, setPeriod] = useState("Quincena");
 
@@ -26,7 +27,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       const sched = schedules.find((s) => s.user_id === u.id) ?? { target_min: 480, tolerance_min: 15 };
       const rows = attendance.filter((r) => r.user_id === u.id && r.date >= cutoff);
       const dates = [...new Set(rows.map((r) => r.date))];
-      const days = dates.map((d) => summarizeDay(d, rows, sched));
+      const days = dates.map((d) => summarizeDay(d, rows, sched, states));
       const closed = days.filter((d) => !d.isOpen);
       const total = closed.reduce((s, d) => s + d.totalMin, 0);
       const extra = closed.reduce((s, d) => s + d.extraMin, 0);
@@ -39,7 +40,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
         targetMin: sched.target_min,
       };
     });
-  }, [team, attendance, schedules, cutoff]);
+  }, [team, attendance, schedules, cutoff, states]);
 
   const totals = useMemo(() => ({
     days: stats.reduce((s, x) => s + x.daysWorked, 0),

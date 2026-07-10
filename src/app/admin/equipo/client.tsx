@@ -21,7 +21,10 @@ export interface TeamMember {
   nexus_color: string | null;
   specialties: string[];
   tasks: { title: string; type: RequestType | null; priority: Priority; status: string; is_lead: boolean }[];
-  today: { firstIn: string | null; totalMin: number; targetMin: number; isOpen: boolean; movesCount: number };
+  today: {
+    firstIn: string | null; totalMin: number; targetMin: number; isOpen: boolean; movesCount: number;
+    stateName: string | null; stateColor: string | null;
+  };
   upcomingVacs: { start_date: string; end_date: string; status: string }[];
   pendingIncs: { kind: Incident["kind"]; start_date: string; end_date: string; status: Incident["status"] }[];
 }
@@ -106,9 +109,11 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                   </div>
                 ))}
               </div>
-              <p className="text-[11.5px] mt-2" style={{ color: "var(--text-3)" }}>
+              <p className="text-[11.5px] mt-2 flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
+                {sel.today.stateColor && <span className="w-1.5 h-1.5 rounded-full" style={{ background: sel.today.stateColor }} />}
                 {sel.today.movesCount === 0 ? "Sin fichajes hoy"
-                  : `${sel.today.movesCount} fichaje${sel.today.movesCount > 1 ? "s" : ""} · jornada ${sel.today.isOpen ? "en curso" : "cerrada"}`}
+                  : sel.today.stateName ? `${sel.today.movesCount} fichaje${sel.today.movesCount > 1 ? "s" : ""} · ${sel.today.stateName}`
+                  : `${sel.today.movesCount} fichaje${sel.today.movesCount > 1 ? "s" : ""} · jornada cerrada`}
               </p>
             </section>
 

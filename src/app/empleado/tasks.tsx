@@ -34,7 +34,10 @@ const PRI_TONE: Record<string, "neutral" | "warn" | "danger"> = {
 
 export default function MiDiaClient({ profile, day, week, assignments }: {
   profile: { id: string; displayName: string };
-  day: { totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean };
+  day: {
+    totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
+    stateName: string | null; stateColor: string | null;
+  };
   week: { monday: string; today: string; datesWithActivity: string[] };
   assignments: Task[];
 }) {
@@ -289,7 +292,16 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
       <Card className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <p className="text-[12px] font-semibold uppercase tracking-wide text-text-3">{dateLabel} · Semana {weekNum}</p>
-          <h1 className="text-[24px] font-bold text-text-1 mt-0.5">{profile.displayName} 👋</h1>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-[24px] font-bold text-text-1 mt-0.5">{profile.displayName} 👋</h1>
+            {day.hasEntry && day.stateName && (
+              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11.5px] font-semibold"
+                style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: day.stateColor ?? "var(--text-3)" }} />
+                {day.stateName}
+              </span>
+            )}
+          </div>
           <p className="text-[13px] text-text-3 mt-1">
             {assignments.length} tarea{assignments.length !== 1 ? "s" : ""} · {inProgress} en curso · {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""}
           </p>

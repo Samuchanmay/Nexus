@@ -7,7 +7,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Pill, SlidingSegments } from "@/components/ui";
 import { PageHeader } from "@/components/shared";
-import { fmtMin, fmtTime } from "@/lib/hours";
+import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
 
 export interface PersonDay {
@@ -44,19 +45,20 @@ function segmentsOf(day: PersonDay["day"], nowMin: number) {
   return segs;
 }
 
-function estadoPill(day: PersonDay["day"]) {
+function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
   if (!day.firstIn) return <Pill tone="muted">Sin iniciar</Pill>;
   if (day.isOpen) {
     const last = day.movements.at(-1);
-    if (last?.type === "Salida") {
-      return <Pill tone="warn">{last.reason.includes("comer") ? "En comida" : "Fuera"}</Pill>;
+    const liveState = last ? stateAfter(last) : null;
+    if (liveState && liveState !== TRABAJANDO) {
+      return <Pill tone="warn">{liveState}</Pill>;
     }
     return <Pill tone="ok">Presente</Pill>;
   }
   return <Pill tone={day.metTarget ? "ok" : "warn"}>{day.metTarget ? "Completa" : "Cerrada"}</Pill>;
 }
 
-export default function AsistenciaClient({ people }: { people: PersonDay[] }) {
+export default function AsistenciaClient({ people, states }: { people: PersonDay[]; states: JornadaState[] }) {
   const [view, setView] = useState<"tabla" | "gantt">("tabla");
   const [nowMin, setNowMin] = useState(() => nowMeridaMinutes());
   useEffect(() => {
@@ -96,7 +98,7 @@ export default function AsistenciaClient({ people }: { people: PersonDay[] }) {
                     <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{u.area}</p>
                   </div>
                 </div>
-                {estadoPill(day)}
+                {estadoPill(day, states)}
               </div>
               <div className="grid grid-cols-3 gap-2 text-center mb-3">
                 {[

@@ -69,7 +69,7 @@ export default function Fichar() {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<
     | null
-    | { kind: "ok"; motivo: string; hora: string; quote: { texto: string; autor: string } }
+    | { kind: "ok"; motivo: string; hora: string; quote: { texto: string; autor: string }; pausedActivity: boolean }
     | { kind: "queued"; motivo: string }
     | { kind: "error"; msg: string }
   >(null);
@@ -125,7 +125,7 @@ export default function Fichar() {
   }, []);
 
   // ── Envío al servidor: éxito SOLO con UUID devuelto ──
-  const enviar = useCallback(async (reg: QueuedReg): Promise<{ ok: true; time: string } | { ok: false; msg: string; retriable: boolean }> => {
+  const enviar = useCallback(async (reg: QueuedReg): Promise<{ ok: true; time: string; pausedActivity: boolean } | { ok: false; msg: string; retriable: boolean }> => {
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     try {
@@ -142,7 +142,7 @@ export default function Fichar() {
       });
       clearTimeout(t);
       const json = await res.json();
-      if (json.ok && json.id) return { ok: true, time: json.time };
+      if (json.ok && json.id) return { ok: true, time: json.time, pausedActivity: !!json.pausedActivity };
       return { ok: false, msg: json.error ?? "No se pudo registrar", retriable: false };
     } catch {
       return { ok: false, msg: "Sin conexión", retriable: true };
@@ -182,7 +182,7 @@ export default function Fichar() {
     setEnviando(false);
     if (r.ok) {
       const q = tipo === "Entrada" ? quoteEntrada() : quoteSalida();
-      setResultado({ kind: "ok", motivo, hora: r.time?.slice(0, 8) ?? "", quote: q });
+      setResultado({ kind: "ok", motivo, hora: r.time?.slice(0, 8) ?? "", quote: q, pausedActivity: r.pausedActivity });
     } else if (r.retriable) {
       // I15: sin red → a la cola. NUNCA un éxito falso: pantalla ámbar "pendiente".
       writeQueue([...readQueue(), reg]);
@@ -284,6 +284,9 @@ export default function Fichar() {
               “{resultado.quote.texto}”<br />
               <strong style={{ fontSize: 11, opacity: 0.7 }}>— {resultado.quote.autor}</strong>
             </div>
+            {resultado.pausedActivity && (
+              <p style={{ fontSize: 12, marginTop: 10, opacity: 0.8 }}>⏸️ Se pausó tu actividad en curso automáticamente.</p>
+            )}
             <button className="ck-btn-registrar" style={{ marginTop: 16 }} onClick={reiniciar}>Nuevo registro</button>
           </div>
         ) : resultado.kind === "queued" ? (
