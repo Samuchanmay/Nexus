@@ -374,3 +374,14 @@ body{ transition: background .28s ease, color .28s ease; }
 @keyframes nx-slide{ from{opacity:0; transform:translateX(-6px)} to{opacity:1; transform:none} }
 .nx-pop{ animation:nx-pop .22s cubic-bezier(.34,1.4,.64,1) both; }
 .nx-fade{ animation:nx-fade .2s ease both; }
+
+/* ── Impresión (Reportes → "Guardar como PDF") ──
+   Oculta el chrome del shell (sidebar, topbar) y deja solo el
+   contenido del reporte, a ancho completo, en blanco y negro legible. */
+@media print {
+  .nx-os > aside, .nx-os header, .no-print { display: none !important; }
+  .nx-os { display: block !important; background: #fff !important; }
+  .nx-os main { overflow: visible !important; padding: 0 !important; }
+  .nx-os main > div { max-width: none !important; }
+  .card { break-inside: avoid; border: 1px solid #ccc !important; box-shadow: none !important; }
+}

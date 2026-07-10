@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { typeLabels } from "@/lib/types";
-import type { ActivityType } from "@/lib/types";
+import type { ActivityType, RequestStatus } from "@/lib/types";
 import { seniorityLabel, todayMerida } from "@/lib/tz";
+import { STATUS_TONE } from "@/lib/ui-maps";
+import { PrintButton } from "./print-button";
 
 /* ═══════════════════════════════════════════════════════════════
    Reportes — agregados reales de Solicitudes/Actividades.
@@ -27,6 +29,32 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
     </div>
   );
 }
+
+/** Enlace de exportación CSV (data-URI, sin librerías) para una sección de reporte. */
+function CsvLink({ rows, filename }: { rows: (string | number)[][]; filename: string }) {
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
+  return (
+    <a href={href} download={filename} className="no-print text-[11.5px] font-semibold shrink-0" style={{ color: "var(--accent)" }}>
+      CSV ↓
+    </a>
+  );
+}
+
+/** Encabezado de card con título uppercase + botón de exportar a la derecha. */
+function CardHeader({ title, rows, filename }: { title: string; rows: (string | number)[][]; filename: string }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{title}</h2>
+      <CsvLink rows={rows} filename={filename} />
+    </div>
+  );
+}
+
+const TONE_COLOR: Record<string, string> = {
+  accent: "var(--accent)", ok: "var(--ok)", warn: "var(--warn)", danger: "var(--danger)", muted: "var(--text-3)",
+};
+const STATUS_ORDER: RequestStatus[] = ["solicitada", "aprobada", "cancelada"];
 
 export default async function Reportes() {
   const supabase = await createClient();
@@ -94,6 +122,16 @@ export default async function Reportes() {
   const maxArea = Math.max(1, ...topAreas.map(([, n]) => n));
   const COLORS = ["var(--accent)", "var(--ok)", "var(--warn)", "var(--purple)", "var(--danger)"];
 
+  // Color estable por tipo de apoyo: se asigna por posición en el catálogo
+  // (activity_types.orden), no por orden de aparición en los datos — así el
+  // mismo tipo siempre se ve del mismo color en toda la app.
+  const activityTypes = (types ?? []) as ActivityType[];
+  const typeColorOf: Record<string, string> = {};
+  activityTypes.forEach((t, i) => { typeColorOf[t.key] = COLORS[i % COLORS.length]; });
+  const byTypeSorted = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+  const minutesByTypeSorted = Object.entries(minutesByType).sort((a, b) => b[1] - a[1]);
+  const maxMinutes = Math.max(1, ...Object.values(minutesByType));
+
   /* Vacaciones — saldo, antigüedad y próximo periodo por persona */
   const today = todayMerida();
   const vacsByUser = new Map<string, { start_date: string; end_date: string; days: number; status: string }[]>();
@@ -127,11 +165,14 @@ export default async function Reportes() {
 
   return (
     <>
-      <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Reportes</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          {totalReqs} solicitud{totalReqs === 1 ? "" : "es"} en total, agregadas en tiempo real.
-        </p>
+      <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight">Reportes</h1>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
+            {totalReqs} solicitud{totalReqs === 1 ? "" : "es"} en total, agregadas en tiempo real.
+          </p>
+        </div>
+        <PrintButton />
       </header>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
@@ -155,29 +196,29 @@ export default async function Reportes() {
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
-          <h2 className="text-[13px] font-bold uppercase tracking-wide mb-3" style={{ color: "var(--text-3)" }}>
-            Solicitudes por estado
-          </h2>
-          {Object.entries(byStatus).map(([s, n], i) => (
-            <Bar key={s} label={STATUS_LABEL[s] ?? s} count={n} total={totalStatus} color={COLORS[i % COLORS.length]} />
+          <CardHeader title="Solicitudes por estado"
+            rows={[["Estado", "Cantidad"], ...STATUS_ORDER.filter((s) => byStatus[s]).map((s) => [STATUS_LABEL[s] ?? s, byStatus[s]])]}
+            filename="solicitudes-por-estado.csv" />
+          {STATUS_ORDER.filter((s) => byStatus[s]).map((s) => (
+            <Bar key={s} label={STATUS_LABEL[s] ?? s} count={byStatus[s]} total={totalStatus} color={TONE_COLOR[STATUS_TONE[s]]} />
           ))}
           {totalStatus === 0 && <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>}
         </div>
 
         <div className="card p-5">
-          <h2 className="text-[13px] font-bold uppercase tracking-wide mb-3" style={{ color: "var(--text-3)" }}>
-            Por tipo de apoyo
-          </h2>
-          {Object.entries(byType).map(([t, n], i) => (
-            <Bar key={t} label={TYPE_LABEL[t] ?? t} count={n} total={totalType} color={COLORS[i % COLORS.length]} />
+          <CardHeader title="Por tipo de apoyo"
+            rows={[["Tipo", "Cantidad"], ...byTypeSorted.map(([t, n]) => [TYPE_LABEL[t] ?? t, n])]}
+            filename="solicitudes-por-tipo.csv" />
+          {byTypeSorted.map(([t, n]) => (
+            <Bar key={t} label={TYPE_LABEL[t] ?? t} count={n} total={totalType} color={typeColorOf[t] ?? "var(--accent)"} />
           ))}
           {totalType === 0 && <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>}
         </div>
 
         <div className="card p-5">
-          <h2 className="text-[13px] font-bold uppercase tracking-wide mb-3" style={{ color: "var(--text-3)" }}>
-            Coordinaciones/departamentos que más solicitan
-          </h2>
+          <CardHeader title="Coordinaciones/departamentos que más solicitan"
+            rows={[["Área", "Cantidad"], ...topAreas.map(([area, n]) => [area, n])]}
+            filename="solicitudes-por-area.csv" />
           {topAreas.map(([area, n], i) => (
             <Bar key={area} label={area} count={n} total={maxArea} color={COLORS[i % COLORS.length]} />
           ))}
@@ -185,19 +226,17 @@ export default async function Reportes() {
         </div>
 
         <div className="card p-5">
-          <h2 className="text-[13px] font-bold uppercase tracking-wide mb-3" style={{ color: "var(--text-3)" }}>
-            Horas registradas por tipo
-          </h2>
-          {Object.entries(minutesByType).length === 0 && (
+          <CardHeader title="Horas registradas por tipo"
+            rows={[["Tipo", "Horas"], ...minutesByTypeSorted.map(([t, min]) => [TYPE_LABEL[t] ?? t, Math.round(min / 6) / 10])]}
+            filename="horas-por-tipo.csv" />
+          {minutesByTypeSorted.length === 0 && (
             <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Aún no hay registros de tiempo.</p>
           )}
-          {Object.entries(minutesByType)
-            .sort((a, b) => b[1] - a[1])
-            .map(([t, min], i) => (
-              <Bar key={t} label={TYPE_LABEL[t] ?? t} count={Math.round(min / 6) / 10}
-                total={Math.max(1, ...Object.values(minutesByType)) / 60}
-                color={COLORS[i % COLORS.length]} />
-            ))}
+          {minutesByTypeSorted.map(([t, min]) => (
+            <Bar key={t} label={TYPE_LABEL[t] ?? t} count={Math.round(min / 6) / 10}
+              total={maxMinutes / 60}
+              color={typeColorOf[t] ?? "var(--accent)"} />
+          ))}
         </div>
       </div>
 

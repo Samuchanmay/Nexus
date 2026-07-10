@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, Sheet, Pill, Avatar } from "@/components/ui";
+import { useToast, Sheet, Pill, Avatar, SlidingSegments } from "@/components/ui";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
 
@@ -30,7 +30,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
 }) {
   const toast = useToast();
   const router = useRouter();
-  const [tab, setTab] = useState<"pendientes" | "todas">("pendientes");
+  const [tab, setTab] = useState<"Por revisar" | "Aprobadas" | "Rechazadas">("Por revisar");
   const [sel, setSel] = useState<CommRequest | null>(null);
   const [assignees, setAssignees] = useState<string[]>([]);
   const [lead, setLead] = useState<string>("");
@@ -42,10 +42,11 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
   const [addToCalendar, setAddToCalendar] = useState(true);
 
 
-  const shown = useMemo(
-    () => tab === "pendientes" ? requests.filter((r) => r.status === "solicitada") : requests,
-    [tab, requests],
-  );
+  const shown = useMemo(() => {
+    if (tab === "Por revisar") return requests.filter((r) => r.status === "solicitada");
+    if (tab === "Rechazadas") return requests.filter((r) => r.status === "cancelada");
+    return requests.filter((r) => !["solicitada", "cancelada"].includes(r.status));
+  }, [tab, requests]);
 
   const openApproval = (r: CommRequest) => {
     setSel(r);
@@ -153,28 +154,20 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
             Aprueba, asigna y prioriza el trabajo de comunicación
           </p>
         </div>
-        <div className="seg">
-          {(["pendientes", "todas"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className="relative z-[1] px-4 py-1.5 rounded-full text-[12.5px] font-semibold capitalize"
-              style={{
-                background: tab === t ? "var(--surface)" : "transparent",
-                color: tab === t ? "var(--text-1)" : "var(--text-2)",
-                boxShadow: tab === t ? "0 1px 2px rgba(0,0,0,.08)" : "none",
-              }}>
-              {t}
-            </button>
-          ))}
-        </div>
+        <SlidingSegments
+          options={["Por revisar", "Aprobadas", "Rechazadas"]}
+          value={tab}
+          onChange={(v) => setTab(v as "Por revisar" | "Aprobadas" | "Rechazadas")}
+        />
       </header>
 
       {shown.length === 0 && (
         <div className="card p-8 text-center">
           <p className="font-semibold text-[14px]">
-            {tab === "pendientes" ? "Sin solicitudes por aprobar" : "Sin solicitudes"}
+            {tab === "Por revisar" ? "Sin solicitudes por revisar" : tab === "Aprobadas" ? "Sin solicitudes aprobadas" : "Sin solicitudes rechazadas"}
           </p>
           <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            Las nuevas solicitudes de coordinadores aparecerán aquí
+            {tab === "Por revisar" ? "Las nuevas solicitudes de coordinadores aparecerán aquí" : "Aparecerán aquí cuando cambien de estado"}
           </p>
         </div>
       )}

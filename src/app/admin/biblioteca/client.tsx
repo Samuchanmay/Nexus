@@ -15,17 +15,26 @@ export type Item = {
   comments: { id: string }[];
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  cobertura: "Cobertura", diseno: "Diseño", lona: "Lona", video: "Video", difusion: "Difusión",
-};
-
-export default function BibliotecaClient({ items }: { items: Item[] }) {
+export default function BibliotecaClient({ items, typeLabel, types }: {
+  items: Item[]; typeLabel: Record<string, string>; types: { key: string; label: string }[];
+}) {
   const [q, setQ] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of items) {
+      const k = it.requests?.type;
+      if (k) m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [items]);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return items;
     return items.filter((it) => {
+      if (typeFilter && it.requests?.type !== typeFilter) return false;
+      if (!t) return true;
       const r = it.requests;
       const haystack = [
         r?.title, r?.type, r?.subtype, r?.requester_name, r?.requester_area,
@@ -33,7 +42,7 @@ export default function BibliotecaClient({ items }: { items: Item[] }) {
       ].filter(Boolean).join(" ").toLowerCase();
       return haystack.includes(t);
     });
-  }, [items, q]);
+  }, [items, q, typeFilter]);
 
   return (
     <>
@@ -44,7 +53,7 @@ export default function BibliotecaClient({ items }: { items: Item[] }) {
         </p>
       </header>
 
-      <div className="mb-5">
+      <div className="mb-3.5">
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por título, tipo, coordinación o colaborador…"
@@ -53,10 +62,31 @@ export default function BibliotecaClient({ items }: { items: Item[] }) {
         />
       </div>
 
+      <div className="flex flex-wrap gap-2 mb-5">
+        <button onClick={() => setTypeFilter("")}
+          className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-colors"
+          style={{
+            background: typeFilter === "" ? "var(--accent)" : "var(--surface-2)",
+            color: typeFilter === "" ? "#fff" : "var(--text-2)",
+          }}>
+          Todos · {items.length}
+        </button>
+        {types.filter((t) => counts.has(t.key)).map((t) => (
+          <button key={t.key} onClick={() => setTypeFilter(t.key)}
+            className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-colors"
+            style={{
+              background: typeFilter === t.key ? "var(--accent)" : "var(--surface-2)",
+              color: typeFilter === t.key ? "#fff" : "var(--text-2)",
+            }}>
+            {t.label} · {counts.get(t.key)}
+          </button>
+        ))}
+      </div>
+
       {filtered.length === 0 ? (
         <div className="card p-10 text-center">
           <p className="text-[14px] font-semibold" style={{ color: "var(--text-2)" }}>
-            {items.length === 0 ? "Aún no hay actividades terminadas." : "Sin resultados para tu búsqueda."}
+            {items.length === 0 ? "Aún no hay actividades terminadas." : "Sin resultados para este filtro."}
           </p>
         </div>
       ) : (
@@ -72,7 +102,7 @@ export default function BibliotecaClient({ items }: { items: Item[] }) {
                       {r?.requester_area ?? "—"} · {r?.event_date ?? "sin fecha de evento"}
                     </p>
                   </div>
-                  <Pill tone="ok">{TYPE_LABEL[r?.type ?? ""] ?? r?.type ?? "—"}</Pill>
+                  <Pill tone="ok">{typeLabel[r?.type ?? ""] ?? r?.type ?? "—"}</Pill>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 mt-3">

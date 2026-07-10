@@ -26,6 +26,9 @@ const P: Record<string, React.ReactNode> = {
   sparkle: <path d="M12 3v6M12 15v6M3 12h6M15 12h6M6.5 6.5l3 3M14.5 14.5l3 3M17.5 6.5l-3 3M9.5 14.5l-3 3" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   camera: <><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1.2-2h6.6l1.2 2h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5v-9Z" /><circle cx="12" cy="13" r="3.3" /></>,
+  device: <><rect x="7" y="2.5" width="10" height="19" rx="2" /><path d="M11 18.3h2" /></>,
+  tag: <><path d="M3.5 12.3 12 3.8h6.7a1.5 1.5 0 0 1 1.5 1.5V12l-8.5 8.5a1.5 1.5 0 0 1-2.1 0l-5.6-5.6a1.5 1.5 0 0 1 0-2.1Z" /><circle cx="15.7" cy="8.3" r="1.3" fill="currentColor" stroke="none" /></>,
+  toggle: <><rect x="2.5" y="7" width="19" height="10" rx="5" /><circle cx="16.5" cy="12" r="3.3" fill="currentColor" stroke="none" /></>,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {
