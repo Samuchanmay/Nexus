@@ -6,7 +6,7 @@ import SolicitudesClient from "./client";
 export default async function Solicitudes() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: reqs }, { data: team }, { data: types }, meRes] = await Promise.all([
+  const [{ data: reqs }, { data: team }, { data: types }, meRes, { data: calSetting }] = await Promise.all([
     supabase.from("requests")
       .select("*, users:requester_id(full_name, title)")
       .order("created_at", { ascending: false }),
@@ -14,6 +14,7 @@ export default async function Solicitudes() {
       .eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("activity_types").select("*"),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+    supabase.from("app_settings").select("value").eq("key", "gcal_activity_calendar_id").maybeSingle(),
   ]);
   const activityTypes = (types ?? []) as ActivityType[];
   return (
@@ -23,6 +24,7 @@ export default async function Solicitudes() {
       typeLabel={typeLabels(activityTypes)}
       minHours={typeMinHours(activityTypes)}
       adminId={meRes?.data?.id ?? ""}
+      activityCalendarId={calSetting?.value ?? null}
     />
   );
 }

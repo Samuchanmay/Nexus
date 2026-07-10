@@ -5,7 +5,7 @@ import VacAdminClient from "./client";
 export default async function VacacionesAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: vacs }, { data: team }, { data: resets }, meRes] = await Promise.all([
+  const [{ data: vacs }, { data: team }, { data: resets }, meRes, { data: calSetting }] = await Promise.all([
     supabase.from("vacations")
       .select("*, users(full_name, display_name, nexus_color)")
       .is("archived_at", null)
@@ -15,6 +15,7 @@ export default async function VacacionesAdmin() {
     supabase.from("vacation_resets").select("user_id, reset_at, days_granted, days_used, days_forfeited")
       .order("reset_at", { ascending: false }),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+    supabase.from("app_settings").select("value").eq("key", "gcal_vacation_calendar_id").maybeSingle(),
   ]);
 
   const lastResetByUser = new Map<string, { reset_at: string; days_granted: number; days_used: number; days_forfeited: number }>();
@@ -31,6 +32,7 @@ export default async function VacacionesAdmin() {
         lastReset: { reset_at: string; days_granted: number; days_used: number; days_forfeited: number } | null;
       }[]}
       adminId={meRes?.data?.id ?? ""}
+      vacationCalendarId={calSetting?.value ?? null}
     />
   );
 }

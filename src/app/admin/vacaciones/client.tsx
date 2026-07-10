@@ -14,13 +14,14 @@ function balanceColor(pctUsed: number): string {
   return pctUsed < 50 ? "var(--ok)" : pctUsed < 80 ? "var(--warn)" : "var(--danger)";
 }
 
-export default function VacAdminClient({ vacations, team, adminId }: {
+export default function VacAdminClient({ vacations, team, adminId, vacationCalendarId }: {
   vacations: Vacation[];
   team: {
     id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null;
     lastReset: { reset_at: string; days_granted: number; days_used: number; days_forfeited: number } | null;
   }[];
   adminId: string;
+  vacationCalendarId: string | null;
 }) {
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
@@ -38,7 +39,7 @@ export default function VacAdminClient({ vacations, team, adminId }: {
       if (res.error) return { error: { message: "No se pudo cancelar" } };
       // Borrar el evento de Calendar es best-effort: si falla, la cancelación ya quedó guardada.
       if (target?.calendar_event_id) {
-        try { await supabase.functions.invoke("gcal-delete-event", { body: { eventId: target.calendar_event_id } }); }
+        try { await supabase.functions.invoke("gcal-delete-event", { body: { eventId: target.calendar_event_id, calendarId: target.calendar_id ?? vacationCalendarId ?? undefined } }); }
         catch { /* no bloquea la cancelación */ }
       }
       return { error: null };
@@ -70,13 +71,14 @@ export default function VacAdminClient({ vacations, team, adminId }: {
               start: target.start_date,
               end: addDays(target.end_date, 1),
               allDay: true,
+              calendarId: vacationCalendarId ?? undefined,
             },
           });
-          const result = gcalData as { ok?: boolean; eventId?: string } | null;
+          const result = gcalData as { ok?: boolean; eventId?: string; calendarId?: string } | null;
           if (gcalError || !result?.ok) {
             window.open(calendarUrl(target), "_blank");
           } else if (result.eventId) {
-            await supabase.from("vacations").update({ calendar_event_id: result.eventId }).eq("id", target.id);
+            await supabase.from("vacations").update({ calendar_event_id: result.eventId, calendar_id: result.calendarId ?? null }).eq("id", target.id);
           }
         }
         return { error: null };

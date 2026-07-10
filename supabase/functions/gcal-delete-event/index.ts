@@ -76,13 +76,14 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: tokenResult.error }, { status: 409, headers: cors });
     }
 
-    const { eventId } = await req.json();
+    const { eventId, calendarId } = await req.json();
     if (!eventId) {
       return Response.json({ ok: false, error: "faltan-datos" }, { status: 400, headers: cors });
     }
+    const targetCalendar = encodeURIComponent(calendarId || "primary");
 
     const delRes = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      `https://www.googleapis.com/calendar/v3/calendars/${targetCalendar}/events/${eventId}`,
       { method: "DELETE", headers: { Authorization: `Bearer ${tokenResult.token}` } },
     );
     // 410 Gone = ya estaba borrado; lo tratamos como éxito.

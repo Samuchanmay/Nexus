@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: tokenResult.error }, { status: 409, headers: cors });
     }
 
-    const { title, details, location, start, end, allDay } = await req.json();
+    const { title, details, location, start, end, allDay, calendarId } = await req.json();
     if (!title || !start || !end) {
       return Response.json({ ok: false, error: "faltan-datos" }, { status: 400, headers: cors });
     }
@@ -85,9 +85,10 @@ Deno.serve(async (req) => {
     // Si no, start/end son "YYYY-MM-DDTHH:mm:ss" para un evento con hora.
     const startField = allDay ? { date: start } : { dateTime: start, timeZone: "America/Merida" };
     const endField = allDay ? { date: end } : { dateTime: end, timeZone: "America/Merida" };
+    const targetCalendar = encodeURIComponent(calendarId || "primary");
 
     const evRes = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+      `https://www.googleapis.com/calendar/v3/calendars/${targetCalendar}/events`,
       {
         method: "POST",
         headers: {
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: "google-rechazo-el-evento", detail: evJson }, { status: 502, headers: cors });
     }
 
-    return Response.json({ ok: true, eventUrl: evJson.htmlLink, eventId: evJson.id }, { headers: cors });
+    return Response.json({ ok: true, eventUrl: evJson.htmlLink, eventId: evJson.id, calendarId: calendarId || "primary" }, { headers: cors });
   } catch {
     return Response.json({ ok: false, error: "error-del-servidor" }, { status: 500, headers: cors });
   }

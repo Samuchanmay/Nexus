@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { todayMerida } from "@/lib/tz";
 import { shiftMonth, monthBounds } from "@/lib/calendar-grid";
+import { getTodayEfemerides } from "@/lib/efemerides";
 import CalendarioClient, { type TeamMember, type ProjectDeadline, type VacationRange } from "./client";
 
 /* ═══════════════════════════════════════════════════════════════
@@ -17,7 +18,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   const { year, month, daysInMonth, first, last } = monthBounds(ym);
 
   const supabase = await createClient();
-  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }, { data: efemSetting }] = await Promise.all([
     supabase.from("users").select("id, display_name, nexus_color").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", last).gte("end_date", first),
@@ -25,7 +26,10 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
     supabase.from("projects")
       .select("id, deadline, status, requests(title, type), project_assignments(is_lead, users(display_name, nexus_color))")
       .not("deadline", "is", null).gte("deadline", first).lte("deadline", last).order("deadline"),
+    supabase.from("app_settings").select("value").eq("key", "gcal_efemerides_calendar_id").maybeSingle(),
   ]);
+
+  const efemerides = efemSetting?.value ? await getTodayEfemerides(efemSetting.value) : [];
 
   return (
     <CalendarioClient
@@ -37,6 +41,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       vacations={(vacs ?? []) as VacationRange[]}
       holidays={(hols ?? []) as { date: string; name: string }[]}
       deadlines={(projects ?? []) as unknown as ProjectDeadline[]}
+      efemerides={efemerides.map((e) => e.title)}
     />
   );
 }

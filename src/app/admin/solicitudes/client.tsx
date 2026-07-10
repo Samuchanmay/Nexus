@@ -26,9 +26,9 @@ function suggestedPriority(r: CommRequest): Priority {
   return "normal";
 }
 
-export default function SolicitudesClient({ requests, team, typeLabel, minHours, adminId }: {
+export default function SolicitudesClient({ requests, team, typeLabel, minHours, adminId, activityCalendarId }: {
   requests: CommRequest[]; team: Member[]; typeLabel: Record<string, string>; minHours: Record<string, number>;
-  adminId: string;
+  adminId: string; activityCalendarId?: string | null;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -119,11 +119,14 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
           location: sel.event_location ?? "",
           start,
           end,
+          calendarId: activityCalendarId ?? undefined,
         },
       });
-      const eventUrl = (gcalData as { ok?: boolean; eventUrl?: string } | null)?.eventUrl;
-      if (gcalError || !eventUrl) {
+      const result = gcalData as { ok?: boolean; eventUrl?: string; eventId?: string; calendarId?: string } | null;
+      if (gcalError || !result?.eventUrl) {
         window.open(requestCalendarUrl(sel, typeLabel), "_blank");
+      } else if (result.eventId && prj?.id) {
+        await supabase.from("projects").update({ calendar_event_id: result.eventId, calendar_id: result.calendarId ?? null }).eq("id", prj.id);
       }
     }
 

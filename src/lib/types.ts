@@ -66,6 +66,7 @@ export interface Vacation {
   status: "Pendiente" | "Aprobada" | "Rechazada" | "Cancelada";
   admin_note: string | null;
   calendar_event_id: string | null;
+  calendar_id?: string | null;
   created_at: string;
   users?: { full_name: string; display_name: string; nexus_color: string | null };
 }
