@@ -144,8 +144,18 @@ export function Pill({ active, children, ...rest }: { active?: boolean; children
 }
 
 /* ───────────────────────── Avatar ───────────────────────── */
-export function Avatar({ name, color, size = 34 }: { name: string; color?: string; size?: number }) {
+export function Avatar({ name, color, size = 34, avatarUrl }: { name: string; color?: string; size?: number; avatarUrl?: string | null }) {
   const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl} alt={name} title={name}
+        className="inline-block rounded-full object-cover shrink-0"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   return (
     <span
       className="inline-grid place-items-center rounded-full font-bold text-white shrink-0 select-none"

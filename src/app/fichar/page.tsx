@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { QUOTES_ENTRADA, QUOTES_SALIDA } from "./quotes";
 
@@ -78,6 +79,7 @@ function getDeviceId(): string {
 }
 
 export default function Fichar() {
+  const router = useRouter();
   const [nombre, setNombre] = useState<string>("");
   const [fechaHora, setFechaHora] = useState("Cargando...");
   const [tipo, setTipo] = useState<"" | "Entrada" | "Salida">("");
@@ -229,6 +231,15 @@ export default function Fichar() {
       <div className="ck-card">
         {resultado === null ? (
           <>
+            <button
+              onClick={() => router.back()}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
+                color: "#6B7280", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 14,
+              }}
+            >
+              ← Volver
+            </button>
             <div className="ck-logo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo-cert.png" alt="Logo CERT" />

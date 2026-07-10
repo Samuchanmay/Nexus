@@ -23,6 +23,7 @@ export default async function EmpleadoLayout({ children }: { children: React.Rea
         user={{
           id: profile.id,
           name: profile.display_name,
+          avatarUrl: profile.avatar_url ?? null,
           area: profile.area ?? "",
           color: profile.nexus_color ?? "#0066FF",
           roleLabel: roleLabel(profile.role === "admin" ? "admin" : "empleado"),

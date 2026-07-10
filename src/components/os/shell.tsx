@@ -1,13 +1,15 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "./icons";
 import { Avatar, IconButton, Kbd, cx } from "./ui";
 import { NotificationBell } from "./notifications";
 import { ProfileModal } from "./profile-modal";
 import { useTheme } from "@/lib/theme";
 import { navFor, SECTIONS, type NavItem, type Role } from "@/lib/nav";
+import { createClient } from "@/lib/supabase/client";
 
-export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string };
+export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string; avatarUrl?: string | null };
 
 export function Shell({
   role, user, active, onNavigate, title, actions, children,
@@ -44,6 +46,7 @@ export function Shell({
     <div className="nx-os min-h-screen bg-bg flex mesh" data-mesh={role}>
       {/* Sidebar */}
       <Sidebar items={items} active={active} onGo={go} user={user}
+        onProfileOpen={() => setProfileOpen(true)}
         className="hidden md:flex" />
 
       {/* Drawer móvil */}
@@ -51,7 +54,9 @@ export function Shell({
         <div className="md:hidden fixed inset-0 z-40 nx-fade" onClick={() => setDrawer(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="absolute inset-y-0 left-0 nx-slide" onClick={(e) => e.stopPropagation()} style={{ animation: "nx-slide .2s ease both" }}>
-            <Sidebar items={items} active={active} onGo={go} user={user} className="flex h-full" />
+            <Sidebar items={items} active={active} onGo={go} user={user}
+              onProfileOpen={() => setProfileOpen(true)}
+              className="flex h-full" />
           </div>
         </div>
       )}
@@ -78,7 +83,7 @@ export function Shell({
             title={user.name}
             onClick={() => setProfileOpen(true)}
           >
-            <Avatar name={user.name} color={user.color} size={32} />
+            <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} />
           </button>
         </header>
 
@@ -86,7 +91,7 @@ export function Shell({
           <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
           <footer className="max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[11px]"
             style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>
-            Nexus · CERT Comunicación
+            Hecho con ❤️ por Samu Chan
           </footer>
         </main>
       </div>
@@ -106,9 +111,15 @@ export function Shell({
 }
 
 /* ───────────────────────── Sidebar ───────────────────────── */
-function Sidebar({ items, active, onGo, user, className }: {
-  items: NavItem[]; active: string; onGo: (k: string) => void; user: ShellUser; className?: string;
+function Sidebar({ items, active, onGo, user, onProfileOpen, className }: {
+  items: NavItem[]; active: string; onGo: (k: string) => void; user: ShellUser; onProfileOpen: () => void; className?: string;
 }) {
+  const router = useRouter();
+  const signOut = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await createClient().auth.signOut();
+    router.push("/login");
+  };
   return (
     <aside className={cx("w-[248px] shrink-0 flex-col bg-sidebar border-r border-border", className)}>
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border">
@@ -150,14 +161,24 @@ function Sidebar({ items, active, onGo, user, className }: {
       </nav>
 
       <div className="p-3 border-t border-border">
-        <div className="flex items-center gap-2.5 p-2 rounded-sm hover:bg-hover transition-colors cursor-pointer">
-          <Avatar name={user.name} color={user.color} size={34} />
+        <button
+          onClick={onProfileOpen}
+          className="w-full flex items-center gap-2.5 p-2 rounded-sm hover:bg-hover transition-colors cursor-pointer text-left"
+        >
+          <Avatar name={user.name} color={user.color} size={34} avatarUrl={user.avatarUrl} />
           <div className="min-w-0 leading-tight">
             <p className="text-[13px] font-semibold text-text-1 truncate">{user.name}</p>
             <p className="text-[11px] text-text-3 truncate">{user.roleLabel}</p>
           </div>
-          <span className="ml-auto text-text-3"><Icon name="logout" size={16} /></span>
-        </div>
+          <span
+            className="ml-auto text-text-3 hover:text-danger transition-colors"
+            onClick={signOut}
+            title="Cerrar sesión"
+            role="button"
+          >
+            <Icon name="logout" size={16} />
+          </span>
+        </button>
       </div>
     </aside>
   );
