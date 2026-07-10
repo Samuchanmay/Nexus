@@ -138,18 +138,20 @@ export default function AsistenciaClient({ people, states, weekRows, reportSetti
             value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "Semana"}
             onChange={(v) => setView(v === "Tabla" ? "tabla" : v === "Gantt" ? "gantt" : "semana")}
           />
-          {view === "tabla" && (
-            <a href={dayCsvHref} download={`asistencia-${today}.csv`}
-              className="btn-secondary px-4 py-2.5 text-[13px]"
-              onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${today}.csv`); }}>
-              CSV del día ↓
-            </a>
-          )}
-          {view === "semana" && (
-            <button className="btn-secondary px-4 py-2.5 text-[13px]" disabled={sending} onClick={enviarReporte}>
-              {sending ? "Enviando…" : "Enviar ahora"}
-            </button>
-          )}
+          <div className="min-w-[130px] flex justify-end">
+            {view === "tabla" && (
+              <a href={dayCsvHref} download={`asistencia-${today}.csv`}
+                className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap"
+                onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${today}.csv`); }}>
+                CSV del día ↓
+              </a>
+            )}
+            {view === "semana" && (
+              <button className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap" disabled={sending} onClick={enviarReporte}>
+                {sending ? "Enviando…" : "Enviar ahora"}
+              </button>
+            )}
+          </div>
         </div>
       </PageHeader>
 

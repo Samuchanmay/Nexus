@@ -12,6 +12,10 @@ import { PRIORITY_TONE, KIND_LABELS, INCIDENT_TONE } from "@/lib/ui-maps";
 import { fmtMin, fmtTime } from "@/lib/hours";
 import type { Priority, RequestType, Incident } from "@/lib/types";
 
+const SPECIALTY_LABELS: Record<string, string> = {
+  video: "Video", fotografia: "Fotografía", diseno: "Diseño", difusion: "Difusión", redaccion: "Redacción",
+};
+
 export interface TeamMember {
   id: string;
   display_name: string;
@@ -48,7 +52,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
               <div className="flex-1 min-w-0">
                 <p className="text-[14.5px] font-bold">{u.display_name}</p>
                 <p className="text-[11.5px] truncate" style={{ color: "var(--text-3)" }}>
-                  {u.specialties.join(" · ") || u.area}
+                  {u.specialties.map((sp) => SPECIALTY_LABELS[sp] ?? sp).join(" · ") || u.area}
                 </p>
               </div>
               <p className="text-[21px] font-bold tabular-nums"
@@ -88,13 +92,16 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
 
       {/* ── L4 · Panel contextual ── */}
       <Sheet open={!!sel} onClose={() => setSel(null)}
-        title={sel?.display_name ?? ""} subtitle={sel?.full_name}>
+        title={sel?.full_name ?? ""} subtitle={sel?.area ?? undefined}>
         {sel && (
           <div className="px-5 pt-4 flex flex-col gap-5">
             {/* Jornada de hoy */}
             <section>
-              <h3 className="text-[13px] font-bold uppercase tracking-wide mb-2.5" style={{ color: "var(--text-3)" }}>
-                Hoy
+              <h3 className="text-[13px] font-bold uppercase tracking-wide mb-2.5 flex items-center justify-between" style={{ color: "var(--text-3)" }}>
+                <span>Hoy</span>
+                <span className="normal-case font-semibold text-[11.5px]" style={{ color: "var(--text-2)" }}>
+                  {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
+                </span>
               </h3>
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[

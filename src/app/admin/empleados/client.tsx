@@ -8,6 +8,9 @@ import { IconUserPlus, IconPen } from "@/components/icons";
 import { todayMerida } from "@/lib/tz";
 
 const SPECIALTIES = ["video", "fotografia", "diseno", "difusion", "redaccion"];
+const SPECIALTY_LABELS: Record<string, string> = {
+  video: "Video", fotografia: "Fotografía", diseno: "Diseño", difusion: "Difusión", redaccion: "Redacción",
+};
 const COLORS = ["#5856D6", "#FF3B30", "#FF8A00", "#0066FF", "#2FB344", "#AF52DE", "#FF2D55"];
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrador", empleado: "Empleado", rh: "RH",
@@ -18,6 +21,29 @@ const AREA_TIPO: Record<string, "coordinacion" | "departamento" | null> = {
   empleado: null, admin: null, rh: null,
 };
 
+/* ── Select con look Apple: sin flecha nativa, chevron propio ── */
+function SelectField({ value, onChange, children, label }: {
+  value: string; onChange: (v: string) => void; children: React.ReactNode; label?: string;
+}) {
+  return (
+    <div>
+      {label && <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>{label}</label>}
+      <div className="relative">
+        <select
+          className="field-input appearance-none pr-9 cursor-pointer"
+          value={value} onChange={(e) => onChange(e.target.value)}
+        >
+          {children}
+        </select>
+        <svg viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+          style={{ color: "var(--text-3)" }}>
+          <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function AreaSelect({ role, areas, value, onChange }: {
   role: string; areas: Department[]; value: string; onChange: (v: string) => void;
 }) {
@@ -26,13 +52,10 @@ function AreaSelect({ role, areas, value, onChange }: {
   const options = areas.filter((a) => a.tipo === tipo);
   const label = tipo === "coordinacion" ? "Coordinación" : "Departamento";
   return (
-    <div>
-      <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>{label}</label>
-      <select className="field-input" value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">— que la persona la elija al entrar —</option>
-        {options.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-      </select>
-    </div>
+    <SelectField label={label} value={value} onChange={onChange}>
+      <option value="">— que la persona la elija al entrar —</option>
+      {options.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+    </SelectField>
   );
 }
 
@@ -44,7 +67,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
   const [form, setForm] = useState({
     email: "", full_name: "", display_name: "", title: "", hire_date: "", role: "empleado",
     area: "", area_id: "", color: COLORS[4], specialties: [] as string[],
-    start: "09:00", end: "18:00", target: "480", balance: "0",
+    start: "09:00", end: "18:00", targetHours: "8", balance: "0",
   });
 
   const [editing, setEditing] = useState<UserProfile | null>(null);
@@ -58,12 +81,15 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
     ...f, specialties: f.specialties.includes(s) ? f.specialties.filter((x) => x !== s) : [...f.specialties, s],
   }));
 
+  const isEquipo = form.role === "empleado";
+
   const save = async () => {
     if (!form.email.trim() || !form.full_name.trim()) { toast("Correo y nombre son obligatorios"); return; }
     setSaving(true);
     const supabase = createClient();
     const requesterKind = AREA_TIPO[form.role] === "coordinacion" ? "coordinador"
       : AREA_TIPO[form.role] === "departamento" ? "departamento" : null;
+    const targetMin = isEquipo ? Math.max(1, Math.round((parseFloat(form.targetHours) || 8) * 60)) : 480;
     const { data: u, error } = await supabase.from("users").insert({
       email: form.email.trim().toLowerCase(),
       full_name: form.full_name.trim(),
@@ -74,7 +100,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       nexus_clave: form.display_name.trim() || form.full_name.split(" ")[0],
       nexus_color: form.color,
       area: form.area || null,
-      specialties: form.specialties,
+      specialties: isEquipo ? form.specialties : [],
       vacation_balance: parseInt(form.balance) || 0,
       title: form.title.trim() || null,
       hire_date: form.hire_date || null,
@@ -83,10 +109,10 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       toast(error?.code === "23505" ? "Ese correo ya está registrado" : "No se pudo guardar");
       setSaving(false); return;
     }
-    if (["empleado", "admin"].includes(form.role)) {
+    if (isEquipo) {
       await supabase.from("schedules").insert({
         user_id: u.id, start_time: form.start, end_time: form.end,
-        target_min: parseInt(form.target) || 480,
+        target_min: targetMin,
       });
     }
     setSaving(false); setOpen(false);
@@ -144,11 +170,45 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
     return u.area;
   };
 
+  const equipo = users.filter((u) => u.role === "empleado");
+  const otros = users.filter((u) => u.role !== "empleado");
+
+  const Row = ({ u }: { u: UserProfile }) => (
+    <div className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
+      style={!u.active ? { opacity: 0.55 } : undefined}>
+      <div className="flex items-center gap-3">
+        <Avatar name={u.display_name} color={u.nexus_color} size={38} />
+        <div>
+          <p className="text-[14px] font-bold">{u.title ? `${u.title} ${u.full_name}` : u.full_name}</p>
+          <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
+            {u.email} · {ROLE_LABELS[u.role]}{areaName(u) && ` · ${areaName(u)}`}
+            {!u.onboarded && " · Pendiente de completar perfil"}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2.5">
+        {!u.active && <Pill tone="muted">Inactivo</Pill>}
+        <button onClick={() => openEdit(u)}
+          className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5"
+          style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
+          <IconPen className="w-3.5 h-3.5" /> Editar
+        </button>
+        <button onClick={() => toggleActive(u)}
+          className="px-4 py-2 rounded-full text-[12px] font-semibold"
+          style={u.active
+            ? { background: "var(--danger-tint)", color: "var(--danger)" }
+            : { background: "var(--ok-tint)", color: "var(--ok)" }}>
+          {u.active ? "Desactivar" : "Reactivar"}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight">Empleados</h1>
+          <h1 className="text-[28px] font-bold tracking-tight">Equipo</h1>
           <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
             Solo los correos de esta lista pueden entrar a Nexus
           </p>
@@ -158,41 +218,37 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
         </button>
       </header>
 
-      <div className="flex flex-col gap-2.5">
-        {users.map((u) => (
-          <div key={u.id} className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
-            style={!u.active ? { opacity: 0.55 } : undefined}>
-            <div className="flex items-center gap-3">
-              <Avatar name={u.display_name} color={u.nexus_color} size={38} />
-              <div>
-                <p className="text-[14px] font-bold">{u.title ? `${u.title} ${u.full_name}` : u.full_name}</p>
-                <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
-                  {u.email} · {ROLE_LABELS[u.role]}{areaName(u) && ` · ${areaName(u)}`}
-                  {!u.onboarded && " · Pendiente de completar perfil"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5">
-              {!u.active && <Pill tone="muted">Inactivo</Pill>}
-              <button onClick={() => openEdit(u)}
-                className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5"
-                style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-                <IconPen className="w-3.5 h-3.5" /> Editar
-              </button>
-              <button onClick={() => toggleActive(u)}
-                className="px-4 py-2 rounded-full text-[12px] font-semibold"
-                style={u.active
-                  ? { background: "var(--danger-tint)", color: "var(--danger)" }
-                  : { background: "var(--ok-tint)", color: "var(--ok)" }}>
-                {u.active ? "Desactivar" : "Reactivar"}
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2.5">
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+            Equipo · {equipo.length}
+          </p>
+          {equipo.length === 0 ? (
+            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin personas en el equipo todavía</p>
+          ) : equipo.map((u) => <Row key={u.id} u={u} />)}
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+            Otro personal · coordinadores, departamentos y RH · {otros.length}
+          </p>
+          {otros.length === 0 ? (
+            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
+          ) : otros.map((u) => <Row key={u.id} u={u} />)}
+        </div>
       </div>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Agregar personal">
         <div className="flex flex-col gap-3">
+          <SelectField label="¿A quién agregas?" value={form.role}
+            onChange={(v) => setForm({ ...form, role: v, area_id: "" })}>
+            <option value="empleado">Equipo (empleado)</option>
+            <option value="rh">RH (solo lectura)</option>
+            <option value="coordinador">Coordinador</option>
+            <option value="departamento">Departamento</option>
+            <option value="admin">Administrador</option>
+          </SelectField>
+
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo Google *</label>
             <input className="field-input" placeholder="nombre@cert.edu.mx" type="email"
@@ -210,54 +266,61 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
                 value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+
+          {!isEquipo && (
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
               <input className="field-input" placeholder="Ej. Coordinador de Video"
                 value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
+          )}
+
+          {isEquipo && (
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                <input className="field-input" placeholder="Ej. Coordinador de Video"
+                  value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
+                <input type="date" className="field-input" value={form.hire_date}
+                  onChange={(e) => setForm({ ...form, hire_date: e.target.value })} />
+              </div>
+            </div>
+          )}
+
+          {!isEquipo && (
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
               <input type="date" className="field-input" value={form.hire_date}
                 onChange={(e) => setForm({ ...form, hire_date: e.target.value })} />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rol</label>
-              <select className="field-input" value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value, area_id: "" })}>
-                <option value="empleado">Empleado</option>
-                <option value="rh">RH (solo lectura)</option>
-                <option value="coordinador">Coordinador</option>
-                <option value="departamento">Departamento</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
-            {AREA_TIPO[form.role]
-              ? <AreaSelect role={form.role} areas={areas} value={form.area_id}
-                  onChange={(v) => setForm({ ...form, area_id: v })} />
-              : (
-                <div>
-                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Área</label>
-                  <input className="field-input" placeholder="Comunicación"
-                    value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
-                </div>
-              )}
-          </div>
+          )}
 
-          {["empleado", "admin"].includes(form.role) && (
+          {AREA_TIPO[form.role]
+            ? <AreaSelect role={form.role} areas={areas} value={form.area_id}
+                onChange={(v) => setForm({ ...form, area_id: v })} />
+            : isEquipo ? (
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Área</label>
+                <input className="field-input" placeholder="Comunicación"
+                  value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
+              </div>
+            ) : null}
+
+          {isEquipo && (
             <>
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Especialidades</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {SPECIALTIES.map((s) => (
                     <button key={s} onClick={() => toggleSpec(s)}
-                      className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold capitalize"
+                      className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold"
                       style={form.specialties.includes(s)
                         ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
                         : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-                      {s}
+                      {SPECIALTY_LABELS[s]}
                     </button>
                   ))}
                 </div>
@@ -274,9 +337,9 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
                     onChange={(e) => setForm({ ...form, end: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Min objetivo</label>
-                  <input type="number" className="field-input" value={form.target}
-                    onChange={(e) => setForm({ ...form, target: e.target.value })} />
+                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Objetivo (horas)</label>
+                  <input type="number" step="0.5" min="1" max="16" className="field-input" value={form.targetHours}
+                    onChange={(e) => setForm({ ...form, targetHours: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
@@ -352,17 +415,14 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
                   onChange={(e) => setEditForm({ ...editForm, birthDate: e.target.value })} />
               </div>
             </div>
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rol</label>
-              <select className="field-input" value={editForm.role}
-                onChange={(e) => setEditForm({ ...editForm, role: e.target.value, area_id: "" })}>
-                <option value="coordinador">Coordinador</option>
-                <option value="departamento">Departamento</option>
-                <option value="empleado">Empleado</option>
-                <option value="rh">RH (solo lectura)</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
+            <SelectField label="Rol" value={editForm.role}
+              onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}>
+              <option value="coordinador">Coordinador</option>
+              <option value="departamento">Departamento</option>
+              <option value="empleado">Empleado</option>
+              <option value="rh">RH (solo lectura)</option>
+              <option value="admin">Administrador</option>
+            </SelectField>
             {AREA_TIPO[editForm.role] && (
               <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
                 onChange={(v) => setEditForm({ ...editForm, area_id: v })} />

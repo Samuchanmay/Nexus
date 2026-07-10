@@ -369,7 +369,7 @@ export default async function AdminDashboard() {
 
       {/* Actividad de hoy (feed) */}
       <Card>
-        <SectionTitle hint="fichajes · solicitudes · vacaciones">Actividad de hoy</SectionTitle>
+        <SectionTitle hint="registros · solicitudes · vacaciones">Actividad de hoy</SectionTitle>
         {feed.length === 0 ? (
           <p className="text-[13px] py-4 text-center text-text-3">Aún no hay actividad registrada hoy</p>
         ) : (

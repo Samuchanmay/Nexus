@@ -104,9 +104,15 @@ export function ProfileModal({
             <div className="relative">
               {data?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={data.avatar_url} alt={name} className="h-16 w-16 rounded-full object-cover" />
+                <img
+                  src={data.avatar_url} alt={name}
+                  className="h-16 w-16 rounded-full object-cover"
+                  style={{ boxShadow: `0 0 0 3px var(--panel), 0 0 0 5px ${color}` }}
+                />
               ) : (
-                <Avatar name={name} color={color} size={64} />
+                <div className="rounded-full" style={{ boxShadow: `0 0 0 3px var(--panel), 0 0 0 5px ${color}` }}>
+                  <Avatar name={name} color={color} size={64} />
+                </div>
               )}
               <button
                 onClick={() => fileRef.current?.click()}

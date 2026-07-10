@@ -132,7 +132,7 @@ body {
 .card-hover:hover { transform: translateY(-3px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
 
 .btn-primary {
-  @apply rounded-s font-semibold text-white;
+  @apply rounded-sm font-semibold text-white;
   background: linear-gradient(155deg, #0A84FF, #0066FF);
   box-shadow: 0 6px 18px rgba(0,102,255,.30);
   transition: transform .25s var(--spring), box-shadow .25s var(--ease);
@@ -141,7 +141,7 @@ body {
 .btn-primary:disabled { opacity: .45; transform: none; }
 .btn-ok { background: linear-gradient(155deg, #34D058, #2FB344); box-shadow: 0 6px 18px rgba(47,179,68,.30); }
 .btn-secondary {
-  @apply rounded-s font-semibold;
+  @apply rounded-sm font-semibold;
   border: 1px solid var(--border-2);
   background: var(--surface);
   color: var(--text-2);
@@ -150,7 +150,7 @@ body {
 
 .pill { @apply text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap; }
 .field-input {
-  @apply w-full rounded-s px-3.5 py-3 text-[15px] outline-none;
+  @apply w-full rounded-sm px-3.5 py-3 text-[15px] outline-none;
   border: 1px solid var(--border-2);
   background: var(--surface);
   color: var(--text-1);
