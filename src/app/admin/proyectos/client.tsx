@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, Pill, Sheet, useToast } from "@/components/ui";
+import { Avatar, Pill, Sheet, useToast, SelectField, CheckBox } from "@/components/ui";
 import { logAdminAction } from "@/lib/admin-log";
 import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
@@ -226,12 +226,12 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
           {open === p.id ? (
             <div className="flex items-center gap-2 mt-2">
-              <select className="input flex-1 text-[12.5px]" value={picked} onChange={(e) => setPicked(e.target.value)}>
+              <SelectField className="flex-1" value={picked} onChange={setPicked}>
                 <option value="">— elige una actividad —</option>
                 {otherOptions.map((o) => (
                   <option key={o.id} value={o.id}>{titleOf(o)}</option>
                 ))}
-              </select>
+              </SelectField>
               <button className="btn-secondary text-[12px] px-2.5 py-1.5" disabled={saving} onClick={() => addDependency(p.id)}>
                 Agregar
               </button>
@@ -287,40 +287,38 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
       )}
 
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Añadir proyecto" subtitle="Crea una actividad directamente, sin pasar por Solicitudes">
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-4">
           <div>
-            <label className="text-[12px] font-semibold mb-1 block" style={{ color: "var(--text-2)" }}>Nombre de la actividad</label>
-            <input className="input w-full" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            <label className="text-[12px] font-semibold mb-1.5 block" style={{ color: "var(--text-2)" }}>Nombre de la actividad</label>
+            <input className="field-input" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="Ej. Actualización del sitio web" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[12px] font-semibold mb-1 block" style={{ color: "var(--text-2)" }}>Tipo</label>
-              <select className="input w-full" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>
-                {types.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-[12px] font-semibold mb-1 block" style={{ color: "var(--text-2)" }}>Prioridad</label>
-              <select className="input w-full" value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value as Priority }))}>
-                {PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
-              </select>
-            </div>
+            <SelectField label="Tipo" value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v }))}>
+              {types.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </SelectField>
+            <SelectField label="Prioridad" value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v as Priority }))}>
+              {PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
+            </SelectField>
           </div>
 
           <div>
-            <label className="text-[12px] font-semibold mb-1 block" style={{ color: "var(--text-2)" }}>Fecha de entrega (opcional)</label>
-            <input type="date" className="input w-full" value={form.deadline} onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))} />
+            <label className="text-[12px] font-semibold mb-1.5 block" style={{ color: "var(--text-2)" }}>Fecha de entrega (opcional)</label>
+            <input type="date" className="field-input" value={form.deadline} onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))} />
           </div>
 
           <div>
             <label className="text-[12px] font-semibold mb-2 block" style={{ color: "var(--text-2)" }}>Asignar a</label>
-            <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto">
+            <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto pr-0.5">
               {team.map((m) => (
-                <label key={m.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-sm cursor-pointer"
-                  style={{ background: assignees.includes(m.id) ? "var(--bg-2)" : "transparent" }}>
-                  <input type="checkbox" checked={assignees.includes(m.id)} onChange={() => toggleAssignee(m.id)} />
+                <label key={m.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm cursor-pointer transition-colors"
+                  style={{
+                    background: assignees.includes(m.id) ? "var(--accent-tint)" : "var(--surface-2)",
+                    border: assignees.includes(m.id) ? "1px solid var(--accent)" : "1px solid transparent",
+                  }}>
+                  <input type="checkbox" className="hidden" checked={assignees.includes(m.id)} onChange={() => toggleAssignee(m.id)} />
+                  <CheckBox checked={assignees.includes(m.id)} />
                   <Avatar name={m.display_name} color={m.nexus_color} size={26} />
                   <span className="text-[13px] font-medium flex-1">{m.display_name}</span>
                   {assignees.includes(m.id) && (
@@ -337,7 +335,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
             </div>
           </div>
 
-          <button className="btn-primary w-full mt-1" disabled={creating} onClick={createProject}>
+          <button className="btn-primary w-full mt-1 py-3" disabled={creating} onClick={createProject}>
             {creating ? "Creando…" : "Crear actividad"}
           </button>
         </div>

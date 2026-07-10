@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
-import { useToast, Sheet, Pill, Avatar } from "@/components/ui";
+import { useToast, Sheet, Pill, Avatar, SelectField } from "@/components/ui";
 import { IconUserPlus, IconPen } from "@/components/icons";
 import { todayMerida } from "@/lib/tz";
 
@@ -20,29 +20,6 @@ const AREA_TIPO: Record<string, "coordinacion" | "departamento" | null> = {
   coordinador: "coordinacion", departamento: "departamento",
   empleado: null, admin: null, rh: null,
 };
-
-/* ── Select con look Apple: sin flecha nativa, chevron propio ── */
-function SelectField({ value, onChange, children, label }: {
-  value: string; onChange: (v: string) => void; children: React.ReactNode; label?: string;
-}) {
-  return (
-    <div>
-      {label && <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>{label}</label>}
-      <div className="relative">
-        <select
-          className="field-input appearance-none pr-9 cursor-pointer"
-          value={value} onChange={(e) => onChange(e.target.value)}
-        >
-          {children}
-        </select>
-        <svg viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
-          style={{ color: "var(--text-3)" }}>
-          <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-    </div>
-  );
-}
 
 function AreaSelect({ role, areas, value, onChange }: {
   role: string; areas: Department[]; value: string; onChange: (v: string) => void;

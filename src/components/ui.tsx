@@ -102,6 +102,49 @@ export function Avatar({ name, color, size = 34 }: { name: string; color?: strin
   );
 }
 
+/* ── SelectField: select nativo con chevron propio (look Apple, sin la flecha fea del navegador) ── */
+export function SelectField({ value, onChange, children, label, className }: {
+  value: string; onChange: (v: string) => void; children: React.ReactNode; label?: string; className?: string;
+}) {
+  return (
+    <div className={className}>
+      {label && <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>{label}</label>}
+      <div className="relative">
+        <select
+          className="field-input appearance-none pr-9 cursor-pointer w-full"
+          value={value} onChange={(e) => onChange(e.target.value)}
+        >
+          {children}
+        </select>
+        <svg viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+          style={{ color: "var(--text-3)" }}>
+          <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+/* ── Checkbox: cuadro propio (look Apple, sin el checkbox nativo del navegador) ── */
+export function CheckBox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className="inline-grid place-items-center rounded-[6px] shrink-0 transition-colors"
+      style={{
+        width: 20, height: 20,
+        background: checked ? "var(--accent)" : "var(--surface-2)",
+        border: checked ? "1px solid var(--accent)" : "1px solid var(--border-2)",
+      }}
+    >
+      {checked && (
+        <svg viewBox="0 0 20 20" fill="none" className="w-3 h-3">
+          <path d="M4 10l4 4 8-9" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 /* ── Sheet (modal deslizable desde abajo) ── */
 export function Sheet({ open, onClose, title, subtitle, children }: {
   open: boolean; onClose: () => void; title: string; subtitle?: string; children: React.ReactNode;
