@@ -106,7 +106,7 @@ export default function AsistenciaClient({ people, states }: { people: PersonDay
                   { v: day.firstIn ? fmtMin(day.totalMin) : "—", l: "LABORADO" },
                   { v: fmtMin(day.targetMin), l: "OBJETIVO" },
                 ].map((c) => (
-                  <div key={c.l} className="rounded-s py-2.5" style={{ background: "var(--surface-2)" }}>
+                  <div key={c.l} className="rounded-sm py-2.5" style={{ background: "var(--surface-2)" }}>
                     <p className="text-[14px] font-bold tabular-nums">{c.v}</p>
                     <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>{c.l}</p>
                   </div>

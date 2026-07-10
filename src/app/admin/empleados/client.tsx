@@ -137,7 +137,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
           </p>
         </div>
         <button onClick={() => setOpen(true)} className="btn-primary px-5 py-2.5 text-[13.5px] flex items-center gap-2">
-          <IconUserPlus className="w-4 h-4" /> Agregar persona
+          <IconUserPlus className="w-4 h-4" /> Agregar personal
         </button>
       </header>
 
@@ -176,7 +176,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
         ))}
       </div>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="Agregar persona">
+      <Sheet open={open} onClose={() => setOpen(false)} title="Agregar personal">
         <div className="flex flex-col gap-3">
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo Google *</label>

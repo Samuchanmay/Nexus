@@ -46,8 +46,8 @@ const HREF: Record<Role, Record<string, string>> = {
 
 const TITLES: Record<string, string> = {
   hoy: "Hoy", actividades: "Actividades", solicitudes: "Solicitudes", calendario: "Calendario",
-  biblioteca: "Biblioteca", asistencia: "Asistencia", jornada: "Mi jornada", vacaciones: "Vacaciones",
-  incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Empleados",
+  biblioteca: "Biblioteca", asistencia: "Asistencia", jornada: "Mi día", vacaciones: "Vacaciones",
+  incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Equipo",
   "dias-inhabiles": "Días inhábiles", reportes: "Reportes", config: "Configuración",
 };
 
@@ -88,7 +88,7 @@ export function AppShell({
     <Link
       href="/fichar"
       className={cx(
-        "hidden sm:inline-flex items-center gap-1.5 h-8 px-3 rounded-s text-[13px] font-semibold whitespace-nowrap",
+        "hidden sm:inline-flex items-center gap-1.5 h-8 px-3 rounded-sm text-[13px] font-semibold whitespace-nowrap",
         "bg-surface-2 text-text-1 border border-border hover:bg-hover transition-colors duration-150"
       )}
     >

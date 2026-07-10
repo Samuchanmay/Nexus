@@ -16,8 +16,9 @@ export default async function CoordinadorLayout({ children }: { children: React.
   return (
     <ToastProvider>
       <AppShell
-        role="coordinador"
+        role={profile.role === "admin" ? "admin" : "coordinador"}
         user={{
+          id: profile.id,
           name: profile.display_name,
           area: profile.area ?? "",
           color: profile.nexus_color ?? "#0066FF",

@@ -16,12 +16,12 @@ export const NAV: NavItem[] = [
   { key: "calendario", label: "Calendario", icon: "calendar", roles: "all", section: "trabajo" },
   { key: "biblioteca", label: "Biblioteca", icon: "book", roles: "all", section: "trabajo" },
 
-  { key: "jornada", label: "Mi jornada", icon: "clock", roles: ["admin", "empleado"], section: "personal" },
+  { key: "jornada", label: "Mi día", icon: "clock", roles: ["admin", "empleado"], section: "personal" },
   { key: "vacaciones", label: "Vacaciones", icon: "sun", roles: "all", section: "personal" },
   { key: "incidencias", label: "Incidencias", icon: "alert", roles: "all", section: "personal" },
 
   { key: "equipo", label: "Carga del equipo", icon: "users", roles: ["admin"], section: "gestion" },
-  { key: "empleados", label: "Empleados", icon: "users", roles: ["admin"], section: "gestion" },
+  { key: "empleados", label: "Equipo", icon: "users", roles: ["admin"], section: "gestion" },
   { key: "asistencia", label: "Asistencia", icon: "clock", roles: ["admin"], section: "gestion" },
   { key: "dias-inhabiles", label: "Días inhábiles", icon: "calendar", roles: ["admin"], section: "gestion" },
   { key: "reportes", label: "Reportes", icon: "chart", roles: ["admin"], section: "gestion" },

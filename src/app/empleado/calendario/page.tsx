@@ -109,7 +109,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
         <div className="grid grid-cols-7 gap-1.5">
           {cells.map((c) => (
             <div key={c.date}
-              className="rounded-s p-1.5 min-h-[74px] flex flex-col gap-1"
+              className="rounded-sm p-1.5 min-h-[74px] flex flex-col gap-1"
               style={{
                 background: c.vacation ? "var(--purple-tint)" : c.holiday ? "var(--accent-tint)" : "var(--surface-2)",
                 opacity: c.inMonth ? 1 : 0.35,

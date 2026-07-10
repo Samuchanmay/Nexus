@@ -195,7 +195,7 @@ export default async function AdminDashboard() {
       <header className="pt-2">
         <p className="text-[13px] capitalize text-text-3">{dateLabel}</p>
         <h1 className="text-[26px] md:text-[30px] font-bold tracking-tight text-text-1">
-          {greeting}, {firstName} 👋
+          {greeting}, {firstName} <span className="wave-emoji">👋</span>
         </h1>
         <p className="text-[13.5px] mt-1 text-text-3">
           {alerts.length === 0
@@ -234,7 +234,7 @@ export default async function AdminDashboard() {
           ) : (
             <div className="space-y-1">
               {activities.map((a) => (
-                <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors">
+                <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-text-1 truncate">{a.title}</p>
                     <div className="mt-1.5 h-1.5 rounded-full bg-surface-3 overflow-hidden">
@@ -247,7 +247,7 @@ export default async function AdminDashboard() {
               ))}
             </div>
           )}
-          <Link href="/admin/proyectos" className="mt-3 w-full h-9 flex items-center justify-center rounded-s text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
+          <Link href="/admin/proyectos" className="mt-3 w-full h-9 flex items-center justify-center rounded-sm text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
             Ver todas las actividades →
           </Link>
         </Card>
@@ -259,8 +259,8 @@ export default async function AdminDashboard() {
           ) : (
             <div className="space-y-1">
               {pendingList.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors">
-                  <span className="grid place-items-center h-8 w-8 rounded-s bg-surface-2 text-text-3 shrink-0">📝</span>
+                <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors">
+                  <span className="grid place-items-center h-8 w-8 rounded-sm bg-surface-2 text-text-3 shrink-0">📝</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-text-1 truncate">{r.title}</p>
                     <p className="text-[12px] text-text-3 truncate">{r.requester_name ?? "—"}</p>
@@ -270,7 +270,7 @@ export default async function AdminDashboard() {
               ))}
             </div>
           )}
-          <Link href="/admin/solicitudes" className="mt-3 w-full h-9 flex items-center justify-center rounded-s text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
+          <Link href="/admin/solicitudes" className="mt-3 w-full h-9 flex items-center justify-center rounded-sm text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
             Revisar bandeja →
           </Link>
         </Card>
@@ -285,15 +285,15 @@ export default async function AdminDashboard() {
               : myDay.firstIn ? <Badge tone="neutral">Cerrada</Badge> : <Badge tone="neutral">Sin iniciar</Badge>}
           </div>
           <div className="grid grid-cols-3 gap-2 text-center mb-4">
-            <div className="rounded-s py-3 bg-surface-2">
+            <div className="rounded-sm py-3 bg-surface-2">
               <p className="text-[15px] font-bold tabular-nums text-text-1">{fmtTime(myDay.firstIn)}</p>
               <p className="text-[10px] font-semibold text-text-3">Entrada</p>
             </div>
-            <div className="rounded-s py-3 bg-surface-2">
+            <div className="rounded-sm py-3 bg-surface-2">
               <p className="text-[15px] font-bold tabular-nums text-text-1">{fmtMin(myDay.totalMin)}</p>
               <p className="text-[10px] font-semibold text-text-3">Laborado</p>
             </div>
-            <div className="rounded-s py-3 bg-surface-2">
+            <div className="rounded-sm py-3 bg-surface-2">
               <p className="text-[15px] font-bold tabular-nums" style={{ color: myDay.extraMin > 0 ? "var(--ok)" : undefined }}>
                 {myDay.extraMin > 0 ? `+${fmtMin(myDay.extraMin)}` : "—"}
               </p>
@@ -301,10 +301,10 @@ export default async function AdminDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/fichar" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-s text-[14px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
+            <Link href="/fichar" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-sm text-[14px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
               Comenzar jornada
             </Link>
-            <Link href="/empleado" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-s text-[14px] font-semibold bg-surface-2 text-text-1 border border-border hover:bg-hover transition-all duration-150">
+            <Link href="/empleado" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-sm text-[14px] font-semibold bg-surface-2 text-text-1 border border-border hover:bg-hover transition-all duration-150">
               Mis actividades
             </Link>
           </div>

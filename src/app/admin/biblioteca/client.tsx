@@ -48,7 +48,7 @@ export default function BibliotecaClient({ items }: { items: Item[] }) {
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por título, tipo, coordinación o colaborador…"
-          className="w-full h-11 rounded-s px-3.5 text-[14px]"
+          className="w-full h-11 rounded-sm px-3.5 text-[14px]"
           style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }}
         />
       </div>

@@ -15,7 +15,7 @@ const GROUPS: { label: string; items: LinkCard[] }[] = [
   {
     label: "Usuarios · Roles · Permisos",
     items: [
-      { href: "/admin/empleados", title: "Empleados", desc: "Invitar, dar de baja, cambiar rol o coordinación/departamento." },
+      { href: "/admin/empleados", title: "Equipo", desc: "Invitar, dar de baja, cambiar rol o coordinación/departamento." },
     ],
   },
   {

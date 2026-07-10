@@ -214,7 +214,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
       <Sheet open={!!sel} onClose={() => setSel(null)} title={rejecting ? "Rechazar solicitud" : "Aprobar y asignar"}>
         {sel && !rejecting && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-s px-4 py-3" style={{ background: "var(--surface-2)" }}>
+            <div className="rounded-sm px-4 py-3" style={{ background: "var(--surface-2)" }}>
               <p className="text-[13.5px] font-bold">{sel.title}</p>
               <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
                 {typeLabel[sel.type] ?? sel.type} · anticipación mínima {minHours[sel.type] ?? 72}h
@@ -230,7 +230,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
                   const included = assignees.includes(m.id);
                   const isLead = lead === m.id;
                   return (
-                    <div key={m.id} className="flex items-center gap-2.5 rounded-s px-3 py-2.5 cursor-pointer transition-colors"
+                    <div key={m.id} className="flex items-center gap-2.5 rounded-sm px-3 py-2.5 cursor-pointer transition-colors"
                       style={{
                         border: included ? "1.5px solid var(--accent)" : "1px solid var(--border-2)",
                         background: included ? "var(--accent-tint)" : "var(--surface)",
@@ -295,7 +295,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
               value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
             <div className="flex gap-2.5">
               <button className="btn-secondary flex-1 py-3 text-[13.5px]" onClick={() => setRejecting(false)}>Volver</button>
-              <button className="flex-[2] py-3 text-[14px] rounded-s font-semibold text-white"
+              <button className="flex-[2] py-3 text-[14px] rounded-sm font-semibold text-white"
                 style={{ background: "linear-gradient(155deg,#FF6B60,#FF3B30)" }}
                 disabled={saving} onClick={reject}>
                 {saving ? "Rechazando…" : "Confirmar rechazo"}

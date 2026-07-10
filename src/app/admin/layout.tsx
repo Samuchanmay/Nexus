@@ -20,6 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         role="admin"
         ficharAction
         user={{
+          id: profile.id,
           name: profile.display_name,
           area: profile.area ?? "",
           color: profile.nexus_color ?? "#5856D6",

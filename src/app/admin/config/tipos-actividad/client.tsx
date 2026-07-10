@@ -204,7 +204,7 @@ export default function TiposClient({ types, templates }: {
                     </p>
                   )}
                   {items.map((it, idx) => (
-                    <div key={it.id} className="flex items-center gap-2 px-2 py-1.5 rounded-s" style={{ background: "var(--surface-2)" }}>
+                    <div key={it.id} className="flex items-center gap-2 px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
                       <span className="text-[11px] font-bold w-4 text-center shrink-0" style={{ color: "var(--text-3)" }}>
                         {idx + 1}
                       </span>

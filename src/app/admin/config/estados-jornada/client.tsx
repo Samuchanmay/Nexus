@@ -105,7 +105,7 @@ export default function EstadosClient({ states }: { states: EstadoRow[] }) {
           <input className="field-input" placeholder="Nombre del estado"
             value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
           <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
-            className="w-full h-[42px] rounded-s border-0 cursor-pointer" style={{ background: form.color }} />
+            className="w-full h-[42px] rounded-sm border-0 cursor-pointer" style={{ background: form.color }} />
           <button className="btn-primary px-5 py-3 text-[13.5px] flex items-center gap-1.5" disabled={saving} onClick={add}>
             <IconPlus className="w-4 h-4" /> Agregar
           </button>

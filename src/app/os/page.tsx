@@ -7,7 +7,7 @@ import {
 } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 
-const USER: ShellUser = { name: "Samu Chan", area: "Dirección", color: "#5856D6", roleLabel: "Administrador" };
+const USER: ShellUser = { id: "demo", name: "Samu Chan", area: "Dirección", color: "#5856D6", roleLabel: "Administrador" };
 
 const TITLES: Record<string, string> = {
   hoy: "Hoy", actividades: "Actividades", solicitudes: "Solicitudes", calendario: "Calendario",
@@ -47,7 +47,7 @@ function Today() {
           <p className="text-[14px] text-text-3">Martes 7 de julio · 3 cosas necesitan tu atención hoy.</p>
         </div>
         <Card pad={false} className="p-3 flex items-center gap-3">
-          <span className="grid place-items-center h-10 w-10 rounded-s" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
+          <span className="grid place-items-center h-10 w-10 rounded-sm" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
             <Icon name="clock" size={20} />
           </span>
           <div className="leading-tight">
@@ -77,7 +77,7 @@ function Today() {
             <ActRow title="Diseño de lonas — Admisiones" tone="warn" state="En revisión" who="Angélica" color="#FF3B30" pct={90} />
             <ActRow title="Cobertura — Torneo deportivo" tone="purple" state="Asignada" who="Citlaly" color="#0066FF" pct={15} />
           </div>
-          <button className="mt-3 w-full h-9 rounded-s text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
+          <button className="mt-3 w-full h-9 rounded-sm text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
             Ver todas las actividades →
           </button>
         </Card>
@@ -89,7 +89,7 @@ function Today() {
             <ReqRow title="Video — Testimonios egresados" who="Admisiones" prio="Media" />
             <ReqRow title="Lona — Bienvenida" who="Dirección" prio="Baja" />
           </div>
-          <button className="mt-3 w-full h-9 rounded-s text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
+          <button className="mt-3 w-full h-9 rounded-sm text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
             Revisar bandeja →
           </button>
         </Card>
@@ -159,7 +159,7 @@ function ActRow({ title, tone, state, who, color, pct }: {
   title: string; tone: "accent" | "warn" | "purple"; state: string; who: string; color: string; pct: number;
 }) {
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors cursor-pointer">
+    <div className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors cursor-pointer">
       <div className="flex-1 min-w-0">
         <p className="text-[14px] font-semibold text-text-1 truncate">{title}</p>
         <div className="mt-1.5 h-1.5 rounded-full bg-surface-3 overflow-hidden">
@@ -175,8 +175,8 @@ function ActRow({ title, tone, state, who, color, pct }: {
 function ReqRow({ title, who, prio }: { title: string; who: string; prio: string }) {
   const tone = prio === "Alta" ? "danger" : prio === "Media" ? "warn" : "neutral";
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors cursor-pointer">
-      <span className="grid place-items-center h-8 w-8 rounded-s bg-surface-2 text-text-3"><Icon name="inbox" size={16} /></span>
+    <div className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors cursor-pointer">
+      <span className="grid place-items-center h-8 w-8 rounded-sm bg-surface-2 text-text-3"><Icon name="inbox" size={16} /></span>
       <div className="flex-1 min-w-0">
         <p className="text-[14px] font-semibold text-text-1 truncate">{title}</p>
         <p className="text-[12px] text-text-3 truncate">{who}</p>

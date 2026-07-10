@@ -42,7 +42,7 @@ function LoginInner() {
           Sistema operativo · CERT Comunicación
         </p>
         {error === "no-autorizado" && (
-          <div className="rounded-s px-4 py-3 mb-5 text-[12.5px] text-left"
+          <div className="rounded-sm px-4 py-3 mb-5 text-[12.5px] text-left"
             style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
             Tu correo no está autorizado. Pide al administrador que te agregue.
           </div>

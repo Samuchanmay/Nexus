@@ -18,9 +18,10 @@ export default async function EmpleadoLayout({ children }: { children: React.Rea
   return (
     <ToastProvider>
       <AppShell
-        role="empleado"
+        role={profile.role === "admin" ? "admin" : "empleado"}
         ficharAction
         user={{
+          id: profile.id,
           name: profile.display_name,
           area: profile.area ?? "",
           color: profile.nexus_color ?? "#0066FF",

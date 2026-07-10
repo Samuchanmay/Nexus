@@ -13,7 +13,7 @@ export default function NotFound() {
           El enlace puede estar roto o ya no existir. Regresa al inicio para continuar.
         </p>
         <Link href="/"
-          className="inline-flex items-center justify-center h-10 px-5 mt-6 rounded-s text-[14px] font-semibold text-white hover:brightness-110 shadow-sm transition-all duration-150"
+          className="inline-flex items-center justify-center h-10 px-5 mt-6 rounded-sm text-[14px] font-semibold text-white hover:brightness-110 shadow-sm transition-all duration-150"
           style={{ background: "var(--accent)" }}>
           Ir al inicio
         </Link>

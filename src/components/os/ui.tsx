@@ -23,7 +23,7 @@ export function Button({
   return (
     <button
       className={cx(
-        "inline-flex items-center justify-center rounded-s font-semibold whitespace-nowrap",
+        "inline-flex items-center justify-center rounded-sm font-semibold whitespace-nowrap",
         "transition-all duration-150 ease-apple active:scale-[.97]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
         "disabled:opacity-45 disabled:pointer-events-none",
@@ -46,7 +46,7 @@ export function IconButton({ icon, label, className, size = 18, ...rest }: {
     <button
       aria-label={label} title={label}
       className={cx(
-        "inline-grid place-items-center h-9 w-9 rounded-s text-text-2",
+        "inline-grid place-items-center h-9 w-9 rounded-sm text-text-2",
         "hover:bg-hover hover:text-text-1 transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
         className
@@ -98,7 +98,7 @@ export function Input({ className, icon, ...rest }: { icon?: string } & InputHTM
       {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-3 pointer-events-none"><Icon name={icon} size={16} /></span>}
       <input
         className={cx(
-          "w-full h-10 rounded-s bg-input border border-border text-[14px] text-text-1",
+          "w-full h-10 rounded-sm bg-input border border-border text-[14px] text-text-1",
           "placeholder:text-text-3 transition-colors duration-150",
           "focus:outline-none focus:border-accent focus:ring-2 focus:ring-[var(--ring)]",
           icon ? "pl-9 pr-3" : "px-3", className
@@ -191,7 +191,7 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
   return (
     <Card pad={false} className="p-4">
       <div className="flex items-center justify-between">
-        <span className="grid place-items-center h-9 w-9 rounded-s" style={{ background: t.bg, color: t.fg }}>
+        <span className="grid place-items-center h-9 w-9 rounded-sm" style={{ background: t.bg, color: t.fg }}>
           <Icon name={icon} size={18} />
         </span>
         {delta && <span className="text-[12px] font-semibold" style={{ color: "var(--ok)" }}>{delta}</span>}

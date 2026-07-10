@@ -16,8 +16,9 @@ export default async function RHLayout({ children }: { children: React.ReactNode
   return (
     <ToastProvider>
       <AppShell
-        role="rh"
+        role={profile.role === "admin" ? "admin" : "rh"}
         user={{
+          id: profile.id,
           name: profile.display_name,
           area: profile.area ?? "",
           color: profile.nexus_color ?? "#5856D6",

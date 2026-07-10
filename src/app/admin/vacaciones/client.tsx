@@ -108,13 +108,13 @@ export default function VacAdminClient({ vacations, team }: {
       <Sheet open={!!sel} onClose={() => setSel(null)} title="Decidir solicitud">
         {sel && (
           <div className="flex flex-col gap-3.5">
-            <div className="rounded-s px-4 py-3" style={{ background: "var(--surface-2)" }}>
+            <div className="rounded-sm px-4 py-3" style={{ background: "var(--surface-2)" }}>
               <p className="text-[14px] font-bold">{sel.users?.full_name}</p>
               <p className="text-[12.5px] mt-0.5" style={{ color: "var(--text-2)" }}>
                 {sel.start_date} → {sel.end_date} · {sel.days} días hábiles
               </p>
             </div>
-            <div className="rounded-s px-4 py-3 text-[12.5px]" style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
+            <div className="rounded-sm px-4 py-3 text-[12.5px]" style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
               Recuerda: la aprobación aquí es el paso final, después de tu gestión del VoBo por fuera.
             </div>
             <div>
@@ -130,7 +130,7 @@ export default function VacAdminClient({ vacations, team }: {
               Crear evento en Google Calendar al aprobar
             </label>
             <div className="flex gap-2.5">
-              <button className="flex-1 py-3 text-[13.5px] rounded-s font-semibold"
+              <button className="flex-1 py-3 text-[13.5px] rounded-sm font-semibold"
                 style={{ background: "var(--danger-tint)", color: "var(--danger)" }}
                 disabled={saving} onClick={() => decide("Rechazada")}>
                 Rechazar

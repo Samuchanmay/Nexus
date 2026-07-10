@@ -13,7 +13,7 @@ export default {
         input: "var(--input)", hover: "var(--hover)", border: "var(--border)",
         purple: "var(--purple)", blue: "var(--blue)",
       },
-      borderRadius: { l: "22px", m: "16px", s: "11px" },
+      borderRadius: { lg: "22px", m: "16px", sm: "11px" },
       boxShadow: { nx: "var(--nx-shadow)" },
       transitionTimingFunction: {
         apple: "cubic-bezier(.22,.61,.36,1)",

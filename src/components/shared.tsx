@@ -52,7 +52,7 @@ export function PersonRow({ name, color, meta, right, onClick, active }: {
 }) {
   return (
     <div
-      className={`flex items-center gap-3 px-3.5 py-3 rounded-s transition-colors ${onClick ? "cursor-pointer" : ""}`}
+      className={`flex items-center gap-3 px-3.5 py-3 rounded-sm transition-colors ${onClick ? "cursor-pointer" : ""}`}
       style={active ? { background: "var(--accent-tint)" } : undefined}
       onClick={onClick}
       onMouseEnter={onClick ? (e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "var(--surface-2)"; } : undefined}

@@ -112,7 +112,7 @@ export default function VacacionesClient({ userId, balance, vacations, holidays 
             </div>
           </div>
           {days > 0 && (
-            <div className="rounded-s px-4 py-3 text-[13px] font-semibold"
+            <div className="rounded-sm px-4 py-3 text-[13px] font-semibold"
               style={{
                 background: overBalance ? "var(--danger-tint)" : "var(--ok-tint)",
                 color: overBalance ? "var(--danger)" : "var(--ok)",

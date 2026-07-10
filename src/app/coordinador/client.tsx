@@ -104,7 +104,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
       <>
         <header className="pt-8 pb-6">
           <h1 className="text-[27px] font-bold tracking-tight">
-            {(profile.title ? profile.title + " " : "") + profile.display_name} 👋
+            {(profile.title ? profile.title + " " : "") + profile.display_name} <span className="wave-emoji">👋</span>
           </h1>
           <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
             {areaLabel} · Solicita apoyo del equipo de Comunicación
@@ -236,7 +236,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
             </div>
           </div>
           {tooSoon && (
-            <div className="rounded-s px-4 py-3 text-[12.5px] font-semibold"
+            <div className="rounded-sm px-4 py-3 text-[12.5px] font-semibold"
               style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
               {meta.label} requiere al menos {minHours / 24} días de anticipación.
               Elige una fecha posterior o contacta directamente a Comunicación si es una urgencia real.
@@ -279,7 +279,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
               <p><span style={{ color: "var(--text-3)" }}>Solicita:</span> {(profile.title ? profile.title + " " : "") + profile.full_name} · {areaLabel}</p>
             </div>
           </div>
-          <div className="rounded-s px-4 py-3 text-[12.5px] flex items-center gap-2"
+          <div className="rounded-sm px-4 py-3 text-[12.5px] flex items-center gap-2"
             style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
             <IconCheck className="w-4 h-4 shrink-0" />
             Anticipación correcta — el equipo la revisará y te avisará cuando esté aprobada.

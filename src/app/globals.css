@@ -100,6 +100,18 @@ body {
 }
 [data-theme="dark"][data-mesh].mesh::before { opacity: 1.4; }
 
+/* ── Saludo animado (emoji 👋 en encabezados de Hoy/Mi Día) ── */
+.wave-emoji { display: inline-block; transform-origin: 70% 70%; animation: nx-wave 1.6s ease-in-out 1; }
+@keyframes nx-wave {
+  0% { transform: rotate(0deg); }
+  12% { transform: rotate(16deg); }
+  24% { transform: rotate(-10deg); }
+  36% { transform: rotate(16deg); }
+  48% { transform: rotate(-6deg); }
+  60% { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
 /* ── Utilidades de superficie translúcida ── */
 .glass {
   background: color-mix(in srgb, var(--surface) 72%, transparent);

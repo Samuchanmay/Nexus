@@ -102,7 +102,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                   { v: sel.today.firstIn ? fmtMin(sel.today.totalMin) : "—", l: "LABORADO" },
                   { v: fmtMin(sel.today.targetMin), l: "OBJETIVO" },
                 ].map((c) => (
-                  <div key={c.l} className="rounded-s py-3" style={{ background: "var(--surface-2)" }}>
+                  <div key={c.l} className="rounded-sm py-3" style={{ background: "var(--surface-2)" }}>
                     <p className="text-[15px] font-bold tabular-nums">{c.v}</p>
                     <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>{c.l}</p>
                   </div>
@@ -126,7 +126,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                 : (
                   <div className="flex flex-col gap-2">
                     {sel.tasks.map((t, i) => (
-                      <div key={i} className="rounded-s px-3.5 py-2.5 flex items-center gap-2"
+                      <div key={i} className="rounded-sm px-3.5 py-2.5 flex items-center gap-2"
                         style={{ background: "var(--surface-2)" }}>
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-semibold truncate">

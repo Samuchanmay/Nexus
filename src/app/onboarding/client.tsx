@@ -97,7 +97,7 @@ export default function OnboardingClient({
           )}
 
           {error && (
-            <div className="rounded-s px-4 py-3 text-[12.5px]"
+            <div className="rounded-sm px-4 py-3 text-[12.5px]"
               style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
               {error}
             </div>

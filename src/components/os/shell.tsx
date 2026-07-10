@@ -2,10 +2,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Icon, NexusMark } from "./icons";
 import { Avatar, IconButton, Kbd, cx } from "./ui";
+import { NotificationBell } from "./notifications";
+import { ProfileModal } from "./profile-modal";
 import { useTheme } from "@/lib/theme";
 import { navFor, SECTIONS, type NavItem, type Role } from "@/lib/nav";
 
-export type ShellUser = { name: string; area: string; color: string; roleLabel: string };
+export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string };
 
 export function Shell({
   role, user, active, onNavigate, title, actions, children,
@@ -21,6 +23,7 @@ export function Shell({
   const items = useMemo(() => navFor(role), [role]);
   const [drawer, setDrawer] = useState(false);
   const [spot, setSpot] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { theme, toggle } = useTheme();
 
   // ⌘K / Ctrl+K abre el Spotlight
@@ -38,7 +41,7 @@ export function Shell({
   const go = useCallback((key: string) => { onNavigate(key); setDrawer(false); setSpot(false); }, [onNavigate]);
 
   return (
-    <div className="nx-os min-h-screen bg-bg flex">
+    <div className="nx-os min-h-screen bg-bg flex mesh" data-mesh={role}>
       {/* Sidebar */}
       <Sidebar items={items} active={active} onGo={go} user={user}
         className="hidden md:flex" />
@@ -61,7 +64,7 @@ export function Shell({
           <div className="flex-1" />
           <button
             onClick={() => setSpot(true)}
-            className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-s bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors"
+            className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors"
           >
             <Icon name="search" size={15} />
             <span className="text-[13px]">Buscar…</span>
@@ -69,8 +72,12 @@ export function Shell({
           </button>
           {actions}
           <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Cambiar tema" onClick={toggle} />
-          <IconButton icon="bell" label="Notificaciones" />
-          <button className="ml-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]" title={user.name}>
+          <NotificationBell userId={user.id} />
+          <button
+            className="ml-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            title={user.name}
+            onClick={() => setProfileOpen(true)}
+          >
             <Avatar name={user.name} color={user.color} size={32} />
           </button>
         </header>
@@ -81,6 +88,15 @@ export function Shell({
       </div>
 
       {spot && <Spotlight items={items} onGo={go} onClose={() => setSpot(false)} />}
+      {profileOpen && (
+        <ProfileModal
+          userId={user.id}
+          name={user.name}
+          roleLabel={user.roleLabel}
+          color={user.color}
+          onClose={() => setProfileOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -113,7 +129,7 @@ function Sidebar({ items, active, onGo, user, className }: {
                     <button
                       key={i.key} onClick={() => onGo(i.key)}
                       className={cx(
-                        "w-full flex items-center gap-2.5 h-9 px-2.5 rounded-s text-[14px] font-medium transition-colors duration-150",
+                        "w-full flex items-center gap-2.5 h-9 px-2.5 rounded-sm text-[14px] font-medium transition-colors duration-150",
                         on ? "bg-accent text-white shadow-sm" : "text-text-2 hover:bg-hover hover:text-text-1"
                       )}
                     >
@@ -129,7 +145,7 @@ function Sidebar({ items, active, onGo, user, className }: {
       </nav>
 
       <div className="p-3 border-t border-border">
-        <div className="flex items-center gap-2.5 p-2 rounded-s hover:bg-hover transition-colors cursor-pointer">
+        <div className="flex items-center gap-2.5 p-2 rounded-sm hover:bg-hover transition-colors cursor-pointer">
           <Avatar name={user.name} color={user.color} size={34} />
           <div className="min-w-0 leading-tight">
             <p className="text-[13px] font-semibold text-text-1 truncate">{user.name}</p>
@@ -174,7 +190,7 @@ function Spotlight({ items, onGo, onClose }: {
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[14vh] px-4 nx-fade" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[560px] rounded-l bg-panel border border-border shadow-nx overflow-hidden nx-pop"
+        className="relative w-full max-w-[560px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-4 h-14 border-b border-border">
@@ -196,7 +212,7 @@ function Spotlight({ items, onGo, onClose }: {
               <button
                 key={i.key} onClick={() => onGo(i.key)} onMouseEnter={() => setSel(idx)}
                 className={cx(
-                  "w-full flex items-center gap-3 h-11 px-3 rounded-s text-left transition-colors",
+                  "w-full flex items-center gap-3 h-11 px-3 rounded-sm text-left transition-colors",
                   on ? "bg-accent text-white" : "text-text-1 hover:bg-hover"
                 )}
               >

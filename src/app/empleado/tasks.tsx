@@ -297,7 +297,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
         <div>
           <p className="text-[12px] font-semibold uppercase tracking-wide text-text-3">{dateLabel} · Semana {weekNum}</p>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-[24px] font-bold text-text-1 mt-0.5">{profile.displayName} 👋</h1>
+            <h1 className="text-[24px] font-bold text-text-1 mt-0.5">{profile.displayName} <span className="wave-emoji">👋</span></h1>
             {day.hasEntry && day.stateName && (
               <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11.5px] font-semibold"
                 style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
@@ -325,7 +325,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
           <SectionTitle>Asistente</SectionTitle>
           <div className="space-y-1.5">
             {assistantMessages.map((m) => (
-              <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-s"
+              <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
                 style={{
                   background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",
                 }}>
@@ -346,7 +346,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       <div className="grid grid-cols-7 gap-1.5">
         {weekDays.map((d, i) => (
           <div key={i}
-            className="rounded-s py-2 text-center"
+            className="rounded-sm py-2 text-center"
             style={{
               background: d.today ? "var(--accent)" : "var(--surface-2)",
               color: d.today ? "#fff" : "var(--text-2)",
@@ -400,8 +400,8 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
               const blocked = t.blockedBy.length > 0;
               const canStart = !isActive && !activeLog && !blocked && ["aprobada", "en_progreso"].includes(t.status);
               return (
-                <div key={t.assignmentId} className="flex items-center gap-3 p-2.5 rounded-s hover:bg-hover transition-colors">
-                  <span className="grid place-items-center h-9 w-9 rounded-s shrink-0"
+                <div key={t.assignmentId} className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors">
+                  <span className="grid place-items-center h-9 w-9 rounded-sm shrink-0"
                     style={{
                       background: isActive ? "var(--accent-tint)" : t.status === "en_revision" ? "var(--warn-tint)" : "var(--surface-2)",
                       color: isActive ? "var(--accent)" : t.status === "en_revision" ? "var(--warn)" : "var(--text-2)",
@@ -431,7 +431,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
           <SectionTitle>Pendientes</SectionTitle>
           <div className="space-y-1">
             {assignments.flatMap((t) => (checklists[t.assignmentId] ?? []).map((item) => (
-              <div key={item.id} className="flex items-center gap-3 p-2 rounded-s hover:bg-hover transition-colors">
+              <div key={item.id} className="flex items-center gap-3 p-2 rounded-sm hover:bg-hover transition-colors">
                 <button
                   onClick={() => toggleCheck(item)} aria-label="Completar"
                   className="grid place-items-center h-6 w-6 rounded-full shrink-0 border transition-colors"
@@ -454,7 +454,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       {/* Comenzar jornada rápido si aún no hay entrada hoy */}
       {!day.hasEntry && (
         <Link href="/fichar"
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-s text-[13px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-sm text-[13px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
           <Icon name="clock" size={15} /> Comenzar jornada
         </Link>
       )}
@@ -473,7 +473,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       {/* ── Sheet Agregar actividad ── */}
       <Sheet open={openSheet} onClose={() => setOpenSheet(false)} title="Agregar actividad"
         subtitle="Para trabajo que realizaste y no estaba asignado en el sistema">
-        <div className="flex items-start gap-2.5 p-3 rounded-s mb-4" style={{ background: "var(--warn-tint)" }}>
+        <div className="flex items-start gap-2.5 p-3 rounded-sm mb-4" style={{ background: "var(--warn-tint)" }}>
           <Icon name="alert" size={16} className="mt-0.5 shrink-0" style={{ color: "var(--warn)" }} />
           <span className="text-[12.5px]" style={{ color: "var(--warn)" }}>
             Esta actividad quedará marcada como <strong>sin validar</strong> hasta que el administrador la revise.
@@ -508,7 +508,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
           </Field>
           <Field label="Notas (opcional)">
             <textarea rows={2} placeholder="Contexto adicional…"
-              className="w-full rounded-s px-3 py-2 text-[14px] bg-input border border-border text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-[var(--ring)] resize-none"
+              className="w-full rounded-sm px-3 py-2 text-[14px] bg-input border border-border text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-[var(--ring)] resize-none"
               value={actForm.note} onChange={(e) => setActForm((f) => ({ ...f, note: e.target.value }))} />
           </Field>
         </div>
