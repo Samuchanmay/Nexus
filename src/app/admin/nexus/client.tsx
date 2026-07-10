@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
+import { logAdminAction } from "@/lib/admin-log";
 
 export interface PersonDay {
   user: { id: string; display_name: string; area: string | null; nexus_color: string | null };
@@ -63,9 +64,9 @@ function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
   return <Pill tone={day.metTarget ? "ok" : "warn"}>{day.metTarget ? "Completa" : "Cerrada"}</Pill>;
 }
 
-export default function AsistenciaClient({ people, states, weekRows, reportSettings, today }: {
+export default function AsistenciaClient({ people, states, weekRows, reportSettings, today, adminId }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[];
-  reportSettings: { enabled: boolean; email: string }; today: string;
+  reportSettings: { enabled: boolean; email: string }; today: string; adminId: string;
 }) {
   const toast = useToast();
   const [view, setView] = useState<"tabla" | "gantt" | "semana">("tabla");
@@ -76,6 +77,7 @@ export default function AsistenciaClient({ people, states, weekRows, reportSetti
     setSending(false);
     const ok = (data as { ok?: boolean } | null)?.ok;
     toast(!error && ok ? "Reporte semanal enviado por correo" : "No se pudo enviar el reporte");
+    if (!error && ok && adminId) logAdminAction(createClient(), adminId, "Envió reporte semanal de asistencia");
   };
   const weekCsvHref = useMemo(() => {
     const csv = [
@@ -138,7 +140,8 @@ export default function AsistenciaClient({ people, states, weekRows, reportSetti
           />
           {view === "tabla" && (
             <a href={dayCsvHref} download={`asistencia-${today}.csv`}
-              className="btn-secondary px-4 py-2.5 text-[13px]">
+              className="btn-secondary px-4 py-2.5 text-[13px]"
+              onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${today}.csv`); }}>
               CSV del día ↓
             </a>
           )}
@@ -339,7 +342,8 @@ export default function AsistenciaClient({ people, states, weekRows, reportSetti
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Últimas 8 semanas</p>
             <a href={weekCsvHref} download="asistencia-semanal.csv"
-              className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+              className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}
+              onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "asistencia-semanal.csv"); }}>
               Exportar CSV ↓
             </a>
           </div>

@@ -4,13 +4,21 @@ import type { Incident } from "@/lib/types";
 import { useToast, Pill } from "@/components/ui";
 import { useSupabaseMutation } from "@/components/shared";
 import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
+import { logAdminAction } from "@/lib/admin-log";
 
-export default function IncAdminClient({ incidents }: { incidents: Incident[] }) {
+export default function IncAdminClient({ incidents, adminId }: { incidents: Incident[]; adminId: string }) {
   const toast = useToast(); void toast;
   const { run } = useSupabaseMutation();
-  const decide = (id: string, status: "Autorizado" | "Rechazado") =>
-    run(() => createClient().from("incidents").update({ status }).eq("id", id),
+  const decide = async (id: string, status: "Autorizado" | "Rechazado") => {
+    const target = incidents.find((i) => i.id === id);
+    const ok = await run(() => createClient().from("incidents").update({ status }).eq("id", id),
       { ok: status === "Autorizado" ? "Incidencia autorizada" : "Incidencia rechazada", err: "No se pudo actualizar" });
+    if (ok && adminId) {
+      logAdminAction(createClient(), adminId,
+        status === "Autorizado" ? "Autorizó incidencia" : "Rechazó incidencia",
+        target ? `${target.users?.display_name ?? ""} · ${KIND_LABELS[target.kind]}` : undefined);
+    }
+  };
 
   const pending = incidents.filter((i) => i.status === "Pendiente");
   const rest = incidents.filter((i) => i.status !== "Pendiente");

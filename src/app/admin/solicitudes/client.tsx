@@ -13,6 +13,7 @@ type Member = { id: string; display_name: string; nexus_color: string | null; sp
 
 import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
 import { requestCalendarUrl } from "@/lib/gcal";
+import { logAdminAction } from "@/lib/admin-log";
 
 const PRIORITIES: Priority[] = ["baja", "normal", "alta", "urgente"];
 
@@ -25,8 +26,9 @@ function suggestedPriority(r: CommRequest): Priority {
   return "normal";
 }
 
-export default function SolicitudesClient({ requests, team, typeLabel, minHours }: {
+export default function SolicitudesClient({ requests, team, typeLabel, minHours, adminId }: {
   requests: CommRequest[]; team: Member[]; typeLabel: Record<string, string>; minHours: Record<string, number>;
+  adminId: string;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -125,6 +127,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
       }
     }
 
+    if (adminId) logAdminAction(supabase, adminId, "Aprobó solicitud", sel.title);
     setSaving(false);
     setSel(null);
     toast("Proyecto creado y asignado");
@@ -140,6 +143,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours 
       .update({ status: "cancelada", rejection_reason: rejectReason }).eq("id", sel.id);
     setSaving(false);
     if (error) { toast("No se pudo rechazar"); return; }
+    if (adminId) logAdminAction(supabase, adminId, "Rechazó solicitud", sel.title);
     setSel(null);
     toast("Solicitud rechazada");
     router.refresh();

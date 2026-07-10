@@ -7,15 +7,17 @@ import { useSupabaseMutation } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
 import { seniorityLabel, addDays } from "@/lib/tz";
+import { logAdminAction } from "@/lib/admin-log";
 
 /** Semáforo de salud del saldo: verde <50% usado, amarillo 50-79%, rojo >=80%. */
 function balanceColor(pctUsed: number): string {
   return pctUsed < 50 ? "var(--ok)" : pctUsed < 80 ? "var(--warn)" : "var(--danger)";
 }
 
-export default function VacAdminClient({ vacations, team }: {
+export default function VacAdminClient({ vacations, team, adminId }: {
   vacations: Vacation[];
   team: { id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null }[];
+  adminId: string;
 }) {
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
@@ -38,7 +40,10 @@ export default function VacAdminClient({ vacations, team }: {
       }
       return { error: null };
     }, { ok: "Vacación cancelada — saldo reembolsado" });
-    if (ok) setConfirmCancelId(null);
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, "Canceló vacación", target?.users?.display_name ?? undefined);
+      setConfirmCancelId(null);
+    }
   };
 
   const decide = async (status: "Aprobada" | "Rechazada") => {
@@ -75,7 +80,14 @@ export default function VacAdminClient({ vacations, team }: {
       }
       return supabase.from("vacations").update({ status, admin_note: note || null }).eq("id", target.id);
     }, { ok: status === "Aprobada" ? "Vacaciones aprobadas" : "Solicitud rechazada" });
-    if (ok) { setSel(null); setNote(""); }
+    if (ok) {
+      if (adminId) {
+        logAdminAction(createClient(), adminId,
+          status === "Aprobada" ? "Aprobó vacaciones" : "Rechazó vacaciones",
+          target.users?.display_name ?? undefined);
+      }
+      setSel(null); setNote("");
+    }
   };
 
   const pending = vacations.filter((v) => v.status === "Pendiente");

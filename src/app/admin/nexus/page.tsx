@@ -17,16 +17,18 @@ function mondayOf(dateIso: string): string {
 /** Asistencia — server junta los datos; la vista (tabla ⇄ Gantt ⇄ semana) vive en client.tsx */
 export default async function AsistenciaEquipo() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const today = todayMerida();
   const since = addDays(today, -56); // 8 semanas
 
-  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, meRes] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
     supabase.from("schedules").select("*").is("valid_until", null),
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
     supabase.from("app_settings").select("key, value").in("key", ["weekly_report_enabled", "weekly_report_email"]),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
   const states = (jornadaStates ?? []) as JornadaState[];
   const settingsMap = new Map((settingsRows ?? []).map((s) => [s.key, s.value as string]));
@@ -79,5 +81,5 @@ export default async function AsistenciaEquipo() {
   }
   weekRows.sort((a, b) => b.week.localeCompare(a.week) || a.name.localeCompare(b.name));
 
-  return <AsistenciaClient people={people} states={states} weekRows={weekRows} reportSettings={reportSettings} today={today} />;
+  return <AsistenciaClient people={people} states={states} weekRows={weekRows} reportSettings={reportSettings} today={today} adminId={meRes?.data?.id ?? ""} />;
 }

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Pill, Sheet, useToast } from "@/components/ui";
+import { logAdminAction } from "@/lib/admin-log";
 import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
 import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
@@ -144,6 +145,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
       if (items.length) await supabase.from("project_checklist").insert(items);
     }
 
+    if (adminId) logAdminAction(supabase, adminId, "Creó actividad directa", form.title.trim());
     setCreating(false);
     setAddOpen(false);
     toast("Actividad creada");

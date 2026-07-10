@@ -50,7 +50,7 @@ export default async function AdminDashboard() {
     { data: vacsToday }, { data: urgentReqs }, { data: holidayToday },
     { data: reqsToday }, { data: vacsCreatedToday },
     { data: activeProjectsList }, { data: pendingRequestsList },
-    { data: jornadaStates },
+    { data: jornadaStates }, { data: myActionsToday },
   ] = await Promise.all([
     supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "solicitada"),
     supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente"),
@@ -73,6 +73,8 @@ export default async function AdminDashboard() {
     `).in("status", ["aprobada", "en_progreso", "en_revision"]),
     supabase.from("requests").select("id, title, type, requester_name, priority, created_at").eq("status", "solicitada").order("created_at", { ascending: false }),
     supabase.from("jornada_states").select("*").eq("activo", true),
+    supabase.from("admin_activity_log").select("id, action, detail, created_at")
+      .eq("user_id", me!.id).gte("created_at", utcDayStart).order("created_at", { ascending: false }),
   ]);
 
   const states = (jornadaStates ?? []) as JornadaState[];
@@ -338,6 +340,32 @@ export default async function AdminDashboard() {
           </div>
         </Card>
       </div>
+
+      {/* Mi productividad hoy — todo lo que hice como admin también es trabajo:
+          aprobar, rechazar, asignar, exportar. Cuenta para "Mi día". */}
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <SectionTitle hint={`${(myActionsToday ?? []).length} acción${(myActionsToday ?? []).length === 1 ? "" : "es"} hoy`}>
+            Mi productividad hoy
+          </SectionTitle>
+        </div>
+        {(myActionsToday ?? []).length === 0 ? (
+          <EmptyState icon="check" title="Sin acciones registradas hoy"
+            hint="Aprobar solicitudes, revisar vacaciones o exportar un reporte aparecerá aquí." />
+        ) : (
+          <div className="flex flex-col">
+            {(myActionsToday ?? []).map((a) => (
+              <div key={a.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
+                <span className="text-[14px] w-5 text-center shrink-0">✅</span>
+                <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">
+                  {a.action}{a.detail ? ` — ${a.detail}` : ""}
+                </p>
+                <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{meridaClock(a.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Actividad de hoy (feed) */}
       <Card>

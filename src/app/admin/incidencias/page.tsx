@@ -4,9 +4,12 @@ import IncAdminClient from "./client";
 
 export default async function IncidenciasAdmin() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("incidents")
-    .select("*, users(full_name, display_name)")
-    .order("created_at", { ascending: false });
-  return <IncAdminClient incidents={(data ?? []) as unknown as Incident[]} />;
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data }, meRes] = await Promise.all([
+    supabase.from("incidents")
+      .select("*, users(full_name, display_name)")
+      .order("created_at", { ascending: false }),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+  ]);
+  return <IncAdminClient incidents={(data ?? []) as unknown as Incident[]} adminId={meRes?.data?.id ?? ""} />;
 }

@@ -4,6 +4,7 @@ import type { ActivityType, RequestStatus } from "@/lib/types";
 import { seniorityLabel, todayMerida } from "@/lib/tz";
 import { STATUS_TONE } from "@/lib/ui-maps";
 import { PrintButton } from "./print-button";
+import { CsvLink } from "./csv-link";
 
 /* ═══════════════════════════════════════════════════════════════
    Reportes — agregados reales de Solicitudes/Actividades.
@@ -30,23 +31,12 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
   );
 }
 
-/** Enlace de exportación CSV (data-URI, sin librerías) para una sección de reporte. */
-function CsvLink({ rows, filename }: { rows: (string | number)[][]; filename: string }) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-  return (
-    <a href={href} download={filename} className="no-print text-[11.5px] font-semibold shrink-0" style={{ color: "var(--accent)" }}>
-      CSV ↓
-    </a>
-  );
-}
-
 /** Encabezado de card con título uppercase + botón de exportar a la derecha. */
-function CardHeader({ title, rows, filename }: { title: string; rows: (string | number)[][]; filename: string }) {
+function CardHeader({ title, rows, filename, adminId }: { title: string; rows: (string | number)[][]; filename: string; adminId: string }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <h2 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{title}</h2>
-      <CsvLink rows={rows} filename={filename} />
+      <CsvLink rows={rows} filename={filename} adminId={adminId} />
     </div>
   );
 }
@@ -58,8 +48,9 @@ const STATUS_ORDER: RequestStatus[] = ["solicitada", "aprobada", "cancelada"];
 
 export default async function Reportes() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: requests }, { data: projects }, { data: logs }, { data: types }, { data: team }, { data: vacs }] = await Promise.all([
+  const [{ data: requests }, { data: projects }, { data: logs }, { data: types }, { data: team }, { data: vacs }, meRes] = await Promise.all([
     supabase.from("requests").select("id, type, requester_area, status, created_at"),
     supabase.from("projects").select("id, request_id, created_at, status"),
     supabase.from("task_time_logs").select("minutes, project_assignments(project_id)"),
@@ -67,7 +58,9 @@ export default async function Reportes() {
     supabase.from("users").select("id, display_name, vacation_balance, vacation_days_per_year, hire_date")
       .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("vacations").select("user_id, start_date, end_date, days, status"),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
+  const adminId = meRes?.data?.id ?? "";
   const TYPE_LABEL = typeLabels((types ?? []) as ActivityType[]);
 
   const reqs = requests ?? [];
@@ -157,12 +150,6 @@ export default async function Reportes() {
       next: next ? `${next.start_date} → ${next.end_date}` : "—",
     };
   });
-  const vacCsv = [
-    "Persona,Saldo,Días asignados,% usado,Antigüedad,Próxima vacación",
-    ...vacRows.map((r) => `"${r.name}",${r.balance},${r.total},${r.pctUsed}%,"${r.seniority}","${r.next}"`),
-  ].join("\n");
-  const vacCsvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(vacCsv)}`;
-
   return (
     <>
       <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
@@ -198,7 +185,7 @@ export default async function Reportes() {
         <div className="card p-5">
           <CardHeader title="Solicitudes por estado"
             rows={[["Estado", "Cantidad"], ...STATUS_ORDER.filter((s) => byStatus[s]).map((s) => [STATUS_LABEL[s] ?? s, byStatus[s]])]}
-            filename="solicitudes-por-estado.csv" />
+            filename="solicitudes-por-estado.csv" adminId={adminId} />
           {STATUS_ORDER.filter((s) => byStatus[s]).map((s) => (
             <Bar key={s} label={STATUS_LABEL[s] ?? s} count={byStatus[s]} total={totalStatus} color={TONE_COLOR[STATUS_TONE[s]]} />
           ))}
@@ -208,7 +195,7 @@ export default async function Reportes() {
         <div className="card p-5">
           <CardHeader title="Por tipo de apoyo"
             rows={[["Tipo", "Cantidad"], ...byTypeSorted.map(([t, n]) => [TYPE_LABEL[t] ?? t, n])]}
-            filename="solicitudes-por-tipo.csv" />
+            filename="solicitudes-por-tipo.csv" adminId={adminId} />
           {byTypeSorted.map(([t, n]) => (
             <Bar key={t} label={TYPE_LABEL[t] ?? t} count={n} total={totalType} color={typeColorOf[t] ?? "var(--accent)"} />
           ))}
@@ -218,7 +205,7 @@ export default async function Reportes() {
         <div className="card p-5">
           <CardHeader title="Coordinaciones/departamentos que más solicitan"
             rows={[["Área", "Cantidad"], ...topAreas.map(([area, n]) => [area, n])]}
-            filename="solicitudes-por-area.csv" />
+            filename="solicitudes-por-area.csv" adminId={adminId} />
           {topAreas.map(([area, n], i) => (
             <Bar key={area} label={area} count={n} total={maxArea} color={COLORS[i % COLORS.length]} />
           ))}
@@ -228,7 +215,7 @@ export default async function Reportes() {
         <div className="card p-5">
           <CardHeader title="Horas registradas por tipo"
             rows={[["Tipo", "Horas"], ...minutesByTypeSorted.map(([t, min]) => [TYPE_LABEL[t] ?? t, Math.round(min / 6) / 10])]}
-            filename="horas-por-tipo.csv" />
+            filename="horas-por-tipo.csv" adminId={adminId} />
           {minutesByTypeSorted.length === 0 && (
             <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Aún no hay registros de tiempo.</p>
           )}
@@ -245,10 +232,10 @@ export default async function Reportes() {
           <h2 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
             Vacaciones por persona
           </h2>
-          <a href={vacCsvHref} download="vacaciones.csv"
-            className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
-            Exportar CSV ↓
-          </a>
+          <CsvLink
+            rows={[["Persona", "Saldo", "Días asignados", "% usado", "Antigüedad", "Próxima vacación"],
+              ...vacRows.map((r) => [r.name, r.balance, r.total, `${r.pctUsed}%`, r.seniority, r.next])]}
+            filename="vacaciones.csv" adminId={adminId} label="Exportar CSV ↓" />
         </div>
         {vacRows.length === 0 ? (
           <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>
