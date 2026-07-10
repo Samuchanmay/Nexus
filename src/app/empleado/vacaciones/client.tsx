@@ -3,14 +3,15 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { businessDaysBetween } from "@/lib/hours";
+import { seniorityLabel } from "@/lib/tz";
 import type { Vacation } from "@/lib/types";
 import { useToast, Sheet, Pill } from "@/components/ui";
 import { IconPalm, IconPlus } from "@/components/icons";
 
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 
-export default function VacacionesClient({ userId, balance, vacations, holidays }: {
-  userId: string; balance: number; vacations: Vacation[]; holidays: string[];
+export default function VacacionesClient({ userId, balance, hireDate, vacations, holidays }: {
+  userId: string; balance: number; hireDate: string | null; vacations: Vacation[]; holidays: string[];
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -26,6 +27,14 @@ export default function VacacionesClient({ userId, balance, vacations, holidays 
   }, [start, end, holidaySet]);
 
   const overBalance = days > balance;
+
+  const overlaps = useMemo(() => {
+    if (!start || !end) return [];
+    return vacations.filter((v) =>
+      (v.status === "Aprobada" || v.status === "Pendiente") &&
+      v.start_date <= end && v.end_date >= start
+    );
+  }, [start, end, vacations]);
 
   const submit = async () => {
     if (!start || !end) { toast("Selecciona las fechas"); return; }
@@ -61,6 +70,7 @@ export default function VacacionesClient({ userId, balance, vacations, holidays 
           <h1 className="text-[28px] font-bold tracking-tight">Vacaciones</h1>
           <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
             Solicita y consulta tus periodos
+            {seniorityLabel(hireDate) && ` · ${seniorityLabel(hireDate)} de antigüedad`}
           </p>
         </div>
         <div className="card px-5 py-3 text-center shrink-0">
@@ -119,6 +129,14 @@ export default function VacacionesClient({ userId, balance, vacations, holidays 
               }}>
               {days} {days === 1 ? "día hábil" : "días hábiles"} · te quedarían {balance - days}
               {overBalance && " — saldo insuficiente"}
+            </div>
+          )}
+          {overlaps.length > 0 && (
+            <div className="rounded-sm px-4 py-3 text-[12.5px]" style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
+              <p className="font-semibold mb-1">Se cruza con otra solicitud tuya:</p>
+              {overlaps.map((v) => (
+                <p key={v.id}>{v.start_date} → {v.end_date} ({v.status})</p>
+              ))}
             </div>
           )}
           <p className="text-[12px]" style={{ color: "var(--text-3)" }}>

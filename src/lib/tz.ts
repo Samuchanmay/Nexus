@@ -61,3 +61,18 @@ export function monthStart(isoDate: string): string {
 export function isoWeekday(isoDate: string): number {
   return new Date(isoDate + "T12:00:00Z").getUTCDay();
 }
+
+/** Antigüedad legible ("3 años y 2 meses") a partir de una fecha de ingreso ISO. */
+export function seniorityLabel(hireDateIso: string | null, ref: Date = new Date()): string | null {
+  if (!hireDateIso) return null;
+  const hire = new Date(hireDateIso + "T12:00:00Z");
+  const today = new Date(toMeridaDate(ref) + "T12:00:00Z");
+  let years = today.getUTCFullYear() - hire.getUTCFullYear();
+  let months = today.getUTCMonth() - hire.getUTCMonth();
+  if (today.getUTCDate() < hire.getUTCDate()) months--;
+  if (months < 0) { years--; months += 12; }
+  if (years < 0) return null;
+  const y = `${years} año${years !== 1 ? "s" : ""}`;
+  const m = `${months} mes${months !== 1 ? "es" : ""}`;
+  return years === 0 ? m : `${y} y ${m}`;
+}

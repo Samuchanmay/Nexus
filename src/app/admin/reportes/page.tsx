@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { typeLabels } from "@/lib/types";
 import type { ActivityType } from "@/lib/types";
+import { seniorityLabel, todayMerida } from "@/lib/tz";
 
 /* ═══════════════════════════════════════════════════════════════
    Reportes — agregados reales de Solicitudes/Actividades.
@@ -30,11 +31,14 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
 export default async function Reportes() {
   const supabase = await createClient();
 
-  const [{ data: requests }, { data: projects }, { data: logs }, { data: types }] = await Promise.all([
+  const [{ data: requests }, { data: projects }, { data: logs }, { data: types }, { data: team }, { data: vacs }] = await Promise.all([
     supabase.from("requests").select("id, type, requester_area, status, created_at"),
     supabase.from("projects").select("id, request_id, created_at, status"),
     supabase.from("task_time_logs").select("minutes, project_assignments(project_id)"),
     supabase.from("activity_types").select("*"),
+    supabase.from("users").select("id, display_name, vacation_balance, vacation_days_per_year, hire_date")
+      .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
+    supabase.from("vacations").select("user_id, start_date, end_date, days, status"),
   ]);
   const TYPE_LABEL = typeLabels((types ?? []) as ActivityType[]);
 
@@ -89,6 +93,37 @@ export default async function Reportes() {
   const totalStatus = Object.values(byStatus).reduce((a, b) => a + b, 0);
   const maxArea = Math.max(1, ...topAreas.map(([, n]) => n));
   const COLORS = ["var(--accent)", "var(--ok)", "var(--warn)", "var(--purple)", "var(--danger)"];
+
+  /* Vacaciones — saldo, antigüedad y próximo periodo por persona */
+  const today = todayMerida();
+  const vacsByUser = new Map<string, { start_date: string; end_date: string; days: number; status: string }[]>();
+  for (const v of (vacs ?? [])) {
+    const list = vacsByUser.get(v.user_id) ?? [];
+    list.push(v);
+    vacsByUser.set(v.user_id, list);
+  }
+  const vacRows = (team ?? []).map((t) => {
+    const mine = vacsByUser.get(t.id) ?? [];
+    const total = t.vacation_days_per_year || 0;
+    const used = Math.max(0, total - t.vacation_balance);
+    const pctUsed = total > 0 ? Math.round((used / total) * 100) : 0;
+    const next = mine
+      .filter((v) => v.status === "Aprobada" && v.start_date >= today)
+      .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+    return {
+      name: t.display_name,
+      balance: t.vacation_balance,
+      total,
+      pctUsed,
+      seniority: seniorityLabel(t.hire_date) ?? "—",
+      next: next ? `${next.start_date} → ${next.end_date}` : "—",
+    };
+  });
+  const vacCsv = [
+    "Persona,Saldo,Días asignados,% usado,Antigüedad,Próxima vacación",
+    ...vacRows.map((r) => `"${r.name}",${r.balance},${r.total},${r.pctUsed}%,"${r.seniority}","${r.next}"`),
+  ].join("\n");
+  const vacCsvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(vacCsv)}`;
 
   return (
     <>
@@ -164,6 +199,49 @@ export default async function Reportes() {
                 color={COLORS[i % COLORS.length]} />
             ))}
         </div>
+      </div>
+
+      <div className="card p-5 mt-4">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+            Vacaciones por persona
+          </h2>
+          <a href={vacCsvHref} download="vacaciones.csv"
+            className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+            Exportar CSV ↓
+          </a>
+        </div>
+        {vacRows.length === 0 ? (
+          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px]">
+              <thead>
+                <tr style={{ color: "var(--text-3)" }} className="text-left">
+                  <th className="font-semibold pb-2 pr-4">Persona</th>
+                  <th className="font-semibold pb-2 pr-4">Saldo</th>
+                  <th className="font-semibold pb-2 pr-4">% usado</th>
+                  <th className="font-semibold pb-2 pr-4">Antigüedad</th>
+                  <th className="font-semibold pb-2">Próxima vacación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vacRows.map((r) => (
+                  <tr key={r.name} className="border-t" style={{ borderColor: "var(--border)" }}>
+                    <td className="py-2 pr-4 font-semibold">{r.name}</td>
+                    <td className="py-2 pr-4 tabular-nums">{r.balance}/{r.total}</td>
+                    <td className="py-2 pr-4 tabular-nums"
+                      style={{ color: r.pctUsed < 50 ? "var(--ok)" : r.pctUsed < 80 ? "var(--warn)" : "var(--danger)" }}>
+                      {r.pctUsed}%
+                    </td>
+                    <td className="py-2 pr-4" style={{ color: "var(--text-2)" }}>{r.seniority}</td>
+                    <td className="py-2" style={{ color: "var(--text-2)" }}>{r.next}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );

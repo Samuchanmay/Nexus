@@ -48,7 +48,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
   });
 
   const [editing, setEditing] = useState<UserProfile | null>(null);
-  const [editForm, setEditForm] = useState({ role: "empleado", area_id: "" });
+  const [editForm, setEditForm] = useState({ role: "empleado", area_id: "", balance: "0", daysPerYear: "0" });
   const [editSaving, setEditSaving] = useState(false);
 
   const toggleSpec = (s: string) => setForm((f) => ({
@@ -101,7 +101,10 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
 
   const openEdit = (u: UserProfile) => {
     setEditing(u);
-    setEditForm({ role: u.role, area_id: u.area_id ?? "" });
+    setEditForm({
+      role: u.role, area_id: u.area_id ?? "",
+      balance: String(u.vacation_balance ?? 0), daysPerYear: String(u.vacation_days_per_year ?? 0),
+    });
   };
 
   const saveEdit = async () => {
@@ -114,6 +117,8 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       role: editForm.role,
       requester_kind: requesterKind,
       area_id: AREA_TIPO[editForm.role] ? (editForm.area_id || null) : null,
+      vacation_balance: parseInt(editForm.balance) || 0,
+      vacation_days_per_year: parseInt(editForm.daysPerYear) || 0,
     }).eq("id", editing.id);
     setEditSaving(false);
     if (error) { toast("No se pudo actualizar"); return; }
@@ -299,7 +304,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rol</label>
               <select className="field-input" value={editForm.role}
-                onChange={(e) => setEditForm({ role: e.target.value, area_id: "" })}>
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value, area_id: "" })}>
                 <option value="coordinador">Coordinador</option>
                 <option value="departamento">Departamento</option>
                 <option value="empleado">Empleado</option>
@@ -311,6 +316,25 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
               <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
                 onChange={(v) => setEditForm({ ...editForm, area_id: v })} />
             )}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                  Saldo actual (días)
+                </label>
+                <input type="number" className="field-input" value={editForm.balance}
+                  onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                  Días asignados/año
+                </label>
+                <input type="number" className="field-input" value={editForm.daysPerYear}
+                  onChange={(e) => setEditForm({ ...editForm, daysPerYear: e.target.value })} />
+              </div>
+            </div>
+            <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+              Ajusta el saldo aquí solo para correcciones manuales — la aprobación de solicitudes ya lo descuenta automáticamente.
+            </p>
             <div className="flex gap-2.5 mt-1">
               <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEditing(null)}>Cancelar</button>
               <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={editSaving} onClick={saveEdit}>

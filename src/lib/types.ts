@@ -18,6 +18,7 @@ export interface UserProfile {
   area_id: string | null;
   active: boolean;
   vacation_balance: number;
+  vacation_days_per_year: number;
   onboarded: boolean;
   departments?: { id: string; nombre: string; tipo: "coordinacion" | "departamento" } | null;
 }
@@ -62,6 +63,7 @@ export interface Vacation {
   days: number;
   status: "Pendiente" | "Aprobada" | "Rechazada" | "Cancelada";
   admin_note: string | null;
+  calendar_event_id: string | null;
   created_at: string;
   users?: { full_name: string; display_name: string; nexus_color: string | null };
 }

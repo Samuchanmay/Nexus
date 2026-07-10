@@ -6,16 +6,40 @@ import { useToast, Pill, Avatar, Sheet } from "@/components/ui";
 import { useSupabaseMutation } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
+import { seniorityLabel, addDays } from "@/lib/tz";
+
+/** Semáforo de salud del saldo: verde <50% usado, amarillo 50-79%, rojo >=80%. */
+function balanceColor(pctUsed: number): string {
+  return pctUsed < 50 ? "var(--ok)" : pctUsed < 80 ? "var(--warn)" : "var(--danger)";
+}
 
 export default function VacAdminClient({ vacations, team }: {
   vacations: Vacation[];
-  team: { id: string; display_name: string; vacation_balance: number; nexus_color: string | null }[];
+  team: { id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null }[];
 }) {
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
+  const { run: runCancel, saving: cancelling } = useSupabaseMutation();
   const [sel, setSel] = useState<Vacation | null>(null);
   const [note, setNote] = useState("");
   const [addToCalendar, setAddToCalendar] = useState(true);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+
+  const cancelVacation = async (id: string) => {
+    const target = vacations.find((v) => v.id === id);
+    const ok = await runCancel(async () => {
+      const supabase = createClient();
+      const res = await supabase.rpc("cancel_vacation", { p_vacation_id: id, p_note: null });
+      if (res.error) return { error: { message: "No se pudo cancelar" } };
+      // Borrar el evento de Calendar es best-effort: si falla, la cancelación ya quedó guardada.
+      if (target?.calendar_event_id) {
+        try { await supabase.functions.invoke("gcal-delete-event", { body: { eventId: target.calendar_event_id } }); }
+        catch { /* no bloquea la cancelación */ }
+      }
+      return { error: null };
+    }, { ok: "Vacación cancelada — saldo reembolsado" });
+    if (ok) setConfirmCancelId(null);
+  };
 
   const decide = async (status: "Aprobada" | "Rechazada") => {
     if (!sel) return;
@@ -28,7 +52,25 @@ export default function VacAdminClient({ vacations, team }: {
         if (res.error) {
           return { error: { message: res.error.message.includes("Saldo") ? res.error.message : "No se pudo actualizar" } };
         }
-        if (addToCalendar) window.open(calendarUrl(target), "_blank");
+        if (addToCalendar) {
+          // Intentamos crear el evento real (Edge Function); si quien aprueba no ha
+          // dado permiso de Calendar, caemos al enlace manual de toda la vida.
+          const { data: gcalData, error: gcalError } = await supabase.functions.invoke("gcal-create-event", {
+            body: {
+              title: `🌴 Vacaciones — ${target.users?.display_name ?? ""}`,
+              details: `${target.days} días hábiles aprobados en Nexus.`,
+              start: target.start_date,
+              end: addDays(target.end_date, 1),
+              allDay: true,
+            },
+          });
+          const result = gcalData as { ok?: boolean; eventId?: string } | null;
+          if (gcalError || !result?.ok) {
+            window.open(calendarUrl(target), "_blank");
+          } else if (result.eventId) {
+            await supabase.from("vacations").update({ calendar_event_id: result.eventId }).eq("id", target.id);
+          }
+        }
         return { error: null };
       }
       return supabase.from("vacations").update({ status, admin_note: note || null }).eq("id", target.id);
@@ -50,15 +92,27 @@ export default function VacAdminClient({ vacations, team }: {
 
       {/* Saldos */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-7">
-        {team.map((t) => (
-          <div key={t.id} className="card p-4 flex items-center gap-2.5">
-            <Avatar name={t.display_name} color={t.nexus_color} size={32} />
-            <div>
-              <p className="text-[13px] font-bold">{t.display_name}</p>
-              <p className="text-[11.5px]" style={{ color: "var(--text-2)" }}>{t.vacation_balance} días</p>
+        {team.map((t) => {
+          const total = t.vacation_days_per_year || 0;
+          const used = Math.max(0, total - t.vacation_balance);
+          const pctUsed = total > 0 ? Math.round((used / total) * 100) : 0;
+          const color = balanceColor(pctUsed);
+          const seniority = seniorityLabel(t.hire_date);
+          return (
+            <div key={t.id} className="card p-4 flex items-center gap-2.5">
+              <Avatar name={t.display_name} color={t.nexus_color} size={32} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold truncate">{t.display_name}</p>
+                <p className="text-[11.5px] flex items-center gap-1.5" style={{ color: "var(--text-2)" }}>
+                  <span style={{ color }}>●</span> {t.vacation_balance} días
+                </p>
+                {seniority && (
+                  <p className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-3)" }}>{seniority}</p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <h2 className="text-[15px] font-bold mb-3">Pendientes {pending.length > 0 && `(${pending.length})`}</h2>
@@ -91,14 +145,35 @@ export default function VacAdminClient({ vacations, team }: {
           <h2 className="text-[15px] font-bold mb-3">Historial</h2>
           <div className="flex flex-col gap-2.5">
             {rest.map((v) => (
-              <div key={v.id} className="card px-5 py-3.5 flex items-center justify-between gap-3">
+              <div key={v.id} className="card px-5 py-3.5 flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <p className="text-[13.5px] font-bold">{v.users?.display_name} · {v.start_date} → {v.end_date}</p>
                   <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
                     {v.days} días{v.admin_note && ` · ${v.admin_note}`}
                   </p>
                 </div>
-                <Pill tone={STATUS_TONE[v.status]}>{v.status}</Pill>
+                <div className="flex items-center gap-2">
+                  <Pill tone={STATUS_TONE[v.status]}>{v.status}</Pill>
+                  {v.status === "Aprobada" && (
+                    confirmCancelId === v.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <button className="text-[11.5px] font-semibold" style={{ color: "var(--danger)" }}
+                          disabled={cancelling} onClick={() => cancelVacation(v.id)}>
+                          {cancelling ? "Cancelando…" : "Sí, cancelar"}
+                        </button>
+                        <button className="text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}
+                          onClick={() => setConfirmCancelId(null)}>
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button className="text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}
+                        onClick={() => setConfirmCancelId(v.id)}>
+                        Cancelar
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
             ))}
           </div>
