@@ -20,7 +20,7 @@ export default async function Equipo() {
       supabase.from("attendance").select("*").eq("date", today).order("time"),
       supabase.from("schedules").select("*").is("valid_until", null),
       supabase.from("vacations").select("user_id, start_date, end_date, status")
-        .in("status", ["Aprobada", "Pendiente"]).gte("end_date", today).order("start_date").limit(40),
+        .in("status", ["Aprobada", "Pendiente"]).is("archived_at", null).gte("end_date", today).order("start_date").limit(40),
       supabase.from("incidents").select("user_id, kind, start_date, end_date, status")
         .eq("status", "Pendiente").order("start_date"),
       supabase.from("jornada_states").select("*").eq("activo", true),

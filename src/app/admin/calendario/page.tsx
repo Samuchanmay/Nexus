@@ -20,7 +20,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }] = await Promise.all([
     supabase.from("users").select("id, display_name, nexus_color").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
-    supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").lte("start_date", last).gte("end_date", first),
+    supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", last).gte("end_date", first),
     supabase.from("holidays").select("date, name").gte("date", first).lte("date", last),
     supabase.from("projects")
       .select("id, deadline, status, requests(title, type), project_assignments(is_lead, users(display_name, nexus_color))")

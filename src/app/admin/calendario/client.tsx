@@ -22,7 +22,7 @@ export default function CalendarioClient({
   vacations: VacationRange[]; holidays: { date: string; name: string }[];
   deadlines: ProjectDeadline[];
 }) {
-  const [view, setView] = useState<"Asistencia" | "Actividades" | "Vacaciones">("Asistencia");
+  const [view, setView] = useState<"Asistencia" | "Equipo">("Asistencia");
 
   const first = `${ym}-01`;
   const last = `${ym}-${String(daysInMonth).padStart(2, "0")}`;
@@ -102,7 +102,7 @@ export default function CalendarioClient({
       </header>
 
       <div className="mb-4">
-        <SlidingSegments options={["Asistencia", "Actividades", "Vacaciones"]} value={view} onChange={(v) => setView(v as typeof view)} />
+        <SlidingSegments options={["Asistencia", "Equipo"]} value={view} onChange={(v) => setView(v as typeof view)} />
       </div>
 
       {view === "Asistencia" && (
@@ -169,7 +169,7 @@ export default function CalendarioClient({
         </div>
       )}
 
-      {view === "Actividades" && (
+      {view === "Equipo" && (
         <div className="card p-4">
           <div className="grid grid-cols-7 gap-1.5 mb-2">
             {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
@@ -177,17 +177,19 @@ export default function CalendarioClient({
           <div className="grid grid-cols-7 gap-1.5">
             {monthCells.map((c) => {
               const acts = deadlinesByDate.get(c.date) ?? [];
+              const people = vacationsByDate.get(c.date) ?? [];
               return (
-                <div key={c.date} className="rounded-sm p-1.5 min-h-[86px] flex flex-col gap-1"
+                <div key={c.date} className="rounded-sm p-1.5 min-h-[96px] flex flex-col gap-1"
                   style={{
-                    background: holidayOf.get(c.date) ? "var(--accent-tint)" : "var(--surface-2)",
+                    background: people.length ? "var(--purple-tint)" : holidayOf.get(c.date) ? "var(--accent-tint)" : "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.35,
                     outline: c.date === today ? "2px solid var(--accent)" : undefined,
                     outlineOffset: "-2px",
                   }}>
                   <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
                   {holidayOf.get(c.date) && <p className="text-[9.5px] font-semibold truncate" style={{ color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>}
-                  {acts.slice(0, 3).map((p) => {
+
+                  {acts.slice(0, 2).map((p) => {
                     const lead = p.project_assignments.find((a) => a.is_lead) ?? p.project_assignments[0];
                     return (
                       <p key={p.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
@@ -197,38 +199,14 @@ export default function CalendarioClient({
                       </p>
                     );
                   })}
-                  {acts.length > 3 && (
-                    <p className="text-[9px] font-semibold" style={{ color: "var(--text-3)" }}>+{acts.length - 3} más</p>
+                  {acts.length > 2 && (
+                    <p className="text-[9px] font-semibold" style={{ color: "var(--warn)" }}>+{acts.length - 2} actividad{acts.length - 2 > 1 ? "es" : ""}</p>
                   )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
-      {view === "Vacaciones" && (
-        <div className="card p-4">
-          <div className="grid grid-cols-7 gap-1.5 mb-2">
-            {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
-          </div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {monthCells.map((c) => {
-              const people = vacationsByDate.get(c.date) ?? [];
-              return (
-                <div key={c.date} className="rounded-sm p-1.5 min-h-[86px] flex flex-col gap-1"
-                  style={{
-                    background: people.length ? "var(--purple-tint)" : holidayOf.get(c.date) ? "var(--accent-tint)" : "var(--surface-2)",
-                    opacity: c.inMonth ? 1 : 0.35,
-                    outline: c.date === today ? "2px solid var(--accent)" : undefined,
-                    outlineOffset: "-2px",
-                  }}>
-                  <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
-                  {holidayOf.get(c.date) && <p className="text-[9.5px] font-semibold truncate" style={{ color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>}
                   {people.length > 0 && (
-                    <div className="flex -space-x-1.5 mt-0.5 flex-wrap gap-y-1">
+                    <div className="flex -space-x-1.5 mt-auto pt-1 flex-wrap gap-y-1">
                       {people.slice(0, 4).map((u) => (
-                        <div key={u.id} title={u.display_name} style={{ border: "1.5px solid var(--surface-2)", borderRadius: "100px" }}>
+                        <div key={u.id} title={`${u.display_name} · Vacaciones`} style={{ border: "1.5px solid var(--surface-2)", borderRadius: "100px" }}>
                           <Avatar name={u.display_name} color={u.nexus_color} size={18} />
                         </div>
                       ))}
@@ -240,6 +218,17 @@ export default function CalendarioClient({
                 </div>
               );
             })}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Actividad / evento
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3.5 h-3 rounded-full" style={{ background: "var(--purple)" }} /> Vacaciones
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--accent-tint)" }} /> Día inhábil
+            </span>
           </div>
         </div>
       )}

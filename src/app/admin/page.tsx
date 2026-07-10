@@ -53,7 +53,7 @@ export default async function AdminDashboard() {
     { data: jornadaStates }, { data: myActionsToday },
   ] = await Promise.all([
     supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "solicitada"),
-    supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente"),
+    supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente").is("archived_at", null),
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("status", "Pendiente"),
     supabase.from("projects").select("id", { count: "exact", head: true }).in("status", ["aprobada", "en_progreso", "en_revision"]),
     supabase.from("attendance").select("*").eq("user_id", me!.id).eq("date", today).order("time"),
@@ -61,7 +61,7 @@ export default async function AdminDashboard() {
     supabase.from("users").select("id, display_name, nexus_color").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("id, user_id, type, reason, time").eq("date", today).order("time"),
     supabase.from("schedules").select("user_id, start_time, tolerance_min").is("valid_until", null),
-    supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").lte("start_date", today).gte("end_date", today),
+    supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", today).gte("end_date", today),
     supabase.from("requests").select("id, title, priority").eq("status", "solicitada").in("priority", ["alta", "urgente"]),
     supabase.from("holidays").select("date, name").eq("date", today).maybeSingle(),
     supabase.from("requests").select("id, title, created_at, requester:requester_id(display_name)").gte("created_at", utcDayStart).order("created_at", { ascending: false }).limit(8),

@@ -42,7 +42,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
 
   const [{ data: vacs }, { data: hols }, { data: assignments }] = await Promise.all([
     supabase.from("vacations").select("start_date, end_date")
-      .eq("user_id", profile!.id).eq("status", "Aprobada")
+      .eq("user_id", profile!.id).eq("status", "Aprobada").is("archived_at", null)
       .lte("start_date", last).gte("end_date", first),
     supabase.from("holidays").select("date, name").gte("date", first).lte("date", last),
     supabase.from("project_assignments")

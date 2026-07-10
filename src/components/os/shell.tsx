@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Icon, NexusMark } from "./icons";
+import { Icon } from "./icons";
 import { Avatar, IconButton, Kbd, cx } from "./ui";
 import { NotificationBell } from "./notifications";
 import { ProfileModal } from "./profile-modal";
@@ -82,8 +82,12 @@ export function Shell({
           </button>
         </header>
 
-        <main className="flex-1 nx-scroll overflow-y-auto p-4 md:p-6">
-          <div className="max-w-[1140px] mx-auto">{children}</div>
+        <main className="flex-1 nx-scroll overflow-y-auto p-4 md:p-6 flex flex-col">
+          <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
+          <footer className="max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[11px]"
+            style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>
+            Nexus · CERT Comunicación
+          </footer>
         </main>
       </div>
 
@@ -108,7 +112,8 @@ function Sidebar({ items, active, onGo, user, className }: {
   return (
     <aside className={cx("w-[248px] shrink-0 flex-col bg-sidebar border-r border-border", className)}>
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border">
-        <NexusMark size={26} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-cert.png" alt="CERT" className="h-7 w-7 object-contain shrink-0" />
         <div className="leading-tight">
           <p className="text-[15px] font-bold text-text-1">Nexus</p>
           <p className="text-[11px] text-text-3 -mt-0.5">CERT · Comunicación</p>

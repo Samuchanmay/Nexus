@@ -9,7 +9,7 @@ export default async function Vacaciones() {
     .from("users").select("id, display_name, vacation_balance, hire_date").eq("auth_id", user!.id).single();
 
   const [{ data: vacs }, { data: hols }] = await Promise.all([
-    supabase.from("vacations").select("*").eq("user_id", profile!.id).order("created_at", { ascending: false }),
+    supabase.from("vacations").select("*").eq("user_id", profile!.id).is("archived_at", null).order("created_at", { ascending: false }),
     supabase.from("holidays").select("date"),
   ]);
 

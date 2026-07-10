@@ -57,7 +57,7 @@ export default async function Reportes() {
     supabase.from("activity_types").select("*"),
     supabase.from("users").select("id, display_name, vacation_balance, vacation_days_per_year, hire_date")
       .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
-    supabase.from("vacations").select("user_id, start_date, end_date, days, status"),
+    supabase.from("vacations").select("user_id, start_date, end_date, days, status").is("archived_at", null),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
   const adminId = meRes?.data?.id ?? "";

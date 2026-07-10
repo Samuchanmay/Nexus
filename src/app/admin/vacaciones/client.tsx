@@ -16,7 +16,10 @@ function balanceColor(pctUsed: number): string {
 
 export default function VacAdminClient({ vacations, team, adminId }: {
   vacations: Vacation[];
-  team: { id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null }[];
+  team: {
+    id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null;
+    lastReset: { reset_at: string; days_granted: number; days_used: number; days_forfeited: number } | null;
+  }[];
   adminId: string;
 }) {
   const toast = useToast();
@@ -138,6 +141,13 @@ export default function VacAdminClient({ vacations, team, adminId }: {
                 </p>
                 {seniority && (
                   <p className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-3)" }}>{seniority}</p>
+                )}
+                {t.lastReset && (
+                  <p className="text-[9.5px] mt-0.5 truncate" style={{ color: "var(--text-3)" }}
+                    title={`Ciclo anterior: ${t.lastReset.days_used} usados de ${t.lastReset.days_granted}${t.lastReset.days_forfeited > 0 ? ` · ${t.lastReset.days_forfeited} perdidos` : ""}`}>
+                    Reinició {t.lastReset.reset_at} · usó {t.lastReset.days_used}/{t.lastReset.days_granted}
+                    {t.lastReset.days_forfeited > 0 ? ` · perdió ${t.lastReset.days_forfeited}` : ""}
+                  </p>
                 )}
               </div>
             </div>
