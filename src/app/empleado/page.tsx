@@ -3,7 +3,9 @@ import { summarizeDay, currentState } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, ActivityType } from "@/lib/types";
 import MiDiaClient from "./tasks";
-import { todayMerida, addDays, isoWeekday } from "@/lib/tz";
+import { todayMerida, addDays, isoWeekday, nowMeridaMinutes } from "@/lib/tz";
+import { contextualMessages } from "@/lib/assistant";
+import type { AssistantTask } from "@/lib/assistant";
 
 /** Mi Día — server: junta los datos; el diseño v6 vive en el client (tasks.tsx). */
 export default async function MiDia() {
@@ -23,7 +25,7 @@ export default async function MiDia() {
     supabase.from("attendance").select("date").eq("user_id", profile.id).gte("date", monday).lte("date", sunday),
     supabase.from("schedules").select("*").eq("user_id", profile.id).is("valid_until", null).limit(1).single(),
     supabase.from("project_assignments")
-      .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, requester_name))")
+      .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, requester_name, event_date, event_time))")
       .eq("user_id", profile.id),
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("activity_types").select("*").eq("activo", true).order("orden"),
@@ -35,11 +37,16 @@ export default async function MiDia() {
   const projectIds = [...new Set((assignments ?? [])
     .map((a) => (a.projects as unknown as { id: string } | null)?.id)
     .filter((id): id is string => !!id))];
-  const { data: deps } = projectIds.length
-    ? await supabase.from("project_dependencies")
-        .select("project_id, projects!project_dependencies_depends_on_project_id_fkey(status, requests(title))")
-        .in("project_id", projectIds)
-    : { data: [] as { project_id: string; projects: { status: string; requests: { title: string } | null } | null }[] };
+  const [{ data: deps }, { data: evidenceRows }] = await Promise.all([
+    projectIds.length
+      ? supabase.from("project_dependencies")
+          .select("project_id, projects!project_dependencies_depends_on_project_id_fkey(status, requests(title))")
+          .in("project_id", projectIds)
+      : Promise.resolve({ data: [] as { project_id: string; projects: { status: string; requests: { title: string } | null } | null }[] }),
+    projectIds.length
+      ? supabase.from("evidences").select("project_id").in("project_id", projectIds)
+      : Promise.resolve({ data: [] as { project_id: string }[] }),
+  ]);
   const blockedByOf = new Map<string, string[]>();
   for (const d of (deps ?? []) as unknown as { project_id: string; projects: { status: string; requests: { title: string } | null } | null }[]) {
     if (!d.projects || d.projects.status === "completada") continue;
@@ -47,6 +54,8 @@ export default async function MiDia() {
     list.push(d.projects.requests?.title ?? "otra actividad");
     blockedByOf.set(d.project_id, list);
   }
+  // Asistente Contextual (Plano Maestro §11): qué proyectos ya tienen evidencia subida.
+  const projectsWithEvidence = new Set((evidenceRows ?? []).map((e) => e.project_id as string));
 
   const schedule = (sched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
   const day = summarizeDay(today, (att ?? []) as AttendanceRow[], schedule, states);
@@ -57,7 +66,7 @@ export default async function MiDia() {
     .map((a) => {
       const p = a.projects as unknown as {
         id: string; status: string; priority: string; deadline: string | null;
-        requests: { title: string; type: string; requester_name: string | null } | null;
+        requests: { title: string; type: string; requester_name: string | null; event_date: string | null; event_time: string | null } | null;
       } | null;
       if (!p) return null;
       return {
@@ -70,10 +79,24 @@ export default async function MiDia() {
         status: p.status,
         priority: p.priority,
         deadline: p.deadline,
+        eventDate: p.requests?.event_date ?? null,
+        eventTime: p.requests?.event_time ?? null,
+        hasEvidence: projectsWithEvidence.has(p.id),
         blockedBy: blockedByOf.get(p.id) ?? [],
       };
     })
     .filter((t): t is NonNullable<typeof t> => t !== null && !["completada", "cancelada"].includes(t.status));
+
+  // El asistente observa TODAS las tareas asignadas (incluidas completada/cancelada
+  // recién cerradas no aplica — ya se filtraron arriba), calculado en cada carga,
+  // sin persistencia: siempre datos frescos.
+  const assistantMessages = contextualMessages({
+    today, nowMin: nowMeridaMinutes(),
+    tasks: tasks.map((t): AssistantTask => ({
+      projectId: t.projectId, title: t.title, status: t.status, deadline: t.deadline,
+      eventDate: t.eventDate, eventTime: t.eventTime, isLead: t.isLead, hasEvidence: t.hasEvidence,
+    })),
+  });
 
   return (
     <MiDiaClient
@@ -85,6 +108,7 @@ export default async function MiDia() {
       week={{ monday, today, datesWithActivity: weekDates }}
       assignments={tasks}
       activityTypes={activityTypes}
+      assistantMessages={assistantMessages}
     />
   );
 }

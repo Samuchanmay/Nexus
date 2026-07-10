@@ -11,6 +11,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Sheet } from "@/components/ui";
 import type { ActivityType } from "@/lib/types";
+import type { AssistantMessage } from "@/lib/assistant";
 import { todayMerida, addDays } from "@/lib/tz";
 import { fmtMin } from "@/lib/hours";
 import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } from "@/components/os/ui";
@@ -32,7 +33,7 @@ const PRI_TONE: Record<string, "neutral" | "warn" | "danger"> = {
   baja: "neutral", normal: "neutral", alta: "warn", urgente: "danger",
 };
 
-export default function MiDiaClient({ profile, day, week, assignments, activityTypes }: {
+export default function MiDiaClient({ profile, day, week, assignments, activityTypes, assistantMessages }: {
   profile: { id: string; displayName: string };
   day: {
     totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
@@ -41,6 +42,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
   week: { monday: string; today: string; datesWithActivity: string[] };
   assignments: Task[];
   activityTypes: ActivityType[];
+  assistantMessages: AssistantMessage[];
 }) {
   const toast = useToast();
   const typeLabel = Object.fromEntries(activityTypes.map((t) => [t.key, t.label]));
@@ -182,7 +184,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       url = window.prompt("No se pudo subir a Drive automáticamente. Pega el enlace de la evidencia:") ?? "";
       if (!url) return;
     }
-    const { error: e2 } = await supabase.from("evidences").insert({ project_id: t.projectId, user_id: profile.id, url });
+    const { error: e2 } = await supabase.from("evidences").insert({ project_id: t.projectId, uploaded_by: profile.id, drive_url: url });
     toast(e2 ? "No se pudo guardar" : "Evidencia registrada");
     router.refresh();
   };
@@ -316,6 +318,29 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
           </p>
         </div>
       </Card>
+
+      {/* ── Asistente Contextual (Plano Maestro §11) ── */}
+      {assistantMessages.length > 0 && (
+        <Card>
+          <SectionTitle>Asistente</SectionTitle>
+          <div className="space-y-1.5">
+            {assistantMessages.map((m) => (
+              <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-s"
+                style={{
+                  background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",
+                }}>
+                <span className="shrink-0" style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
+                  <Icon name={m.icon} size={16} />
+                </span>
+                <p className="text-[13px] font-semibold flex-1"
+                  style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-1)" }}>
+                  {m.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* ── Tira semanal ── */}
       <div className="grid grid-cols-7 gap-1.5">
