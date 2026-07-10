@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, currentState } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
-import type { AttendanceRow, Schedule } from "@/lib/types";
+import type { AttendanceRow, Schedule, ActivityType } from "@/lib/types";
 import MiDiaClient from "./tasks";
 import { todayMerida, addDays, isoWeekday } from "@/lib/tz";
 
@@ -18,7 +18,7 @@ export default async function MiDia() {
   const monday = addDays(today, dow === 0 ? -6 : 1 - dow);
   const sunday = addDays(monday, 6);
 
-  const [{ data: att }, { data: weekAtt }, { data: sched }, { data: assignments }, { data: jornadaStates }] = await Promise.all([
+  const [{ data: att }, { data: weekAtt }, { data: sched }, { data: assignments }, { data: jornadaStates }, { data: actTypes }] = await Promise.all([
     supabase.from("attendance").select("*").eq("user_id", profile.id).eq("date", today).order("time"),
     supabase.from("attendance").select("date").eq("user_id", profile.id).gte("date", monday).lte("date", sunday),
     supabase.from("schedules").select("*").eq("user_id", profile.id).is("valid_until", null).limit(1).single(),
@@ -26,8 +26,10 @@ export default async function MiDia() {
       .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, requester_name))")
       .eq("user_id", profile.id),
     supabase.from("jornada_states").select("*").eq("activo", true),
+    supabase.from("activity_types").select("*").eq("activo", true).order("orden"),
   ]);
   const states = (jornadaStates ?? []) as JornadaState[];
+  const activityTypes = (actTypes ?? []) as ActivityType[];
 
   // Dependencias entre actividades (Plano Maestro §04): qué bloquea a cada proyecto asignado.
   const projectIds = [...new Set((assignments ?? [])
@@ -63,7 +65,7 @@ export default async function MiDia() {
         isLead: a.is_lead as boolean,
         projectId: p.id,
         title: p.requests?.title ?? "Proyecto",
-        type: p.requests?.type ?? "diseno",
+        type: p.requests?.type ?? (activityTypes[0]?.key ?? ""),
         requester: p.requests?.requester_name ?? null,
         status: p.status,
         priority: p.priority,
@@ -82,6 +84,7 @@ export default async function MiDia() {
       }}
       week={{ monday, today, datesWithActivity: weekDates }}
       assignments={tasks}
+      activityTypes={activityTypes}
     />
   );
 }

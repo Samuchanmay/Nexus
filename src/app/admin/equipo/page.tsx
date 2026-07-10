@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, stateAfter } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
+import { typeLabels } from "@/lib/types";
+import type { ActivityType } from "@/lib/types";
 import type { AttendanceRow, Schedule, Priority, RequestType, Incident } from "@/lib/types";
 import { todayMerida } from "@/lib/tz";
 import EquipoClient, { type TeamMember } from "./client";
@@ -9,7 +11,7 @@ import EquipoClient, { type TeamMember } from "./client";
 export default async function Equipo() {
   const supabase = await createClient();
   const today = todayMerida();
-  const [{ data: team }, { data: assignments }, { data: att }, { data: scheds }, { data: vacs }, { data: incs }, { data: jornadaStates }] =
+  const [{ data: team }, { data: assignments }, { data: att }, { data: scheds }, { data: vacs }, { data: incs }, { data: jornadaStates }, { data: activityTypes }] =
     await Promise.all([
       supabase.from("users").select("id, display_name, full_name, nexus_color, specialties, area")
         .eq("active", true).in("role", ["admin", "empleado"]),
@@ -22,9 +24,11 @@ export default async function Equipo() {
       supabase.from("incidents").select("user_id, kind, start_date, end_date, status")
         .eq("status", "Pendiente").order("start_date"),
       supabase.from("jornada_states").select("*").eq("activo", true),
+      supabase.from("activity_types").select("*"),
     ]);
   const states = (jornadaStates ?? []) as JornadaState[];
   const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
+  const typeLabel = typeLabels((activityTypes ?? []) as ActivityType[]);
 
   const rows = (att ?? []) as AttendanceRow[];
   const members: TeamMember[] = (team ?? []).map((u) => {
@@ -49,6 +53,7 @@ export default async function Equipo() {
         return {
           title: p.requests?.title ?? "Proyecto",
           type: p.requests?.type ?? null,
+          typeLabel: p.requests?.type ? (typeLabel[p.requests.type] ?? p.requests.type) : null,
           priority: p.priority,
           status: p.status,
           is_lead: a.is_lead,

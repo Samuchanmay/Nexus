@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Sheet } from "@/components/ui";
-import { TYPE_LABELS } from "@/lib/types";
+import type { ActivityType } from "@/lib/types";
 import { todayMerida, addDays } from "@/lib/tz";
 import { fmtMin } from "@/lib/hours";
 import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } from "@/components/os/ui";
@@ -32,7 +32,7 @@ const PRI_TONE: Record<string, "neutral" | "warn" | "danger"> = {
   baja: "neutral", normal: "neutral", alta: "warn", urgente: "danger",
 };
 
-export default function MiDiaClient({ profile, day, week, assignments }: {
+export default function MiDiaClient({ profile, day, week, assignments, activityTypes }: {
   profile: { id: string; displayName: string };
   day: {
     totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
@@ -40,8 +40,10 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
   };
   week: { monday: string; today: string; datesWithActivity: string[] };
   assignments: Task[];
+  activityTypes: ActivityType[];
 }) {
   const toast = useToast();
+  const typeLabel = Object.fromEntries(activityTypes.map((t) => [t.key, t.label]));
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [evidenceTarget, setEvidenceTarget] = useState<Task | null>(null);
   const router = useRouter();
@@ -51,7 +53,7 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
   const [elapsed, setElapsed] = useState(0);
   const [checklists, setChecklists] = useState<Record<string, ChecklistItem[]>>({});
   const [openSheet, setOpenSheet] = useState(false);
-  const [actForm, setActForm] = useState({ type: "cobertura", title: "", date: todayMerida(), minutes: "", requester: "", note: "" });
+  const [actForm, setActForm] = useState({ type: activityTypes[0]?.key ?? "", title: "", date: todayMerida(), minutes: "", requester: "", note: "" });
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -223,7 +225,7 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
     }
     setSaving(false);
     setOpenSheet(false);
-    setActForm({ type: "cobertura", title: "", date: todayMerida(), minutes: "", requester: "", note: "" });
+    setActForm({ type: activityTypes[0]?.key ?? "", title: "", date: todayMerida(), minutes: "", requester: "", note: "" });
     toast("Actividad registrada — pendiente de validar por admin");
     router.refresh();
   };
@@ -342,7 +344,7 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
           </div>
           <h3 className="text-[17px] font-bold text-text-1">{current.title}</h3>
           <p className="text-[13px] text-text-3 mt-0.5">
-            {TYPE_LABELS[current.type as keyof typeof TYPE_LABELS] ?? current.type}
+            {typeLabel[current.type] ?? current.type}
             {current.requester ? ` · ${current.requester}` : ""}
           </p>
           <div className="flex flex-wrap gap-2 mt-4">
@@ -454,9 +456,9 @@ export default function MiDiaClient({ profile, day, week, assignments }: {
         </div>
         <p className="text-[11px] font-bold uppercase tracking-wider mb-2.5 text-text-3">Tipo de actividad</p>
         <div className="flex flex-wrap gap-2 mb-4">
-          {(Object.keys(TYPE_LABELS) as (keyof typeof TYPE_LABELS)[]).map((k) => (
-            <Pill key={k} active={actForm.type === k} onClick={() => setActForm((f) => ({ ...f, type: k }))}>
-              {TYPE_LABELS[k]}
+          {activityTypes.map((t) => (
+            <Pill key={t.key} active={actForm.type === t.key} onClick={() => setActForm((f) => ({ ...f, type: t.key }))}>
+              {t.label}
             </Pill>
           ))}
         </div>

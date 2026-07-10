@@ -40,6 +40,7 @@ const GROUPS: { label: string; items: LinkCard[] }[] = [
       { href: "/admin/proyectos", title: "Actividades", desc: "Todas las actividades en curso, sin importar su origen." },
       { href: "/admin/equipo", title: "Carga del equipo", desc: "Distribución de actividades activas por colaborador." },
       { href: "/admin/reportes", title: "Reportes", desc: "Solicitudes y actividades agregadas por tipo, coordinación y tiempo." },
+      { href: "/admin/config/tipos-actividad", title: "Tipos de actividad", desc: "Agrega tipos nuevos (ej. Podcast) y sus checklists, sin tocar código." },
     ],
   },
 ];

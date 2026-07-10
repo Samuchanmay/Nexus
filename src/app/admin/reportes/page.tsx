@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { typeLabels } from "@/lib/types";
+import type { ActivityType } from "@/lib/types";
 
 /* ═══════════════════════════════════════════════════════════════
    Reportes — agregados reales de Solicitudes/Actividades.
@@ -6,9 +8,6 @@ import { createClient } from "@/lib/supabase/server";
    que ya existe en requests/projects/task_time_logs.
    ═══════════════════════════════════════════════════════════════ */
 
-const TYPE_LABEL: Record<string, string> = {
-  cobertura: "Cobertura", diseno: "Diseño", lona: "Lona", video: "Video", difusion: "Difusión",
-};
 const STATUS_LABEL: Record<string, string> = {
   solicitada: "Por revisar", aprobada: "Aprobada", cancelada: "Cancelada/rechazada",
 };
@@ -31,11 +30,13 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
 export default async function Reportes() {
   const supabase = await createClient();
 
-  const [{ data: requests }, { data: projects }, { data: logs }] = await Promise.all([
+  const [{ data: requests }, { data: projects }, { data: logs }, { data: types }] = await Promise.all([
     supabase.from("requests").select("id, type, requester_area, status, created_at"),
     supabase.from("projects").select("id, request_id, created_at, status"),
     supabase.from("task_time_logs").select("minutes, project_assignments(project_id)"),
+    supabase.from("activity_types").select("*"),
   ]);
+  const TYPE_LABEL = typeLabels((types ?? []) as ActivityType[]);
 
   const reqs = requests ?? [];
   const projs = projects ?? [];

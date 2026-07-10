@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Pill, useToast } from "@/components/ui";
-import { TYPE_LABELS, STATUS_LABELS } from "@/lib/types";
+import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
 import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
 
@@ -25,7 +25,7 @@ export type DepRow = {
   projects: { id: string; status: string; requests: { title: string } | null } | null;
 };
 
-export default function ProyectosClient({ projects, dependencies }: { projects: ProjectRow[]; dependencies: DepRow[] }) {
+export default function ProyectosClient({ projects, dependencies, typeLabel }: { projects: ProjectRow[]; dependencies: DepRow[]; typeLabel: Record<string, string> }) {
   const toast = useToast();
   const [deps, setDeps] = useState(dependencies);
   const [open, setOpen] = useState<string | null>(null); // project_id con el picker abierto
@@ -76,7 +76,7 @@ export default function ProyectosClient({ projects, dependencies }: { projects: 
     return (
       <div className="card card-hover p-5">
         <div className="flex items-center gap-2 flex-wrap mb-1.5">
-          <Pill tone="accent">{p.requests ? TYPE_LABELS[p.requests.type] : "—"}</Pill>
+          <Pill tone="accent">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
           <Pill tone={STATUS_TONE[p.status as RequestStatus] ?? "muted"}>{STATUS_LABELS[p.status as RequestStatus] ?? p.status}</Pill>
           {(p.priority as Priority) !== "normal" && <Pill tone={PRIORITY_TONE[p.priority as Priority]}>{p.priority}</Pill>}
           {pending.length > 0 && <Pill tone="danger">🔒 Bloqueada</Pill>}

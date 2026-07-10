@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { typeLabels } from "@/lib/types";
+import type { ActivityType } from "@/lib/types";
 import ProyectosClient, { type ProjectRow, type DepRow } from "./client";
 
 export default async function Proyectos() {
   const supabase = await createClient();
-  const [{ data: projects }, { data: deps }] = await Promise.all([
+  const [{ data: projects }, { data: deps }, { data: types }] = await Promise.all([
     supabase
       .from("projects")
       .select("id, status, priority, deadline, created_at, requests(title, type), project_assignments(is_lead, users(display_name, nexus_color))")
@@ -11,7 +13,14 @@ export default async function Proyectos() {
     supabase
       .from("project_dependencies")
       .select("id, project_id, depends_on_project_id, projects!project_dependencies_depends_on_project_id_fkey(id, status, requests(title))"),
+    supabase.from("activity_types").select("*"),
   ]);
 
-  return <ProyectosClient projects={(projects ?? []) as unknown as ProjectRow[]} dependencies={(deps ?? []) as unknown as DepRow[]} />;
+  return (
+    <ProyectosClient
+      projects={(projects ?? []) as unknown as ProjectRow[]}
+      dependencies={(deps ?? []) as unknown as DepRow[]}
+      typeLabel={typeLabels((types ?? []) as ActivityType[])}
+    />
+  );
 }

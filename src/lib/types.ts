@@ -77,8 +77,21 @@ export interface Incident {
   users?: { full_name: string; display_name: string };
 }
 
-export type RequestType = "cobertura" | "diseno" | "lona" | "video" | "difusion";
+// Los tipos de actividad ya NO están fijos aquí — viven en la tabla
+// activity_types (editable desde Configuración → Tipos de Actividad,
+// Plano Maestro §13) y se validan con una foreign key en la base de datos.
+export type RequestType = string;
 export type RequestStatus = "solicitada" | "aprobada" | "en_progreso" | "en_revision" | "completada" | "pausada" | "cancelada";
+
+export interface ActivityType {
+  key: string;
+  label: string;
+  min_hours: number;
+  icon: string;
+  subtypes: string[];
+  orden: number;
+  activo: boolean;
+}
 export type Priority = "baja" | "normal" | "alta" | "urgente";
 
 export interface CommRequest {
@@ -101,13 +114,15 @@ export interface CommRequest {
   users?: { full_name: string; title: string | null };
 }
 
-export const TYPE_LABELS: Record<RequestType, string> = {
-  cobertura: "Cobertura", diseno: "Diseño", lona: "Lona", video: "Video", difusion: "Difusión",
-};
+/** Construye {clave: etiqueta} a partir del catálogo real (activity_types). */
+export function typeLabels(types: ActivityType[]): Record<string, string> {
+  return Object.fromEntries(types.map((t) => [t.key, t.label]));
+}
 
-export const MIN_HOURS: Record<RequestType, number> = {
-  cobertura: 72, diseno: 72, difusion: 72, lona: 168, video: 168,
-};
+/** Construye {clave: horas mínimas de anticipación} a partir del catálogo real. */
+export function typeMinHours(types: ActivityType[]): Record<string, number> {
+  return Object.fromEntries(types.map((t) => [t.key, t.min_hours]));
+}
 
 export const STATUS_LABELS: Record<RequestStatus, string> = {
   solicitada: "Solicitada", aprobada: "Aprobada", en_progreso: "En progreso",

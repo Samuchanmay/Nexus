@@ -11,7 +11,6 @@ import { PageHeader } from "@/components/shared";
 import { PRIORITY_TONE, KIND_LABELS, INCIDENT_TONE } from "@/lib/ui-maps";
 import { fmtMin, fmtTime } from "@/lib/hours";
 import type { Priority, RequestType, Incident } from "@/lib/types";
-import { TYPE_LABELS } from "@/lib/types";
 
 export interface TeamMember {
   id: string;
@@ -20,7 +19,7 @@ export interface TeamMember {
   area: string | null;
   nexus_color: string | null;
   specialties: string[];
-  tasks: { title: string; type: RequestType | null; priority: Priority; status: string; is_lead: boolean }[];
+  tasks: { title: string; type: RequestType | null; typeLabel: string | null; priority: Priority; status: string; is_lead: boolean }[];
   today: {
     firstIn: string | null; totalMin: number; targetMin: number; isOpen: boolean; movesCount: number;
     stateName: string | null; stateColor: string | null;
@@ -73,7 +72,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                   {u.tasks.slice(0, 3).map((t, i) => (
                     <div key={i} className="flex items-center justify-between gap-2 text-[12.5px]">
                       <span className="truncate">{t.title}</span>
-                      <Pill tone="accent">{t.type ? TYPE_LABELS[t.type] : "—"}</Pill>
+                      <Pill tone="accent">{t.typeLabel ?? "—"}</Pill>
                     </div>
                   ))}
                   {u.tasks.length > 3 && (
@@ -134,7 +133,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                             {t.is_lead && "⭐ "}{t.title}
                           </p>
                           <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
-                            {t.type ? TYPE_LABELS[t.type] : "—"} · {t.status.replace("_", " ")}
+                            {t.typeLabel ?? "—"} · {t.status.replace("_", " ")}
                           </p>
                         </div>
                         {t.priority !== "normal" && (

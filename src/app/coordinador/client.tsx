@@ -7,26 +7,43 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Pill } from "@/components/ui";
-import { TYPE_LABELS, STATUS_LABELS, MIN_HOURS } from "@/lib/types";
-import type { CommRequest, RequestType, UserProfile, RequestStatus } from "@/lib/types";
-import { IconCamera, IconPen, IconVideo, IconMegaphone, IconClipboard, IconChevronLeft, IconCheck } from "@/components/icons";
+import { STATUS_LABELS } from "@/lib/types";
+import type { CommRequest, RequestType, UserProfile, RequestStatus, ActivityType } from "@/lib/types";
+import { IconCamera, IconPen, IconVideo, IconMegaphone, IconClipboard, IconFolder, IconChevronLeft, IconCheck } from "@/components/icons";
 
-const TYPE_META: { type: RequestType; icon: typeof IconCamera; desc: string; subtypes: string[] }[] = [
-  { type: "cobertura", icon: IconCamera, desc: "Foto y/o video de un evento", subtypes: ["Fotografía", "Video", "Transmisión en vivo"] },
-  { type: "diseno", icon: IconPen, desc: "Flyer, post, invitación, reconocimiento", subtypes: ["Flyer", "Post para redes", "Invitación", "Reconocimiento", "Otro"] },
-  { type: "lona", icon: IconClipboard, desc: "Lona impresa — requiere 1 semana", subtypes: ["Lona chica", "Lona grande", "Banner"] },
-  { type: "video", icon: IconVideo, desc: "Video editado — requiere 1 semana", subtypes: ["Promocional", "Informativo", "Felicitación"] },
-  { type: "difusion", icon: IconMegaphone, desc: "Publicación en redes del CERT", subtypes: ["Facebook", "Instagram", "Ambas"] },
-];
+// Descripciones e iconos de los 5 tipos originales; los tipos nuevos que un
+// admin agregue desde Configuración usan un icono/descripción genéricos.
+const TYPE_DESC: Record<string, string> = {
+  cobertura: "Foto y/o video de un evento",
+  diseno: "Flyer, post, invitación, reconocimiento",
+  lona: "Lona impresa — requiere 1 semana",
+  video: "Video editado — requiere 1 semana",
+  difusion: "Publicación en redes del CERT",
+};
+const TYPE_ICON: Record<string, typeof IconCamera> = {
+  camera: IconCamera, pen: IconPen, clipboard: IconClipboard, video: IconVideo, megaphone: IconMegaphone,
+};
 
 import { STATUS_TONE } from "@/lib/ui-maps";
 import { requestCalendarUrl } from "@/lib/gcal";
 
-export default function CoordinadorClient({ profile, requests }: {
-  profile: UserProfile; requests: CommRequest[];
+export default function CoordinadorClient({ profile, requests, activityTypes }: {
+  profile: UserProfile; requests: CommRequest[]; activityTypes: ActivityType[];
 }) {
   const toast = useToast();
   const router = useRouter();
+  const typeLabel = useMemo(() => Object.fromEntries(activityTypes.map((t) => [t.key, t.label])), [activityTypes]);
+  const typeMeta = useMemo(
+    () => activityTypes.map((t) => ({
+      type: t.key as RequestType,
+      icon: TYPE_ICON[t.icon] ?? IconFolder,
+      desc: TYPE_DESC[t.key] ?? "",
+      subtypes: t.subtypes,
+      label: t.label,
+      minHours: t.min_hours,
+    })),
+    [activityTypes],
+  );
   // El área real viene del catálogo (coordinaciones/departamentos); el texto
   // libre "area" se conserva solo como respaldo para perfiles antiguos.
   const areaLabel = profile.departments?.nombre ?? profile.area ?? "";
@@ -38,8 +55,8 @@ export default function CoordinadorClient({ profile, requests }: {
   const [form, setForm] = useState({ title: "", date: "", time: "", location: "", notes: "" });
   const [saving, setSaving] = useState(false);
 
-  const meta = TYPE_META.find((m) => m.type === type);
-  const minHours = type ? MIN_HOURS[type] : 72;
+  const meta = typeMeta.find((m) => m.type === type);
+  const minHours = meta?.minHours ?? 72;
 
   const hoursUntilEvent = useMemo(() => {
     if (!form.date) return null;
@@ -113,7 +130,7 @@ export default function CoordinadorClient({ profile, requests }: {
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Pill tone="accent">{TYPE_LABELS[r.type]}</Pill>
+                    <Pill tone="accent">{typeLabel[r.type] ?? r.type}</Pill>
                     <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABELS[r.status]}</Pill>
                   </div>
                   <p className="text-[14.5px] font-bold">{r.title}</p>
@@ -157,7 +174,7 @@ export default function CoordinadorClient({ profile, requests }: {
 
       {step === 1 && (
         <div className="flex flex-col gap-2.5">
-          {TYPE_META.map((m) => {
+          {typeMeta.map((m) => {
             const Icon = m.icon;
             return (
               <button key={m.type} onClick={() => { setType(m.type); setSubtypes([]); setStep(2); }}
@@ -167,11 +184,11 @@ export default function CoordinadorClient({ profile, requests }: {
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[15px] font-bold">{TYPE_LABELS[m.type]}</p>
+                  <p className="text-[15px] font-bold">{m.label}</p>
                   <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>{m.desc}</p>
                 </div>
                 <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>
-                  mín. {MIN_HOURS[m.type] / 24} días
+                  mín. {m.minHours / 24} días
                 </span>
               </button>
             );
@@ -183,7 +200,7 @@ export default function CoordinadorClient({ profile, requests }: {
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-[12px] font-semibold block mb-2" style={{ color: "var(--text-2)" }}>
-              Tipo de {TYPE_LABELS[meta.type].toLowerCase()}
+              Tipo de {meta.label.toLowerCase()}
             </label>
             <div className="flex gap-1.5 flex-wrap">
               {meta.subtypes.map((s) => (
@@ -221,7 +238,7 @@ export default function CoordinadorClient({ profile, requests }: {
           {tooSoon && (
             <div className="rounded-s px-4 py-3 text-[12.5px] font-semibold"
               style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-              {TYPE_LABELS[meta.type]} requiere al menos {minHours / 24} días de anticipación.
+              {meta.label} requiere al menos {minHours / 24} días de anticipación.
               Elige una fecha posterior o contacta directamente a Comunicación si es una urgencia real.
             </div>
           )}
@@ -251,7 +268,7 @@ export default function CoordinadorClient({ profile, requests }: {
         <div className="flex flex-col gap-4">
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Pill tone="accent">{TYPE_LABELS[meta.type]}</Pill>
+              <Pill tone="accent">{meta.label}</Pill>
               {subtypes.map((s) => <Pill key={s} tone="muted">{s}</Pill>)}
             </div>
             <p className="text-[16px] font-bold mb-3">{form.title}</p>

@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Sheet, Pill, Avatar } from "@/components/ui";
-import { TYPE_LABELS, STATUS_LABELS, MIN_HOURS } from "@/lib/types";
+import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
 
 type Member = { id: string; display_name: string; nexus_color: string | null; specialties: string[] };
@@ -25,7 +25,9 @@ function suggestedPriority(r: CommRequest): Priority {
   return "normal";
 }
 
-export default function SolicitudesClient({ requests, team }: { requests: CommRequest[]; team: Member[] }) {
+export default function SolicitudesClient({ requests, team, typeLabel, minHours }: {
+  requests: CommRequest[]; team: Member[]; typeLabel: Record<string, string>; minHours: Record<string, number>;
+}) {
   const toast = useToast();
   const router = useRouter();
   const [tab, setTab] = useState<"pendientes" | "todas">("pendientes");
@@ -109,7 +111,7 @@ export default function SolicitudesClient({ requests, team }: { requests: CommRe
       const end = `${sel.event_date}T${String(startHour + 1).padStart(2, "0")}:${(sel.event_time ?? "09:00:00").slice(3, 5)}:00`;
       const { data: gcalData, error: gcalError } = await supabase.functions.invoke("gcal-create-event", {
         body: {
-          title: `${TYPE_LABELS[sel.type]} — ${sel.title}`,
+          title: `${typeLabel[sel.type] ?? sel.type} — ${sel.title}`,
           details: `Proyecto Nexus · ${sel.notes ?? ""}`,
           location: sel.event_location ?? "",
           start,
@@ -118,7 +120,7 @@ export default function SolicitudesClient({ requests, team }: { requests: CommRe
       });
       const eventUrl = (gcalData as { ok?: boolean; eventUrl?: string } | null)?.eventUrl;
       if (gcalError || !eventUrl) {
-        window.open(requestCalendarUrl(sel), "_blank");
+        window.open(requestCalendarUrl(sel, typeLabel), "_blank");
       }
     }
 
@@ -183,7 +185,7 @@ export default function SolicitudesClient({ requests, team }: { requests: CommRe
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <Pill tone="accent">{TYPE_LABELS[r.type]}</Pill>
+                  <Pill tone="accent">{typeLabel[r.type] ?? r.type}</Pill>
                   <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABELS[r.status]}</Pill>
                   {r.priority !== "normal" && <Pill tone={PRIORITY_TONE[r.priority]}>{r.priority}</Pill>}
                 </div>
@@ -215,7 +217,7 @@ export default function SolicitudesClient({ requests, team }: { requests: CommRe
             <div className="rounded-s px-4 py-3" style={{ background: "var(--surface-2)" }}>
               <p className="text-[13.5px] font-bold">{sel.title}</p>
               <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
-                {TYPE_LABELS[sel.type]} · anticipación mínima {MIN_HOURS[sel.type]}h
+                {typeLabel[sel.type] ?? sel.type} · anticipación mínima {minHours[sel.type] ?? 72}h
               </p>
             </div>
 
@@ -274,7 +276,7 @@ export default function SolicitudesClient({ requests, team }: { requests: CommRe
               </label>
             )}
             <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
-              Al aprobar se crea el proyecto con el checklist de {TYPE_LABELS[sel.type]} para el responsable.
+              Al aprobar se crea el proyecto con el checklist de {typeLabel[sel.type] ?? sel.type} para el responsable.
             </p>
             <div className="flex gap-2.5">
               <button className="btn-secondary flex-1 py-3 text-[13.5px]" onClick={() => setRejecting(true)}>Rechazar…</button>
