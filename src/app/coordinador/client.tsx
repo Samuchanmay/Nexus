@@ -27,8 +27,20 @@ const TYPE_ICON: Record<string, typeof IconCamera> = {
 import { STATUS_TONE } from "@/lib/ui-maps";
 import { requestCalendarUrl } from "@/lib/gcal";
 
+// La solicitud aprobada se congela en status "aprobada" en su propia fila —
+// el avance real (en progreso, en revisión, completada) vive en el proyecto
+// que se creó a partir de ella. Aquí lo mostramos para que el coordinador
+// vea el estado verdadero, no solo "Aprobada" para siempre.
+type ReqWithProject = CommRequest & { projects?: { status: string }[] | { status: string } | null };
+
+function effectiveStatus(r: ReqWithProject): RequestStatus {
+  if (r.status !== "aprobada") return r.status;
+  const proj = Array.isArray(r.projects) ? r.projects[0] : r.projects;
+  return (proj?.status as RequestStatus | undefined) ?? "aprobada";
+}
+
 export default function CoordinadorClient({ profile, requests, activityTypes }: {
-  profile: UserProfile; requests: CommRequest[]; activityTypes: ActivityType[];
+  profile: UserProfile; requests: ReqWithProject[]; activityTypes: ActivityType[];
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -131,7 +143,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <Pill tone="accent">{typeLabel[r.type] ?? r.type}</Pill>
-                    <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABELS[r.status]}</Pill>
+                    <Pill tone={STATUS_TONE[effectiveStatus(r)]}>{STATUS_LABELS[effectiveStatus(r)]}</Pill>
                   </div>
                   <p className="text-[14.5px] font-bold">{r.title}</p>
                   {r.event_date && (

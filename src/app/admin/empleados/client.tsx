@@ -42,13 +42,16 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    email: "", full_name: "", display_name: "", role: "empleado",
+    email: "", full_name: "", display_name: "", title: "", hire_date: "", role: "empleado",
     area: "", area_id: "", color: COLORS[4], specialties: [] as string[],
     start: "09:00", end: "18:00", target: "480", balance: "0",
   });
 
   const [editing, setEditing] = useState<UserProfile | null>(null);
-  const [editForm, setEditForm] = useState({ role: "empleado", area_id: "", balance: "0", daysPerYear: "0" });
+  const [editForm, setEditForm] = useState({
+    role: "empleado", area_id: "", balance: "0", daysPerYear: "0",
+    fullName: "", displayName: "", title: "", hireDate: "", birthDate: "",
+  });
   const [editSaving, setEditSaving] = useState(false);
 
   const toggleSpec = (s: string) => setForm((f) => ({
@@ -73,6 +76,8 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       area: form.area || null,
       specialties: form.specialties,
       vacation_balance: parseInt(form.balance) || 0,
+      title: form.title.trim() || null,
+      hire_date: form.hire_date || null,
     }).select("id").single();
     if (error || !u) {
       toast(error?.code === "23505" ? "Ese correo ya está registrado" : "No se pudo guardar");
@@ -104,6 +109,8 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
     setEditForm({
       role: u.role, area_id: u.area_id ?? "",
       balance: String(u.vacation_balance ?? 0), daysPerYear: String(u.vacation_days_per_year ?? 0),
+      fullName: u.full_name ?? "", displayName: u.display_name ?? "", title: u.title ?? "",
+      hireDate: u.hire_date ?? "", birthDate: u.birth_date ?? "",
     });
   };
 
@@ -119,6 +126,11 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       area_id: AREA_TIPO[editForm.role] ? (editForm.area_id || null) : null,
       vacation_balance: parseInt(editForm.balance) || 0,
       vacation_days_per_year: parseInt(editForm.daysPerYear) || 0,
+      full_name: editForm.fullName.trim() || editing.full_name,
+      display_name: editForm.displayName.trim() || editing.display_name,
+      title: editForm.title.trim() || null,
+      hire_date: editForm.hireDate || null,
+      birth_date: editForm.birthDate || null,
     }).eq("id", editing.id);
     setEditSaving(false);
     if (error) { toast("No se pudo actualizar"); return; }
@@ -162,13 +174,11 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
             </div>
             <div className="flex items-center gap-2.5">
               {!u.active && <Pill tone="muted">Inactivo</Pill>}
-              {["coordinador", "departamento"].includes(u.role) && (
-                <button onClick={() => openEdit(u)}
-                  className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5"
-                  style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-                  <IconPen className="w-3.5 h-3.5" /> Editar
-                </button>
-              )}
+              <button onClick={() => openEdit(u)}
+                className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5"
+                style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
+                <IconPen className="w-3.5 h-3.5" /> Editar
+              </button>
               <button onClick={() => toggleActive(u)}
                 className="px-4 py-2 rounded-full text-[12px] font-semibold"
                 style={u.active
@@ -198,6 +208,18 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
               <input className="field-input" placeholder="Como aparece en la app"
                 value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+              <input className="field-input" placeholder="Ej. Coordinador de Video"
+                value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
+              <input type="date" className="field-input" value={form.hire_date}
+                onChange={(e) => setForm({ ...form, hire_date: e.target.value })} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
@@ -301,6 +323,35 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
         title={editing ? `Editar · ${editing.full_name}` : "Editar"}>
         {editing && (
           <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
+                <input className="field-input" value={editForm.fullName}
+                  onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
+                <input className="field-input" value={editForm.displayName}
+                  onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+              <input className="field-input" placeholder="Ej. Coordinador de Video"
+                value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
+                <input type="date" className="field-input" value={editForm.hireDate}
+                  onChange={(e) => setEditForm({ ...editForm, hireDate: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de cumpleaños</label>
+                <input type="date" className="field-input" value={editForm.birthDate}
+                  onChange={(e) => setEditForm({ ...editForm, birthDate: e.target.value })} />
+              </div>
+            </div>
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rol</label>
               <select className="field-input" value={editForm.role}

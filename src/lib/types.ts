@@ -19,6 +19,8 @@ export interface UserProfile {
   active: boolean;
   vacation_balance: number;
   vacation_days_per_year: number;
+  hire_date: string | null;
+  birth_date: string | null;
   onboarded: boolean;
   departments?: { id: string; nombre: string; tipo: "coordinacion" | "departamento" } | null;
 }

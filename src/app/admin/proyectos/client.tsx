@@ -7,6 +7,7 @@ import { logAdminAction } from "@/lib/admin-log";
 import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
 import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
+import { PrintButton } from "../reportes/print-button";
 
 /* ═══════════════════════════════════════════════════════════════
    Dependencias entre Actividades — Plano Maestro §04.
@@ -50,6 +51,23 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
   const [assignees, setAssignees] = useState<string[]>([]);
   const [lead, setLead] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const activitiesCsvHref = useMemo(() => {
+    const rows = [
+      ["Actividad", "Tipo", "Estado", "Prioridad", "Entrega", "Responsable", "Asignados"],
+      ...projects.map((p) => {
+        const asgs = p.project_assignments ?? [];
+        const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
+        return [
+          p.requests?.title ?? "Actividad", p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—",
+          STATUS_LABELS[p.status as RequestStatus] ?? p.status, p.priority,
+          p.deadline ?? "", lead?.display_name ?? "", asgs.map((a) => a.users.display_name).join(" · "),
+        ];
+      }),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join(String.fromCharCode(10));
+    return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
+  }, [projects, typeLabel]);
 
   const active = projects.filter((p) => !["completada", "cancelada"].includes(p.status));
   const done = projects.filter((p) => ["completada", "cancelada"].includes(p.status));
@@ -241,9 +259,16 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
             {active.length} activos · {done.length} cerrados
           </p>
         </div>
-        <button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>
-          + Añadir proyecto
-        </button>
+        <div className="flex items-center gap-2">
+          <a href={activitiesCsvHref} download="actividades.csv" className="btn-secondary text-[13px] px-4 py-2"
+            onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
+            Exportar CSV ↓
+          </a>
+          <PrintButton />
+          <button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>
+            + Añadir proyecto
+          </button>
+        </div>
       </header>
 
       <h2 className="text-[15px] font-bold mb-3">Activos</h2>

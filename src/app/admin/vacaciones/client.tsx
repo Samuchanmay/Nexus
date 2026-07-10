@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Vacation } from "@/lib/types";
 import { useToast, Pill, Avatar, Sheet } from "@/components/ui";
@@ -93,13 +93,31 @@ export default function VacAdminClient({ vacations, team, adminId }: {
   const pending = vacations.filter((v) => v.status === "Pendiente");
   const rest = vacations.filter((v) => v.status !== "Pendiente");
 
+  const vacCsvHref = useMemo(() => {
+    const rows = [
+      ["Persona", "Inicio", "Fin", "Días", "Estado", "Nota admin"],
+      ...vacations
+        .slice()
+        .sort((a, b) => b.start_date.localeCompare(a.start_date))
+        .map((v) => [v.users?.full_name ?? v.users?.display_name ?? "—", v.start_date, v.end_date, String(v.days), v.status, v.admin_note ?? ""]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join(String.fromCharCode(10));
+    return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
+  }, [vacations]);
+
   return (
     <>
-      <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Vacaciones</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          Aprueba una vez que tengas el visto bueno externo
-        </p>
+      <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight">Vacaciones</h1>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
+            Aprueba una vez que tengas el visto bueno externo
+          </p>
+        </div>
+        <a href={vacCsvHref} download="vacaciones-registro.csv" className="btn-secondary px-4 py-2.5 text-[13px]"
+          onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "vacaciones-registro.csv"); }}>
+          Exportar CSV ↓
+        </a>
       </header>
 
       {/* Saldos */}
