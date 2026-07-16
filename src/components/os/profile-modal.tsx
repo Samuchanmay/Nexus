@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, Field } from "./ui";
+import { Avatar } from "./ui";
 import { Icon } from "./icons";
 
 type ProfileData = {
@@ -12,6 +12,24 @@ type ProfileData = {
   curp: string | null;
   avatar_url: string | null;
 };
+
+/** Fila tipo "ajustes de iOS": icono en burbuja + etiqueta + valor/input. */
+function InfoRow({ icon, label, color, children }: {
+  icon: string; label: string; color: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-3.5 py-3">
+      <div className="w-8 h-8 rounded-full grid place-items-center shrink-0"
+        style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}>
+        <Icon name={icon} size={15} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11.5px] font-semibold text-text-3 mb-0.5">{label}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function ProfileModal({
   userId, name, roleLabel, color, onClose,
@@ -92,90 +110,93 @@ export function ProfileModal({
         className="relative w-full max-w-[420px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 h-14 border-b border-border">
-          <p className="text-[14.5px] font-bold text-text-1">Mi perfil</p>
-          <button onClick={onClose} className="text-text-3 hover:text-text-1 transition-colors" aria-label="Cerrar">
-            <Icon name="close" size={18} />
-          </button>
+        <button onClick={onClose} aria-label="Cerrar"
+          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full grid place-items-center bg-black/25 text-white hover:bg-black/40 transition-colors backdrop-blur-sm">
+          <Icon name="close" size={16} />
+        </button>
+
+        {/* Portada con el color del usuario */}
+        <div className="h-20 relative"
+          style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 60%, black))` }} />
+
+        {/* Avatar superpuesto */}
+        <div className="flex flex-col items-center -mt-10 px-5">
+          <div className="relative">
+            {data?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={data.avatar_url} alt={name}
+                className="h-20 w-20 rounded-full object-cover"
+                style={{ boxShadow: "0 0 0 4px var(--panel)" }}
+              />
+            ) : (
+              <div className="rounded-full" style={{ boxShadow: "0 0 0 4px var(--panel)" }}>
+                <Avatar name={name} color={color} size={80} />
+              </div>
+            )}
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-accent text-white grid place-items-center border-2 border-panel disabled:opacity-50"
+              aria-label="Cambiar foto"
+              title="Cambiar foto"
+            >
+              <Icon name="camera" size={13} />
+            </button>
+            <input
+              ref={fileRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); }}
+            />
+          </div>
+          <p className="text-[17px] font-bold text-text-1 mt-2.5">{name}</p>
+          <span className="mt-1 mb-4 px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold"
+            style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}>
+            {roleLabel}
+          </span>
         </div>
 
-        <div className="p-5 flex flex-col gap-5 max-h-[70vh] nx-scroll overflow-y-auto">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              {data?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={data.avatar_url} alt={name}
-                  className="h-16 w-16 rounded-full object-cover"
-                  style={{ boxShadow: `0 0 0 3px var(--panel), 0 0 0 5px ${color}` }}
-                />
-              ) : (
-                <div className="rounded-full" style={{ boxShadow: `0 0 0 3px var(--panel), 0 0 0 5px ${color}` }}>
-                  <Avatar name={name} color={color} size={64} />
-                </div>
-              )}
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-accent text-white grid place-items-center border-2 border-panel disabled:opacity-50"
-                aria-label="Cambiar foto"
-                title="Cambiar foto"
-              >
-                <Icon name="camera" size={13} />
-              </button>
-              <input
-                ref={fileRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); }}
-              />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[16px] font-bold text-text-1 truncate">{name}</p>
-              <p className="text-[12.5px] text-text-3">{roleLabel}</p>
-            </div>
-          </div>
-
+        <div className="px-5 pb-5 flex flex-col gap-4 max-h-[52vh] nx-scroll overflow-y-auto">
           {loading || !data ? (
             <p className="text-center text-[12.5px] text-text-3 py-6">Cargando…</p>
           ) : (
             <>
-              <Field label="Correo">
-                <p className="text-[13.5px] text-text-2 px-3.5 py-3 rounded-sm bg-surface-2 border border-border">
-                  {data.email}
-                </p>
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Fecha de nacimiento">
+              <div className="rounded-sm border border-border divide-y divide-border">
+                <InfoRow icon="mail" label="Correo" color={color}>
+                  <p className="text-[13.5px] text-text-1 truncate">{data.email}</p>
+                </InfoRow>
+              </div>
+
+              <div className="rounded-sm border border-border divide-y divide-border">
+                <InfoRow icon="cake" label="Fecha de nacimiento" color={color}>
                   <input
                     type="date" value={data.birth_date ?? ""}
                     onChange={(e) => set("birth_date", e.target.value)}
-                    className="field-input"
+                    className="w-full bg-transparent text-[13.5px] text-text-1 focus:outline-none"
                   />
-                </Field>
-                <Field label="Fecha de ingreso">
+                </InfoRow>
+                <InfoRow icon="calendar" label="Fecha de ingreso" color={color}>
                   <input
                     type="date" value={data.hire_date ?? ""}
                     onChange={(e) => set("hire_date", e.target.value)}
-                    className="field-input"
+                    className="w-full bg-transparent text-[13.5px] text-text-1 focus:outline-none"
                   />
-                </Field>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="RFC">
+                </InfoRow>
+                <InfoRow icon="idcard" label="RFC" color={color}>
                   <input
                     type="text" value={data.rfc ?? ""} maxLength={13}
                     onChange={(e) => set("rfc", e.target.value.toUpperCase())}
                     placeholder="XXXX000000XXX"
-                    className="field-input uppercase"
+                    className="w-full bg-transparent text-[13.5px] text-text-1 uppercase focus:outline-none placeholder:text-text-3 placeholder:normal-case"
                   />
-                </Field>
-                <Field label="CURP">
+                </InfoRow>
+                <InfoRow icon="idcard" label="CURP" color={color}>
                   <input
                     type="text" value={data.curp ?? ""} maxLength={18}
                     onChange={(e) => set("curp", e.target.value.toUpperCase())}
                     placeholder="XXXX000000XXXXXX00"
-                    className="field-input uppercase"
+                    className="w-full bg-transparent text-[13.5px] text-text-1 uppercase focus:outline-none placeholder:text-text-3 placeholder:normal-case"
                   />
-                </Field>
+                </InfoRow>
               </div>
             </>
           )}

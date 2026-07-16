@@ -29,6 +29,9 @@ const P: Record<string, React.ReactNode> = {
   device: <><rect x="7" y="2.5" width="10" height="19" rx="2" /><path d="M11 18.3h2" /></>,
   tag: <><path d="M3.5 12.3 12 3.8h6.7a1.5 1.5 0 0 1 1.5 1.5V12l-8.5 8.5a1.5 1.5 0 0 1-2.1 0l-5.6-5.6a1.5 1.5 0 0 1 0-2.1Z" /><circle cx="15.7" cy="8.3" r="1.3" fill="currentColor" stroke="none" /></>,
   toggle: <><rect x="2.5" y="7" width="19" height="10" rx="5" /><circle cx="16.5" cy="12" r="3.3" fill="currentColor" stroke="none" /></>,
+  mail: <><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="m4 7 8 6 8-6" /></>,
+  idcard: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="12" r="2" /><path d="M6.5 16c.4-1.6 1.6-2.4 2.5-2.4s2.1.8 2.5 2.4M14 9.5h4M14 13h4" /></>,
+  cake: <><path d="M4 20v-6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2V20" /><path d="M4 16.5h16M9 11.5V8M12 11.5V8M15 11.5V8" /></>,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {

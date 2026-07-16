@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useSupabaseMutation } from "@/components/shared";
-import { PageHeader } from "@/components/shared";
+import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
 import { IconPlus, IconX } from "@/components/icons";
+import { Icon } from "@/components/os/icons";
 
 type EstadoRow = {
   id: string; nombre: string; cuenta_tiempo: boolean; pausa_actividad: boolean;
@@ -60,40 +60,51 @@ export default function EstadosClient({ states }: { states: EstadoRow[] }) {
 
       <div className="flex flex-col gap-2.5 mb-6">
         {states.map((row) => (
-          <div key={row.id} className="card p-4" style={{ opacity: row.activo ? 1 : 0.5 }}>
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2.5">
-                <input type="color" value={row.color} onChange={(e) => setColor(row, e.target.value)}
-                  className="w-6 h-6 rounded-full border-0 cursor-pointer" style={{ background: row.color }} />
-                <p className="text-[14.5px] font-bold">{row.nombre}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => toggleActivo(row)} disabled={saving}
-                  className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full"
-                  style={{
-                    background: row.activo ? "var(--ok-tint)" : "var(--surface-2)",
-                    color: row.activo ? "var(--ok)" : "var(--text-3)",
-                  }}>
-                  {row.activo ? "Activo" : "Inactivo"}
-                </button>
-                <button onClick={() => remove(row)} aria-label="Eliminar"
-                  className="w-7 h-7 rounded-full flex items-center justify-center"
-                  style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                  <IconX className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-3 gap-2.5">
-              {FLAGS.map((f) => (
-                <label key={f.key} className="flex items-start gap-2 cursor-pointer">
-                  <input type="checkbox" checked={row[f.key]} onChange={() => toggle(row, f.key)}
-                    className="w-[16px] h-[16px] mt-0.5 accent-[var(--accent)]" />
-                  <span>
-                    <span className="block text-[12.5px] font-semibold">{f.label}</span>
-                    <span className="block text-[11px]" style={{ color: "var(--text-3)" }}>{f.hint}</span>
+          <div key={row.id} className="card p-0 overflow-hidden flex" style={{ opacity: row.activo ? 1 : 0.5 }}>
+            {/* Línea lateral de color — acento, no protagonista */}
+            <div className="w-1 shrink-0" style={{ background: row.color }} />
+            <div className="flex-1 p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-8 h-8 rounded-full grid place-items-center shrink-0"
+                    style={{ background: `color-mix(in srgb, ${row.color} 16%, transparent)`, color: row.color }}>
+                    <Icon name="clock" size={15} />
                   </span>
-                </label>
-              ))}
+                  <p className="text-[14.5px] font-bold truncate">{row.nombre}</p>
+                  <label className="relative w-5 h-5 rounded-sm border shrink-0 cursor-pointer overflow-hidden"
+                    style={{ borderColor: "var(--border)" }} title="Cambiar color">
+                    <span className="absolute inset-0" style={{ background: row.color }} />
+                    <input type="color" value={row.color} onChange={(e) => setColor(row, e.target.value)}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => toggleActivo(row)} disabled={saving}
+                    className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{
+                      background: row.activo ? "var(--ok-tint)" : "var(--surface-2)",
+                      color: row.activo ? "var(--ok)" : "var(--text-3)",
+                    }}>
+                    {row.activo ? "Activo" : "Inactivo"}
+                  </button>
+                  <button onClick={() => remove(row)} aria-label="Eliminar"
+                    className="w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                    <IconX className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {FLAGS.map((f) => (
+                  <div key={f.key} className="flex items-start gap-2">
+                    <Switch checked={row[f.key]} onChange={() => toggle(row, f.key)} disabled={saving} />
+                    <span>
+                      <span className="block text-[12.5px] font-semibold leading-tight">{f.label}</span>
+                      <span className="block text-[11px] mt-0.5" style={{ color: "var(--text-3)" }}>{f.hint}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ))}
@@ -104,8 +115,12 @@ export default function EstadosClient({ states }: { states: EstadoRow[] }) {
         <div className="grid md:grid-cols-[1fr_80px_auto] gap-2.5">
           <input className="field-input" placeholder="Nombre del estado"
             value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
-          <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
-            className="w-full h-[42px] rounded-sm border-0 cursor-pointer" style={{ background: form.color }} />
+          <label className="relative w-full h-[42px] rounded-sm border cursor-pointer overflow-hidden"
+            style={{ borderColor: "var(--border)" }} title="Elegir color">
+            <span className="absolute inset-0" style={{ background: form.color }} />
+            <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
+              className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
+          </label>
           <button className="btn-primary px-5 py-3 text-[13.5px] flex items-center gap-1.5" disabled={saving} onClick={add}>
             <IconPlus className="w-4 h-4" /> Agregar
           </button>

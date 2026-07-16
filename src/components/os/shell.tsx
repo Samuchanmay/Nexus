@@ -47,7 +47,7 @@ export function Shell({
       {/* Sidebar */}
       <Sidebar items={items} active={active} onGo={go} user={user}
         onProfileOpen={() => setProfileOpen(true)}
-        className="hidden md:flex" />
+        className="hidden md:flex" theme={theme} />
 
       {/* Drawer móvil */}
       {drawer && (
@@ -56,7 +56,7 @@ export function Shell({
           <div className="absolute inset-y-0 left-0 nx-slide" onClick={(e) => e.stopPropagation()} style={{ animation: "nx-slide .2s ease both" }}>
             <Sidebar items={items} active={active} onGo={go} user={user}
               onProfileOpen={() => setProfileOpen(true)}
-              className="flex h-full" />
+              className="flex h-full" theme={theme} />
           </div>
         </div>
       )}
@@ -111,8 +111,8 @@ export function Shell({
 }
 
 /* ───────────────────────── Sidebar ───────────────────────── */
-function Sidebar({ items, active, onGo, user, onProfileOpen, className }: {
-  items: NavItem[]; active: string; onGo: (k: string) => void; user: ShellUser; onProfileOpen: () => void; className?: string;
+function Sidebar({ items, active, onGo, user, onProfileOpen, className, theme }: {
+  items: NavItem[]; active: string; onGo: (k: string) => void; user: ShellUser; onProfileOpen: () => void; className?: string; theme: "light" | "dark";
 }) {
   const router = useRouter();
   const signOut = async (e: React.MouseEvent) => {
@@ -124,7 +124,7 @@ function Sidebar({ items, active, onGo, user, onProfileOpen, className }: {
     <aside className={cx("w-[248px] shrink-0 flex-col bg-sidebar border-r border-border", className)}>
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-cert.png" alt="CERT" className="h-7 w-7 object-contain shrink-0" />
+        <img src={theme === "dark" ? "/logo-cert-dark.png" : "/logo-cert-light.png"} alt="CERT" className="h-7 w-7 object-contain shrink-0" />
         <div className="leading-tight">
           <p className="text-[15px] font-bold text-text-1">Nexus</p>
           <p className="text-[11px] text-text-3 -mt-0.5">CERT · Comunicación</p>

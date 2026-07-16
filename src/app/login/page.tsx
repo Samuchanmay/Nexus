@@ -1,13 +1,17 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { IconGrid } from "@/components/icons";
 
 function LoginInner() {
   const params = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [dark, setDark] = useState(false);
   const error = params.get("error");
+
+  useEffect(() => {
+    setDark(document.documentElement.getAttribute("data-theme") === "dark");
+  }, []);
 
   const signIn = async () => {
     setLoading(true);
@@ -33,10 +37,9 @@ function LoginInner() {
   return (
     <main className="mesh min-h-screen flex items-center justify-center p-5" data-mesh="admin">
       <div className="card relative z-[1] w-full max-w-[400px] p-8 text-center">
-        <div className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center text-white"
-          style={{ background: "linear-gradient(150deg,#7B7AFF,#5856D6)", boxShadow: "0 8px 24px rgba(88,86,214,.35)" }}>
-          <IconGrid className="w-7 h-7" />
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={dark ? "/logo-cert-dark.png" : "/logo-cert-light.png"} alt="CERT"
+          className="w-16 h-16 mx-auto mb-5 object-contain" />
         <h1 className="text-[28px] font-bold tracking-tight mb-1">Nexus</h1>
         <p className="text-[13.5px] mb-8" style={{ color: "var(--text-2)" }}>
           Sistema operativo · CERT Comunicación
