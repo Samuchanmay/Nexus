@@ -195,10 +195,10 @@ export function NotificationBell({ userId }: { userId: string }) {
             <div className="w-[34px] h-[5px] rounded-[3px] mx-auto mt-3 shrink-0" style={{ background: "var(--surface-3)" }} />
           )}
           <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
-            <h2 className="text-[21px] font-bold tracking-tight">Notificaciones</h2>
+            <h2 className="text-[19px] font-bold tracking-tight">Notificaciones</h2>
             <div className="flex items-center gap-3">
               {unread > 0 && (
-                <button onClick={markAllRead} className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>
+                <button onClick={markAllRead} className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
                   Marcar todo leído
                 </button>
               )}
@@ -213,14 +213,14 @@ export function NotificationBell({ userId }: { userId: string }) {
           {/* Filtros por categoría */}
           <div className="flex items-center gap-1.5 px-5 pb-3.5 overflow-x-auto shrink-0">
             <button onClick={() => setFilter("all")}
-              className="shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap"
+              className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap"
               style={filter === "all"
                 ? { background: "var(--accent)", color: "#fff" }
                 : { background: "var(--surface-2)", color: "var(--text-2)" }}>
               Todas
             </button>
             <button onClick={() => setFilter("unread")}
-              className="shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap"
+              className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap"
               style={filter === "unread"
                 ? { background: "var(--accent)", color: "#fff" }
                 : { background: "var(--surface-2)", color: "var(--text-2)" }}>
@@ -230,7 +230,7 @@ export function NotificationBell({ userId }: { userId: string }) {
               const meta = kindMeta(k);
               return (
                 <button key={k} onClick={() => setFilter(k)}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap flex items-center gap-1"
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap flex items-center gap-1"
                   style={filter === k
                     ? { background: "var(--accent)", color: "#fff" }
                     : { background: "var(--surface-2)", color: "var(--text-2)" }}>
@@ -242,18 +242,18 @@ export function NotificationBell({ userId }: { userId: string }) {
 
           <div className="flex-1 nx-scroll overflow-y-auto border-t border-border">
             {loading ? (
-              <p className="text-center text-[13.5px] text-text-3 py-10">Cargando…</p>
+              <p className="text-center text-[12.5px] text-text-3 py-10">Cargando…</p>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 gap-2">
                 <Icon name="bell" size={22} className="text-text-3" />
-                <p className="text-[13.5px] text-text-3">
+                <p className="text-[12.5px] text-text-3">
                   {filter === "all" ? "Sin notificaciones por ahora" : "Nada aquí por ahora"}
                 </p>
               </div>
             ) : (
               groupedByDay(filtered).map((group) => (
                 <div key={group.label}>
-                  <p className="px-5 pt-3 pb-1.5 text-[12px] font-bold uppercase tracking-wide text-text-3 sticky top-0"
+                  <p className="px-5 pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-wide text-text-3 sticky top-0"
                     style={{ background: "var(--surface)" }}>
                     {group.label}
                   </p>
@@ -278,9 +278,9 @@ export function NotificationBell({ userId }: { userId: string }) {
                           <Icon name={meta.icon} size={16} />
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className="block text-[14px] font-semibold text-text-1 truncate">{n.title}</span>
-                          {n.body && <span className="block text-[13px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
-                          <span className="block text-[11.5px] text-text-3 mt-1">{timeAgo(n.created_at)}</span>
+                          <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
+                          {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
+                          <span className="block text-[10.5px] text-text-3 mt-1">{timeAgo(n.created_at)}</span>
                         </span>
                         {!n.read && <span className="mt-1.5 h-[7px] w-[7px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
                       </button>

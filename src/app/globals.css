@@ -62,6 +62,10 @@
 }
 
 html, body { background: var(--bg); }
+html {
+  /* Toda la app ~10% más grande (como el navegador al 110%) — pedido explícito para mejorar legibilidad sin saturar. */
+  zoom: 1.1;
+}
 body {
   font-family: -apple-system, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
   color: var(--text-1);
