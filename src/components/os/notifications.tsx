@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { IconButton, cx } from "./ui";
 import { Icon } from "./icons";
@@ -63,7 +64,10 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread" | string>("all");
+  const [mounted, setMounted] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     let active = true;
@@ -125,8 +129,9 @@ export function NotificationBell({ userId }: { userId: string }) {
         )}
       </div>
 
-      {/* Bottom sheet — mismo patrón que el resto de formularios de Nexus */}
-      <div className="fixed inset-0 z-[500] flex items-end justify-center"
+      {/* Bottom sheet — portal a document.body: escapa del backdrop-blur del header (que crea containing block y atrapaba el fixed) */}
+      {mounted && createPortal(
+        <div className="fixed inset-0 z-[500] flex items-end justify-center"
         style={{
           background: open ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
           backdropFilter: open ? "blur(14px)" : "blur(0px)",
@@ -241,7 +246,9 @@ export function NotificationBell({ userId }: { userId: string }) {
             )}
           </div>
         </div>
-      </div>
+      </div>,
+        document.body
+      )}
     </div>
   );
 }
