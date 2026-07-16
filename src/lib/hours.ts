@@ -73,7 +73,15 @@ export const fmtMin = (min: number) => {
   return `${h}h ${String(m).padStart(2, "0")}min`;
 };
 
-export const fmtTime = (t: string | null) => (t ? t.slice(0, 5) : "—");
+export const fmtTime = (t: string | null) => {
+  if (!t) return "—";
+  const [hStr, mStr] = t.slice(0, 5).split(":");
+  let h = Number(hStr);
+  const suffix = h >= 12 ? "p.m." : "a.m.";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${mStr} ${suffix}`;
+};
 
 /**
  * Resume la jornada de un día, tramo por tramo. Cada tramo (entre un

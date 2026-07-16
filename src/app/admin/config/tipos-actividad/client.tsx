@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
 import {
-  IconPlus, IconX, IconCamera, IconPen, IconClipboard, IconVideo, IconMegaphone, IconFolder,
+  IconPlus, IconX, IconTrash, IconCamera, IconPen, IconClipboard, IconVideo, IconMegaphone, IconFolder,
 } from "@/components/icons";
 import type { ActivityType } from "@/lib/types";
 import type { ChecklistTemplateRow } from "./page";
@@ -61,9 +61,11 @@ export default function TiposClient({ types, templates }: {
     update(row, { subtypes: list });
   };
 
-  const remove = (row: ActivityType) =>
+  const remove = (row: ActivityType) => {
+    if (!window.confirm(`¿Eliminar el tipo "${row.label}" para siempre? Esto no se puede deshacer. Si solo quieres ocultarlo, usa el switch Activo/Inactivo en vez de esto.`)) return;
     run(() => createClient().from("activity_types").delete().eq("key", row.key),
       { ok: "Tipo eliminado", err: "No se pudo eliminar — puede que ya tenga solicitudes o actividades asociadas" });
+  };
 
   const add = async () => {
     if (!form.label.trim()) return;
@@ -151,10 +153,10 @@ export default function TiposClient({ types, templates }: {
                 <div className="flex items-center gap-2">
                   <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
                     label={row.activo ? "Activo" : "Inactivo"} />
-                  <button onClick={() => remove(row)} aria-label="Eliminar"
+                  <button onClick={() => remove(row)} aria-label="Eliminar tipo (borra permanentemente)" title="Eliminar tipo — borra permanentemente"
                     className="w-7 h-7 rounded-full flex items-center justify-center"
                     style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                    <IconX className="w-3 h-3" />
+                    <IconTrash className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>

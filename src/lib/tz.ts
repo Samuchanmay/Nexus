@@ -57,6 +57,19 @@ export function monthStart(isoDate: string): string {
   return isoDate.slice(0, 8) + "01";
 }
 
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/**
+ * Fecha corta legible "día mes año" (ej. "21 ago 26") a partir de una fecha
+ * ISO "YYYY-MM-DD" o un timestamp completo "YYYY-MM-DDTHH:MM:SS±HH:MM".
+ * Trabaja por texto (sin construir Date) para no arrastrar corrimientos de zona.
+ */
+export function shortDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return `${d} ${MESES_CORTOS[m - 1]} ${String(y).slice(-2)}`;
+}
+
 /** Día de la semana (0=domingo…6=sábado) de una fecha ISO, sin efectos de zona. */
 export function isoWeekday(isoDate: string): number {
   return new Date(isoDate + "T12:00:00Z").getUTCDay();

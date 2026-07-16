@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { businessDaysBetween } from "@/lib/hours";
-import { seniorityLabel } from "@/lib/tz";
+import { seniorityLabel, shortDate } from "@/lib/tz";
 import type { Vacation } from "@/lib/types";
 import { useToast, Sheet, Pill } from "@/components/ui";
 import { notifyAdmins } from "@/lib/notify";
@@ -57,7 +57,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
         body: JSON.stringify({ vacation_id: data.id }),
       });
     } catch { /* el correo es best-effort; la solicitud ya quedó guardada */ }
-    notifyAdmins(supabase, `${displayName} solicitó vacaciones`, `${days} día${days === 1 ? "" : "s"} · ${start} → ${end}`, "vacation");
+    notifyAdmins(supabase, `${displayName} solicitó vacaciones`, `${days} día${days === 1 ? "" : "s"} · ${shortDate(start)} → ${shortDate(end)}`, "vacation");
     setSaving(false);
     setOpen(false);
     setStart(""); setEnd("");

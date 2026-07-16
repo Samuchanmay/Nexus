@@ -65,9 +65,27 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread" | string>("all");
   const [mounted, setMounted] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  const handleOpen = () => {
+    if (wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect();
+      setAnchor({ top: rect.bottom + 10, right: Math.max(12, window.innerWidth - rect.right) });
+    }
+    setOpen(true);
+  };
 
   useEffect(() => {
     let active = true;
@@ -118,7 +136,7 @@ export function NotificationBell({ userId }: { userId: string }) {
   return (
     <div className="relative" ref={wrapRef}>
       <div className="relative">
-        <IconButton icon="bell" label="Notificaciones" onClick={() => setOpen(true)} />
+        <IconButton icon="bell" label="Notificaciones" onClick={handleOpen} />
         {unread > 0 && (
           <span
             className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full text-[9px] font-bold text-white flex items-center justify-center pointer-events-none"
@@ -129,31 +147,58 @@ export function NotificationBell({ userId }: { userId: string }) {
         )}
       </div>
 
-      {/* Bottom sheet — portal a document.body: escapa del backdrop-blur del header (que crea containing block y atrapaba el fixed) */}
+      {/* Móvil: bottom sheet de pantalla completa. Escritorio: dropdown convencional anclado bajo la campana.
+          Portal a document.body: escapa del backdrop-blur del header (que crea containing block y atrapaba el fixed). */}
       {mounted && createPortal(
-        <div className="fixed inset-0 z-[500] flex items-end justify-center"
-        style={{
-          background: open ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
-          backdropFilter: open ? "blur(14px)" : "blur(0px)",
-          pointerEvents: open ? "all" : "none",
-          transition: "background .35s var(--ease), backdrop-filter .35s var(--ease)",
-        }}
-        onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
-        <div className="w-full max-w-[440px] max-h-[78vh] flex flex-col"
-          style={{
-            background: "var(--surface)",
-            borderRadius: "26px 26px 0 0",
-            borderTop: "0.5px solid var(--border-2)",
-            boxShadow: "0 -8px 60px rgba(0,0,0,0.18)",
-            transform: open ? "translateY(0)" : "translateY(100%)",
-            transition: "transform .46s var(--spring)",
-          }}>
-          <div className="w-[34px] h-[5px] rounded-[3px] mx-auto mt-3 shrink-0" style={{ background: "var(--surface-3)" }} />
+        <div
+          className={isDesktop ? "fixed inset-0 z-[500]" : "fixed inset-0 z-[500] flex items-end justify-center"}
+          style={
+            isDesktop
+              ? { background: "transparent", pointerEvents: open ? "all" : "none" }
+              : {
+                  background: open ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
+                  backdropFilter: open ? "blur(14px)" : "blur(0px)",
+                  pointerEvents: open ? "all" : "none",
+                  transition: "background .35s var(--ease), backdrop-filter .35s var(--ease)",
+                }
+          }
+          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+        <div className={isDesktop ? "flex flex-col" : "w-full max-w-[440px] max-h-[78vh] flex flex-col"}
+          style={
+            isDesktop
+              ? {
+                  position: "fixed",
+                  top: anchor?.top ?? 64,
+                  right: anchor?.right ?? 16,
+                  width: "400px",
+                  maxHeight: "76vh",
+                  background: "var(--surface)",
+                  borderRadius: "18px",
+                  border: "0.5px solid var(--border-2)",
+                  boxShadow: "0 16px 50px rgba(0,0,0,0.22)",
+                  transformOrigin: "top right",
+                  transform: open ? "scale(1) translateY(0)" : "scale(0.96) translateY(-6px)",
+                  opacity: open ? 1 : 0,
+                  pointerEvents: open ? "all" : "none",
+                  transition: "transform .28s var(--spring), opacity .2s var(--ease)",
+                }
+              : {
+                  background: "var(--surface)",
+                  borderRadius: "26px 26px 0 0",
+                  borderTop: "0.5px solid var(--border-2)",
+                  boxShadow: "0 -8px 60px rgba(0,0,0,0.18)",
+                  transform: open ? "translateY(0)" : "translateY(100%)",
+                  transition: "transform .46s var(--spring)",
+                }
+          }>
+          {!isDesktop && (
+            <div className="w-[34px] h-[5px] rounded-[3px] mx-auto mt-3 shrink-0" style={{ background: "var(--surface-3)" }} />
+          )}
           <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
-            <h2 className="text-[19px] font-bold tracking-tight">Notificaciones</h2>
+            <h2 className="text-[21px] font-bold tracking-tight">Notificaciones</h2>
             <div className="flex items-center gap-3">
               {unread > 0 && (
-                <button onClick={markAllRead} className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+                <button onClick={markAllRead} className="text-[13px] font-semibold" style={{ color: "var(--accent)" }}>
                   Marcar todo leído
                 </button>
               )}
@@ -166,16 +211,16 @@ export function NotificationBell({ userId }: { userId: string }) {
           </div>
 
           {/* Filtros por categoría */}
-          <div className="flex items-center gap-1.5 px-5 pb-3 overflow-x-auto shrink-0">
+          <div className="flex items-center gap-1.5 px-5 pb-3.5 overflow-x-auto shrink-0">
             <button onClick={() => setFilter("all")}
-              className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap"
+              className="shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap"
               style={filter === "all"
                 ? { background: "var(--accent)", color: "#fff" }
                 : { background: "var(--surface-2)", color: "var(--text-2)" }}>
               Todas
             </button>
             <button onClick={() => setFilter("unread")}
-              className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap"
+              className="shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap"
               style={filter === "unread"
                 ? { background: "var(--accent)", color: "#fff" }
                 : { background: "var(--surface-2)", color: "var(--text-2)" }}>
@@ -185,7 +230,7 @@ export function NotificationBell({ userId }: { userId: string }) {
               const meta = kindMeta(k);
               return (
                 <button key={k} onClick={() => setFilter(k)}
-                  className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap flex items-center gap-1"
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap flex items-center gap-1"
                   style={filter === k
                     ? { background: "var(--accent)", color: "#fff" }
                     : { background: "var(--surface-2)", color: "var(--text-2)" }}>
@@ -197,18 +242,18 @@ export function NotificationBell({ userId }: { userId: string }) {
 
           <div className="flex-1 nx-scroll overflow-y-auto border-t border-border">
             {loading ? (
-              <p className="text-center text-[12.5px] text-text-3 py-10">Cargando…</p>
+              <p className="text-center text-[13.5px] text-text-3 py-10">Cargando…</p>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 gap-2">
                 <Icon name="bell" size={22} className="text-text-3" />
-                <p className="text-[12.5px] text-text-3">
+                <p className="text-[13.5px] text-text-3">
                   {filter === "all" ? "Sin notificaciones por ahora" : "Nada aquí por ahora"}
                 </p>
               </div>
             ) : (
               groupedByDay(filtered).map((group) => (
                 <div key={group.label}>
-                  <p className="px-5 pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-wide text-text-3 sticky top-0"
+                  <p className="px-5 pt-3 pb-1.5 text-[12px] font-bold uppercase tracking-wide text-text-3 sticky top-0"
                     style={{ background: "var(--surface)" }}>
                     {group.label}
                   </p>
@@ -233,9 +278,9 @@ export function NotificationBell({ userId }: { userId: string }) {
                           <Icon name={meta.icon} size={16} />
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
-                          {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
-                          <span className="block text-[10.5px] text-text-3 mt-1">{timeAgo(n.created_at)}</span>
+                          <span className="block text-[14px] font-semibold text-text-1 truncate">{n.title}</span>
+                          {n.body && <span className="block text-[13px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
+                          <span className="block text-[11.5px] text-text-3 mt-1">{timeAgo(n.created_at)}</span>
                         </span>
                         {!n.read && <span className="mt-1.5 h-[7px] w-[7px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
                       </button>

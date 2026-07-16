@@ -24,6 +24,8 @@ export const IconCheck = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className} strokeWidth={2.2}><polyline points="20 6 9 17 4 12" /></svg>);
 export const IconX = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className} strokeWidth={2.2}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>);
+export const IconTrash = ({ className = "w-[18px] h-[18px]" }: P) => (
+  <svg {...base} className={className}><path d="M4 7h16" /><path d="M9 7V4.5a1 1 0 011-1h4a1 1 0 011 1V7" /><path d="M6.5 7l.8 12.5a2 2 0 002 1.9h5.4a2 2 0 002-1.9L17.5 7" /><path d="M10 11v6M14 11v6" /></svg>);
 export const IconPlus = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className} strokeWidth={2}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
 export const IconCalendar = ({ className = "w-[18px] h-[18px]" }: P) => (

@@ -6,7 +6,7 @@ import { useToast, Pill, Avatar, Sheet } from "@/components/ui";
 import { useSupabaseMutation } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
-import { seniorityLabel, addDays } from "@/lib/tz";
+import { seniorityLabel, addDays, shortDate } from "@/lib/tz";
 import { logAdminAction } from "@/lib/admin-log";
 import { notifyUser } from "@/lib/notify";
 
@@ -170,8 +170,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
                 {t.lastReset && (
                   <p className="text-[9.5px] mt-0.5 truncate" style={{ color: "var(--text-3)" }}
                     title={`Ciclo anterior: ${t.lastReset.days_used} usados de ${t.lastReset.days_granted}${t.lastReset.days_forfeited > 0 ? ` · ${t.lastReset.days_forfeited} perdidos` : ""}`}>
-                    Reinició {t.lastReset.reset_at} · usó {t.lastReset.days_used}/{t.lastReset.days_granted}
-                    {t.lastReset.days_forfeited > 0 ? ` · perdió ${t.lastReset.days_forfeited}` : ""}
+                    Reinició {shortDate(t.lastReset.reset_at)}
                   </p>
                 )}
               </div>

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
-import { todayMerida, nowMeridaMinutes } from "@/lib/tz";
+import { todayMerida, nowMeridaMinutes, shortDate } from "@/lib/tz";
 import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 
@@ -17,7 +17,10 @@ import { Icon } from "@/components/os/icons";
 
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+// Para mostrar: 12h con am/pm. Para ordenar cronológicamente: 24h (no usar el 12h para sort).
 const meridaClock = (iso: string) =>
+  new Date(iso).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/Merida" });
+const meridaSortKey = (iso: string) =>
   new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Merida" });
 
 const TYPE_LABEL: Record<string, string> = {
@@ -137,7 +140,7 @@ export default async function AdminDashboard() {
   }
   for (const v of vacsToday ?? []) {
     if (v.start_date === today) {
-      alerts.push({ icon: "palm", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${v.end_date})`, tone: "accent" });
+      alerts.push({ icon: "palm", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${shortDate(v.end_date)})`, tone: "accent" });
     }
   }
 
@@ -149,7 +152,7 @@ export default async function AdminDashboard() {
       icon: "dot",
       iconColor: a.reason === "Entrada a trabajo" ? "var(--ok)" : a.reason === "Fin de jornada" ? "var(--accent)" : a.reason.startsWith("Salida") ? "var(--warn)" : "var(--text-3)",
       text: `${nameOf.get(a.user_id) ?? "—"} · ${a.reason}`,
-      time: a.time.slice(0, 5),
+      time: fmtTime(a.time),
       sort: a.time.slice(0, 5),
     })),
     ...((reqsToday ?? []) as unknown as { id: string; title: string; created_at: string; requester: { display_name: string } | null }[]).map((r) => ({
@@ -158,15 +161,15 @@ export default async function AdminDashboard() {
       iconColor: "var(--text-2)",
       text: `${r.requester?.display_name ?? "—"} creó la solicitud "${r.title}"`,
       time: meridaClock(r.created_at),
-      sort: meridaClock(r.created_at),
+      sort: meridaSortKey(r.created_at),
     })),
     ...((vacsCreatedToday ?? []) as unknown as { id: string; start_date: string; end_date: string; created_at: string; users: { display_name: string } | null }[]).map((v) => ({
       key: `vac-${v.id}`,
       icon: "palm",
       iconColor: "var(--accent)",
-      text: `${v.users?.display_name ?? "—"} solicitó vacaciones (${v.start_date} → ${v.end_date})`,
+      text: `${v.users?.display_name ?? "—"} solicitó vacaciones (${shortDate(v.start_date)} → ${shortDate(v.end_date)})`,
       time: meridaClock(v.created_at),
-      sort: meridaClock(v.created_at),
+      sort: meridaSortKey(v.created_at),
     })),
   ].sort((a, b) => b.sort.localeCompare(a.sort)).slice(0, 12);
 

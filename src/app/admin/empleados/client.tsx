@@ -148,8 +148,9 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
     return u.area;
   };
 
+  const administradores = users.filter((u) => u.role === "admin");
   const equipo = users.filter((u) => u.role === "empleado");
-  const otros = users.filter((u) => u.role !== "empleado");
+  const otros = users.filter((u) => u.role !== "empleado" && u.role !== "admin");
 
   const Row = ({ u }: { u: UserProfile }) => (
     <div className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
@@ -191,6 +192,15 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       </header>
 
       <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-2.5">
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+            Administrador · {administradores.length}
+          </p>
+          {administradores.length === 0 ? (
+            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
+          ) : administradores.map((u) => <Row key={u.id} u={u} />)}
+        </div>
+
         <div className="flex flex-col gap-2.5">
           <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
             Equipo · {equipo.length}
