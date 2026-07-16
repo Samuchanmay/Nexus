@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useSupabaseMutation, PageHeader } from "@/components/shared";
+import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
 import {
   IconPlus, IconX, IconCamera, IconPen, IconClipboard, IconVideo, IconMegaphone, IconFolder,
 } from "@/components/icons";
@@ -149,14 +149,8 @@ export default function TiposClient({ types, templates }: {
                     className="text-[14.5px] font-bold bg-transparent border-0 outline-none flex-1 min-w-0" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => toggleActivo(row)} disabled={saving}
-                    className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{
-                      background: row.activo ? "var(--ok-tint)" : "var(--surface-2)",
-                      color: row.activo ? "var(--ok)" : "var(--text-3)",
-                    }}>
-                    {row.activo ? "Activo" : "Inactivo"}
-                  </button>
+                  <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
+                    label={row.activo ? "Activo" : "Inactivo"} />
                   <button onClick={() => remove(row)} aria-label="Eliminar"
                     className="w-7 h-7 rounded-full flex items-center justify-center"
                     style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Pill, Sheet, useToast, SelectField, CheckBox } from "@/components/ui";
+import { Icon } from "@/components/os/icons";
 import { logAdminAction } from "@/lib/admin-log";
 import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
@@ -182,7 +183,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
           <Pill tone="accent">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
           <Pill tone={STATUS_TONE[p.status as RequestStatus] ?? "muted"}>{STATUS_LABELS[p.status as RequestStatus] ?? p.status}</Pill>
           {(p.priority as Priority) !== "normal" && <Pill tone={PRIORITY_TONE[p.priority as Priority]}>{p.priority}</Pill>}
-          {pending.length > 0 && <Pill tone="danger">🔒 Bloqueada</Pill>}
+          {pending.length > 0 && <Pill tone="danger"><span className="inline-flex items-center gap-1"><Icon name="lock" size={11} /> Bloqueada</span></Pill>}
         </div>
         <h3 className="text-[15px] font-bold leading-snug">{titleOf(p)}</h3>
         <div className="flex items-center justify-between mt-3">
@@ -212,8 +213,8 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
               const blocked = d.projects && d.projects.status !== "completada";
               return (
                 <div key={d.id} className="flex items-center justify-between gap-2 text-[12.5px]">
-                  <span className="truncate" style={{ color: blocked ? "var(--danger)" : "var(--ok)" }}>
-                    {blocked ? "🔒" : "✔️"} {d.projects?.requests?.title ?? "Actividad"}
+                  <span className="truncate flex items-center gap-1" style={{ color: blocked ? "var(--danger)" : "var(--ok)" }}>
+                    <Icon name={blocked ? "lock" : "check"} size={11} /> {d.projects?.requests?.title ?? "Actividad"}
                   </span>
                   <button className="text-[11.5px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}
                     onClick={() => removeDependency(d.id)}>
@@ -236,7 +237,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
                 Agregar
               </button>
               <button className="text-[12px]" style={{ color: "var(--text-3)" }} onClick={() => { setOpen(null); setPicked(""); }}>
-                ✕
+                <Icon name="close" size={13} />
               </button>
             </div>
           ) : (
@@ -326,7 +327,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
                       <button className="text-[11px] font-semibold shrink-0"
                         style={{ color: lead === m.id ? "var(--accent)" : "var(--text-3)" }}
                         onClick={(e) => { e.preventDefault(); setLead(m.id); }}>
-                        {lead === m.id ? "★ responsable" : "hacer responsable"}
+                        {lead === m.id ? <span className="inline-flex items-center gap-1"><Icon name="star" size={10} /> responsable</span> : "hacer responsable"}
                       </button>
                     ) : null
                   )}

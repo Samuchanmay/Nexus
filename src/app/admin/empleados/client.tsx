@@ -3,8 +3,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
-import { useToast, Sheet, Pill, Avatar, SelectField } from "@/components/ui";
+import { useToast, Sheet, Avatar, SelectField } from "@/components/ui";
 import { IconUserPlus, IconPen } from "@/components/icons";
+import { Switch } from "@/components/shared";
 import { todayMerida } from "@/lib/tz";
 
 const SPECIALTIES = ["video", "fotografia", "diseno", "difusion", "redaccion"];
@@ -164,19 +165,13 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
         </div>
       </div>
       <div className="flex items-center gap-2.5">
-        {!u.active && <Pill tone="muted">Inactivo</Pill>}
         <button onClick={() => openEdit(u)}
           className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5"
           style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
           <IconPen className="w-3.5 h-3.5" /> Editar
         </button>
-        <button onClick={() => toggleActive(u)}
-          className="px-4 py-2 rounded-full text-[12px] font-semibold"
-          style={u.active
-            ? { background: "var(--danger-tint)", color: "var(--danger)" }
-            : { background: "var(--ok-tint)", color: "var(--ok)" }}>
-          {u.active ? "Desactivar" : "Reactivar"}
-        </button>
+        <Switch tone="status" checked={u.active} onChange={() => toggleActive(u)}
+          label={u.active ? "Activo" : "Inactivo"} />
       </div>
     </div>
   );

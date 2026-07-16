@@ -32,6 +32,21 @@ const P: Record<string, React.ReactNode> = {
   mail: <><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="m4 7 8 6 8-6" /></>,
   idcard: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="12" r="2" /><path d="M6.5 16c.4-1.6 1.6-2.4 2.5-2.4s2.1.8 2.5 2.4M14 9.5h4M14 13h4" /></>,
   cake: <><path d="M4 20v-6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2V20" /><path d="M4 16.5h16M9 11.5V8M12 11.5V8M15 11.5V8" /></>,
+  lock: <><rect x="4.5" y="10.5" width="15" height="10" rx="2" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></>,
+  star: <path d="m12 3 2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 16.9 6.4 20.1l1.4-6.3-4.8-4.3 6.4-.6L12 3Z" />,
+  signal: <><path d="M4 20v-4M9.5 20v-8M15 20V9M20.5 20V4" /></>,
+  building: <><rect x="4" y="3" width="16" height="18" rx="1.5" /><path d="M8 7.5h2M14 7.5h2M8 12h2M14 12h2M8 16.5h2M14 16.5h2" /></>,
+  food: <><path d="M6.5 3v7a2.5 2.5 0 0 0 5 0V3M9 10v11M15.5 3c-1.4 0-2.5 2-2.5 4.5S14.1 12 15.5 12s2.5-2 2.5-4.5S16.9 3 15.5 3ZM15.5 12v9" /></>,
+  walk: <><circle cx="14" cy="4.5" r="1.8" /><path d="M11 21l1.5-6-2-1.5.7-4.5 3-1 2.5 2.5 3 1.2M9.5 13.5 6 15l-1.5 5" /></>,
+  medical: <><rect x="3.5" y="3.5" width="17" height="17" rx="3" /><path d="M12 8v8M8 12h8" /></>,
+  package: <><path d="M21 8v8a1.2 1.2 0 0 1-.6 1L12.6 21a1.2 1.2 0 0 1-1.2 0L3.6 17a1.2 1.2 0 0 1-.6-1V8a1.2 1.2 0 0 1 .6-1L11.4 3a1.2 1.2 0 0 1 1.2 0L20.4 7a1.2 1.2 0 0 1 .6 1Z" /><path d="M3.3 7.5 12 12l8.7-4.5M12 21V12" /></>,
+  flag: <><path d="M5 21V4" /><path d="M5 4h13l-3 4.5L18 13H5" /></>,
+  person: <><circle cx="12" cy="8" r="3.8" /><path d="M4.5 20c1-4 4-6 7.5-6s6.5 2 7.5 6" /></>,
+  flame: <path d="M12 3s4 3.5 4 7.5a4 4 0 0 1-8 0c0-1 .5-2 1-2.7.3 1 1 1.7 1.5 1.2C9.7 8 9.5 5.5 12 3Zm0 8c-1.3 0-2.3 1-2.3 2.4C9.7 15 10.6 16 12 16s2.3-1 2.3-2.6c0-.6-.2-1.1-.5-1.5-.3.5-.8.8-1.3.5.1-.4.3-.9.5-1.4Z" />,
+  palm: <><path d="M12 21V10.5" /><path d="M12 11c0-4-3-6-7-5.5C5.5 9 8 11 12 11ZM12 11c0-4 3-6 7-5.5C18.5 9 16 11 12 11ZM12 9.5c0-3.5-2-6-4.5-6.5C7 6 9 9 12 9.5ZM12 9.5c0-3.5 2-6 4.5-6.5C17 6 15 9 12 9.5Z" /></>,
+  alarm: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M8 3l-2.5 2M16 3l2.5 2" /></>,
+  pause: <><rect x="6" y="4.5" width="4" height="15" rx="1" /><rect x="14" y="4.5" width="4" height="15" rx="1" /></>,
+  login: <><path d="M9 12h11M15 8l4 4-4 4" /><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6" /></>,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {

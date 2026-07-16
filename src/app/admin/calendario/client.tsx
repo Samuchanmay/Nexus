@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Avatar, SlidingSegments } from "@/components/ui";
+import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
 
 export type TeamMember = { id: string; display_name: string; nexus_color: string | null };
@@ -103,7 +104,7 @@ export default function CalendarioClient({
 
       {efemerides && efemerides.length > 0 && (
         <div className="card px-4 py-2.5 mb-4 flex items-center gap-2 text-[12.5px]" style={{ color: "var(--text-2)" }}>
-          <span aria-hidden>📅</span>
+          <Icon name="calendar" size={14} aria-hidden />
           <span>Hoy también es: <strong>{efemerides.join(" · ")}</strong></span>
         </div>
       )}

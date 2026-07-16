@@ -411,8 +411,8 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-text-1 truncate">{t.title}</p>
                     {blocked
-                      ? <p className="text-[12.5px] font-semibold" style={{ color: "var(--danger)" }} title={`Depende de: ${t.blockedBy.join(", ")}`}>
-                          🔒 Depende de "{t.blockedBy[0]}"{t.blockedBy.length > 1 ? ` +${t.blockedBy.length - 1}` : ""}
+                      ? <p className="text-[12.5px] font-semibold flex items-center gap-1" style={{ color: "var(--danger)" }} title={`Depende de: ${t.blockedBy.join(", ")}`}>
+                          <Icon name="lock" size={11} /> Depende de "{t.blockedBy[0]}"{t.blockedBy.length > 1 ? ` +${t.blockedBy.length - 1}` : ""}
                         </p>
                       : agLine(t)}
                   </div>

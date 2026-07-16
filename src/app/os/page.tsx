@@ -138,8 +138,8 @@ function Today() {
             </div>
           </div>
         </div>
-        <p className="mt-5 text-[12px] text-text-3">
-          Cambia entre <b className="text-text-2">oscuro y claro</b> con el botón ☾/☀ de la barra superior, o abre el buscador con <b className="text-text-2">⌘K</b>.
+        <p className="mt-5 text-[12px] text-text-3 flex items-center gap-1 flex-wrap">
+          Cambia entre <b className="text-text-2">oscuro y claro</b> con el botón <Icon name="moon" size={12} />/<Icon name="sun" size={12} /> de la barra superior, o abre el buscador con <b className="text-text-2">⌘K</b>.
         </p>
       </Card>
     </div>

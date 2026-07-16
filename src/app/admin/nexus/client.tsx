@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
-import { PageHeader } from "@/components/shared";
+import { PageHeader, Switch } from "@/components/shared";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
@@ -157,18 +157,9 @@ export default function AsistenciaClient({ people, states, weekRows, reportSetti
 
       {view === "semana" && (
         <div className="card p-4 mb-4 flex items-center gap-4 flex-wrap">
-          <button
-            onClick={() => saveReportSettings({ enabled: !reportEnabled })}
-            disabled={savingSettings}
-            className="flex items-center gap-2 text-[13px] font-semibold"
-          >
-            <span className="relative inline-block w-9 h-5 rounded-full transition-colors"
-              style={{ background: reportEnabled ? "var(--ok)" : "var(--surface-2)", border: "1px solid var(--border)" }}>
-              <span className="absolute top-[1px] w-4 h-4 rounded-full bg-white transition-all"
-                style={{ left: reportEnabled ? "18px" : "1px" }} />
-            </span>
-            Envío automático los lunes {reportEnabled ? "activado" : "desactivado"}
-          </button>
+          <Switch tone="status" checked={reportEnabled} disabled={savingSettings}
+            onChange={() => saveReportSettings({ enabled: !reportEnabled })}
+            label={`Envío automático los lunes ${reportEnabled ? "activado" : "desactivado"}`} />
           <div className="flex items-center gap-2 flex-1 min-w-[220px]">
             <input
               className="field-input flex-1 text-[13px]" placeholder="correo@cert.edu.mx (deja vacío para el predeterminado)"

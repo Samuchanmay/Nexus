@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Sheet, Pill, Avatar, SlidingSegments } from "@/components/ui";
+import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
 
@@ -249,9 +250,9 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                         <button
                           onClick={(e) => { e.stopPropagation(); setLead(m.id); }}
                           aria-label="Responsable principal"
-                          className="text-[18px]"
-                          style={{ opacity: isLead ? 1 : 0.25 }}>
-                          ⭐
+                          className="flex items-center"
+                          style={{ opacity: isLead ? 1 : 0.25, color: "var(--warn)" }}>
+                          <Icon name="star" size={16} />
                         </button>
                       )}
                     </div>

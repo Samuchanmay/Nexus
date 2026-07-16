@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { QUOTES_ENTRADA, QUOTES_SALIDA } from "./quotes";
+import { Icon } from "@/components/os/icons";
 
 const OFICINA = {
   lat: Number(process.env.NEXT_PUBLIC_OFICINA_LAT ?? "20.405833"),
@@ -20,23 +21,23 @@ const OFICINA = {
 
 // Motivos EXACTOS del checador del cliente (etiqueta → valor en BD)
 const MOTIVOS_ENTRADA = [
-  { label: "🏢 A trabajar", value: "Entrada a trabajo" },
-  { label: "🍽️ De comer", value: "Regreso de comida" },
-  { label: "🚶 De diligencia", value: "Regreso de diligencia" },
-  { label: "🏥 De cita médica", value: "Regreso de cita médica" },
-  { label: "📋 De permiso", value: "Regreso de permiso" },
-  { label: "📦 De pendientes", value: "Regreso de pendientes" },
+  { icon: "building", label: "A trabajar", value: "Entrada a trabajo" },
+  { icon: "food", label: "De comer", value: "Regreso de comida" },
+  { icon: "walk", label: "De diligencia", value: "Regreso de diligencia" },
+  { icon: "medical", label: "De cita médica", value: "Regreso de cita médica" },
+  { icon: "clipboard", label: "De permiso", value: "Regreso de permiso" },
+  { icon: "package", label: "De pendientes", value: "Regreso de pendientes" },
 ];
 const MOTIVOS_SALIDA = [
-  { label: "🍽️ A comer", value: "Salida a comer" },
-  { label: "📦 Pendientes", value: "Salida a pendientes" },
-  { label: "🚶 Diligencia", value: "Salida a diligencia" },
-  { label: "📋 Permiso", value: "Salida a permiso" },
-  { label: "🏥 Cita médica", value: "Salida a cita médica" },
-  { label: "🏁 Fin de jornada", value: "Fin de jornada" },
+  { icon: "food", label: "A comer", value: "Salida a comer" },
+  { icon: "package", label: "Pendientes", value: "Salida a pendientes" },
+  { icon: "walk", label: "Diligencia", value: "Salida a diligencia" },
+  { icon: "clipboard", label: "Permiso", value: "Salida a permiso" },
+  { icon: "medical", label: "Cita médica", value: "Salida a cita médica" },
+  { icon: "flag", label: "Fin de jornada", value: "Fin de jornada" },
 ];
 const ICONOS: Record<string, string> = Object.fromEntries(
-  [...MOTIVOS_ENTRADA, ...MOTIVOS_SALIDA].map((m) => [m.value, m.label.split(" ")[0]]),
+  [...MOTIVOS_ENTRADA, ...MOTIVOS_SALIDA].map((m) => [m.value, m.icon]),
 );
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -134,7 +135,7 @@ export default function Fichar() {
         const margen = Math.min(accuracy || 0, 15);
         const efectiva = Math.max(0, dist - margen);
         if (efectiva <= OFICINA.radio) {
-          setGps({ ok: true, txt: `Ubicación verificada ✓ (${Math.round(dist)} m · ±${precision} m)`, lat, lng });
+          setGps({ ok: true, txt: `Ubicación verificada (${Math.round(dist)} m · ±${precision} m)`, lat, lng });
         } else {
           setGps({ ok: false, txt: `Fuera de rango · ${Math.round(dist)} m de la oficina (±${precision} m)`, lat, lng });
         }
@@ -250,7 +251,7 @@ export default function Fichar() {
             {/* Quote del día */}
             <div className="ck-quote-card">
               <span className={`ck-quote-tipo ${esManana ? "entrada" : "salida"}`}>
-                {esManana ? "✦ Para empezar el día" : "✦ Para cerrar el día"}
+                <span className="inline-flex items-center gap-1"><Icon name="sparkle" size={11} /> {esManana ? "Para empezar el día" : "Para cerrar el día"}</span>
               </span>
               <p className="ck-quote-texto">“{q.texto}”</p>
               <p className="ck-quote-autor">— {q.autor}</p>
@@ -259,12 +260,12 @@ export default function Fichar() {
             {/* Empleado: identidad de la sesión (Google), sin selector */}
             <label className="ck-label">Empleado</label>
             <div className="ck-empleado">
-              <span style={{ fontSize: 16 }}>👤</span> {nombre || "Cargando…"}
+              <Icon name="person" size={16} /> {nombre || "Cargando…"}
             </div>
 
             {pendientes > 0 && (
               <div className="ck-aviso">
-                <span style={{ fontSize: 16 }}>📶</span>
+                <Icon name="signal" size={16} />
                 <span>{pendientes} registro{pendientes > 1 ? "s" : ""} guardado{pendientes > 1 ? "s" : ""} en el teléfono — se enviará{pendientes > 1 ? "n" : ""} automáticamente al recuperar señal.</span>
               </div>
             )}
@@ -274,11 +275,11 @@ export default function Fichar() {
               <button
                 className={`ck-tipo-btn entrada ${tipo === "Entrada" ? "activo" : ""}`}
                 onClick={() => { setTipo("Entrada"); setMotivo(""); }}
-              >🟢 Entrada</button>
+              ><span className="inline-flex items-center gap-1.5"><Icon name="login" size={14} /> Entrada</span></button>
               <button
                 className={`ck-tipo-btn salida ${tipo === "Salida" ? "activo" : ""}`}
                 onClick={() => { setTipo("Salida"); setMotivo(""); }}
-              >🔴 Salida</button>
+              ><span className="inline-flex items-center gap-1.5"><Icon name="logout" size={14} /> Salida</span></button>
             </div>
 
             {tipo && (
@@ -290,7 +291,7 @@ export default function Fichar() {
                       key={m.value}
                       className={`ck-motivo-btn ${motivo === m.value ? "activo" : ""}`}
                       onClick={() => setMotivo(m.value)}
-                    >{m.label}</button>
+                    ><span className="inline-flex items-center gap-1"><Icon name={m.icon} size={13} /> {m.label}</span></button>
                   ))}
                 </div>
               </div>
@@ -307,7 +308,7 @@ export default function Fichar() {
           </>
         ) : resultado.kind === "ok" ? (
           <div className="ck-resultado ok">
-            <div className="ck-res-icono">{ICONOS[resultado.motivo] ?? "✅"}</div>
+            <div className="ck-res-icono flex justify-center"><Icon name={ICONOS[resultado.motivo] ?? "check"} size={34} /></div>
             <div className="ck-res-titulo">{resultado.motivo}</div>
             <div className="ck-res-hora">{nombre} · {fechaHora.split("·")[0].trim()} {resultado.hora}</div>
             <div className="ck-quote-resultado">
@@ -315,7 +316,9 @@ export default function Fichar() {
               <strong style={{ fontSize: 11, opacity: 0.7 }}>— {resultado.quote.autor}</strong>
             </div>
             {resultado.pausedActivity && (
-              <p style={{ fontSize: 12, marginTop: 10, opacity: 0.8 }}>⏸️ Se pausó tu actividad en curso automáticamente.</p>
+              <p style={{ fontSize: 12, marginTop: 10, opacity: 0.8 }} className="flex items-center justify-center gap-1">
+                <Icon name="pause" size={12} /> Se pausó tu actividad en curso automáticamente.
+              </p>
             )}
             <Link href="/" className="ck-btn-registrar ck-btn-primary" style={{ marginTop: 16, display: "block", textAlign: "center", textDecoration: "none" }}>
               Ir a Mi Día
@@ -324,7 +327,7 @@ export default function Fichar() {
           </div>
         ) : resultado.kind === "queued" ? (
           <div className="ck-resultado pendiente">
-            <div className="ck-res-icono">📶</div>
+            <div className="ck-res-icono flex justify-center"><Icon name="signal" size={34} /></div>
             <div className="ck-res-titulo">Guardado en el teléfono</div>
             <div className="ck-res-hora">
               Sin señal: tu «{resultado.motivo}» se enviará automáticamente al recuperar conexión.
@@ -334,7 +337,7 @@ export default function Fichar() {
           </div>
         ) : (
           <div className="ck-resultado error">
-            <div className="ck-res-icono">❌</div>
+            <div className="ck-res-icono flex justify-center" style={{ color: "var(--danger, #EF4444)" }}><Icon name="close" size={34} /></div>
             <div className="ck-res-titulo">No se registró</div>
             <div className="ck-res-hora">{resultado.msg}</div>
             <button className="ck-btn-registrar" style={{ marginTop: 16 }} onClick={reiniciar}>Intentar de nuevo</button>

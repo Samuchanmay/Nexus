@@ -5,6 +5,7 @@ import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes } from "@/lib/tz";
 import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/components/os/ui";
+import { Icon } from "@/components/os/icons";
 
 /* ═══════════════════════════════════════════════════════════════
    Hoy · Centro de Operaciones (admin)
@@ -114,7 +115,7 @@ export default async function AdminDashboard() {
   const alerts: { icon: string; text: string; tone: "warn" | "danger" | "accent" }[] = [];
 
   if (holidayToday) {
-    alerts.push({ icon: "🎉", text: `Hoy es día inhábil: ${holidayToday.name}`, tone: "accent" });
+    alerts.push({ icon: "sparkle", text: `Hoy es día inhábil: ${holidayToday.name}`, tone: "accent" });
   }
   if (isWorkday) {
     for (const p of presence) {
@@ -123,43 +124,46 @@ export default async function AdminDashboard() {
       const start = toMin((s?.start_time ?? "09:00:00").slice(0, 5));
       const expected = start + (s?.tolerance_min ?? 15);
       if (nowMin > expected) {
-        alerts.push({ icon: "⏰", text: `${p.display_name} aún no inicia jornada (se esperaba a las ${hhmm(start)})`, tone: "warn" });
+        alerts.push({ icon: "alarm", text: `${p.display_name} aún no inicia jornada (se esperaba a las ${hhmm(start)})`, tone: "warn" });
       }
     }
   }
   if ((urgentReqs ?? []).length > 0) {
     alerts.push({
-      icon: "🔥",
+      icon: "flame",
       text: `${urgentReqs!.length} solicitud${urgentReqs!.length > 1 ? "es" : ""} de prioridad alta/urgente sin aprobar`,
       tone: "danger",
     });
   }
   for (const v of vacsToday ?? []) {
     if (v.start_date === today) {
-      alerts.push({ icon: "🌴", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${v.end_date})`, tone: "accent" });
+      alerts.push({ icon: "palm", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${v.end_date})`, tone: "accent" });
     }
   }
 
   /* ── Feed de actividad de hoy ── */
-  type FeedItem = { key: string; icon: string; text: string; time: string; sort: string };
+  type FeedItem = { key: string; icon: string; iconColor?: string; text: string; time: string; sort: string };
   const feed: FeedItem[] = [
     ...((teamAtt ?? []) as { id: string; user_id: string; reason: string; time: string }[]).map((a) => ({
       key: `att-${a.id}`,
-      icon: a.reason === "Entrada a trabajo" ? "🟢" : a.reason === "Fin de jornada" ? "🔵" : a.reason.startsWith("Salida") ? "🟠" : "🟡",
+      icon: "dot",
+      iconColor: a.reason === "Entrada a trabajo" ? "var(--ok)" : a.reason === "Fin de jornada" ? "var(--accent)" : a.reason.startsWith("Salida") ? "var(--warn)" : "var(--text-3)",
       text: `${nameOf.get(a.user_id) ?? "—"} · ${a.reason}`,
       time: a.time.slice(0, 5),
       sort: a.time.slice(0, 5),
     })),
     ...((reqsToday ?? []) as unknown as { id: string; title: string; created_at: string; requester: { display_name: string } | null }[]).map((r) => ({
       key: `req-${r.id}`,
-      icon: "📝",
+      icon: "inbox",
+      iconColor: "var(--text-2)",
       text: `${r.requester?.display_name ?? "—"} creó la solicitud "${r.title}"`,
       time: meridaClock(r.created_at),
       sort: meridaClock(r.created_at),
     })),
     ...((vacsCreatedToday ?? []) as unknown as { id: string; start_date: string; end_date: string; created_at: string; users: { display_name: string } | null }[]).map((v) => ({
       key: `vac-${v.id}`,
-      icon: "🏖️",
+      icon: "palm",
+      iconColor: "var(--accent)",
       text: `${v.users?.display_name ?? "—"} solicitó vacaciones (${v.start_date} → ${v.end_date})`,
       time: meridaClock(v.created_at),
       sort: meridaClock(v.created_at),
@@ -211,7 +215,7 @@ export default async function AdminDashboard() {
         <div className="flex flex-col gap-2">
           {alerts.map((a, i) => (
             <Card key={i} pad={false} className="px-4 py-3 flex items-center gap-2.5">
-              <span className="text-[15px]">{a.icon}</span>
+              <Icon name={a.icon} size={16} />
               <p className="text-[13px] font-semibold text-text-1 flex-1">{a.text}</p>
               <Badge tone={a.tone === "accent" ? "accent" : a.tone}>{a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso"}</Badge>
             </Card>
@@ -262,7 +266,7 @@ export default async function AdminDashboard() {
             <div className="space-y-1">
               {pendingList.map((r) => (
                 <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors">
-                  <span className="grid place-items-center h-8 w-8 rounded-sm bg-surface-2 text-text-3 shrink-0">📝</span>
+                  <span className="grid place-items-center h-8 w-8 rounded-sm bg-surface-2 text-text-3 shrink-0"><Icon name="inbox" size={15} /></span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-text-1 truncate">{r.title}</p>
                     <p className="text-[12px] text-text-3 truncate">{r.requester_name ?? "—"}</p>
@@ -356,7 +360,7 @@ export default async function AdminDashboard() {
           <div className="flex flex-col">
             {(myActionsToday ?? []).map((a) => (
               <div key={a.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                <span className="text-[14px] w-5 text-center shrink-0">✅</span>
+                <span className="w-5 text-center shrink-0 flex justify-center" style={{ color: "var(--ok)" }}><Icon name="check" size={13} /></span>
                 <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">
                   {a.action}{a.detail ? ` — ${a.detail}` : ""}
                 </p>
@@ -376,7 +380,7 @@ export default async function AdminDashboard() {
           <div className="flex flex-col">
             {feed.map((f) => (
               <div key={f.key} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                <span className="text-[14px] w-5 text-center shrink-0">{f.icon}</span>
+                <span className="w-5 text-center shrink-0 flex justify-center" style={{ color: f.iconColor }}><Icon name={f.icon} size={f.icon === "dot" ? 9 : 14} /></span>
                 <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">{f.text}</p>
                 <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{f.time}</span>
               </div>

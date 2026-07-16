@@ -79,14 +79,8 @@ export default function EstadosClient({ states }: { states: EstadoRow[] }) {
                   </label>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => toggleActivo(row)} disabled={saving}
-                    className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{
-                      background: row.activo ? "var(--ok-tint)" : "var(--surface-2)",
-                      color: row.activo ? "var(--ok)" : "var(--text-3)",
-                    }}>
-                    {row.activo ? "Activo" : "Inactivo"}
-                  </button>
+                  <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
+                    label={row.activo ? "Activo" : "Inactivo"} />
                   <button onClick={() => remove(row)} aria-label="Eliminar"
                     className="w-7 h-7 rounded-full flex items-center justify-center"
                     style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>

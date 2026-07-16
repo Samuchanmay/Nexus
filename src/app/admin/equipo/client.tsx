@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useState } from "react";
 import { Avatar, Pill, Sheet } from "@/components/ui";
+import { Icon } from "@/components/os/icons";
 import { PageHeader } from "@/components/shared";
 import { PRIORITY_TONE, KIND_LABELS, INCIDENT_TONE } from "@/lib/ui-maps";
 import { fmtMin, fmtTime } from "@/lib/hours";
@@ -136,8 +137,9 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                       <div key={i} className="rounded-sm px-3.5 py-2.5 flex items-center gap-2"
                         style={{ background: "var(--surface-2)" }}>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold truncate">
-                            {t.is_lead && "⭐ "}{t.title}
+                          <p className="text-[13px] font-semibold truncate flex items-center gap-1">
+                            {t.is_lead && <Icon name="star" size={12} style={{ color: "var(--warn)" }} />}
+                            {t.title}
                           </p>
                           <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
                             {t.typeLabel ?? "—"} · {t.status.replace("_", " ")}

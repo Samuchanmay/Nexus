@@ -11,10 +11,16 @@ import { useRouter } from "next/navigation";
 import { Avatar, useToast } from "./ui";
 
 /* ── C3 · Cabecera de página (antes repetida 12 veces) ── */
-/** iOS-style switch — sustituye <input type="checkbox"> nativos en toda la app. */
-export function Switch({ checked, onChange, disabled, label }: {
-  checked: boolean; onChange: () => void; disabled?: boolean; label?: string;
+/**
+ * iOS-style switch — sustituye <input type="checkbox"> y los pills de texto
+ * "Activo/Inactivo" en toda la app.
+ * tone="neutral" (default): gris cuando está apagado — para ajustes binarios normales.
+ * tone="status": rojo cuando está apagado — para activar/desactivar cuentas, estados, tipos, etc.
+ */
+export function Switch({ checked, onChange, disabled, label, tone = "neutral" }: {
+  checked: boolean; onChange: () => void; disabled?: boolean; label?: string; tone?: "neutral" | "status";
 }) {
+  const offColor = tone === "status" ? "var(--danger)" : "var(--surface-3)";
   return (
     <button
       type="button" role="switch" aria-checked={checked} disabled={disabled}
@@ -22,11 +28,11 @@ export function Switch({ checked, onChange, disabled, label }: {
       className="inline-flex items-center gap-2 disabled:opacity-50"
     >
       <span className="relative inline-block w-9 h-5 rounded-full shrink-0 transition-colors"
-        style={{ background: checked ? "var(--ok)" : "var(--surface-3)", border: "1px solid var(--border)" }}>
+        style={{ background: checked ? "var(--ok)" : offColor, border: "1px solid var(--border)" }}>
         <span className="absolute top-[1px] w-4 h-4 rounded-full bg-white transition-all shadow-sm"
           style={{ left: checked ? "18px" : "1px" }} />
       </span>
-      {label && <span className="text-[12.5px] font-semibold text-text-1">{label}</span>}
+      {label && <span className="text-[12.5px] font-semibold" style={{ color: tone === "status" ? (checked ? "var(--ok)" : "var(--danger)") : "var(--text-1)" }}>{label}</span>}
     </button>
   );
 }

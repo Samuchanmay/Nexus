@@ -203,7 +203,7 @@ export function ProfileModal({
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 h-16 border-t border-border">
-          {saved && <span className="text-[12px] font-semibold mr-auto" style={{ color: "var(--ok)" }}>Guardado ✓</span>}
+          {saved && <span className="text-[12px] font-semibold mr-auto flex items-center gap-1" style={{ color: "var(--ok)" }}><Icon name="check" size={12} /> Guardado</span>}
           <button onClick={onClose} className="btn-secondary h-9 px-4 text-[13px]">Cerrar</button>
           <button onClick={save} disabled={saving || loading} className="btn-primary h-9 px-4 text-[13px]">
             {saving ? "Guardando…" : "Guardar"}

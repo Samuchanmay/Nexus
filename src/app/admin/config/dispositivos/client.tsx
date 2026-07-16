@@ -1,8 +1,6 @@
 "use client";
 import { createClient } from "@/lib/supabase/client";
-import { useSupabaseMutation } from "@/components/shared";
-import { PageHeader } from "@/components/shared";
-import { Pill } from "@/components/ui";
+import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
 
 export interface DeviceRow {
   id: string; device_id: string; active: boolean;
@@ -42,15 +40,8 @@ export default function DispositivosClient({ devices }: { devices: DeviceRow[] }
                 </p>
               </div>
               <div className="flex items-center gap-2.5">
-                <Pill tone={d.active ? "ok" : "danger"}>{d.active ? "Activo" : "Desactivado"}</Pill>
-                <button
-                  className="text-[11.5px] font-semibold"
-                  style={{ color: d.active ? "var(--danger)" : "var(--ok)" }}
-                  disabled={saving}
-                  onClick={() => toggle(d)}
-                >
-                  {d.active ? "Desactivar" : "Reactivar"}
-                </button>
+                <Switch tone="status" checked={d.active} onChange={() => toggle(d)} disabled={saving}
+                  label={d.active ? "Activo" : "Desactivado"} />
               </div>
             </div>
           ))}
