@@ -15,7 +15,7 @@ export type NotificationRow = {
 
 /** Centro de eventos del sistema — categorías por "kind" (vacation/request/incident/info…). */
 const KIND_META: Record<string, { label: string; icon: string; color: string }> = {
-  vacation: { label: "Vacaciones", icon: "palm", color: "var(--accent)" },
+  vacation: { label: "Vacaciones", icon: "plane", color: "var(--accent)" },
   request: { label: "Solicitudes", icon: "inbox", color: "var(--warn)" },
   incident: { label: "Incidencias", icon: "medical", color: "var(--danger)" },
   info: { label: "Sistema", icon: "bell", color: "var(--text-2)" },
@@ -220,8 +220,12 @@ export function NotificationBell({ userId }: { userId: string }) {
                         style={!n.read ? { background: "var(--accent-tint)" } : undefined}
                       >
                         <span className="w-8 h-8 rounded-full grid place-items-center shrink-0"
-                          style={{ background: `color-mix(in srgb, ${meta.color} 16%, transparent)`, color: meta.color }}>
-                          <Icon name={meta.icon} size={15} />
+                          style={{
+                            background: `color-mix(in srgb, ${meta.color} 22%, transparent)`,
+                            border: `1px solid color-mix(in srgb, ${meta.color} 35%, transparent)`,
+                            color: meta.color,
+                          }}>
+                          <Icon name={meta.icon} size={16} />
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>

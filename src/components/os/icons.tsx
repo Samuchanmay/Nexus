@@ -47,6 +47,7 @@ const P: Record<string, React.ReactNode> = {
   alarm: <><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M8 3l-2.5 2M16 3l2.5 2" /></>,
   pause: <><rect x="6" y="4.5" width="4" height="15" rx="1" /><rect x="14" y="4.5" width="4" height="15" rx="1" /></>,
   login: <><path d="M9 12h11M15 8l4 4-4 4" /><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6" /></>,
+  plane: <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2.5 2v1.5l4-1 4 1V21l-2.5-2v-5.5z" fill="currentColor" stroke="none" />,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {
