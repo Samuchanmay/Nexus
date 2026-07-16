@@ -16,6 +16,7 @@ export default async function Vacaciones() {
   return (
     <VacacionesClient
       userId={profile!.id}
+      displayName={profile!.display_name}
       balance={profile!.vacation_balance}
       hireDate={profile!.hire_date}
       vacations={(vacs ?? []) as Vacation[]}

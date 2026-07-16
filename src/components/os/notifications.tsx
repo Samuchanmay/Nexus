@@ -22,6 +22,17 @@ const KIND_META: Record<string, { label: string; icon: string; color: string }> 
 };
 const kindMeta = (k: string | null) => KIND_META[k ?? "info"] ?? KIND_META.info;
 
+function groupedByDay(items: NotificationRow[]): { label: string; items: NotificationRow[] }[] {
+  const groups: { label: string; items: NotificationRow[] }[] = [];
+  for (const n of items) {
+    const label = dayLabel(n.created_at);
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(n);
+    else groups.push({ label, items: [n] });
+  }
+  return groups;
+}
+
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const min = Math.floor(diffMs / 60000);
@@ -32,6 +43,18 @@ function timeAgo(iso: string): string {
   const d = Math.floor(hr / 24);
   if (d < 7) return `hace ${d} d`;
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+}
+
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (sameDay(d, today)) return "Hoy";
+  if (sameDay(d, yesterday)) return "Ayer";
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
 }
 
 /** Campana de notificaciones — bottom sheet con filtros por categoría (RLS: solo lo propio). */
@@ -178,31 +201,39 @@ export function NotificationBell({ userId }: { userId: string }) {
                 </p>
               </div>
             ) : (
-              filtered.map((n) => {
-                const meta = kindMeta(n.kind);
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => !n.read && markRead(n.id)}
-                    className={cx(
-                      "w-full flex items-start gap-3 px-5 py-3.5 text-left border-b border-border last:border-b-0 transition-colors hover:bg-hover",
-                      n.read && "opacity-55"
-                    )}
-                    style={!n.read ? { background: "var(--accent-tint)" } : undefined}
-                  >
-                    <span className="w-8 h-8 rounded-full grid place-items-center shrink-0"
-                      style={{ background: `color-mix(in srgb, ${meta.color} 16%, transparent)`, color: meta.color }}>
-                      <Icon name={meta.icon} size={15} />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
-                      {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
-                      <span className="block text-[10.5px] text-text-3 mt-1">{timeAgo(n.created_at)}</span>
-                    </span>
-                    {!n.read && <span className="mt-1.5 h-[7px] w-[7px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
-                  </button>
-                );
-              })
+              groupedByDay(filtered).map((group) => (
+                <div key={group.label}>
+                  <p className="px-5 pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-wide text-text-3 sticky top-0"
+                    style={{ background: "var(--surface)" }}>
+                    {group.label}
+                  </p>
+                  {group.items.map((n) => {
+                    const meta = kindMeta(n.kind);
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => !n.read && markRead(n.id)}
+                        className={cx(
+                          "w-full flex items-start gap-3 px-5 py-3.5 text-left border-b border-border last:border-b-0 transition-colors hover:bg-hover",
+                          n.read && "opacity-55"
+                        )}
+                        style={!n.read ? { background: "var(--accent-tint)" } : undefined}
+                      >
+                        <span className="w-8 h-8 rounded-full grid place-items-center shrink-0"
+                          style={{ background: `color-mix(in srgb, ${meta.color} 16%, transparent)`, color: meta.color }}>
+                          <Icon name={meta.icon} size={15} />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
+                          {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
+                          <span className="block text-[10.5px] text-text-3 mt-1">{timeAgo(n.created_at)}</span>
+                        </span>
+                        {!n.read && <span className="mt-1.5 h-[7px] w-[7px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
             )}
           </div>
         </div>

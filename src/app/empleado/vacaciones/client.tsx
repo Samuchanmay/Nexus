@@ -11,8 +11,8 @@ import { IconPalm, IconPlus } from "@/components/icons";
 
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 
-export default function VacacionesClient({ userId, balance, hireDate, vacations, holidays }: {
-  userId: string; balance: number; hireDate: string | null; vacations: Vacation[]; holidays: string[];
+export default function VacacionesClient({ userId, displayName, balance, hireDate, vacations, holidays }: {
+  userId: string; displayName: string; balance: number; hireDate: string | null; vacations: Vacation[]; holidays: string[];
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function VacacionesClient({ userId, balance, hireDate, vacations,
         body: JSON.stringify({ vacation_id: data.id }),
       });
     } catch { /* el correo es best-effort; la solicitud ya quedó guardada */ }
-    notifyAdmins(supabase, "Nueva solicitud de vacaciones", `Se solicitaron ${days} día(s) del ${start} al ${end}`, "vacation");
+    notifyAdmins(supabase, `${displayName} solicitó vacaciones`, `${days} día${days === 1 ? "" : "s"} · ${start} → ${end}`, "vacation");
     setSaving(false);
     setOpen(false);
     setStart(""); setEnd("");
