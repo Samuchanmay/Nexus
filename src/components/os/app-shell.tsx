@@ -103,7 +103,7 @@ export function AppShell({
       href="/fichar"
       aria-label="Registrar entrada o salida"
       className="sm:hidden fixed z-40 grid place-items-center h-14 w-14 rounded-full text-white shadow-nx active:scale-95 transition-transform"
-      style={{ right: "18px", bottom: "max(18px, env(safe-area-inset-bottom))", background: "var(--accent)" }}
+      style={{ right: "18px", bottom: "calc(66px + env(safe-area-inset-bottom))", background: "var(--accent)" }}
     >
       <Icon name="clock" size={22} />
     </Link>

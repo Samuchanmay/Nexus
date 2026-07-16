@@ -102,6 +102,31 @@ export function NotificationBell({ userId }: { userId: string }) {
     return () => { active = false; };
   }, [userId]);
 
+  // En vivo: nuevas notificaciones aparecen sin recargar (Supabase Realtime, RLS ya limita a lo propio).
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as NotificationRow;
+          setItems((cur) => (cur.some((n) => n.id === row.id) ? cur : [row, ...cur]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as NotificationRow;
+          setItems((cur) => cur.map((n) => (n.id === row.id ? row : n)));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onEsc);

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
-import { AppShell, roleLabel } from "@/components/os/app-shell";
+import { AppShell } from "@/components/os/app-shell";
+import { roleLabel } from "@/lib/nav";
 
 export default async function CoordinadorLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

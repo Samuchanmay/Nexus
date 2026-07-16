@@ -69,11 +69,13 @@ export function Shell({
           <div className="flex-1" />
           <button
             onClick={() => setSpot(true)}
-            className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors leading-none"
+            className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors"
           >
-            <Icon name="search" size={15} />
-            <span className="text-[13px]">Buscar…</span>
-            <span className="flex items-center gap-0.5 ml-2"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+            <span className="flex items-center justify-center shrink-0 w-[15px] h-[15px]">
+              <Icon name="search" size={15} />
+            </span>
+            <span className="text-[13px] leading-none shrink-0">Buscar…</span>
+            <span className="flex items-center gap-0.5 ml-2 shrink-0"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
           </button>
           {actions}
           <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Cambiar tema" onClick={toggle} />
@@ -87,7 +89,7 @@ export function Shell({
           </button>
         </header>
 
-        <main className="flex-1 nx-scroll overflow-y-auto p-4 md:p-6 flex flex-col">
+        <main className="flex-1 nx-scroll overflow-y-auto p-4 pb-24 md:p-6 flex flex-col">
           <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
           <footer className="max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[11px]"
             style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>
@@ -95,6 +97,8 @@ export function Shell({
           </footer>
         </main>
       </div>
+
+      <MobileBottomNav items={items} active={active} onGo={go} onMore={() => setDrawer(true)} />
 
       {spot && <Spotlight items={items} onGo={go} onClose={() => setSpot(false)} />}
       {profileOpen && (
@@ -107,6 +111,51 @@ export function Shell({
         />
       )}
     </div>
+  );
+}
+
+/* ───────────────────────── Bottom Navigation (móvil) ─────────────────────────
+   Tab bar nativa para pantallas < md. Muestra hasta 4 destinos primarios
+   (el mismo orden que la sidebar) + "Más" para el resto vía el drawer ya
+   existente — no duplica navegación, solo la hace accesible con el pulgar. */
+function MobileBottomNav({ items, active, onGo, onMore }: {
+  items: NavItem[]; active: string; onGo: (k: string) => void; onMore: () => void;
+}) {
+  const primary = items.slice(0, 4);
+  const moreActive = !primary.some((i) => i.key === active);
+  return (
+    <nav
+      className="md:hidden fixed inset-x-0 bottom-0 z-30 flex items-stretch"
+      style={{
+        background: "var(--surface)",
+        borderTop: "0.5px solid var(--border-2)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.08)",
+      }}
+    >
+      {primary.map((i) => {
+        const on = active === i.key;
+        return (
+          <button
+            key={i.key}
+            onClick={() => onGo(i.key)}
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2"
+            style={{ color: on ? "var(--accent)" : "var(--text-3)" }}
+          >
+            <Icon name={i.icon} size={20} />
+            <span className="text-[10px] font-semibold leading-none">{i.label}</span>
+          </button>
+        );
+      })}
+      <button
+        onClick={onMore}
+        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2"
+        style={{ color: moreActive ? "var(--accent)" : "var(--text-3)" }}
+      >
+        <Icon name="layers" size={20} />
+        <span className="text-[10px] font-semibold leading-none">Más</span>
+      </button>
+    </nav>
   );
 }
 
@@ -220,13 +269,15 @@ function Spotlight({ items, onGo, onClose }: {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-4 h-14 border-b border-border">
-          <Icon name="search" size={18} className="text-text-3" />
+          <span className="flex items-center justify-center shrink-0 w-[18px] h-[18px]">
+            <Icon name="search" size={18} className="text-text-3" />
+          </span>
           <input
             ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="Ir a… o escribe una acción"
-            className="flex-1 bg-transparent text-[15px] text-text-1 placeholder:text-text-3 focus:outline-none"
+            className="flex-1 bg-transparent text-[15px] leading-none text-text-1 placeholder:text-text-3 focus:outline-none"
           />
-          <Kbd>esc</Kbd>
+          <span className="shrink-0"><Kbd>esc</Kbd></span>
         </div>
         <div className="max-h-[340px] nx-scroll overflow-y-auto p-2">
           {results.length === 0 && (

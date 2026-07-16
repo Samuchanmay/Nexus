@@ -44,51 +44,63 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
         subtitle="Tareas activas por persona — clic en alguien para ver su detalle"
       />
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {members.map((u) => (
-          <button key={u.id} onClick={() => setSel(u)}
-            className="card card-hover p-5 text-left w-full cursor-pointer">
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar name={u.display_name} color={u.nexus_color} size={38} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[14.5px] font-bold">{u.display_name}</p>
-                <p className="text-[11.5px] truncate" style={{ color: "var(--text-3)" }}>
-                  {u.specialties.map((sp) => SPECIALTY_LABELS[sp] ?? sp).join(" · ") || u.area}
+      {/* Filas horizontales — carga de cada persona de un vistazo, sin tener que abrir tarjeta por tarjeta */}
+      <div className="flex flex-col gap-2">
+        {members.map((u) => {
+          const overloaded = u.tasks.length >= max && max > 1;
+          return (
+            <button key={u.id} onClick={() => setSel(u)}
+              className="card card-hover w-full text-left cursor-pointer flex items-center gap-4 px-5 py-3.5 flex-wrap md:flex-nowrap">
+              {/* Persona */}
+              <div className="flex items-center gap-3 w-full md:w-[210px] shrink-0">
+                <Avatar name={u.display_name} color={u.nexus_color} size={36} />
+                <div className="min-w-0">
+                  <p className="text-[14px] font-bold truncate">{u.display_name}</p>
+                  <p className="text-[11px] truncate" style={{ color: "var(--text-3)" }}>
+                    {u.specialties.map((sp) => SPECIALTY_LABELS[sp] ?? sp).join(" · ") || u.area}
+                  </p>
+                </div>
+              </div>
+
+              {/* Barra de carga horizontal */}
+              <div className="flex-1 min-w-[120px] flex items-center gap-3">
+                <div className="flex-1 h-[7px] rounded-full overflow-hidden" style={{ background: "var(--surface-3)" }}>
+                  <div className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${(u.tasks.length / max) * 100}%`,
+                      background: overloaded
+                        ? "linear-gradient(90deg,#FF9F0A,#FF8A00)"
+                        : "linear-gradient(90deg,#34D058,#2FB344)",
+                    }} />
+                </div>
+                <p className="text-[15px] font-bold tabular-nums w-5 text-right shrink-0"
+                  style={{ color: overloaded ? "var(--warn)" : "var(--ok)" }}>
+                  {u.tasks.length}
                 </p>
               </div>
-              <p className="text-[21px] font-bold tabular-nums"
-                style={{ color: u.tasks.length >= max && max > 1 ? "var(--warn)" : "var(--ok)" }}>
-                {u.tasks.length}
-              </p>
-            </div>
-            <div className="h-[7px] rounded-full mb-3 overflow-hidden" style={{ background: "var(--surface-3)" }}>
-              <div className="h-full rounded-full transition-all"
-                style={{
-                  width: `${(u.tasks.length / max) * 100}%`,
-                  background: u.tasks.length >= max && max > 1
-                    ? "linear-gradient(90deg,#FF9F0A,#FF8A00)"
-                    : "linear-gradient(90deg,#34D058,#2FB344)",
-                }} />
-            </div>
-            {u.tasks.length === 0
-              ? <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Disponible</p>
-              : (
-                <div className="flex flex-col gap-1.5">
-                  {u.tasks.slice(0, 3).map((t, i) => (
-                    <div key={i} className="flex items-center justify-between gap-2 text-[12.5px]">
-                      <span className="truncate">{t.title}</span>
-                      <Pill tone="accent">{t.typeLabel ?? "—"}</Pill>
-                    </div>
-                  ))}
-                  {u.tasks.length > 3 && (
-                    <p className="text-[11.5px] font-semibold" style={{ color: "var(--accent)" }}>
-                      +{u.tasks.length - 3} más →
-                    </p>
-                  )}
-                </div>
-              )}
-          </button>
-        ))}
+
+              {/* Tareas activas — chips en línea */}
+              <div className="flex items-center gap-1.5 overflow-x-auto nx-scroll w-full md:w-auto md:max-w-[280px] shrink-0">
+                {u.tasks.length === 0 ? (
+                  <span className="text-[12px] shrink-0" style={{ color: "var(--text-3)" }}>Disponible</span>
+                ) : (
+                  <>
+                    {u.tasks.slice(0, 2).map((t, i) => (
+                      <span key={i} className="shrink-0 text-[12px] truncate max-w-[140px]" title={t.title}>
+                        <Pill tone="accent">{t.typeLabel ?? t.title}</Pill>
+                      </span>
+                    ))}
+                    {u.tasks.length > 2 && (
+                      <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--accent)" }}>
+                        +{u.tasks.length - 2} más
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── L4 · Panel contextual ── */}
