@@ -69,7 +69,7 @@ export function Shell({
           <div className="flex-1" />
           <button
             onClick={() => setSpot(true)}
-            className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors"
+            className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors leading-none"
           >
             <Icon name="search" size={15} />
             <span className="text-[13px]">Buscar…</span>

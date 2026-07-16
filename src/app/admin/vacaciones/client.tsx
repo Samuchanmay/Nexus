@@ -15,7 +15,7 @@ function balanceColor(pctUsed: number): string {
   return pctUsed < 50 ? "var(--ok)" : pctUsed < 80 ? "var(--warn)" : "var(--danger)";
 }
 
-export default function VacAdminClient({ vacations, team, adminId, vacationCalendarId }: {
+export default function VacAdminClient({ vacations, team, adminId, vacationCalendarId, authorizationEmail }: {
   vacations: Vacation[];
   team: {
     id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null;
@@ -23,6 +23,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   }[];
   adminId: string;
   vacationCalendarId: string | null;
+  authorizationEmail: string;
 }) {
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
@@ -31,6 +32,13 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   const [note, setNote] = useState("");
   const [addToCalendar, setAddToCalendar] = useState(true);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState(authorizationEmail);
+
+  const saveAuthEmail = async () => {
+    if (authEmail === authorizationEmail) return;
+    await createClient().from("app_settings").upsert({ key: "vacation_authorization_email", value: authEmail.trim() });
+    toast("Correo de autorización actualizado");
+  };
 
   const cancelVacation = async (id: string) => {
     const target = vacations.find((v) => v.id === id);
@@ -128,6 +136,17 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           Exportar CSV ↓
         </a>
       </header>
+
+      <div className="card p-4 mb-4 flex items-center gap-3 flex-wrap">
+        <p className="text-[13px] font-semibold whitespace-nowrap">Correo de autorización (dirección)</p>
+        <input
+          className="field-input flex-1 min-w-[220px] text-[13px]" placeholder="direccion@cert.edu.mx (opcional)"
+          value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} onBlur={saveAuthEmail}
+        />
+        <p className="text-[11.5px] w-full" style={{ color: "var(--text-3)" }}>
+          Cuando alguien solicite vacaciones, el correo de solicitud formal también llegará aquí para autorización externa — además de a Samuel, como siempre.
+        </p>
+      </div>
 
       {/* Saldos */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-7">

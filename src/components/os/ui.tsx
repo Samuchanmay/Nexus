@@ -170,8 +170,8 @@ export function Avatar({ name, color, size = 34, avatarUrl }: { name: string; co
 /* ───────────────────────── Kbd ───────────────────────── */
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-grid place-items-center min-w-[20px] h-[20px] px-1.5 rounded-[6px] bg-surface-2 border border-border text-[11px] font-semibold text-text-3">
-      {children}
+    <kbd className="flex items-center justify-center leading-none min-w-[20px] h-[20px] px-1.5 rounded-[6px] bg-surface-2 border border-border text-[11px] font-semibold text-text-3 not-italic">
+      <span className="relative -top-px">{children}</span>
     </kbd>
   );
 }
