@@ -8,6 +8,7 @@ import { useSupabaseMutation } from "@/components/shared";
 import { IconPlus } from "@/components/icons";
 import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
+import { notifyUser } from "@/lib/notify";
 
 export default function IncAdminClient({ incidents, team, adminId }: {
   incidents: Incident[]; team: { id: string; display_name: string }[]; adminId: string;
@@ -34,6 +35,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
     if (error) { toast("No se pudo registrar"); return; }
     const person = team.find((t) => t.id === form.userId);
     if (adminId) logAdminAction(supabase, adminId, "Registró incidencia manual", `${person?.display_name ?? ""} · ${KIND_LABELS[form.kind as keyof typeof KIND_LABELS]}`);
+    notifyUser(supabase, form.userId, "Se registró una incidencia", KIND_LABELS[form.kind as keyof typeof KIND_LABELS], "incident");
     setOpen(false);
     setForm({ userId: "", kind: "permiso", start: "", end: "", note: "" });
     toast("Incidencia registrada");
@@ -47,6 +49,11 @@ export default function IncAdminClient({ incidents, team, adminId }: {
       logAdminAction(createClient(), adminId,
         status === "Autorizado" ? "Autorizó incidencia" : "Rechazó incidencia",
         target ? `${target.users?.display_name ?? ""} · ${KIND_LABELS[target.kind]}` : undefined);
+    }
+    if (ok && target) {
+      notifyUser(createClient(), target.user_id,
+        status === "Autorizado" ? "Tu incidencia fue autorizada" : "Tu incidencia fue rechazada",
+        KIND_LABELS[target.kind], "incident");
     }
   };
 

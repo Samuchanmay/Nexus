@@ -6,6 +6,7 @@ import { businessDaysBetween } from "@/lib/hours";
 import { seniorityLabel } from "@/lib/tz";
 import type { Vacation } from "@/lib/types";
 import { useToast, Sheet, Pill } from "@/components/ui";
+import { notifyAdmins } from "@/lib/notify";
 import { IconPalm, IconPlus } from "@/components/icons";
 
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
@@ -56,6 +57,7 @@ export default function VacacionesClient({ userId, balance, hireDate, vacations,
         body: JSON.stringify({ vacation_id: data.id }),
       });
     } catch { /* el correo es best-effort; la solicitud ya quedó guardada */ }
+    notifyAdmins(supabase, "Nueva solicitud de vacaciones", `Se solicitaron ${days} día(s) del ${start} al ${end}`, "vacation");
     setSaving(false);
     setOpen(false);
     setStart(""); setEnd("");

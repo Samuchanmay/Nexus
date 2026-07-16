@@ -8,6 +8,7 @@ import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
 import { seniorityLabel, addDays } from "@/lib/tz";
 import { logAdminAction } from "@/lib/admin-log";
+import { notifyUser } from "@/lib/notify";
 
 /** Semáforo de salud del saldo: verde <50% usado, amarillo 50-79%, rojo >=80%. */
 function balanceColor(pctUsed: number): string {
@@ -91,6 +92,9 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           status === "Aprobada" ? "Aprobó vacaciones" : "Rechazó vacaciones",
           target.users?.display_name ?? undefined);
       }
+      notifyUser(createClient(), target.user_id,
+        status === "Aprobada" ? "Tu solicitud de vacaciones fue aprobada" : "Tu solicitud de vacaciones fue rechazada",
+        `${target.start_date} al ${target.end_date}${note ? " — " + note : ""}`, "vacation");
       setSel(null); setNote("");
     }
   };

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast, Pill } from "@/components/ui";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, RequestType, UserProfile, RequestStatus, ActivityType } from "@/lib/types";
+import { notifyAdmins } from "@/lib/notify";
 import { IconCamera, IconPen, IconVideo, IconMegaphone, IconClipboard, IconFolder, IconChevronLeft, IconCheck } from "@/components/icons";
 
 // Descripciones e iconos de los 5 tipos originales; los tipos nuevos que un
@@ -105,6 +106,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
     });
     setSaving(false);
     if (error) { toast("No se pudo enviar — intenta de nuevo"); return; }
+    notifyAdmins(supabase, "Nueva solicitud", `${profile.full_name} · ${form.title.trim()}`, "request");
     toast("Solicitud enviada al equipo de Comunicación");
     resetWizard();
     router.refresh();

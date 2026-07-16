@@ -14,6 +14,7 @@ type Member = { id: string; display_name: string; nexus_color: string | null; sp
 import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
 import { requestCalendarUrl } from "@/lib/gcal";
 import { logAdminAction } from "@/lib/admin-log";
+import { notifyUser } from "@/lib/notify";
 
 const PRIORITIES: Priority[] = ["baja", "normal", "alta", "urgente"];
 
@@ -131,6 +132,8 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
     }
 
     if (adminId) logAdminAction(supabase, adminId, "Aprobó solicitud", sel.title);
+    if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue aprobada", sel.title, "request");
+    for (const uid of assignees) notifyUser(supabase, uid, "Te asignaron un proyecto", sel.title, "request");
     setSaving(false);
     setSel(null);
     toast("Proyecto creado y asignado");
@@ -147,6 +150,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
     setSaving(false);
     if (error) { toast("No se pudo rechazar"); return; }
     if (adminId) logAdminAction(supabase, adminId, "Rechazó solicitud", sel.title);
+    if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue rechazada", `${sel.title} — ${rejectReason}`, "request");
     setSel(null);
     toast("Solicitud rechazada");
     router.refresh();
