@@ -308,8 +308,8 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
         accept="image/*,.pdf,.doc,.docx,.xlsx,.pptx"
         onChange={handleEvidenceFile}
       />
-      {/* ── Hero ── */}
-      <Card className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* ── Hero — sin recuadro, igual que el saludo de admin ── */}
+      <header className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <p className="text-[12px] font-semibold uppercase tracking-wide text-text-3">{dateLabel} · Semana {weekNum}</p>
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -333,7 +333,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
             {timerStr}
           </p>
         </div>
-      </Card>
+      </header>
 
       {/* ── Asistente Contextual (Plano Maestro §11) ── */}
       {assistantMessages.length > 0 && (
@@ -358,19 +358,19 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
         </Card>
       )}
 
-      {/* ── Tira semanal ── */}
+      {/* ── Tira semanal — clicable: lleva al Calendario centrado en ese día ── */}
       <div className="grid grid-cols-7 gap-1.5">
         {weekDays.map((d, i) => (
-          <div key={i}
-            className="rounded-sm py-2 text-center"
+          <Link key={i} href={`/comunicacion/calendario?m=${d.date.slice(0, 7)}&d=${d.date}`}
+            className="rounded-sm py-3 text-center transition-transform active:scale-95 hover:brightness-95"
             style={{
               background: d.today ? "var(--accent)" : "var(--surface-2)",
               color: d.today ? "#fff" : "var(--text-2)",
             }}>
-            <p className="text-[10px] font-semibold opacity-80">{d.l}</p>
-            <p className="text-[14px] font-bold tabular-nums mt-0.5">{d.n}</p>
-            {d.has && !d.today && <span className="block mx-auto mt-1 h-1 w-1 rounded-full" style={{ background: "var(--accent)" }} />}
-          </div>
+            <p className="text-[11px] font-semibold opacity-80">{d.l}</p>
+            <p className="text-[17px] font-bold tabular-nums mt-1">{d.n}</p>
+            {d.has && !d.today && <span className="block mx-auto mt-1.5 h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />}
+          </Link>
         ))}
       </div>
 

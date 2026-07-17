@@ -26,8 +26,8 @@ type ProjectRow = {
   requests: { title: string; type: string } | null;
 };
 
-export default async function CalendarioEmpleado({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  const { m } = await searchParams;
+export default async function CalendarioEmpleado({ searchParams }: { searchParams: Promise<{ m?: string; d?: string }> }) {
+  const { m, d: selectedDate } = await searchParams;
   const today = todayMerida();
   const ym = /^\d{4}-\d{2}$/.test(m ?? "") ? m! : today.slice(0, 7);
   const [year, month] = ym.split("-").map(Number);
@@ -186,7 +186,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
               style={{
                 background: c.vacation ? "var(--purple-tint)" : c.holiday ? "var(--accent-tint)" : "var(--surface-2)",
                 opacity: c.inMonth ? 1 : 0.35,
-                outline: c.date === today ? "2px solid var(--accent)" : undefined,
+                outline: c.date === selectedDate ? "2px solid var(--purple)" : c.date === today ? "2px solid var(--accent)" : undefined,
                 outlineOffset: "-2px",
               }}>
               <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
