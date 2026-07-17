@@ -77,6 +77,18 @@ export function dmy(iso: string): string {
   return `${d}/${m}/${y.slice(-2)}`;
 }
 
+/** Próximo aniversario (mes/día de hireDate) a partir de hoy — usado para
+ * mostrar "reinicia el …": vacation_balance_reset en la BD guarda la fecha
+ * del ÚLTIMO reinicio ya ocurrido (para no reinicar dos veces el mismo año),
+ * así que no sirve para mostrar la próxima fecha directo — hay que calcularla
+ * a partir del mes/día de contratación. */
+export function nextAnniversary(hireDateIso: string, todayIso: string = todayMerida()): string {
+  const [, hm, hd] = hireDateIso.slice(0, 10).split("-");
+  const thisYear = todayIso.slice(0, 4);
+  const candidate = `${thisYear}-${hm}-${hd}`;
+  return candidate >= todayIso ? candidate : `${Number(thisYear) + 1}-${hm}-${hd}`;
+}
+
 /** Día de la semana (0=domingo…6=sábado) de una fecha ISO, sin efectos de zona. */
 export function isoWeekday(isoDate: string): number {
   return new Date(isoDate + "T12:00:00Z").getUTCDay();

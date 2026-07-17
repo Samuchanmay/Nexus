@@ -6,18 +6,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Notifica a una persona específica. Nunca debe bloquear la acción real si falla. */
 export async function notifyUser(
-  supabase: SupabaseClient, userId: string, title: string, body?: string, kind: string = "info",
+  supabase: SupabaseClient, userId: string, title: string, body?: string, kind: string = "info", link?: string,
 ) {
   try {
-    await supabase.rpc("create_notification", { p_user_id: userId, p_title: title, p_body: body ?? null, p_kind: kind });
+    await supabase.rpc("create_notification", { p_user_id: userId, p_title: title, p_body: body ?? null, p_kind: kind, p_link: link ?? null });
   } catch { /* no bloquea la acción principal */ }
 }
 
 /** Notifica a todos los administradores activos. */
 export async function notifyAdmins(
-  supabase: SupabaseClient, title: string, body?: string, kind: string = "info",
+  supabase: SupabaseClient, title: string, body?: string, kind: string = "info", link?: string,
 ) {
   try {
-    await supabase.rpc("notify_admins", { p_title: title, p_body: body ?? null, p_kind: kind });
+    await supabase.rpc("notify_admins", { p_title: title, p_body: body ?? null, p_kind: kind, p_link: link ?? null });
   } catch { /* no bloquea la acción principal */ }
 }

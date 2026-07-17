@@ -7,7 +7,7 @@ import { summarizeDay, fmtMin } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
 import { IconDownload } from "@/components/icons";
-import { todayMerida, addDays, shortDate, seniorityLabel, dmy } from "@/lib/tz";
+import { todayMerida, addDays, shortDate, seniorityLabel, dmy, nextAnniversary } from "@/lib/tz";
 import { VACATION_TONE } from "@/lib/ui-maps";
 
 type Member = {
@@ -85,7 +85,7 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
       <td style="padding:12px 14px;text-align:center;font-weight:800;color:${color}">${m.vacation_balance}</td>
       <td style="padding:12px 14px;text-align:center">${pctUsed}%</td>
       <td style="padding:12px 14px"><span style="background:${estadoBg};color:${estadoFg};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${estado}</span></td>
-      <td style="padding:12px 14px;color:#6B7280;font-size:13px">${m.vacation_balance_reset ? dmy(m.vacation_balance_reset) : "—"}</td>
+      <td style="padding:12px 14px;color:#6B7280;font-size:13px">${m.hire_date ? dmy(nextAnniversary(m.hire_date)) : "—"}</td>
       <td style="padding:12px 14px;text-align:center">${total}</td>
     </tr>`;
   }).join("");
@@ -352,7 +352,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                 <p className="text-[13.5px] font-bold">{m.full_name}</p>
                 <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
                   {seniorityLabel(m.hire_date) ?? m.area}
-                  {m.vacation_balance_reset && ` · reinicia ${shortDate(m.vacation_balance_reset)}`}
+                  {m.hire_date && ` · reinicia ${shortDate(nextAnniversary(m.hire_date))}`}
                 </p>
               </div>
             </div>

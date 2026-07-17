@@ -6,7 +6,7 @@ import { useToast, Pill, Avatar, Sheet, SelectField, DateRangeCalendar } from "@
 import { useSupabaseMutation } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
-import { seniorityLabel, addDays, shortDate, dmy } from "@/lib/tz";
+import { seniorityLabel, addDays, shortDate, dmy, nextAnniversary, todayMerida } from "@/lib/tz";
 import { businessDaysBetween } from "@/lib/hours";
 import { logAdminAction } from "@/lib/admin-log";
 import { notifyUser } from "@/lib/notify";
@@ -88,7 +88,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     if (ok) {
       if (adminId) logAdminAction(createClient(), adminId, "Editó vacación", target.users?.display_name ?? undefined);
       notifyUser(createClient(), target.user_id, "Se actualizaron las fechas de tu vacación",
-        `${dmy(editStart)} → ${dmy(editEnd)} · ${editDays} ${editDays === 1 ? "día" : "días"} hábiles`, "vacation");
+        `${dmy(editStart)} → ${dmy(editEnd)} · ${editDays} ${editDays === 1 ? "día" : "días"} hábiles`, "vacation", "/empleado/vacaciones");
       setEditTarget(null);
     }
   };
@@ -125,7 +125,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     }, { ok: "Vacación registrada" });
     if (ok) {
       if (adminId) logAdminAction(createClient(), adminId, "Registró vacación directa", regUser?.display_name ?? undefined);
-      notifyUser(createClient(), uid, "Se te registró un periodo de vacaciones", `${dmy(s)} → ${dmy(e)} · ${d} ${d === 1 ? "día" : "días"} hábiles`, "vacation");
+      notifyUser(createClient(), uid, "Se te registró un periodo de vacaciones", `${dmy(s)} → ${dmy(e)} · ${d} ${d === 1 ? "día" : "días"} hábiles`, "vacation", "/empleado/vacaciones");
       setRegUserId(""); setRegStart(null); setRegEnd(null);
     }
   };
@@ -198,7 +198,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
       }
       notifyUser(createClient(), target.user_id,
         status === "Aprobada" ? "Tu solicitud de vacaciones fue aprobada" : "Tu solicitud de vacaciones fue rechazada",
-        `${target.start_date} al ${target.end_date}${note ? " — " + note : ""}`, "vacation");
+        `${target.start_date} al ${target.end_date}${note ? " — " + note : ""}`, "vacation", "/empleado/vacaciones");
       setSel(null); setNote("");
     }
   };
@@ -206,9 +206,13 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   const todayIso = new Date().toISOString().slice(0, 10);
   const futuras = vacations.filter((v) => v.status === "Aprobada" && v.start_date > todayIso).length;
   const criticos = team.filter((t) => t.vacation_balance <= 3).length;
+  // "Reinicia" = próximo aniversario de contratación (no la columna vacation_balance_reset,
+  // que guarda la fecha del ÚLTIMO reinicio ya ocurrido, no la próxima).
+  const today = todayMerida();
   const proximoReinicio = team
-    .filter((t) => !!t.vacation_balance_reset)
-    .sort((a, b) => (a.vacation_balance_reset as string).localeCompare(b.vacation_balance_reset as string))[0] ?? null;
+    .filter((t) => !!t.hire_date)
+    .map((t) => ({ t, next: nextAnniversary(t.hire_date as string, today) }))
+    .sort((a, b) => a.next.localeCompare(b.next))[0] ?? null;
 
   const pending = vacations.filter((v) => v.status === "Pendiente");
   const rest = vacations.filter((v) => v.status !== "Pendiente");
@@ -254,9 +258,9 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>CRÍTICOS (≤3D)</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold truncate">{proximoReinicio ? proximoReinicio.display_name : "—"}</p>
+          <p className="text-[13px] font-bold truncate">{proximoReinicio ? proximoReinicio.t.display_name : "—"}</p>
           <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>
-            {proximoReinicio ? `REINICIA ${shortDate(proximoReinicio.vacation_balance_reset as string).toUpperCase()}` : "PRÓX. REINICIO"}
+            {proximoReinicio ? `REINICIA ${shortDate(proximoReinicio.next).toUpperCase()}` : "PRÓX. REINICIO"}
           </p>
         </div>
       </div>
@@ -283,11 +287,13 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
             <option value="">Seleccionar…</option>
             {team.map((t) => <option key={t.id} value={t.id}>{t.display_name} · {t.vacation_balance} días</option>)}
           </SelectField>
-          <DateRangeCalendar
-            start={regStart} end={regEnd}
-            onSelect={(s, e) => { setRegStart(s); setRegEnd(e); }}
-            holidays={holidaySet}
-          />
+          <div className="max-w-[300px]">
+            <DateRangeCalendar
+              start={regStart} end={regEnd}
+              onSelect={(s, e) => { setRegStart(s); setRegEnd(e); }}
+              holidays={holidaySet}
+            />
+          </div>
           {regDays > 0 && (
             <div className="rounded-sm px-4 py-3 text-[13px] font-semibold"
               style={{ background: regOverBalance ? "var(--danger-tint)" : "var(--ok-tint)", color: regOverBalance ? "var(--danger)" : "var(--ok)" }}>

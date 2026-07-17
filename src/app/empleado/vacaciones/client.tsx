@@ -75,7 +75,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
         body: JSON.stringify({ vacation_id: data.id }),
       });
     } catch { /* el correo es best-effort; la solicitud ya quedó guardada */ }
-    notifyAdmins(supabase, `${displayName} solicitó vacaciones`, `${days} día${days === 1 ? "" : "s"} · ${shortDate(start)} → ${shortDate(end)}`, "vacation");
+    notifyAdmins(supabase, `${displayName} solicitó vacaciones`, `${days} día${days === 1 ? "" : "s"} · ${shortDate(start)} → ${shortDate(end)}`, "vacation", "/admin/vacaciones");
     setSaving(false);
     setOpen(false);
     setStart(""); setEnd("");

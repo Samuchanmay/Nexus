@@ -13,17 +13,19 @@ export type ProjectDeadline = {
   project_assignments: { is_lead: boolean; users: { display_name: string; nexus_color: string | null } }[];
 };
 
+export type GcalEvent = { id: string; title: string; start: string; end: string; allDay: boolean };
+
 export default function CalendarioClient({
   ym, year, month, daysInMonth, today, prevHref, nextHref,
-  team, attendance, vacations, holidays, deadlines, efemerides,
+  team, attendance, vacations, holidays, deadlines, efemerides, gcalEvents,
 }: {
   ym: string; year: number; month: number; daysInMonth: number; today: string;
   prevHref: string; nextHref: string;
   team: TeamMember[]; attendance: { user_id: string; date: string }[];
   vacations: VacationRange[]; holidays: { date: string; name: string }[];
-  deadlines: ProjectDeadline[]; efemerides?: string[];
+  deadlines: ProjectDeadline[]; efemerides?: string[]; gcalEvents?: GcalEvent[];
 }) {
-  const [view, setView] = useState<"Asistencia" | "Equipo">("Asistencia");
+  const [view, setView] = useState<"Asistencia" | "Equipo">("Equipo");
 
   const first = `${ym}-01`;
   const last = `${ym}-${String(daysInMonth).padStart(2, "0")}`;
@@ -84,6 +86,32 @@ export default function CalendarioClient({
     return m;
   }, [monthCells, team, vacations]);
 
+  // Eventos ya agendados en Google Calendar ("Eventos CERT") — incluye los
+  // creados directamente en Google, no solo los que nacieron en Nexus.
+  // Para eventos de todo el día, "end" viene exclusivo (estándar de Google
+  // Calendar); para eventos con hora tratamos start=end como un solo día.
+  const gcalByDate = useMemo(() => {
+    const m = new Map<string, GcalEvent[]>();
+    for (const ev of gcalEvents ?? []) {
+      const d0 = new Date(`${ev.start}T12:00:00`);
+      const dEnd = new Date(`${ev.allDay ? ev.end : ev.end}T12:00:00`);
+      if (!ev.allDay) dEnd.setDate(dEnd.getDate() + 1); // incluir el día del evento
+      const d = new Date(d0);
+      let guard = 0;
+      while (d < dEnd && guard < 60) {
+        const iso = d.toISOString().slice(0, 10);
+        if (iso >= first && iso <= last) {
+          const list = m.get(iso) ?? [];
+          list.push(ev);
+          m.set(iso, list);
+        }
+        d.setDate(d.getDate() + 1);
+        guard++;
+      }
+    }
+    return m;
+  }, [gcalEvents, first, last]);
+
   return (
     <>
       <header className="pt-8 pb-6 flex flex-wrap items-end justify-between gap-3">
@@ -110,7 +138,7 @@ export default function CalendarioClient({
       )}
 
       <div className="mb-4">
-        <SlidingSegments options={["Asistencia", "Equipo"]} value={view} onChange={(v) => setView(v as typeof view)} />
+        <SlidingSegments options={["Equipo", "Asistencia"]} value={view} onChange={(v) => setView(v as typeof view)} />
       </div>
 
       {view === "Asistencia" && (
@@ -185,6 +213,7 @@ export default function CalendarioClient({
           <div className="grid grid-cols-7 gap-1.5">
             {monthCells.map((c) => {
               const acts = deadlinesByDate.get(c.date) ?? [];
+              const gevs = gcalByDate.get(c.date) ?? [];
               const people = vacationsByDate.get(c.date) ?? [];
               return (
                 <div key={c.date} className="rounded-sm p-1.5 min-h-[96px] flex flex-col gap-1"
@@ -211,6 +240,17 @@ export default function CalendarioClient({
                     <p className="text-[9px] font-semibold" style={{ color: "var(--warn)" }}>+{acts.length - 2} actividad{acts.length - 2 > 1 ? "es" : ""}</p>
                   )}
 
+                  {gevs.slice(0, 2).map((ev) => (
+                    <p key={ev.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                      style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+                      title={`${ev.title} · Eventos CERT (Google Calendar)`}>
+                      {ev.title}
+                    </p>
+                  ))}
+                  {gevs.length > 2 && (
+                    <p className="text-[9px] font-semibold" style={{ color: "var(--accent)" }}>+{gevs.length - 2} evento{gevs.length - 2 > 1 ? "s" : ""}</p>
+                  )}
+
                   {people.length > 0 && (
                     <div className="flex -space-x-1.5 mt-auto pt-1 flex-wrap gap-y-1">
                       {people.slice(0, 4).map((u) => (
@@ -229,7 +269,10 @@ export default function CalendarioClient({
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Actividad / evento
+              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Actividad Nexus
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--accent-tint)" }} /> Evento (Google Calendar)
             </span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3.5 h-3 rounded-full" style={{ background: "var(--purple)" }} /> Vacaciones

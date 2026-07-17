@@ -27,6 +27,12 @@ export function Shell({
   const [spot, setSpot] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { theme, toggle } = useTheme();
+  // Badge del atajo de búsqueda: ⌘ solo en Mac, "Ctrl" en Windows/Linux —
+  // antes se mostraba ⌘K fijo sin importar el sistema operativo del usuario.
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    setIsMac(/Mac|iPod|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent));
+  }, []);
 
   // ⌘K / Ctrl+K abre el Spotlight
   useEffect(() => {
@@ -75,7 +81,7 @@ export function Shell({
               <Icon name="search" size={15} />
             </span>
             <span className="text-[13px] leading-none shrink-0">Buscar…</span>
-            <span className="flex items-center gap-0.5 ml-2 shrink-0"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
+            <span className="flex items-center gap-0.5 ml-2 shrink-0">{isMac ? <Kbd>⌘</Kbd> : <Kbd>Ctrl</Kbd>}<Kbd>K</Kbd></span>
           </button>
           {actions}
           <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Cambiar tema" onClick={toggle} />

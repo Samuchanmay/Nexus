@@ -35,7 +35,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
     if (error) { toast("No se pudo registrar"); return; }
     const person = team.find((t) => t.id === form.userId);
     if (adminId) logAdminAction(supabase, adminId, "Registró incidencia manual", `${person?.display_name ?? ""} · ${KIND_LABELS[form.kind as keyof typeof KIND_LABELS]}`);
-    notifyUser(supabase, form.userId, "Se registró una incidencia", KIND_LABELS[form.kind as keyof typeof KIND_LABELS], "incident");
+    notifyUser(supabase, form.userId, "Se registró una incidencia", KIND_LABELS[form.kind as keyof typeof KIND_LABELS], "incident", "/empleado/incidencias");
     setOpen(false);
     setForm({ userId: "", kind: "permiso", start: "", end: "", note: "" });
     toast("Incidencia registrada");
@@ -53,7 +53,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
     if (ok && target) {
       notifyUser(createClient(), target.user_id,
         status === "Autorizado" ? "Tu incidencia fue autorizada" : "Tu incidencia fue rechazada",
-        KIND_LABELS[target.kind], "incident");
+        KIND_LABELS[target.kind], "incident", "/empleado/incidencias");
     }
   };
 

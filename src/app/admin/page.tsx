@@ -218,15 +218,11 @@ export default async function AdminDashboard() {
         <div className="flex flex-col gap-2">
           {alerts.map((a, i) => (
             <Card key={i} pad={false} className="px-4 py-3 flex items-center gap-2.5">
-              {a.icon === "alarm" && (
-                <span className="relative flex w-2 h-2 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "var(--warn)" }} />
-                  <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: "var(--warn)" }} />
-                </span>
-              )}
               <Icon name={a.icon} size={16} />
               <p className="text-[13px] font-semibold text-text-1 flex-1">{a.text}</p>
-              <Badge tone={a.tone === "accent" ? "accent" : a.tone}>{a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso"}</Badge>
+              <Badge tone={a.tone === "accent" ? "accent" : a.tone} dot={a.icon === "alarm"} pulse={a.icon === "alarm"}>
+                {a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso"}
+              </Badge>
             </Card>
           ))}
         </div>
@@ -236,7 +232,7 @@ export default async function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Link href="/admin/solicitudes"><StatCard label="Solicitudes por revisar" value={String(pendingReqs ?? 0)} icon="inbox" tone="warn" /></Link>
         <Link href="/admin/proyectos"><StatCard label="Actividades activas" value={String(activeProjects ?? 0)} icon="layers" tone="accent" /></Link>
-        <Link href="/admin/vacaciones"><StatCard label="Vacaciones pendientes" value={String(pendingVacs ?? 0)} icon="sun" tone="purple" /></Link>
+        <Link href="/admin/vacaciones"><StatCard label="Vacaciones pendientes" value={String(pendingVacs ?? 0)} icon="plane" tone="purple" /></Link>
         <Link href="/admin/incidencias"><StatCard label="Incidencias pendientes" value={String(pendingIncs ?? 0)} icon="alert" tone="danger" /></Link>
       </div>
 

@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Pill, SlidingSegments, DateField } from "@/components/ui";
+import { dmy } from "@/lib/tz";
 import { useSupabaseMutation } from "@/components/shared";
 import { IconPlus, IconX } from "@/components/icons";
 import { mexicanHolidays } from "@/lib/holidays";
@@ -104,7 +105,7 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
           {holidays.map((h) => (
             <div key={h.id} className="card px-5 py-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <p className="text-[13.5px] font-bold tabular-nums w-[100px]">{h.date}</p>
+                <p className="text-[13.5px] font-bold tabular-nums w-[100px]">{dmy(h.date)}</p>
                 <p className="text-[13.5px]">{h.name}</p>
               </div>
               {confirmId === h.id ? (

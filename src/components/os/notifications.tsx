@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { IconButton, cx } from "./ui";
 import { Icon } from "./icons";
@@ -12,6 +13,7 @@ export type NotificationRow = {
   kind: string | null;
   read: boolean;
   created_at: string;
+  link: string | null;
 };
 
 /** Centro de eventos del sistema — categorías por "kind" (vacation/request/incident/info…). */
@@ -60,6 +62,7 @@ function dayLabel(iso: string): string {
 
 /** Campana de notificaciones — bottom sheet con filtros por categoría (RLS: solo lo propio). */
 export function NotificationBell({ userId }: { userId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +95,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     const supabase = createClient();
     supabase
       .from("notifications")
-      .select("id, title, body, kind, read, created_at")
+      .select("id, title, body, kind, read, created_at, link")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50)
@@ -284,30 +287,36 @@ export function NotificationBell({ userId }: { userId: string }) {
                   </p>
                   {group.items.map((n) => {
                     const meta = kindMeta(n.kind);
+                    const goTo = () => {
+                      if (!n.read) markRead(n.id);
+                      if (n.link) { setOpen(false); router.push(n.link); }
+                    };
                     return (
                       <button
                         key={n.id}
-                        onClick={() => !n.read && markRead(n.id)}
+                        onClick={goTo}
                         className={cx(
-                          "w-full flex items-start gap-3 px-5 py-3.5 text-left border-b border-border last:border-b-0 transition-colors hover:bg-hover",
+                          "w-full flex items-center gap-3 px-5 py-3.5 text-left border-b border-border last:border-b-0 transition-colors hover:bg-hover",
                           n.read && "opacity-55"
                         )}
                         style={!n.read ? { background: "var(--accent-tint)" } : undefined}
                       >
-                        <span className="w-8 h-8 rounded-full grid place-items-center shrink-0"
+                        <span className="w-9 h-9 rounded-full grid place-items-center shrink-0"
                           style={{
-                            background: `color-mix(in srgb, ${meta.color} 22%, transparent)`,
-                            border: `1px solid color-mix(in srgb, ${meta.color} 35%, transparent)`,
+                            background: `color-mix(in srgb, ${meta.color} 16%, transparent)`,
                             color: meta.color,
                           }}>
-                          <Icon name={meta.icon} size={16} />
+                          <Icon name={meta.icon} size={17} />
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
+                            {!n.read && <span className="h-[6px] w-[6px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
+                          </span>
                           {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
-                          <span className="block text-[10.5px] text-text-3 mt-1">{timeAgo(n.created_at)}</span>
+                          <span className="block text-[10.5px] text-text-3 mt-1 font-medium">{timeAgo(n.created_at)}</span>
                         </span>
-                        {!n.read && <span className="mt-1.5 h-[7px] w-[7px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
+                        {n.link && <Icon name="chevron" size={14} className="shrink-0 text-text-3" />}
                       </button>
                     );
                   })}

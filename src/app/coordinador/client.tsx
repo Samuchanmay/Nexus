@@ -106,7 +106,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
     });
     setSaving(false);
     if (error) { toast("No se pudo enviar — intenta de nuevo"); return; }
-    notifyAdmins(supabase, `${profile.full_name} envió una solicitud`, form.title.trim(), "request");
+    notifyAdmins(supabase, `${profile.full_name} envió una solicitud`, form.title.trim(), "request", "/admin/solicitudes");
     toast("Solicitud enviada al equipo de Comunicación");
     resetWizard();
     router.refresh();

@@ -119,12 +119,21 @@ const TONE: Record<Tone, { bg: string; fg: string }> = {
   purple: { bg: "var(--purple-tint)", fg: "var(--purple)" },
   neutral: { bg: "var(--surface-3)", fg: "var(--text-2)" },
 };
-export function Badge({ tone = "neutral", dot, children }: { tone?: Tone; dot?: boolean; children: ReactNode }) {
+export function Badge({ tone = "neutral", dot, pulse, children }: { tone?: Tone; dot?: boolean; pulse?: boolean; children: ReactNode }) {
   const t = TONE[tone];
   return (
     <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-semibold"
       style={{ background: t.bg, color: t.fg }}>
-      {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.fg }} />}
+      {dot && (
+        pulse ? (
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: t.fg }} />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: t.fg }} />
+          </span>
+        ) : (
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.fg }} />
+        )
+      )}
       {children}
     </span>
   );

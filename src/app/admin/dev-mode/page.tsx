@@ -30,7 +30,7 @@ const GROUPS: Group[] = [
       { href: "/admin/empleados", title: "Equipo (usuarios)", desc: "Invitar, dar de baja, roles.", icon: "users" },
       { href: "/admin/nexus", title: "Asistencia", desc: "Tabla / Gantt / Semana + reporte por correo.", icon: "clock" },
       { href: "/admin/dias-inhabiles", title: "Días inhábiles", desc: "Lista + vista de mes.", icon: "calendar" },
-      { href: "/admin/vacaciones", title: "Vacaciones (aprobación)", desc: "Saldo, semáforo, cancelaciones.", icon: "sun" },
+      { href: "/admin/vacaciones", title: "Vacaciones (aprobación)", desc: "Saldo, semáforo, cancelaciones.", icon: "plane" },
       { href: "/admin/incidencias", title: "Incidencias", desc: "Permisos, incapacidades, etc.", icon: "alert" },
       { href: "/admin/reportes", title: "Reportes", desc: "Agregados + CSV + PDF.", icon: "chart" },
       { href: "/admin/config", title: "Configuración", desc: "Centro de configuración.", icon: "settings" },
@@ -44,7 +44,7 @@ const GROUPS: Group[] = [
     note: "Verás tu propia jornada/vacaciones de admin, no las de un colaborador real.",
     items: [
       { href: "/empleado", title: "Mi día", desc: "Vista de tareas del colaborador.", icon: "home" },
-      { href: "/empleado/vacaciones", title: "Solicitar vacaciones", desc: "Formulario de solicitud, con traslapes.", icon: "sun" },
+      { href: "/empleado/vacaciones", title: "Solicitar vacaciones", desc: "Formulario de solicitud, con traslapes.", icon: "plane" },
       { href: "/empleado/calendario", title: "Mi calendario", desc: "Fechas límite, vacaciones, inhábiles.", icon: "calendar" },
       { href: "/empleado/incidencias", title: "Mis incidencias", desc: "Registrar permisos/incapacidades.", icon: "alert" },
       { href: "/empleado/jornada", title: "Mi jornada", desc: "Estado de jornada en vivo.", icon: "clock" },

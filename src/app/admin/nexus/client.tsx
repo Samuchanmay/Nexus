@@ -140,7 +140,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "Semana"}
             onChange={(v) => setView(v === "Tabla" ? "tabla" : v === "Gantt" ? "gantt" : "semana")}
           />
-          <div className="min-w-[130px] flex justify-end">
+          <div className="w-[300px] flex justify-end">
             {view === "tabla" && (
               <a href={dayCsvHref} download={`asistencia-${today}.csv`}
                 className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap"

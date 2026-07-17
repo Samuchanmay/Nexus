@@ -133,8 +133,8 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
     }
 
     if (adminId) logAdminAction(supabase, adminId, "Aprobó solicitud", sel.title);
-    if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue aprobada", sel.title, "request");
-    for (const uid of assignees) notifyUser(supabase, uid, "Te asignaron un proyecto", sel.title, "request");
+    if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue aprobada", sel.title, "request", "/coordinador");
+    for (const uid of assignees) notifyUser(supabase, uid, "Te asignaron un proyecto", sel.title, "request", "/empleado");
     setSaving(false);
     setSel(null);
     toast("Proyecto creado y asignado");
@@ -151,7 +151,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
     setSaving(false);
     if (error) { toast("No se pudo rechazar"); return; }
     if (adminId) logAdminAction(supabase, adminId, "Rechazó solicitud", sel.title);
-    if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue rechazada", `${sel.title} — ${rejectReason}`, "request");
+    if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue rechazada", `${sel.title} — ${rejectReason}`, "request", "/coordinador");
     setSel(null);
     toast("Solicitud rechazada");
     router.refresh();

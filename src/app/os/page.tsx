@@ -65,7 +65,7 @@ function Today() {
         <StatCard label="Actividades activas" value="6" icon="layers" tone="accent" />
         <StatCard label="Por revisar" value="3" icon="inbox" tone="warn" />
         <StatCard label="Entregas hoy" value="2" icon="check" tone="ok" />
-        <StatCard label="Vacaciones" value="12 d" icon="sun" tone="purple" />
+        <StatCard label="Vacaciones" value="12 d" icon="plane" tone="purple" />
       </div>
 
       {/* Dos columnas */}
