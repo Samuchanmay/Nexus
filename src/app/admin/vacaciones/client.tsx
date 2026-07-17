@@ -103,6 +103,11 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   }, [regStart, regEnd, holidaySet]);
   const regUser = team.find((t) => t.id === regUserId) ?? null;
   const regOverBalance = !!regUser && regDays > regUser.vacation_balance;
+  const regMessage = !regStart || !regEnd
+    ? "Elige empleado y rango de fechas"
+    : regDays === 0
+    ? "Ese rango no tiene días hábiles — revisa fines de semana/festivos"
+    : `${regDays} ${regDays === 1 ? "día hábil" : "días hábiles"}${regUser ? ` · quedarían ${regUser.vacation_balance - regDays}` : ""}${regOverBalance ? " — saldo insuficiente" : ""}`;
 
   const registerDirect = async () => {
     if (!regUserId || !regStart || !regEnd || regDays === 0 || regOverBalance) return;
@@ -282,25 +287,33 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         <p className="text-[12px] mb-3" style={{ color: "var(--text-3)" }}>
           Salta el flujo de solicitud/aprobación — útil para correcciones o cambios de último momento. Queda como Aprobada de inmediato.
         </p>
-        <div className="flex flex-col gap-3 max-w-[340px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <SelectField value={regUserId} onChange={setRegUserId} label="Empleado">
             <option value="">Seleccionar…</option>
             {team.map((t) => <option key={t.id} value={t.id}>{t.display_name} · {t.vacation_balance} días</option>)}
           </SelectField>
-          <DateRangeCalendar
-            start={regStart} end={regEnd}
-            onSelect={(s, e) => { setRegStart(s); setRegEnd(e); }}
-            holidays={holidaySet}
-          />
-          {regDays > 0 && (
-            <div className="rounded-sm px-4 py-3 text-[13px] font-semibold"
-              style={{ background: regOverBalance ? "var(--danger-tint)" : "var(--ok-tint)", color: regOverBalance ? "var(--danger)" : "var(--ok)" }}>
-              {regDays} {regDays === 1 ? "día hábil" : "días hábiles"}
-              {regUser && ` · quedarían ${regUser.vacation_balance - regDays}`}
-              {regOverBalance && " — saldo insuficiente"}
-            </div>
-          )}
-          <button className="btn-primary btn-ok py-3 text-[14px]" disabled={registering || !regUserId || regDays === 0 || regOverBalance} onClick={registerDirect}>
+          <div>
+            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de inicio</label>
+            <input type="date" className="field-input" value={regStart ?? ""}
+              onChange={(e) => {
+                const v = e.target.value || null;
+                setRegStart(v);
+                if (v && regEnd && v > regEnd) setRegEnd(null);
+              }} />
+          </div>
+          <div>
+            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de fin</label>
+            <input type="date" className="field-input" value={regEnd ?? ""} min={regStart ?? undefined} disabled={!regStart}
+              onChange={(e) => setRegEnd(e.target.value || null)} />
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 mt-3.5 flex-wrap">
+          <p className="text-[13px] font-semibold" style={{
+            color: !regStart || !regEnd ? "var(--text-3)" : regDays === 0 || regOverBalance ? "var(--danger)" : "var(--ok)",
+          }}>
+            {regMessage}
+          </p>
+          <button className="btn-primary btn-ok py-2.5 px-6 text-[14px]" disabled={registering || !regUserId || regDays === 0 || regOverBalance} onClick={registerDirect}>
             {registering ? "Registrando…" : "Registrar vacaciones"}
           </button>
         </div>

@@ -16,6 +16,8 @@ import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
 import { requestCalendarUrl } from "@/lib/gcal";
 import { logAdminAction } from "@/lib/admin-log";
 import { notifyUser } from "@/lib/notify";
+import { dmy } from "@/lib/tz";
+import { fmtTime } from "@/lib/hours";
 
 const PRIORITIES: Priority[] = ["baja", "normal", "alta", "urgente"];
 
@@ -197,7 +199,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                 <h3 className="text-[15.5px] font-bold leading-snug">{r.title}</h3>
                 <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
                   {(r.users?.honorific ? r.users.honorific + " " : "") + (r.users?.full_name ?? r.requester_name ?? "Solicitante")}
-                  {r.event_date && ` · evento ${r.event_date}${r.event_time ? " " + r.event_time.slice(0, 5) : ""}`}
+                  {r.event_date && ` · evento ${dmy(r.event_date)}${r.event_time ? " " + fmtTime(r.event_time) : ""}`}
                   {r.event_location && ` · ${r.event_location}`}
                 </p>
                 {r.subtype.length > 0 && (

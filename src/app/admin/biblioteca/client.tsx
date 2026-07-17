@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Avatar, Pill } from "@/components/ui";
+import { dmy } from "@/lib/tz";
 
 export type Item = {
   id: string;
@@ -99,7 +100,7 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
                   <div className="min-w-0">
                     <p className="text-[14.5px] font-bold truncate">{r?.title ?? "Sin título"}</p>
                     <p className="text-[12.5px] mt-0.5" style={{ color: "var(--text-3)" }}>
-                      {r?.requester_area ?? "—"} · {r?.event_date ?? "sin fecha de evento"}
+                      {r?.requester_area ?? "—"} · {r?.event_date ? dmy(r.event_date) : "sin fecha de evento"}
                     </p>
                   </div>
                   <Pill tone="ok">{typeLabel[r?.type ?? ""] ?? r?.type ?? "—"}</Pill>

@@ -10,6 +10,8 @@ import { useToast, Pill } from "@/components/ui";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, RequestType, UserProfile, RequestStatus, ActivityType } from "@/lib/types";
 import { notifyAdmins } from "@/lib/notify";
+import { dmy } from "@/lib/tz";
+import { fmtTime } from "@/lib/hours";
 import { IconCamera, IconPen, IconVideo, IconMegaphone, IconClipboard, IconFolder, IconChevronLeft, IconCheck } from "@/components/icons";
 
 // Descripciones e iconos de los 5 tipos originales; los tipos nuevos que un
@@ -150,7 +152,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
                   <p className="text-[14.5px] font-bold">{r.title}</p>
                   {r.event_date && (
                     <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
-                      Evento: {r.event_date}{r.event_time ? " · " + r.event_time.slice(0, 5) : ""}
+                      Evento: {dmy(r.event_date)}{r.event_time ? " · " + fmtTime(r.event_time) : ""}
                     </p>
                   )}
                   {r.status === "cancelada" && r.rejection_reason && (
