@@ -69,9 +69,11 @@ export function SlidingSegments({ options, value, onChange }: {
     if (!wrap || !thumb) return;
     const btn = wrap.querySelector<HTMLButtonElement>(`[data-val="${value}"]`);
     if (!btn) return;
-    const w = wrap.getBoundingClientRect(), b = btn.getBoundingClientRect();
-    thumb.style.width = b.width + "px";
-    thumb.style.transform = `translateX(${b.left - w.left - 3}px)`;
+    // offsetLeft/offsetWidth (en vez de getBoundingClientRect) porque son enteros
+    // de layout ya resueltos por el motor — inmunes al zoom global (html{zoom:1.1})
+    // y a redondeos de sub-píxel que antes dejaban la pastilla desfasada del texto.
+    thumb.style.width = btn.offsetWidth + "px";
+    thumb.style.transform = `translateX(${btn.offsetLeft}px)`;
   }, [value]);
   useEffect(() => {
     // Requiere doble medición: la primera puede correr antes de que la
