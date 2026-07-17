@@ -19,6 +19,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   vacations: Vacation[];
   team: {
     id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null;
+    vacation_balance_reset: string | null;
     lastReset: { reset_at: string; days_granted: number; days_used: number; days_forfeited: number } | null;
   }[];
   adminId: string;
@@ -107,6 +108,13 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     }
   };
 
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const futuras = vacations.filter((v) => v.status === "Aprobada" && v.start_date > todayIso).length;
+  const criticos = team.filter((t) => t.vacation_balance <= 3).length;
+  const proximoReinicio = team
+    .filter((t) => !!t.vacation_balance_reset)
+    .sort((a, b) => (a.vacation_balance_reset as string).localeCompare(b.vacation_balance_reset as string))[0] ?? null;
+
   const pending = vacations.filter((v) => v.status === "Pendiente");
   const rest = vacations.filter((v) => v.status !== "Pendiente");
 
@@ -136,6 +144,27 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           Exportar CSV ↓
         </a>
       </header>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
+        <div className="card p-4 text-center">
+          <p className="text-[22px] font-bold tabular-nums" style={{ color: pending.length > 0 ? "var(--warn)" : undefined }}>{pending.length}</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>PENDIENTES</p>
+        </div>
+        <div className="card p-4 text-center">
+          <p className="text-[22px] font-bold tabular-nums">{futuras}</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>FUTURAS</p>
+        </div>
+        <div className="card p-4 text-center">
+          <p className="text-[22px] font-bold tabular-nums" style={{ color: criticos > 0 ? "var(--danger)" : undefined }}>{criticos}</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>CRÍTICOS (≤3D)</p>
+        </div>
+        <div className="card p-4 text-center">
+          <p className="text-[13px] font-bold truncate">{proximoReinicio ? proximoReinicio.display_name : "—"}</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>
+            {proximoReinicio ? `REINICIA ${shortDate(proximoReinicio.vacation_balance_reset as string).toUpperCase()}` : "PRÓX. REINICIO"}
+          </p>
+        </div>
+      </div>
 
       <div className="card p-4 mb-4 flex items-center gap-3 flex-wrap">
         <p className="text-[13px] font-semibold whitespace-nowrap">Correo de autorización (dirección)</p>

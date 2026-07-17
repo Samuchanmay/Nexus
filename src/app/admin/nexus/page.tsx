@@ -4,6 +4,60 @@ import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, addDays } from "@/lib/tz";
 import AsistenciaClient, { type PersonDay, type WeekRow } from "./client";
+import type { WeekBlock, DayDetail } from "./xlsx-weekly-report";
+
+const DIAS_LARGO = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+/** "09:26 AM" — formato de hora usado en el Excel descargable (distinto del 12h "a.m./p.m." de la UI). */
+function fmtExcelTime(t: string | null): string | null {
+  if (!t) return null;
+  const [hStr, mStr] = t.slice(0, 5).split(":");
+  let h = Number(hStr);
+  const suffix = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${String(h).padStart(2, "0")}:${mStr} ${suffix}`;
+}
+
+/** "29 junio al 04 de julio" (o "29 de junio al 04 de julio" si cruza de mes). */
+function weekLabelOf(monday: string): string {
+  const start = new Date(monday + "T12:00:00Z");
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 5); // sábado
+  const d1 = start.getUTCDate(), m1 = MESES_LARGO[start.getUTCMonth()];
+  const d2 = end.getUTCDate(), m2 = MESES_LARGO[end.getUTCMonth()];
+  return m1 === m2 ? `${d1} al ${d2} de ${m1}` : `${d1} de ${m1} al ${d2} de ${m2}`;
+}
+
+/** Desglose de un día para el Excel: entrada, salida a comer, regreso, salida final. */
+function buildDayDetail(
+  date: string, rows: AttendanceRow[],
+  sched: Pick<Schedule, "target_min" | "tolerance_min">, states: JornadaState[],
+): DayDetail {
+  const mv = rows.filter((r) => r.date === date).sort((a, b) => a.time.localeCompare(b.time));
+  const entradas = mv.filter((m) => m.type === "Entrada");
+  const salidas = mv.filter((m) => m.type === "Salida");
+  const entrada = entradas[0]?.time ?? null;
+  const finJornada = salidas.find((s) => s.reason === "Fin de jornada");
+  const salida1Row = salidas.find((s) => s.reason !== "Fin de jornada");
+  const salida1 = salida1Row?.time ?? null;
+  let entrada2: string | null = null;
+  if (salida1Row) {
+    const idx = mv.findIndex((m) => m === salida1Row);
+    entrada2 = mv.slice(idx + 1).find((m) => m.type === "Entrada")?.time ?? null;
+  }
+  const salidaFinal = finJornada?.time ?? (salidas.length ? salidas[salidas.length - 1].time : null);
+  const summary = entrada ? summarizeDay(date, rows, sched, states) : null;
+  const wd = new Date(date + "T12:00:00Z").getUTCDay();
+  return {
+    dayLabel: DIAS_LARGO[wd], date,
+    entrada: fmtExcelTime(entrada), salida1: fmtExcelTime(salida1),
+    entrada2: fmtExcelTime(entrada2), salidaFinal: fmtExcelTime(salidaFinal),
+    horasTrabajadas: summary && summary.totalMin > 0 ? Math.round((summary.totalMin / 60) * 10) / 10 : null,
+    horasExtra: summary && summary.extraMin > 0 ? Math.round((summary.extraMin / 60) * 10) / 10 : null,
+  };
+}
 
 /** Lunes de la semana ISO que contiene la fecha dada (YYYY-MM-DD, sin efectos de zona). */
 function mondayOf(dateIso: string): string {
@@ -81,5 +135,28 @@ export default async function AsistenciaEquipo() {
   }
   weekRows.sort((a, b) => b.week.localeCompare(a.week) || a.name.localeCompare(b.name));
 
-  return <AsistenciaClient people={people} states={states} weekRows={weekRows} reportSettings={reportSettings} today={today} adminId={meRes?.data?.id ?? ""} />;
+  // ── Bloques por empleado/semana para el reporte Excel descargable (últimas 6 semanas con actividad) ──
+  const weekBlocks: WeekBlock[] = [];
+  for (const u of (team ?? [])) {
+    const sched = (scheds ?? []).find((s) => s.user_id === u.id) as Schedule | undefined;
+    const mySched = sched ?? { target_min: 480, tolerance_min: 15 };
+    const myRows = weekAttRows.filter((r) => r.user_id === u.id);
+    const mondays = [...new Set(myRows.map((r) => mondayOf(r.date)))].sort().reverse().slice(0, 6);
+    for (const wk of mondays) {
+      const days: DayDetail[] = [];
+      for (let i = 0; i < 6; i++) { // Lunes..Sábado
+        const date = addDays(wk, i);
+        days.push(buildDayDetail(date, myRows, mySched, states));
+      }
+      weekBlocks.push({ userId: u.id, name: u.display_name, color: u.nexus_color ?? "#5856D6", weekStart: wk, weekLabel: weekLabelOf(wk), days });
+    }
+  }
+  weekBlocks.sort((a, b) => b.weekStart.localeCompare(a.weekStart) || a.name.localeCompare(b.name));
+
+  return (
+    <AsistenciaClient
+      people={people} states={states} weekRows={weekRows} weekBlocks={weekBlocks}
+      reportSettings={reportSettings} today={today} adminId={meRes?.data?.id ?? ""}
+    />
+  );
 }

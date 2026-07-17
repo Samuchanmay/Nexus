@@ -1,6 +1,7 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { IconCheck, IconMoon, IconSun } from "./icons";
+import { MONTHS, DOW, buildMonthGrid, monthBounds, shiftMonth } from "@/lib/calendar-grid";
 
 /* ── Toast ── */
 const ToastCtx = createContext<(msg: string) => void>(() => {});
@@ -196,4 +197,99 @@ const STATUS_STYLES: Record<string, { bg: string; fg: string }> = {
 export function Pill({ tone, children }: { tone: keyof typeof STATUS_STYLES; children: React.ReactNode }) {
   const s = STATUS_STYLES[tone];
   return <span className="pill" style={{ background: s.bg, color: s.fg }}>{children}</span>;
+}
+
+/* ── DateRangeCalendar: selector visual de rango de fechas (reemplaza los
+   <input type="date"> sueltos). Click 1 = inicio, click 2 = fin. Marca
+   fines de semana, festivos y fechas ya tomadas como no seleccionables. ── */
+export function DateRangeCalendar({
+  start, end, onSelect, holidays, disabledDates, minDate, legend = true,
+}: {
+  start: string | null;
+  end: string | null;
+  onSelect: (start: string | null, end: string | null) => void;
+  holidays?: Set<string>;
+  disabledDates?: Set<string>;
+  minDate?: string;
+  legend?: boolean;
+}) {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [ym, setYm] = useState<string>((start ?? todayIso).slice(0, 7));
+  const { first, last, daysInMonth, year, month } = monthBounds(ym);
+  const cells = useMemo(() => buildMonthGrid(first, last, daysInMonth), [first, last, daysInMonth]);
+
+  const isWeekend = (date: string) => {
+    const dow = new Date(`${date}T12:00:00`).getDay();
+    return dow === 0 || dow === 6;
+  };
+  const isHoliday = (date: string) => holidays?.has(date) ?? false;
+  const isTaken = (date: string) => disabledDates?.has(date) ?? false;
+  const isPast = (date: string) => (minDate ? date < minDate : false);
+  const inRange = (date: string) => !!(start && end && date >= start && date <= end);
+
+  const click = (date: string) => {
+    if (isWeekend(date) || isHoliday(date) || isTaken(date) || isPast(date)) return;
+    if (!start || (start && end)) { onSelect(date, null); return; }
+    if (date < start) { onSelect(date, null); return; }
+    onSelect(start, date);
+  };
+
+  return (
+    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+      <div className="flex items-center justify-between px-3.5 py-2.5" style={{ background: "var(--surface-2)" }}>
+        <button type="button" onClick={() => setYm(shiftMonth(ym, -1))}
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[15px] font-bold"
+          style={{ color: "var(--text-2)" }} aria-label="Mes anterior">‹</button>
+        <p className="text-[13px] font-bold capitalize">{MONTHS[month - 1]} {year}</p>
+        <button type="button" onClick={() => setYm(shiftMonth(ym, 1))}
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[15px] font-bold"
+          style={{ color: "var(--text-2)" }} aria-label="Mes siguiente">›</button>
+      </div>
+      <div className="grid grid-cols-7 px-2.5 pt-2.5 text-center">
+        {DOW.map((d) => (
+          <span key={d} className="text-[10px] font-semibold py-1" style={{ color: "var(--text-3)" }}>{d}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-[3px] px-2.5 pb-3">
+        {cells.map((c) => {
+          const weekend = isWeekend(c.date), holiday = isHoliday(c.date), taken = isTaken(c.date), past = isPast(c.date);
+          const blocked = weekend || holiday || taken || past;
+          const isStart = c.date === start, isEnd = c.date === end, ranged = inRange(c.date);
+          const selected = isStart || isEnd;
+          return (
+            <button
+              key={c.date} type="button" disabled={!c.inMonth || blocked}
+              onClick={() => click(c.date)}
+              className="aspect-square rounded-sm text-[12px] font-semibold flex items-center justify-center transition-colors"
+              style={{
+                opacity: c.inMonth ? 1 : 0.22,
+                background: selected ? "var(--accent)" : ranged ? "var(--accent-tint)"
+                  : holiday ? "var(--danger-tint)" : taken ? "var(--warn-tint)" : "transparent",
+                color: selected ? "#fff" : blocked && c.inMonth ? "var(--text-3)" : "var(--text-1)",
+                cursor: !c.inMonth || blocked ? "default" : "pointer",
+                textDecoration: (weekend || holiday || taken) && c.inMonth && !selected ? "line-through" : "none",
+              }}>
+              {c.day}
+            </button>
+          );
+        })}
+      </div>
+      {legend && (
+        <div className="flex flex-wrap items-center gap-3 px-3.5 pb-3 text-[10.5px]" style={{ color: "var(--text-3)" }}>
+          <span className="flex items-center gap-1.5">
+            <i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--accent)" }} /> Seleccionado
+          </span>
+          <span className="flex items-center gap-1.5">
+            <i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--accent-tint)" }} /> Rango
+          </span>
+          <span className="flex items-center gap-1.5">
+            <i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--danger-tint)" }} /> Festivo
+          </span>
+          <span className="flex items-center gap-1.5">
+            <i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--warn-tint)" }} /> Ya tomado
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { businessDaysBetween } from "@/lib/hours";
 import { seniorityLabel, shortDate } from "@/lib/tz";
 import type { Vacation } from "@/lib/types";
-import { useToast, Sheet, Pill } from "@/components/ui";
+import { useToast, Sheet, Pill, DateRangeCalendar } from "@/components/ui";
 import { notifyAdmins } from "@/lib/notify";
 import { IconPalm, IconPlus } from "@/components/icons";
 
@@ -21,6 +21,24 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
   const [end, setEnd] = useState("");
   const [saving, setSaving] = useState(false);
   const holidaySet = useMemo(() => new Set(holidays), [holidays]);
+
+  // Fechas ya ocupadas por otra solicitud propia (Aprobada o Pendiente),
+  // expandidas día a día — se muestran bloqueadas en el calendario visual
+  // (equivalente a fechasTomadas() del checador legado).
+  const takenDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const v of vacations) {
+      if (v.status !== "Aprobada" && v.status !== "Pendiente") continue;
+      const d = new Date(v.start_date + "T12:00:00");
+      const endD = new Date(v.end_date + "T12:00:00");
+      while (d <= endD) {
+        set.add(d.toISOString().slice(0, 10));
+        d.setDate(d.getDate() + 1);
+      }
+    }
+    return set;
+  }, [vacations]);
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const days = useMemo(() => {
     if (!start || !end || end < start) return 0;
@@ -113,15 +131,15 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Solicitar vacaciones">
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Desde</label>
-              <input type="date" className="field-input" value={start} onChange={(e) => setStart(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Hasta</label>
-              <input type="date" className="field-input" value={end} onChange={(e) => setEnd(e.target.value)} />
-            </div>
+          <div>
+            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+              Selecciona las fechas <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(sin contar fines de semana ni festivos)</span>
+            </label>
+            <DateRangeCalendar
+              start={start || null} end={end || null}
+              onSelect={(s, e) => { setStart(s ?? ""); setEnd(e ?? ""); }}
+              holidays={holidaySet} disabledDates={takenDates} minDate={todayIso}
+            />
           </div>
           {days > 0 && (
             <div className="rounded-sm px-4 py-3 text-[13px] font-semibold"

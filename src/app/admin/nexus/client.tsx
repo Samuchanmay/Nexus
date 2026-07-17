@@ -12,6 +12,7 @@ import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
 import { logAdminAction } from "@/lib/admin-log";
+import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
 
 export interface PersonDay {
   user: { id: string; display_name: string; area: string | null; nexus_color: string | null };
@@ -64,8 +65,8 @@ function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
   return <Pill tone={day.metTarget ? "ok" : "warn"}>{day.metTarget ? "Completa" : "Cerrada"}</Pill>;
 }
 
-export default function AsistenciaClient({ people, states, weekRows, reportSettings, today, adminId }: {
-  people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[];
+export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId }: {
+  people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[]; weekBlocks: WeekBlock[];
   reportSettings: { enabled: boolean; email: string }; today: string; adminId: string;
 }) {
   const toast = useToast();
@@ -147,9 +148,12 @@ export default function AsistenciaClient({ people, states, weekRows, reportSetti
               </a>
             )}
             {view === "semana" && (
-              <button className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap" disabled={sending} onClick={enviarReporte}>
-                {sending ? "Enviando…" : "Enviar ahora"}
-              </button>
+              <div className="flex items-center gap-2">
+                <XlsxWeeklyReportButton blocks={weekBlocks} adminId={adminId} />
+                <button className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap" disabled={sending} onClick={enviarReporte}>
+                  {sending ? "Enviando…" : "Enviar ahora"}
+                </button>
+              </div>
             )}
           </div>
         </div>
