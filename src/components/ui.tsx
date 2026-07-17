@@ -97,7 +97,10 @@ export function Avatar({ name, color, size = 34 }: { name: string; color?: strin
   const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   return (
     <div className="rounded-full flex items-center justify-center font-semibold text-white shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.37, background: color ?? "#8E8E93" }}>
+      style={{
+        width: size, height: size, fontSize: size * 0.37, background: color ?? "#8E8E93",
+        boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "#8E8E93"}`,
+      }}>
       {initials}
     </div>
   );

@@ -11,7 +11,7 @@
 export interface AssistantMessage {
   id: string;
   tone: "info" | "warn" | "danger";
-  icon: "clock" | "alert" | "sparkle";
+  icon: "clock" | "alert" | "sparkle" | "cake" | "food";
   text: string;
 }
 
@@ -33,13 +33,47 @@ const REUNION_WINDOW_MIN = 45;
 /** Días de anticipación para avisar que una actividad está por vencer. */
 const VENCE_WINDOW_DAYS = 2;
 
+/** Ventana diaria de "pausa activa" — una vez a media tarde, solo si la persona está trabajando. */
+const PAUSA_ACTIVA_START_MIN = 16 * 60;      // 4:00 p.m.
+const PAUSA_ACTIVA_END_MIN = 16 * 60 + 20;   // 4:20 p.m.
+
+const PAUSA_ACTIVA_FRASES = [
+  "Tómate un descanso breve para despejar la mente — es hora de un café. ¿Bala time o Taxito time? ☕",
+  "Un respiro rápido no le hace mal a nadie — es buen momento para un café. Bala time / Taxito time ☕",
+];
+
 export function contextualMessages(params: {
   today: string; // YYYY-MM-DD, hoy en Mérida
   nowMin: number; // minutos desde medianoche, hora Mérida
   tasks: AssistantTask[];
+  birthDate?: string | null;  // YYYY-MM-DD — cumpleaños de la persona (perfil)
+  working?: boolean;          // true si ya fichó entrada y la jornada sigue abierta
 }): AssistantMessage[] {
-  const { today, nowMin, tasks } = params;
+  const { today, nowMin, tasks, birthDate, working } = params;
   const msgs: AssistantMessage[] = [];
+
+  // Regla 0a — Cumpleaños: mensaje cálido, siempre primero, todo el día.
+  if (birthDate) {
+    const md = birthDate.slice(5); // MM-DD
+    if (md === today.slice(5)) {
+      msgs.push({
+        id: "cumpleanos",
+        tone: "info",
+        icon: "cake",
+        text: "¡Feliz cumpleaños! 🎉 Eres una parte muy valiosa del equipo — que tengas un día increíble.",
+      });
+    }
+  }
+
+  // Regla 0b — Pausa activa: una vez a media tarde, solo si está trabajando ahora mismo.
+  if (working && nowMin >= PAUSA_ACTIVA_START_MIN && nowMin <= PAUSA_ACTIVA_END_MIN) {
+    msgs.push({
+      id: "pausa-activa",
+      tone: "info",
+      icon: "food",
+      text: PAUSA_ACTIVA_FRASES[0],
+    });
+  }
 
   for (const t of tasks) {
     if (CLOSED.has(t.status)) continue;

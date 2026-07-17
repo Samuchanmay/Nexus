@@ -96,6 +96,8 @@ export default async function MiDia() {
       projectId: t.projectId, title: t.title, status: t.status, deadline: t.deadline,
       eventDate: t.eventDate, eventTime: t.eventTime, isLead: t.isLead, hasEvidence: t.hasEvidence,
     })),
+    birthDate: profile.birth_date ?? null,
+    working: day.isOpen,
   });
 
   return (

@@ -40,6 +40,16 @@ const ICONOS: Record<string, string> = Object.fromEntries(
   [...MOTIVOS_ENTRADA, ...MOTIVOS_SALIDA].map((m) => [m.value, m.icon]),
 );
 
+/** "HH:MM:SS" (servidor, 24h) → "H:MM:SS a.m./p.m." */
+function fmt12h(t: string | null | undefined): string {
+  if (!t) return "";
+  const [hStr, mStr, sStr] = t.slice(0, 8).split(":");
+  let h = Number(hStr);
+  const suffix = h >= 12 ? "p.m." : "a.m.";
+  h = h % 12; if (h === 0) h = 12;
+  return `${h}:${mStr}:${sStr ?? "00"} ${suffix}`;
+}
+
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000;
   const rad = (d: number) => (d * Math.PI) / 180;
@@ -105,7 +115,10 @@ export default function Fichar() {
     const tick = () => {
       const n = new Date();
       const p = (x: number) => String(x).padStart(2, "0");
-      setFechaHora(`${dias[n.getDay()]} ${n.getDate()} de ${meses[n.getMonth()]} · ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`);
+      let h = n.getHours();
+      const suffix = h >= 12 ? "p.m." : "a.m.";
+      h = h % 12; if (h === 0) h = 12;
+      setFechaHora(`${dias[n.getDay()]} ${n.getDate()} de ${meses[n.getMonth()]} · ${h}:${p(n.getMinutes())}:${p(n.getSeconds())} ${suffix}`);
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -204,7 +217,7 @@ export default function Fichar() {
     setEnviando(false);
     if (r.ok) {
       const q = tipo === "Entrada" ? quoteEntrada() : quoteSalida();
-      setResultado({ kind: "ok", motivo, hora: r.time?.slice(0, 8) ?? "", quote: q, pausedActivity: r.pausedActivity });
+      setResultado({ kind: "ok", motivo, hora: fmt12h(r.time), quote: q, pausedActivity: r.pausedActivity });
     } else if (r.retriable) {
       // I15: sin red → a la cola. NUNCA un éxito falso: pantalla ámbar "pendiente".
       writeQueue([...readQueue(), reg]);

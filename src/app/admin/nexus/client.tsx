@@ -9,6 +9,7 @@ import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
 import { PageHeader, Switch } from "@/components/shared";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
+import { dmy } from "@/lib/tz";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
 import { logAdminAction } from "@/lib/admin-log";
@@ -361,7 +362,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 <tbody>
                   {weekRows.map((r) => (
                     <tr key={`${r.userId}-${r.week}`} className="border-t" style={{ borderColor: "var(--border)" }}>
-                      <td className="py-2 pr-4 tabular-nums">{r.week}</td>
+                      <td className="py-2 pr-4 tabular-nums">{dmy(r.week)}</td>
                       <td className="py-2 pr-4 font-semibold">{r.name}</td>
                       <td className="py-2 pr-4 tabular-nums">{r.days}</td>
                       <td className="py-2 pr-4 tabular-nums">{fmtMin(r.totalMin)}</td>

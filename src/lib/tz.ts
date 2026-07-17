@@ -70,6 +70,13 @@ export function shortDate(iso: string): string {
   return `${d} ${MESES_CORTOS[m - 1]} ${String(y).slice(-2)}`;
 }
 
+/** dd/mm/aa — formato numérico compacto para listas y tablas (distinto del "21 ago 26" de shortDate, pensado para prosa). */
+export function dmy(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y.slice(-2)}`;
+}
+
 /** Día de la semana (0=domingo…6=sábado) de una fecha ISO, sin efectos de zona. */
 export function isoWeekday(isoDate: string): number {
   return new Date(isoDate + "T12:00:00Z").getUTCDay();

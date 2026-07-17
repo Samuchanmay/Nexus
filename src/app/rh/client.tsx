@@ -7,7 +7,7 @@ import { summarizeDay, fmtMin } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
 import { IconDownload } from "@/components/icons";
-import { todayMerida, addDays, shortDate, seniorityLabel } from "@/lib/tz";
+import { todayMerida, addDays, shortDate, seniorityLabel, dmy } from "@/lib/tz";
 import { VACATION_TONE } from "@/lib/ui-maps";
 
 type Member = {
@@ -242,7 +242,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                 <div>
                   <p className="text-[13.5px] font-bold">{v.users?.full_name}</p>
                   <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
-                    {v.start_date} → {v.end_date} · {v.days} días hábiles
+                    {dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día hábil" : "días hábiles"}
                   </p>
                 </div>
               </div>
@@ -333,11 +333,11 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                       <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} size={30} />
                       <div>
                         <p className="text-[13px] font-bold">{v.users?.full_name}</p>
-                        <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{v.start_date} → {v.end_date}</p>
+                        <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[12px] font-semibold tabular-nums" style={{ color: "var(--text-2)" }}>{v.days} días</span>
+                      <span className="text-[12px] font-semibold tabular-nums" style={{ color: "var(--text-2)" }}>{v.days} {v.days === 1 ? "día" : "días"}</span>
                       <Pill tone={VACATION_TONE[v.status]}>{v.status}</Pill>
                     </div>
                   </div>

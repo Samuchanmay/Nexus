@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { businessDaysBetween } from "@/lib/hours";
-import { seniorityLabel, shortDate } from "@/lib/tz";
+import { seniorityLabel, shortDate, dmy } from "@/lib/tz";
 import type { Vacation } from "@/lib/types";
 import { useToast, Sheet, Pill, DateRangeCalendar } from "@/components/ui";
 import { notifyAdmins } from "@/lib/notify";
@@ -118,7 +118,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
         {vacations.map((v) => (
           <div key={v.id} className="card px-5 py-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[14px] font-bold">{v.start_date} → {v.end_date}</p>
+              <p className="text-[14px] font-bold">{dmy(v.start_date)} → {dmy(v.end_date)}</p>
               <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
                 {v.days} {v.days === 1 ? "día hábil" : "días hábiles"}
                 {v.admin_note && ` · ${v.admin_note}`}

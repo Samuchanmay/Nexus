@@ -5,7 +5,7 @@ import VacAdminClient from "./client";
 export default async function VacacionesAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: vacs }, { data: team }, { data: resets }, meRes, { data: calSetting }, { data: authEmailSetting }] = await Promise.all([
+  const [{ data: vacs }, { data: team }, { data: resets }, meRes, { data: calSetting }, { data: authEmailSetting }, { data: hols }] = await Promise.all([
     supabase.from("vacations")
       .select("*, users(full_name, display_name, nexus_color)")
       .is("archived_at", null)
@@ -17,6 +17,7 @@ export default async function VacacionesAdmin() {
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
     supabase.from("app_settings").select("value").eq("key", "gcal_vacation_calendar_id").maybeSingle(),
     supabase.from("app_settings").select("value").eq("key", "vacation_authorization_email").maybeSingle(),
+    supabase.from("holidays").select("date"),
   ]);
 
   const lastResetByUser = new Map<string, { reset_at: string; days_granted: number; days_used: number; days_forfeited: number }>();
@@ -36,6 +37,7 @@ export default async function VacacionesAdmin() {
       adminId={meRes?.data?.id ?? ""}
       vacationCalendarId={calSetting?.value ?? null}
       authorizationEmail={authEmailSetting?.value ?? ""}
+      holidays={(hols ?? []).map((h) => h.date as string)}
     />
   );
 }

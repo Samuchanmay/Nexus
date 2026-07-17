@@ -146,20 +146,24 @@ export function Pill({ active, children, ...rest }: { active?: boolean; children
 /* ───────────────────────── Avatar ───────────────────────── */
 export function Avatar({ name, color, size = 34, avatarUrl }: { name: string; color?: string; size?: number; avatarUrl?: string | null }) {
   const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  // Anillo de color de usuario (mismo color en toda la app) — se aplica igual
+  // tenga foto real o solo iniciales, para que nunca falte en ningún lugar
+  // donde se use este componente (header, sidebar, notificaciones, etc.).
+  const ring = { boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "var(--accent)"}` };
   if (avatarUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={avatarUrl} alt={name} title={name}
         className="inline-block rounded-full object-cover shrink-0"
-        style={{ width: size, height: size }}
+        style={{ width: size, height: size, ...ring }}
       />
     );
   }
   return (
     <span
       className="inline-grid place-items-center rounded-full font-bold text-white shrink-0 select-none"
-      style={{ width: size, height: size, background: color ?? "var(--accent)", fontSize: size * 0.38 }}
+      style={{ width: size, height: size, background: color ?? "var(--accent)", fontSize: size * 0.38, ...ring }}
       title={name}
     >
       {initials}
