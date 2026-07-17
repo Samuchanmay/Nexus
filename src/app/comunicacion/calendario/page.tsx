@@ -40,7 +40,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
   const { data: profile } = await supabase
     .from("users").select("id, display_name").eq("auth_id", user!.id).single();
 
-  const [{ data: vacs }, { data: hols }, { data: assignments }, { data: allAssignments }] = await Promise.all([
+  const [{ data: vacs }, { data: hols }, { data: assignments }, { data: allAssignments }, { data: activitySetting }] = await Promise.all([
     supabase.from("vacations").select("start_date, end_date")
       .eq("user_id", profile!.id).eq("status", "Aprobada").is("archived_at", null)
       .lte("start_date", last).gte("end_date", first),
@@ -53,7 +53,49 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
     supabase.from("project_assignments")
       .select("projects(deadline, status, requests(title))")
       .eq("user_id", profile!.id),
+    supabase.from("app_settings").select("value").eq("key", "gcal_activity_calendar_id").maybeSingle(),
   ]);
+
+  // Eventos ya agendados en "Eventos CERT" (Google Calendar) — misma fuente
+  // que ve el admin en su Calendario, para que el colaborador vea la misma
+  // agenda del departamento, no solo sus propias fechas límite.
+  type GEvent = { id: string; title: string; start: string; end: string; allDay: boolean };
+  let gcalEvents: GEvent[] = [];
+  let gcalError: string | null = null;
+  if (activitySetting?.value) {
+    try {
+      const { data, error } = await supabase.functions.invoke("gcal-list-events", {
+        body: {
+          calendarId: activitySetting.value,
+          timeMin: `${first}T00:00:00-06:00`,
+          timeMax: `${last}T23:59:59-06:00`,
+        },
+      });
+      if (error) gcalError = `No se pudo invocar gcal-list-events: ${error.message}`;
+      else if (data?.ok) gcalEvents = data.events ?? [];
+      else gcalError = `Google Calendar no devolvió eventos (${data?.error ?? "sin detalle"})`;
+    } catch (e) {
+      gcalError = `Error inesperado leyendo Google Calendar: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+  const gcalByDate = new Map<string, GEvent[]>();
+  for (const ev of gcalEvents) {
+    const d0 = new Date(`${ev.start}T12:00:00`);
+    const dEnd = new Date(`${ev.end}T12:00:00`);
+    if (!ev.allDay) dEnd.setDate(dEnd.getDate() + 1);
+    const d = new Date(d0);
+    let guard = 0;
+    while (d < dEnd && guard < 60) {
+      const iso = d.toISOString().slice(0, 10);
+      if (iso >= first && iso <= last) {
+        const list = gcalByDate.get(iso) ?? [];
+        list.push(ev);
+        gcalByDate.set(iso, list);
+      }
+      d.setDate(d.getDate() + 1);
+      guard++;
+    }
+  }
 
   const nextActivity = (allAssignments ?? [])
     .map((a) => a.projects as unknown as { deadline: string | null; status: string; requests: { title: string } | null } | null)
@@ -124,6 +166,13 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
         </Link>
       )}
 
+      {gcalError && (
+        <div className="card px-4 py-2.5 mb-4 flex items-center gap-2 text-[12.5px]"
+          style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
+          <span>No se pudieron cargar los eventos de Google Calendar — {gcalError}</span>
+        </div>
+      )}
+
       <div className="card p-4">
         <div className="grid grid-cols-7 gap-1.5 mb-2">
           {DOW.map((d) => (
@@ -149,8 +198,31 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
                   {a.title}
                 </p>
               ))}
+              {(gcalByDate.get(c.date) ?? []).slice(0, 2).map((ev) => (
+                <p key={ev.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+                  title={`${ev.title} · Eventos CERT (Google Calendar)`}>
+                  {ev.title}
+                </p>
+              ))}
+              {(gcalByDate.get(c.date) ?? []).length > 2 && (
+                <p className="text-[9px] font-semibold" style={{ color: "var(--accent)" }}>
+                  +{(gcalByDate.get(c.date) ?? []).length - 2} evento{(gcalByDate.get(c.date) ?? []).length - 2 > 1 ? "s" : ""}
+                </p>
+              )}
             </div>
           ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Tu actividad
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--accent-tint)" }} /> Evento (Google Calendar)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3.5 h-3 rounded-full" style={{ background: "var(--purple)" }} /> Vacaciones
+          </span>
         </div>
       </div>
 

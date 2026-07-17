@@ -18,13 +18,14 @@ export type GcalEvent = { id: string; title: string; start: string; end: string;
 
 export default function CalendarioClient({
   ym, year, month, daysInMonth, today, prevHref, nextHref,
-  team, attendance, vacations, holidays, deadlines, efemerides, gcalEvents,
+  team, attendance, vacations, holidays, deadlines, efemerides, gcalEvents, gcalError,
 }: {
   ym: string; year: number; month: number; daysInMonth: number; today: string;
   prevHref: string; nextHref: string;
   team: TeamMember[]; attendance: { user_id: string; date: string }[];
   vacations: VacationRange[]; holidays: { date: string; name: string }[];
   deadlines: ProjectDeadline[]; efemerides?: string[]; gcalEvents?: GcalEvent[];
+  gcalError?: string | null;
 }) {
   const [view, setView] = useState<"Asistencia" | "Equipo">("Equipo");
 
@@ -135,6 +136,14 @@ export default function CalendarioClient({
         <div className="card px-4 py-2.5 mb-4 flex items-center gap-2 text-[12.5px]" style={{ color: "var(--text-2)" }}>
           <Icon name="calendar" size={14} aria-hidden />
           <span>Hoy también es: <strong>{efemerides.join(" · ")}</strong></span>
+        </div>
+      )}
+
+      {gcalError && (
+        <div className="card px-4 py-2.5 mb-4 flex items-center gap-2 text-[12.5px]"
+          style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
+          <Icon name="alert" size={14} aria-hidden />
+          <span>No se pudieron cargar los eventos de Google Calendar — {gcalError}</span>
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "./ui";
 import { Icon } from "./icons";
+import { useToast } from "@/components/ui";
 
 type ProfileData = {
   email: string;
@@ -46,6 +47,7 @@ export function ProfileModal({
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     let active = true;
@@ -90,15 +92,27 @@ export function ProfileModal({
     setUploading(true);
     const supabase = createClient();
     const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) { setUploading(false); return; }
+    if (!authUser) {
+      toast("No se pudo verificar tu sesión — vuelve a iniciar sesión e intenta de nuevo");
+      setUploading(false);
+      return;
+    }
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${authUser.id}/avatar.${ext}`;
     const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (!upErr) {
-      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
-      const url = `${pub.publicUrl}?t=${Date.now()}`;
-      const { error } = await supabase.from("users").update({ avatar_url: url }).eq("id", userId);
-      if (!error) set("avatar_url", url);
+    if (upErr) {
+      toast(`No se pudo subir la foto: ${upErr.message}`);
+      setUploading(false);
+      return;
+    }
+    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = `${pub.publicUrl}?t=${Date.now()}`;
+    const { error } = await supabase.from("users").update({ avatar_url: url }).eq("id", userId);
+    if (error) {
+      toast("La foto se subió pero no se pudo guardar en tu perfil — intenta de nuevo");
+    } else {
+      set("avatar_url", url);
+      toast("Foto actualizada");
     }
     setUploading(false);
   };

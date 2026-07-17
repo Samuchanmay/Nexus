@@ -34,19 +34,30 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
 
   // Eventos externos ya agendados en el calendario "Eventos CERT" (Google) —
   // incluye eventos creados directamente en Google, no solo los de Nexus.
-  // No bloquea la página si falla (calendario privado sin permiso conectado, etc.).
+  // No bloquea la página si falla (calendario privado sin permiso conectado, etc.)
+  // pero SÍ deja rastro visible del error — antes fallaba en silencio y no
+  // había forma de saber por qué dejaban de aparecer los eventos.
   let gcalEvents: { id: string; title: string; start: string; end: string; allDay: boolean }[] = [];
+  let gcalError: string | null = null;
   if (activitySetting?.value) {
     try {
-      const { data } = await supabase.functions.invoke("gcal-list-events", {
+      const { data, error } = await supabase.functions.invoke("gcal-list-events", {
         body: {
           calendarId: activitySetting.value,
           timeMin: `${first}T00:00:00-06:00`,
           timeMax: `${last}T23:59:59-06:00`,
         },
       });
-      if (data?.ok) gcalEvents = data.events ?? [];
-    } catch { /* no bloquea la página */ }
+      if (error) {
+        gcalError = `No se pudo invocar gcal-list-events: ${error.message}`;
+      } else if (data?.ok) {
+        gcalEvents = data.events ?? [];
+      } else {
+        gcalError = `Google Calendar no devolvió eventos (${data?.error ?? "sin detalle"})`;
+      }
+    } catch (e) {
+      gcalError = `Error inesperado leyendo Google Calendar: ${e instanceof Error ? e.message : String(e)}`;
+    }
   }
 
   return (
@@ -61,6 +72,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       deadlines={(projects ?? []) as unknown as ProjectDeadline[]}
       efemerides={efemerides.map((e) => e.title)}
       gcalEvents={gcalEvents}
+      gcalError={gcalError}
     />
   );
 }
