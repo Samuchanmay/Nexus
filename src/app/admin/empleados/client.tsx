@@ -158,7 +158,10 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       <div className="flex items-center gap-3">
         <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} />
         <div>
-          <p className="text-[14px] font-bold">{u.title ? `${u.title} ${u.full_name}` : u.full_name}</p>
+          <p className="text-[14px] font-bold">{u.full_name}</p>
+          {u.title && (
+            <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>{u.title}</p>
+          )}
           <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
             {u.email} · {ROLE_LABELS[u.role]}{areaName(u) && ` · ${areaName(u)}`}
             {!u.onboarded && " · Pendiente de completar perfil"}
