@@ -10,7 +10,11 @@ import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
 
-type Member = { id: string; display_name: string; nexus_color: string | null; specialties: string[] };
+type Member = { id: string; display_name: string; nexus_color: string | null; specialties: string[]; avatar_url?: string | null };
+
+const SPECIALTY_LABELS: Record<string, string> = {
+  video: "Video", fotografia: "Fotografía", diseno: "Diseño", difusion: "Difusión", redaccion: "Redacción",
+};
 
 import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
 import { requestCalendarUrl } from "@/lib/gcal";
@@ -243,10 +247,12 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                         background: included ? "var(--accent-tint)" : "var(--surface)",
                       }}
                       onClick={() => toggleAssignee(m.id)}>
-                      <Avatar name={m.display_name} color={m.nexus_color} size={30} />
+                      <Avatar name={m.display_name} color={m.nexus_color} size={30} avatarUrl={m.avatar_url} />
                       <div className="flex-1">
                         <p className="text-[13.5px] font-semibold">{m.display_name}</p>
-                        <p className="text-[11px]" style={{ color: "var(--text-3)" }}>{m.specialties.join(" · ") || "—"}</p>
+                        <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                          {m.specialties.map((s) => SPECIALTY_LABELS[s] ?? s).join(" · ") || "—"}
+                        </p>
                       </div>
                       {included && (
                         <button
