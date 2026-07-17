@@ -69,7 +69,7 @@ export async function GET(request: Request) {
                 ? new Date(Date.now() + 55 * 60 * 1000).toISOString()
                 : null,
               scope:
-                "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file",
+                "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send",
             },
             { onConflict: "user_id" },
           );

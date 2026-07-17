@@ -20,9 +20,10 @@ function LoginInner() {
       provider: "google",
       options: {
         redirectTo: `${location.origin}/auth/callback`,
-        // Pedimos permiso de Calendar y Drive (solo archivos de la app) además del login.
+        // Pedimos permiso de Calendar, Drive (solo archivos de la app) y enviar
+        // correo (gmail.send — solo enviar, nunca leer la bandeja) además del login.
         scopes:
-          "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file",
+          "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send",
         queryParams: {
           // access_type=offline + prompt=consent: así Google nos da un "permiso permanente"
           // (refresh token) que dura hasta que la persona lo revoque, en vez de uno que

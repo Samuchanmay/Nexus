@@ -4,6 +4,11 @@
 // como siempre, y (2) el correo de autorización configurable en
 // app_settings.vacation_authorization_email (para la dirección/empresa), si
 // está configurado. Se invoca desde la app tras el INSERT en vacations.
+//
+// Envía por Gmail (no Resend): usa el permiso de Google ya conectado del
+// admin (mismo mecanismo que Calendar/Drive — gmail.send, solo enviar, nunca
+// leer la bandeja), así el correo sale desde su cuenta real de Google sin
+// necesitar verificar ningún dominio con un tercero.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -31,6 +36,62 @@ function addDay(iso: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+async function getFreshAccessToken(
+  admin: ReturnType<typeof createClient>,
+  userRowId: string,
+): Promise<{ token: string } | { error: string }> {
+  const { data: row } = await admin
+    .from("google_oauth_tokens")
+    .select("refresh_token, access_token, access_token_expires_at")
+    .eq("user_id", userRowId)
+    .single();
+
+  if (!row?.refresh_token) return { error: "sin-permiso-google" };
+
+  const stillValid =
+    row.access_token &&
+    row.access_token_expires_at &&
+    new Date(row.access_token_expires_at).getTime() - Date.now() > 60_000;
+  if (stillValid) return { token: row.access_token as string };
+
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+  if (!clientId || !clientSecret) return { error: "faltan-credenciales-google" };
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: row.refresh_token as string,
+      grant_type: "refresh_token",
+    }),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.access_token) return { error: "no-se-pudo-renovar-permiso" };
+
+  await admin.from("google_oauth_tokens").update({
+    access_token: json.access_token,
+    access_token_expires_at: new Date(Date.now() + (json.expires_in ?? 3600) * 1000).toISOString(),
+  }).eq("user_id", userRowId);
+
+  return { token: json.access_token as string };
+}
+
+/** Codifica un mensaje MIME a base64url, el formato que pide la Gmail API. */
+function toBase64Url(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function encodeHeaderWord(text: string): string {
+  // RFC 2047 — necesario para acentos/ñ en el "From"/"Subject" del correo.
+  return `=?UTF-8?B?${toBase64Url(text).replace(/-/g, "+").replace(/_/g, "/")}?=`;
+}
+
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -55,6 +116,19 @@ Deno.serve(async (req) => {
       users: { full_name: string; display_name: string; email: string; area: string | null; vacation_balance: number };
     }).users;
 
+    // El correo se envía siempre desde la cuenta de Google del administrador
+    // principal (el mismo que conecta Calendar/Drive) — así sale de su
+    // dirección real sin depender de verificar un dominio con un tercero.
+    const { data: sender } = await admin.from("users")
+      .select("id, email, display_name").eq("role", "admin").eq("active", true).limit(1).maybeSingle();
+
+    const notifyFallback = (msg: string) =>
+      Response.json({ ok: false, error: msg, status: 0, detail: "" }, { headers: cors });
+
+    if (!sender) return notifyFallback("sin-admin-configurado");
+
+    const tokenResult = await getFreshAccessToken(admin, sender.id);
+
     const { data: holidayRows } = await admin.from("holidays")
       .select("date").gte("date", vac.start_date).lte("date", vac.end_date);
     const holidaySet = new Set((holidayRows ?? []).map((h) => h.date as string));
@@ -78,8 +152,27 @@ Deno.serve(async (req) => {
       .select("value").eq("key", "vacation_authorization_email").maybeSingle();
     const authEmail = settingRow?.value?.trim();
 
-    const to = Deno.env.get("NOTIFY_EMAIL") ?? "samuel.chan@cert.edu.mx";
-    const recipients = Array.from(new Set([to, ...(authEmail ? [authEmail] : [])]));
+    const to = Deno.env.get("NOTIFY_EMAIL") ?? sender.email ?? "";
+    const recipients = Array.from(new Set([to, ...(authEmail ? [authEmail] : [])].filter(Boolean)));
+
+    async function notifyFailure(reason: string) {
+      const admins = await admin.from("users").select("id").eq("role", "admin").eq("active", true);
+      for (const a of admins.data ?? []) {
+        await admin.from("notifications").insert({
+          user_id: a.id,
+          title: "No se pudo enviar el correo de solicitud de vacaciones",
+          body: `${u.display_name} · ${reason}. Reconecta tu cuenta de Google (cierra sesión y vuelve a entrar con Google) si el permiso de enviar correo expiró.`,
+          kind: "info",
+          link: "/admin/vacaciones",
+        });
+      }
+    }
+
+    if ("error" in tokenResult) {
+      console.error(`notify-vacation: sin token de Gmail — ${tokenResult.error}`);
+      await notifyFailure(tokenResult.error);
+      return notifyFallback(tokenResult.error);
+    }
 
     const excludedHtml = excluded.length
       ? excluded.map((d) => `<div>${longDate(d)}</div>`).join("")
@@ -127,18 +220,27 @@ Deno.serve(async (req) => {
         </p>
       </div>`;
 
-    const res = await fetch("https://api.resend.com/emails", {
+    const fromHeader = sender.email
+      ? `${encodeHeaderWord(sender.display_name ?? "Nexus")} <${sender.email}>`
+      : undefined;
+    const subject = `Solicitud de vacaciones --- ${u.display_name}`;
+    const mime = [
+      fromHeader ? `From: ${fromHeader}` : null,
+      `To: ${recipients.join(", ")}`,
+      `Subject: ${encodeHeaderWord(subject)}`,
+      "MIME-Version: 1.0",
+      "Content-Type: text/html; charset=UTF-8",
+      "",
+      html,
+    ].filter((l) => l !== null).join("\r\n");
+
+    const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+        Authorization: `Bearer ${tokenResult.token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: "Nexus <nexus@cert.edu.mx>",
-        to: recipients,
-        subject: `Solicitud de vacaciones --- ${u.display_name}`,
-        html,
-      }),
+      body: JSON.stringify({ raw: toBase64Url(mime) }),
     });
 
     if (res.ok) {
@@ -147,20 +249,9 @@ Deno.serve(async (req) => {
     }
 
     const errBody = await res.text();
-    console.error(`notify-vacation: Resend respondió ${res.status} — ${errBody}`);
-    // No se pudo enviar el correo — avisamos por campana para que no pase
-    // desapercibido (antes fallaba en silencio y el admin nunca se enteraba).
-    const admins = await admin.from("users").select("id").eq("role", "admin").eq("active", true);
-    for (const a of admins.data ?? []) {
-      await admin.from("notifications").insert({
-        user_id: a.id,
-        title: "No se pudo enviar el correo de solicitud de vacaciones",
-        body: `${u.display_name} · Resend respondió ${res.status}. Revisa RESEND_API_KEY y que el dominio esté verificado.`,
-        kind: "info",
-        link: "/admin/vacaciones",
-      });
-    }
-    return Response.json({ ok: false, error: "resend-error", status: res.status, detail: errBody }, { headers: cors });
+    console.error(`notify-vacation: Gmail respondió ${res.status} — ${errBody}`);
+    await notifyFailure(`Gmail respondió ${res.status}`);
+    return Response.json({ ok: false, error: "gmail-error", status: res.status, detail: errBody }, { headers: cors });
   } catch (e) {
     console.error(`notify-vacation: excepción — ${e instanceof Error ? e.message : String(e)}`);
     return Response.json({ ok: false, error: "Error del servidor" }, { status: 500, headers: cors });
