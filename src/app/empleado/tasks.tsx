@@ -33,7 +33,7 @@ const PRI_TONE: Record<string, "neutral" | "warn" | "danger"> = {
   baja: "neutral", normal: "neutral", alta: "warn", urgente: "danger",
 };
 
-export default function MiDiaClient({ profile, day, week, assignments, activityTypes, assistantMessages }: {
+export default function MiDiaClient({ profile, day, week, assignments, activityTypes, assistantMessages, highlightProjectId }: {
   profile: { id: string; displayName: string };
   day: {
     totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
@@ -43,6 +43,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
   assignments: Task[];
   activityTypes: ActivityType[];
   assistantMessages: AssistantMessage[];
+  highlightProjectId?: string | null;
 }) {
   const toast = useToast();
   const typeLabel = Object.fromEntries(activityTypes.map((t) => [t.key, t.label]));
@@ -57,6 +58,8 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
   const [openSheet, setOpenSheet] = useState(false);
   const [actForm, setActForm] = useState({ type: activityTypes[0]?.key ?? "", title: "", date: todayMerida(), minutes: "", requester: "", note: "" });
   const [saving, setSaving] = useState(false);
+  const taskRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [highlighted, setHighlighted] = useState<string | null>(highlightProjectId ?? null);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -80,6 +83,19 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
   }, [assignments, week.today]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Llegada desde una notificación ("Te asignaron un proyecto"): desplaza a la
+  // tarjeta de esa tarea en Agenda de hoy y la resalta unos segundos, en vez de
+  // dejar a la persona en el tope de la pantalla sin saber qué cambió.
+  useEffect(() => {
+    if (!highlightProjectId) return;
+    const el = taskRefs.current[highlightProjectId];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const t = setTimeout(() => setHighlighted(null), 3200);
+    router.replace("/empleado");
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightProjectId]);
 
   useEffect(() => {
     if (!activeLog) { setElapsed(0); return; }
@@ -399,8 +415,12 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
               const isActive = activeLog?.assignmentId === t.assignmentId;
               const blocked = t.blockedBy.length > 0;
               const canStart = !isActive && !activeLog && !blocked && ["aprobada", "en_progreso"].includes(t.status);
+              const isHighlighted = highlighted === t.projectId;
               return (
-                <div key={t.assignmentId} className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors">
+                <div key={t.assignmentId}
+                  ref={(el) => { taskRefs.current[t.projectId] = el; }}
+                  className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors"
+                  style={isHighlighted ? { background: "var(--accent-tint)", outline: "1.5px solid var(--accent)", outlineOffset: "-1.5px" } : undefined}>
                   <span className="grid place-items-center h-9 w-9 rounded-sm shrink-0"
                     style={{
                       background: isActive ? "var(--accent-tint)" : t.status === "en_revision" ? "var(--warn-tint)" : "var(--surface-2)",

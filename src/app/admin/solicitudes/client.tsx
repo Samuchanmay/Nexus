@@ -140,7 +140,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
 
     if (adminId) logAdminAction(supabase, adminId, "Aprobó solicitud", sel.title);
     if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue aprobada", sel.title, "request", "/coordinador");
-    for (const uid of assignees) notifyUser(supabase, uid, "Te asignaron un proyecto", sel.title, "request", "/empleado");
+    for (const uid of assignees) notifyUser(supabase, uid, "Te asignaron un proyecto", sel.title, "request", `/empleado?task=${prj.id}`);
     setSaving(false);
     setSel(null);
     toast("Proyecto creado y asignado");

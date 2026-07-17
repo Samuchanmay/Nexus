@@ -40,7 +40,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
   const { data: profile } = await supabase
     .from("users").select("id, display_name").eq("auth_id", user!.id).single();
 
-  const [{ data: vacs }, { data: hols }, { data: assignments }] = await Promise.all([
+  const [{ data: vacs }, { data: hols }, { data: assignments }, { data: allAssignments }] = await Promise.all([
     supabase.from("vacations").select("start_date, end_date")
       .eq("user_id", profile!.id).eq("status", "Aprobada").is("archived_at", null)
       .lte("start_date", last).gte("end_date", first),
@@ -48,7 +48,18 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
     supabase.from("project_assignments")
       .select("projects(deadline, status, requests(title, type))")
       .eq("user_id", profile!.id),
+    // Todas las asignaciones (sin acotar al mes en pantalla) — para el aviso
+    // de "próxima actividad", que no debe depender de qué mes se esté viendo.
+    supabase.from("project_assignments")
+      .select("projects(deadline, status, requests(title))")
+      .eq("user_id", profile!.id),
   ]);
+
+  const nextActivity = (allAssignments ?? [])
+    .map((a) => a.projects as unknown as { deadline: string | null; status: string; requests: { title: string } | null } | null)
+    .filter((p): p is { deadline: string; status: string; requests: { title: string } | null } =>
+      !!p?.deadline && p.deadline >= today && !["completada", "cancelada", "rechazada"].includes(p.status))
+    .sort((a, b) => a.deadline.localeCompare(b.deadline))[0] ?? null;
 
   const holidayOf = new Map((hols ?? []).map((h) => [h.date, h.name]));
   const onVacation = (date: string) =>
@@ -99,6 +110,19 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
           <Link href={`/empleado/calendario?m=${shiftMonth(ym, 1)}`} className="btn-secondary px-3.5 py-2 text-[13px]">→</Link>
         </div>
       </header>
+
+      {nextActivity && (nextActivity.deadline < first || nextActivity.deadline > last) && (
+        <Link href={`/empleado/calendario?m=${nextActivity.deadline.slice(0, 7)}`}
+          className="card p-4 mb-4 flex items-center justify-between gap-3 hover:bg-hover transition-colors">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Tu próxima actividad</p>
+            <p className="text-[13.5px] font-semibold truncate mt-0.5">{nextActivity.requests?.title ?? "Actividad"}</p>
+          </div>
+          <span className="text-[12.5px] font-bold shrink-0" style={{ color: "var(--accent)" }}>
+            {nextActivity.deadline.slice(8, 10)}/{nextActivity.deadline.slice(5, 7)}/{nextActivity.deadline.slice(2, 4)} →
+          </span>
+        </Link>
+      )}
 
       <div className="card p-4">
         <div className="grid grid-cols-7 gap-1.5 mb-2">

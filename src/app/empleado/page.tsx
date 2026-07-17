@@ -8,7 +8,8 @@ import { contextualMessages } from "@/lib/assistant";
 import type { AssistantTask } from "@/lib/assistant";
 
 /** Mi Día — server: junta los datos; el diseño v6 vive en el client (tasks.tsx). */
-export default async function MiDia() {
+export default async function MiDia({ searchParams }: { searchParams: Promise<{ task?: string }> }) {
+  const { task: highlightProjectId } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
@@ -111,6 +112,7 @@ export default async function MiDia() {
       assignments={tasks}
       activityTypes={activityTypes}
       assistantMessages={assistantMessages}
+      highlightProjectId={highlightProjectId ?? null}
     />
   );
 }
