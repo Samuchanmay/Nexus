@@ -49,14 +49,14 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
         },
       });
       if (error) {
-        gcalError = `No se pudo invocar gcal-list-events: ${error.message}`;
+        gcalError = "No se pudo conectar con el servidor para leer Google Calendar. Intenta recargar la página.";
       } else if (data?.ok) {
         gcalEvents = data.events ?? [];
       } else {
-        gcalError = `Google Calendar no devolvió eventos (${data?.error ?? "sin detalle"})`;
+        gcalError = data?.error ?? "Google Calendar no devolvió eventos.";
       }
-    } catch (e) {
-      gcalError = `Error inesperado leyendo Google Calendar: ${e instanceof Error ? e.message : String(e)}`;
+    } catch {
+      gcalError = "Ocurrió un error inesperado leyendo Google Calendar. Intenta recargar la página.";
     }
   }
 

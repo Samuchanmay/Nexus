@@ -71,11 +71,11 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
           timeMax: `${last}T23:59:59-06:00`,
         },
       });
-      if (error) gcalError = `No se pudo invocar gcal-list-events: ${error.message}`;
+      if (error) gcalError = "No se pudo conectar con el servidor para leer Google Calendar. Intenta recargar la página.";
       else if (data?.ok) gcalEvents = data.events ?? [];
-      else gcalError = `Google Calendar no devolvió eventos (${data?.error ?? "sin detalle"})`;
-    } catch (e) {
-      gcalError = `Error inesperado leyendo Google Calendar: ${e instanceof Error ? e.message : String(e)}`;
+      else gcalError = data?.error ?? "Google Calendar no devolvió eventos.";
+    } catch {
+      gcalError = "Ocurrió un error inesperado leyendo Google Calendar. Intenta recargar la página.";
     }
   }
   const gcalByDate = new Map<string, GEvent[]>();

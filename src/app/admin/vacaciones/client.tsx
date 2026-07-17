@@ -38,6 +38,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   const [addToCalendar, setAddToCalendar] = useState(true);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [authEmail, setAuthEmail] = useState(authorizationEmail);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const holidaySet = useMemo(() => new Set(holidays), [holidays]);
 
   // ── Editar vacación ya aprobada ──
@@ -210,7 +211,8 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const futuras = vacations.filter((v) => v.status === "Aprobada" && v.start_date > todayIso).length;
-  const criticos = team.filter((t) => t.vacation_balance <= 3).length;
+  const criticosTeam = team.filter((t) => t.vacation_balance <= 3);
+  const criticos = criticosTeam.length;
   // "Reinicia" = próximo aniversario de contratación (no la columna vacation_balance_reset,
   // que guarda la fecha del ÚLTIMO reinicio ya ocurrido, no la próxima).
   const today = todayMerida();
@@ -218,6 +220,9 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     .filter((t) => !!t.hire_date)
     .map((t) => ({ t, next: nextAnniversary(t.hire_date as string, today) }))
     .sort((a, b) => a.next.localeCompare(b.next))[0] ?? null;
+  const diasParaReinicio = proximoReinicio
+    ? Math.max(0, Math.round((new Date(proximoReinicio.next).getTime() - new Date(today).getTime()) / 86400000))
+    : null;
 
   const pending = vacations.filter((v) => v.status === "Pendiente");
   const rest = vacations.filter((v) => v.status !== "Pendiente");
@@ -260,13 +265,21 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         </div>
         <div className="card p-4 text-center">
           <p className="text-[22px] font-bold tabular-nums" style={{ color: criticos > 0 ? "var(--danger)" : undefined }}>{criticos}</p>
-          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>CRÍTICOS (≤3D)</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>SALDO BAJO (≤3 DÍAS)</p>
+          {criticos > 0 && (
+            <p className="text-[10px] mt-1 truncate" style={{ color: "var(--text-3)" }} title={criticosTeam.map((t) => t.display_name).join(", ")}>
+              {criticosTeam.slice(0, 2).map((t) => t.display_name).join(", ")}{criticos > 2 ? ` +${criticos - 2}` : ""}
+            </p>
+          )}
         </div>
         <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold truncate">{proximoReinicio ? proximoReinicio.t.display_name : "—"}</p>
-          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>
-            {proximoReinicio ? `REINICIA ${shortDate(proximoReinicio.next).toUpperCase()}` : "PRÓX. REINICIO"}
-          </p>
+          <p className="text-[22px] font-bold tabular-nums">{diasParaReinicio ?? "—"}</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>DÍAS P/PRÓX. REINICIO</p>
+          {proximoReinicio && (
+            <p className="text-[10px] mt-1 truncate" style={{ color: "var(--text-3)" }}>
+              {proximoReinicio.t.display_name} · {shortDate(proximoReinicio.next)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -380,9 +393,17 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
 
       {rest.length > 0 && (
         <>
-          <h2 className="text-[15px] font-bold mb-3">Historial</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[15px] font-bold">Historial ({rest.length})</h2>
+            {rest.length > 5 && (
+              <button className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}
+                onClick={() => setHistoryOpen((o) => !o)}>
+                {historyOpen ? "Ocultar ↑" : `Ver todo ↓`}
+              </button>
+            )}
+          </div>
           <div className="flex flex-col gap-2.5">
-            {rest.map((v) => (
+            {(historyOpen ? rest : rest.slice(0, 5)).map((v) => (
               <div key={v.id} className="card px-5 py-3.5 flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <p className="text-[13.5px] font-bold">{v.users?.display_name} · {dmy(v.start_date)} → {dmy(v.end_date)}</p>

@@ -426,11 +426,9 @@ export default async function AdminDashboard() {
       {/* Mi productividad hoy — todo lo que hice como admin también es trabajo:
           aprobar, rechazar, asignar, exportar. Cuenta para "Mi día". */}
       <Card>
-        <div className="flex items-center justify-between mb-3">
-          <SectionTitle hint={`${(myActionsToday ?? []).length} acción${(myActionsToday ?? []).length === 1 ? "" : "es"} hoy`}>
-            Mi productividad hoy
-          </SectionTitle>
-        </div>
+        <SectionTitle hint={`${(myActionsToday ?? []).length} acción${(myActionsToday ?? []).length === 1 ? "" : "es"} hoy`}>
+          Mi productividad hoy
+        </SectionTitle>
         {(myActionsToday ?? []).length === 0 ? (
           <EmptyState icon="check" title="Sin acciones registradas hoy"
             hint="Aprobar solicitudes, revisar vacaciones o exportar un reporte aparecerá aquí." />
