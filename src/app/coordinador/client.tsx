@@ -118,7 +118,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
       <>
         <header className="pt-8 pb-6">
           <h1 className="text-[27px] font-bold tracking-tight">
-            {(profile.title ? profile.title + " " : "") + profile.display_name} <span className="wave-emoji">👋</span>
+            {(profile.honorific ? profile.honorific + " " : "") + profile.display_name} <span className="wave-emoji">👋</span>
           </h1>
           <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
             {areaLabel} · Solicita apoyo del equipo de Comunicación
@@ -290,7 +290,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
               <p><span style={{ color: "var(--text-3)" }}>Fecha:</span> {form.date}{form.time && ` · ${form.time}`}</p>
               {form.location && <p><span style={{ color: "var(--text-3)" }}>Lugar:</span> {form.location}</p>}
               {form.notes && <p><span style={{ color: "var(--text-3)" }}>Detalles:</span> {form.notes}</p>}
-              <p><span style={{ color: "var(--text-3)" }}>Solicita:</span> {(profile.title ? profile.title + " " : "") + profile.full_name} · {areaLabel}</p>
+              <p><span style={{ color: "var(--text-3)" }}>Solicita:</span> {(profile.honorific ? profile.honorific + " " : "") + profile.full_name} · {areaLabel}</p>
             </div>
           </div>
           <div className="rounded-sm px-4 py-3 text-[12.5px] flex items-center gap-2"

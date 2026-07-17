@@ -43,7 +43,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    email: "", full_name: "", display_name: "", title: "", hire_date: "", role: "empleado",
+    email: "", full_name: "", display_name: "", title: "", honorific: "", hire_date: "", role: "empleado",
     area: "", area_id: "", color: COLORS[4], specialties: [] as string[],
     start: "09:00", end: "18:00", targetHours: "8", balance: "0",
   });
@@ -51,7 +51,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({
     role: "empleado", area_id: "", balance: "0", daysPerYear: "0",
-    fullName: "", displayName: "", title: "", hireDate: "", birthDate: "",
+    fullName: "", displayName: "", title: "", honorific: "", hireDate: "", birthDate: "",
   });
   const [editSaving, setEditSaving] = useState(false);
 
@@ -81,6 +81,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       specialties: isEquipo ? form.specialties : [],
       vacation_balance: parseInt(form.balance) || 0,
       title: form.title.trim() || null,
+      honorific: form.honorific.trim() || null,
       hire_date: form.hire_date || null,
     }).select("id").single();
     if (error || !u) {
@@ -114,6 +115,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       role: u.role, area_id: u.area_id ?? "",
       balance: String(u.vacation_balance ?? 0), daysPerYear: String(u.vacation_days_per_year ?? 0),
       fullName: u.full_name ?? "", displayName: u.display_name ?? "", title: u.title ?? "",
+      honorific: u.honorific ?? "",
       hireDate: u.hire_date ?? "", birthDate: u.birth_date ?? "",
     });
   };
@@ -133,6 +135,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       full_name: editForm.fullName.trim() || editing.full_name,
       display_name: editForm.displayName.trim() || editing.display_name,
       title: editForm.title.trim() || null,
+      honorific: editForm.honorific.trim() || null,
       hire_date: editForm.hireDate || null,
       birth_date: editForm.birthDate || null,
     }).eq("id", editing.id);
@@ -158,7 +161,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       <div className="flex items-center gap-3">
         <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} />
         <div>
-          <p className="text-[14px] font-bold">{u.full_name}</p>
+          <p className="text-[14px] font-bold">{u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}</p>
           {u.title && (
             <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>{u.title}</p>
           )}
@@ -253,10 +256,17 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
           </div>
 
           {!isEquipo && (
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
-              <input className="field-input" placeholder="Ej. Coordinador de Video"
-                value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
+                <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
+                  value={form.honorific} onChange={(e) => setForm({ ...form, honorific: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
+                  value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </div>
             </div>
           )}
 
@@ -383,10 +393,17 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
                   onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} />
               </div>
             </div>
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
-              <input className="field-input" placeholder="Ej. Coordinador de Video"
-                value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
+                <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
+                  value={editForm.honorific} onChange={(e) => setEditForm({ ...editForm, honorific: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
+                  value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <div>

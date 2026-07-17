@@ -8,7 +8,7 @@ export default async function Solicitudes() {
   const { data: { user } } = await supabase.auth.getUser();
   const [{ data: reqs }, { data: team }, { data: types }, meRes, { data: calSetting }] = await Promise.all([
     supabase.from("requests")
-      .select("*, users:requester_id(full_name, title)")
+      .select("*, users:requester_id(full_name, title, honorific)")
       .order("created_at", { ascending: false }),
     supabase.from("users").select("id, display_name, nexus_color, specialties")
       .eq("active", true).in("role", ["admin", "empleado"]),

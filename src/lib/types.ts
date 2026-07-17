@@ -11,6 +11,7 @@ export interface UserProfile {
   role: Role;
   requester_kind: "coordinador" | "departamento" | null;
   title: string | null;
+  honorific: string | null;
   nexus_clave: string | null;
   nexus_color: string | null;
   specialties: string[];
@@ -116,7 +117,7 @@ export interface CommRequest {
   rejection_reason: string | null;
   min_hours_required: number;
   created_at: string;
-  users?: { full_name: string; title: string | null };
+  users?: { full_name: string; title: string | null; honorific: string | null };
 }
 
 /** Construye {clave: etiqueta} a partir del catálogo real (activity_types). */

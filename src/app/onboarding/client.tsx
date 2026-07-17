@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
 import { IconGrid, IconCheck } from "@/components/icons";
 
-const TITLES = ["Dr.", "Dra.", "Mtro.", "Mtra.", "Otro"];
+const HONORIFICS = ["Dr.", "Dra.", "Mtro.", "Mtra.", "Lic.", "Ing.", "Otro"];
 
 const AREA_LABEL: Record<string, string> = {
   coordinacion: "tu coordinación",
@@ -16,15 +16,17 @@ export default function OnboardingClient({
   profile, areas, redirectTo,
 }: { profile: UserProfile; areas: Department[]; redirectTo: string }) {
   const router = useRouter();
+  const isEquipo = profile.role === "empleado";
   const [displayName, setDisplayName] = useState(profile.display_name || profile.full_name.split(" ")[0]);
-  const [title, setTitle] = useState(profile.title ?? "");
+  const [honorific, setHonorific] = useState(profile.honorific ?? "");
+  const [roleTitle, setRoleTitle] = useState(profile.title ?? "");
   const [areaId, setAreaId] = useState(profile.area_id ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const needsArea = areas.length > 0;
   const areaTipoLabel = areas[0] ? AREA_LABEL[areas[0].tipo] : "tu área";
-  const canSave = displayName.trim().length > 0 && title !== "" && (!needsArea || areaId !== "");
+  const canSave = displayName.trim().length > 0 && (isEquipo || honorific !== "") && (!needsArea || areaId !== "");
 
   const save = async () => {
     setError("");
@@ -36,7 +38,8 @@ export default function OnboardingClient({
 
     const { error: err } = await supabase.from("users").update({
       display_name: displayName.trim(),
-      title,
+      honorific: isEquipo ? null : (honorific || null),
+      title: roleTitle.trim() || null,
       area_id: needsArea ? areaId : profile.area_id,
       onboarded: true,
     }).eq("auth_id", user.id);
@@ -67,21 +70,32 @@ export default function OnboardingClient({
               onChange={(e) => setDisplayName(e.target.value)} placeholder="Tu nombre" />
           </div>
 
+          {!isEquipo && (
+            <div>
+              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                Rango académico
+              </label>
+              <div className="flex gap-1.5 flex-wrap">
+                {HONORIFICS.map((t) => (
+                  <button key={t} type="button" onClick={() => setHonorific(t)}
+                    className="px-3.5 py-2 rounded-full text-[13px] font-semibold"
+                    style={honorific === t
+                      ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
+                      : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-              Rango académico
+              Tu cargo o rol (opcional)
             </label>
-            <div className="flex gap-1.5 flex-wrap">
-              {TITLES.map((t) => (
-                <button key={t} type="button" onClick={() => setTitle(t)}
-                  className="px-3.5 py-2 rounded-full text-[13px] font-semibold"
-                  style={title === t
-                    ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
-                    : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-                  {t}
-                </button>
-              ))}
-            </div>
+            <input className="field-input" value={roleTitle}
+              onChange={(e) => setRoleTitle(e.target.value)}
+              placeholder={isEquipo ? "Ej. Productor Multimedia" : "Ej. Coordinador en Enfermería y Nutrición"} />
           </div>
 
           {needsArea && (

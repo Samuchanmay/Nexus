@@ -196,7 +196,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                 </div>
                 <h3 className="text-[15.5px] font-bold leading-snug">{r.title}</h3>
                 <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
-                  {(r.users?.title ? r.users.title + " " : "") + (r.users?.full_name ?? r.requester_name ?? "Solicitante")}
+                  {(r.users?.honorific ? r.users.honorific + " " : "") + (r.users?.full_name ?? r.requester_name ?? "Solicitante")}
                   {r.event_date && ` · evento ${r.event_date}${r.event_time ? " " + r.event_time.slice(0, 5) : ""}`}
                   {r.event_location && ` · ${r.event_location}`}
                 </p>
