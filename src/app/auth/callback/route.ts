@@ -74,6 +74,23 @@ export async function GET(request: Request) {
             { onConflict: "user_id" },
           );
         }
+
+        // Foto de perfil de Google: la tomamos de la cuenta con la que
+        // inició sesión (aplica a todos los roles — antes NINGUNO la
+        // tomaba automáticamente, solo se podía subir a mano en "Mi
+        // perfil"). Solo la llenamos si todavía no tiene una foto
+        // guardada, para no pisar una foto que la persona ya subió a mano.
+        const googlePicture =
+          (user.user_metadata as Record<string, unknown> | undefined)?.avatar_url ??
+          (user.user_metadata as Record<string, unknown> | undefined)?.picture ??
+          null;
+        if (googlePicture && admin) {
+          await admin
+            .from("users")
+            .update({ avatar_url: googlePicture as string })
+            .eq("id", profile.id)
+            .is("avatar_url", null);
+        }
       }
       return NextResponse.redirect(origin);
     }
