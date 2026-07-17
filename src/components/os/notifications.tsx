@@ -161,6 +161,13 @@ export function NotificationBell({ userId }: { userId: string }) {
     await createClient().from("notifications").update({ read: true }).in("id", ids);
   };
 
+  // Borrar una notificación puntual (botón × en cada fila) — optimista,
+  // con RLS (nt_own) ya limitando a que cada quien solo borre lo suyo.
+  const removeOne = async (id: string) => {
+    setItems((cur) => cur.filter((n) => n.id !== id));
+    await createClient().from("notifications").delete().eq("id", id);
+  };
+
   return (
     <div className="relative" ref={wrapRef}>
       <div className="relative">
@@ -292,32 +299,41 @@ export function NotificationBell({ userId }: { userId: string }) {
                       if (n.link) { setOpen(false); router.push(n.link); }
                     };
                     return (
-                      <button
+                      <div
                         key={n.id}
-                        onClick={goTo}
                         className={cx(
-                          "w-full flex items-center gap-3 px-5 py-3.5 text-left border-b border-border last:border-b-0 transition-colors hover:bg-hover",
+                          "w-full flex items-center gap-1 pl-5 pr-2.5 py-3.5 border-b border-border last:border-b-0 transition-colors",
                           n.read && "opacity-55"
                         )}
                         style={!n.read ? { background: "var(--accent-tint)" } : undefined}
                       >
-                        <span className="w-9 h-9 rounded-full grid place-items-center shrink-0"
-                          style={{
-                            background: `color-mix(in srgb, ${meta.color} 16%, transparent)`,
-                            color: meta.color,
-                          }}>
-                          <Icon name={meta.icon} size={17} />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="flex items-center gap-1.5">
-                            <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
-                            {!n.read && <span className="h-[6px] w-[6px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
+                        <button onClick={goTo} className="flex-1 min-w-0 flex items-center gap-3 text-left hover:opacity-80 transition-opacity">
+                          <span className="w-9 h-9 rounded-full grid place-items-center shrink-0"
+                            style={{
+                              background: `color-mix(in srgb, ${meta.color} 16%, transparent)`,
+                              color: meta.color,
+                            }}>
+                            <Icon name={meta.icon} size={17} />
                           </span>
-                          {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
-                          <span className="block text-[10.5px] text-text-3 mt-1 font-medium">{timeAgo(n.created_at)}</span>
-                        </span>
-                        {n.link && <Icon name="chevron" size={14} className="shrink-0 text-text-3" />}
-                      </button>
+                          <span className="flex-1 min-w-0">
+                            <span className="flex items-center gap-1.5">
+                              <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
+                              {!n.read && <span className="h-[6px] w-[6px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
+                            </span>
+                            {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
+                            <span className="block text-[10.5px] text-text-3 mt-1 font-medium">{timeAgo(n.created_at)}</span>
+                          </span>
+                          {n.link && <Icon name="chevron" size={14} className="shrink-0 text-text-3" />}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeOne(n.id); }}
+                          aria-label="Eliminar notificación"
+                          className="shrink-0 w-7 h-7 rounded-full grid place-items-center"
+                          style={{ color: "var(--text-3)" }}
+                        >
+                          <Icon name="close" size={12} />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
