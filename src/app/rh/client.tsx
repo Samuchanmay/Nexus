@@ -33,7 +33,7 @@ function printIndividualReport(m: Member, vacs: Vacation[]) {
   const pctUsed = total > 0 ? Math.round((used / total) * 100) : 0;
   const mine = vacs.filter((v) => v.user_id === m.id && v.status !== "Rechazada").sort((a, b) => b.start_date.localeCompare(a.start_date));
   const rows = mine.map((v) =>
-    `<tr><td>${v.start_date} &rarr; ${v.end_date}</td><td>${v.days} d&iacute;as</td><td>${v.status}</td></tr>`).join("");
+    `<tr><td>${dmy(v.start_date)} &rarr; ${dmy(v.end_date)}</td><td>${v.days} d&iacute;as</td><td>${v.status}</td></tr>`).join("");
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte — ${m.full_name}</title>
     <style>
       body{font-family:-apple-system,Arial,sans-serif;color:#1D1D1F;margin:32px;}

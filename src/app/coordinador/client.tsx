@@ -289,7 +289,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
             </div>
             <p className="text-[16px] font-bold mb-3">{form.title}</p>
             <div className="flex flex-col gap-1.5 text-[13px]">
-              <p><span style={{ color: "var(--text-3)" }}>Fecha:</span> {form.date}{form.time && ` · ${form.time}`}</p>
+              <p><span style={{ color: "var(--text-3)" }}>Fecha:</span> {form.date ? dmy(form.date) : "—"}{form.time && ` · ${fmtTime(form.time)}`}</p>
               {form.location && <p><span style={{ color: "var(--text-3)" }}>Lugar:</span> {form.location}</p>}
               {form.notes && <p><span style={{ color: "var(--text-3)" }}>Detalles:</span> {form.notes}</p>}
               <p><span style={{ color: "var(--text-3)" }}>Solicita:</span> {(profile.honorific ? profile.honorific + " " : "") + profile.full_name} · {areaLabel}</p>

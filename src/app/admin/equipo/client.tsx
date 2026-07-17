@@ -11,6 +11,7 @@ import { Icon } from "@/components/os/icons";
 import { PageHeader } from "@/components/shared";
 import { PRIORITY_TONE, KIND_LABELS, INCIDENT_TONE } from "@/lib/ui-maps";
 import { fmtMin, fmtTime } from "@/lib/hours";
+import { dmy } from "@/lib/tz";
 import type { Priority, RequestType, Incident } from "@/lib/types";
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -178,7 +179,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                   <div className="flex flex-col gap-1.5">
                     {sel.upcomingVacs.map((v, i) => (
                       <div key={i} className="flex items-center justify-between text-[13px]">
-                        <span className="tabular-nums">{v.start_date} → {v.end_date}</span>
+                        <span className="tabular-nums">{dmy(v.start_date)} → {dmy(v.end_date)}</span>
                         <Pill tone={v.status === "Aprobada" ? "ok" : "warn"}>{v.status}</Pill>
                       </div>
                     ))}
@@ -195,7 +196,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                 <div className="flex flex-col gap-1.5">
                   {sel.pendingIncs.map((inc, i) => (
                     <div key={i} className="flex items-center justify-between text-[13px]">
-                      <span>{KIND_LABELS[inc.kind]} · <span className="tabular-nums">{inc.start_date}{inc.end_date !== inc.start_date ? ` → ${inc.end_date}` : ""}</span></span>
+                      <span>{KIND_LABELS[inc.kind]} · <span className="tabular-nums">{dmy(inc.start_date)}{inc.end_date !== inc.start_date ? ` → ${dmy(inc.end_date)}` : ""}</span></span>
                       <Pill tone={INCIDENT_TONE[inc.status]}>{inc.status}</Pill>
                     </div>
                   ))}

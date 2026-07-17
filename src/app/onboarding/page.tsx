@@ -9,7 +9,7 @@ function roleHome(role: string) {
     case "rh": return "/rh";
     case "coordinador":
     case "departamento": return "/coordinador";
-    default: return "/empleado";
+    default: return "/comunicacion";
   }
 }
 

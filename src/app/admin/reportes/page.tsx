@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { typeLabels } from "@/lib/types";
 import type { ActivityType, RequestStatus } from "@/lib/types";
-import { seniorityLabel, todayMerida } from "@/lib/tz";
+import { seniorityLabel, todayMerida, dmy } from "@/lib/tz";
 import { STATUS_TONE } from "@/lib/ui-maps";
 import { PrintButton } from "./print-button";
 import { CsvLink } from "./csv-link";
@@ -147,7 +147,7 @@ export default async function Reportes() {
       total,
       pctUsed,
       seniority: seniorityLabel(t.hire_date) ?? "—",
-      next: next ? `${next.start_date} → ${next.end_date}` : "—",
+      next: next ? `${dmy(next.start_date)} → ${dmy(next.end_date)}` : "—",
     };
   });
   return (

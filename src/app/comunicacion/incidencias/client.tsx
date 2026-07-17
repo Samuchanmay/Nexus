@@ -7,6 +7,7 @@ import { useToast, Sheet, Pill } from "@/components/ui";
 import { IconPlus, IconAlert } from "@/components/icons";
 
 import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
+import { dmy } from "@/lib/tz";
 
 export default function IncidenciasClient({ userId, incidents }: { userId: string; incidents: Incident[] }) {
   const toast = useToast();
@@ -62,7 +63,7 @@ export default function IncidenciasClient({ userId, incidents }: { userId: strin
             <div>
               <p className="text-[14px] font-bold">{KIND_LABELS[i.kind]}</p>
               <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
-                {i.start_date}{i.end_date !== i.start_date && ` → ${i.end_date}`}
+                {dmy(i.start_date)}{i.end_date !== i.start_date && ` → ${dmy(i.end_date)}`}
                 {i.note && ` · ${i.note}`}
               </p>
             </div>

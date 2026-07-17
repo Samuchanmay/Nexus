@@ -88,7 +88,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     if (ok) {
       if (adminId) logAdminAction(createClient(), adminId, "Editó vacación", target.users?.display_name ?? undefined);
       notifyUser(createClient(), target.user_id, "Se actualizaron las fechas de tu vacación",
-        `${dmy(editStart)} → ${dmy(editEnd)} · ${editDays} ${editDays === 1 ? "día" : "días"} hábiles`, "vacation", "/empleado/vacaciones");
+        `${dmy(editStart)} → ${dmy(editEnd)} · ${editDays} ${editDays === 1 ? "día" : "días"} hábiles`, "vacation", "/comunicacion/vacaciones");
       setEditTarget(null);
     }
   };
@@ -130,7 +130,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     }, { ok: "Vacación registrada" });
     if (ok) {
       if (adminId) logAdminAction(createClient(), adminId, "Registró vacación directa", regUser?.display_name ?? undefined);
-      notifyUser(createClient(), uid, "Se te registró un periodo de vacaciones", `${dmy(s)} → ${dmy(e)} · ${d} ${d === 1 ? "día" : "días"} hábiles`, "vacation", "/empleado/vacaciones");
+      notifyUser(createClient(), uid, "Se te registró un periodo de vacaciones", `${dmy(s)} → ${dmy(e)} · ${d} ${d === 1 ? "día" : "días"} hábiles`, "vacation", "/comunicacion/vacaciones");
       setRegUserId(""); setRegStart(null); setRegEnd(null);
     }
   };
@@ -202,8 +202,8 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           target.users?.display_name ?? undefined);
       }
       notifyUser(createClient(), target.user_id,
-        status === "Aprobada" ? "Tu solicitud de vacaciones fue aprobada" : "Tu solicitud de vacaciones fue rechazada",
-        `${target.start_date} al ${target.end_date}${note ? " — " + note : ""}`, "vacation", "/empleado/vacaciones");
+        status === "Aprobada" ? "Vacaciones aprobadas — ¡disfrútalas!" : "Tu solicitud de vacaciones fue rechazada",
+        `${dmy(target.start_date)} al ${dmy(target.end_date)}${note ? " — " + note : ""}`, "vacation", "/comunicacion/vacaciones");
       setSel(null); setNote("");
     }
   };

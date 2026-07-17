@@ -315,7 +315,7 @@ export default async function AdminDashboard() {
             <Link href="/fichar" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-sm text-[14px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
               Comenzar jornada
             </Link>
-            <Link href="/empleado" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-sm text-[14px] font-semibold bg-surface-2 text-text-1 border border-border hover:bg-hover transition-all duration-150">
+            <Link href="/comunicacion" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-sm text-[14px] font-semibold bg-surface-2 text-text-1 border border-border hover:bg-hover transition-all duration-150">
               Mis actividades
             </Link>
           </div>

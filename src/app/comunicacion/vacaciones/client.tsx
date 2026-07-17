@@ -160,7 +160,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
             <div className="rounded-sm px-4 py-3 text-[12.5px]" style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
               <p className="font-semibold mb-1">Se cruza con otra solicitud tuya:</p>
               {overlaps.map((v) => (
-                <p key={v.id}>{v.start_date} → {v.end_date} ({v.status})</p>
+                <p key={v.id}>{dmy(v.start_date)} → {dmy(v.end_date)} ({v.status})</p>
               ))}
             </div>
           )}

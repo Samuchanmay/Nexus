@@ -16,6 +16,6 @@ export default async function Home() {
     case "rh": redirect("/rh");
     case "coordinador":
     case "departamento": redirect("/coordinador");
-    default: redirect("/empleado");
+    default: redirect("/comunicacion");
   }
 }

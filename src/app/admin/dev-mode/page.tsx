@@ -43,11 +43,11 @@ const GROUPS: Group[] = [
     label: "Colaborador (empleado)",
     note: "Verás tu propia jornada/vacaciones de admin, no las de un colaborador real.",
     items: [
-      { href: "/empleado", title: "Mi día", desc: "Vista de tareas del colaborador.", icon: "home" },
-      { href: "/empleado/vacaciones", title: "Solicitar vacaciones", desc: "Formulario de solicitud, con traslapes.", icon: "plane" },
-      { href: "/empleado/calendario", title: "Mi calendario", desc: "Fechas límite, vacaciones, inhábiles.", icon: "calendar" },
-      { href: "/empleado/incidencias", title: "Mis incidencias", desc: "Registrar permisos/incapacidades.", icon: "alert" },
-      { href: "/empleado/jornada", title: "Mi jornada", desc: "Estado de jornada en vivo.", icon: "clock" },
+      { href: "/comunicacion", title: "Mi día", desc: "Vista de tareas del colaborador.", icon: "home" },
+      { href: "/comunicacion/vacaciones", title: "Solicitar vacaciones", desc: "Formulario de solicitud, con traslapes.", icon: "plane" },
+      { href: "/comunicacion/calendario", title: "Mi calendario", desc: "Fechas límite, vacaciones, inhábiles.", icon: "calendar" },
+      { href: "/comunicacion/incidencias", title: "Mis incidencias", desc: "Registrar permisos/incapacidades.", icon: "alert" },
+      { href: "/comunicacion/jornada", title: "Mi jornada", desc: "Estado de jornada en vivo.", icon: "clock" },
     ],
   },
   {

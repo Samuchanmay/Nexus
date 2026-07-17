@@ -270,7 +270,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                       <div className="min-w-0">
                         <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
                         <p className="text-[10px] tabular-nums" style={{ color: "var(--text-3)" }}>
-                          {schedule.start_time.slice(0, 5)}–{schedule.end_time.slice(0, 5)}
+                          {fmtTime(schedule.start_time)}–{fmtTime(schedule.end_time)}
                         </p>
                       </div>
                     </div>
@@ -287,7 +287,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                       {segs.map((s, i) => (
                         <div key={i}
                           className="absolute top-[5px] bottom-[5px] rounded-[6px]"
-                          title={`${s.kind === "presente" ? "Presente" : "Fuera"} · ${String(Math.floor(s.from / 60)).padStart(2, "0")}:${String(s.from % 60).padStart(2, "0")}–${String(Math.floor(s.to / 60)).padStart(2, "0")}:${String(s.to % 60).padStart(2, "0")}`}
+                          title={`${s.kind === "presente" ? "Presente" : "Fuera"} · ${fmtTime(`${String(Math.floor(s.from / 60)).padStart(2, "0")}:${String(s.from % 60).padStart(2, "0")}`)}–${fmtTime(`${String(Math.floor(s.to / 60)).padStart(2, "0")}:${String(s.to % 60).padStart(2, "0")}`)}`}
                           style={{
                             left: `${pct(s.from)}%`,
                             width: `${Math.max(0.6, pct(s.to) - pct(s.from))}%`,
@@ -301,7 +301,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                       {/* Marcadores de fichaje */}
                       {day.movements.map((m) => (
                         <div key={m.id} className="absolute top-0 bottom-0 w-px"
-                          title={`${m.reason} · ${m.time.slice(0, 5)}`}
+                          title={`${m.reason} · ${fmtTime(m.time)}`}
                           style={{ left: `${pct(toMin(m.time))}%`, background: "var(--border-2)" }} />
                       ))}
                     </div>

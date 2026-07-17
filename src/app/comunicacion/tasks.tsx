@@ -92,7 +92,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
     const el = taskRefs.current[highlightProjectId];
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     const t = setTimeout(() => setHighlighted(null), 3200);
-    router.replace("/empleado");
+    router.replace("/comunicacion");
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightProjectId]);

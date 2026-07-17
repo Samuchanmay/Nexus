@@ -9,6 +9,7 @@ import { IconPlus } from "@/components/icons";
 import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
 import { notifyUser } from "@/lib/notify";
+import { dmy } from "@/lib/tz";
 
 export default function IncAdminClient({ incidents, team, adminId }: {
   incidents: Incident[]; team: { id: string; display_name: string }[]; adminId: string;
@@ -35,7 +36,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
     if (error) { toast("No se pudo registrar"); return; }
     const person = team.find((t) => t.id === form.userId);
     if (adminId) logAdminAction(supabase, adminId, "Registró incidencia manual", `${person?.display_name ?? ""} · ${KIND_LABELS[form.kind as keyof typeof KIND_LABELS]}`);
-    notifyUser(supabase, form.userId, "Se registró una incidencia", KIND_LABELS[form.kind as keyof typeof KIND_LABELS], "incident", "/empleado/incidencias");
+    notifyUser(supabase, form.userId, "Se registró una incidencia", KIND_LABELS[form.kind as keyof typeof KIND_LABELS], "incident", "/comunicacion/incidencias");
     setOpen(false);
     setForm({ userId: "", kind: "permiso", start: "", end: "", note: "" });
     toast("Incidencia registrada");
@@ -53,7 +54,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
     if (ok && target) {
       notifyUser(createClient(), target.user_id,
         status === "Autorizado" ? "Tu incidencia fue autorizada" : "Tu incidencia fue rechazada",
-        KIND_LABELS[target.kind], "incident", "/empleado/incidencias");
+        KIND_LABELS[target.kind], "incident", "/comunicacion/incidencias");
     }
   };
 
@@ -86,7 +87,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
             <div>
               <p className="text-[14px] font-bold">{i.users?.full_name} · {KIND_LABELS[i.kind]}</p>
               <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>
-                {i.start_date}{i.end_date !== i.start_date && ` → ${i.end_date}`}
+                {dmy(i.start_date)}{i.end_date !== i.start_date && ` → ${dmy(i.end_date)}`}
                 {i.note && ` · ${i.note}`}
               </p>
             </div>
@@ -115,7 +116,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
                 <div>
                   <p className="text-[13.5px] font-bold">{i.users?.display_name} · {KIND_LABELS[i.kind]}</p>
                   <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
-                    {i.start_date}{i.end_date !== i.start_date && ` → ${i.end_date}`}
+                    {dmy(i.start_date)}{i.end_date !== i.start_date && ` → ${dmy(i.end_date)}`}
                   </p>
                 </div>
                 <Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill>

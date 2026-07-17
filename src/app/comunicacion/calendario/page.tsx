@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { todayMerida, isoWeekday, addDays } from "@/lib/tz";
+import { todayMerida, isoWeekday, addDays, dmy } from "@/lib/tz";
 
 /* ═══════════════════════════════════════════════════════════════
    Calendario personal del colaborador — vista de mes con:
@@ -105,14 +105,14 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/empleado/calendario?m=${shiftMonth(ym, -1)}`} className="btn-secondary px-3.5 py-2 text-[13px]">←</Link>
-          <Link href="/empleado/calendario" className="btn-secondary px-3.5 py-2 text-[13px]">Hoy</Link>
-          <Link href={`/empleado/calendario?m=${shiftMonth(ym, 1)}`} className="btn-secondary px-3.5 py-2 text-[13px]">→</Link>
+          <Link href={`/comunicacion/calendario?m=${shiftMonth(ym, -1)}`} className="btn-secondary px-3.5 py-2 text-[13px]">←</Link>
+          <Link href="/comunicacion/calendario" className="btn-secondary px-3.5 py-2 text-[13px]">Hoy</Link>
+          <Link href={`/comunicacion/calendario?m=${shiftMonth(ym, 1)}`} className="btn-secondary px-3.5 py-2 text-[13px]">→</Link>
         </div>
       </header>
 
       {nextActivity && (nextActivity.deadline < first || nextActivity.deadline > last) && (
-        <Link href={`/empleado/calendario?m=${nextActivity.deadline.slice(0, 7)}`}
+        <Link href={`/comunicacion/calendario?m=${nextActivity.deadline.slice(0, 7)}`}
           className="card p-4 mb-4 flex items-center justify-between gap-3 hover:bg-hover transition-colors">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Tu próxima actividad</p>
@@ -161,7 +161,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
             {(hols ?? []).map((h) => (
               <div key={h.date} className="flex items-center justify-between text-[13px]">
                 <span className="font-semibold">{h.name}</span>
-                <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{h.date}</span>
+                <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{dmy(h.date)}</span>
               </div>
             ))}
           </div>

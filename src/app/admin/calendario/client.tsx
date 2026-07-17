@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Avatar, SlidingSegments } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
+import { dmy } from "@/lib/tz";
 
 export type TeamMember = { id: string; display_name: string; nexus_color: string | null; avatar_url?: string | null };
 export type VacationRange = { user_id: string; start_date: string; end_date: string };
@@ -43,12 +44,12 @@ export default function CalendarioClient({
   const grid = useMemo(() => team.map((u) => {
     const cells: Cell[] = days.map((d) => {
       const onVac = vacations.some((v) => v.user_id === u.id && v.start_date <= d.date && v.end_date >= d.date);
-      if (onVac) return { kind: "vacacion", tip: `${d.date} · Vacaciones` };
-      if (d.holiday) return { kind: "inhabil", tip: `${d.date} · ${d.holiday}` };
-      if (d.isWeekend) return { kind: "off", tip: `${d.date} · Fin de semana` };
-      if (attSet.has(`${u.id}|${d.date}`)) return { kind: "fichaje", tip: `${d.date} · Con registro` };
-      if (d.date > today) return { kind: "futuro", tip: d.date };
-      return { kind: "sin", tip: `${d.date} · Sin registro (informativo)` };
+      if (onVac) return { kind: "vacacion", tip: `${dmy(d.date)} · Vacaciones` };
+      if (d.holiday) return { kind: "inhabil", tip: `${dmy(d.date)} · ${d.holiday}` };
+      if (d.isWeekend) return { kind: "off", tip: `${dmy(d.date)} · Fin de semana` };
+      if (attSet.has(`${u.id}|${d.date}`)) return { kind: "fichaje", tip: `${dmy(d.date)} · Con registro` };
+      if (d.date > today) return { kind: "futuro", tip: dmy(d.date) };
+      return { kind: "sin", tip: `${dmy(d.date)} · Sin registro (informativo)` };
     });
     const habiles = cells.filter((c) => c.kind === "fichaje" || c.kind === "sin").length;
     const conRegistro = cells.filter((c) => c.kind === "fichaje").length;
@@ -291,7 +292,7 @@ export default function CalendarioClient({
             {holidays.map((h) => (
               <div key={h.date} className="flex items-center justify-between text-[13px]">
                 <span className="font-semibold">{h.name}</span>
-                <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{h.date}</span>
+                <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{dmy(h.date)}</span>
               </div>
             ))}
           </div>
