@@ -20,7 +20,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   vacations: Vacation[];
   team: {
     id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null;
-    vacation_balance_reset: string | null;
+    vacation_balance_reset: string | null; avatar_url?: string | null;
     lastReset: { reset_at: string; days_granted: number; days_used: number; days_forfeited: number } | null;
   }[];
   adminId: string;
@@ -316,7 +316,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           const seniority = seniorityLabel(t.hire_date);
           return (
             <div key={t.id} className="card p-4 flex items-center gap-2.5">
-              <Avatar name={t.display_name} color={t.nexus_color} size={32} />
+              <Avatar name={t.display_name} color={t.nexus_color} size={32} avatarUrl={t.avatar_url} />
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-bold truncate">{t.display_name}</p>
                 <div className="flex items-center gap-2.5 mt-0.5">
@@ -350,7 +350,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         {pending.map((v) => (
           <div key={v.id} className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} size={34} />
+              <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} size={34} avatarUrl={v.users?.avatar_url} />
               <div>
                 <p className="text-[14px] font-bold">{v.users?.full_name}</p>
                 <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>

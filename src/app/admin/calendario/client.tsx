@@ -5,7 +5,7 @@ import { Avatar, SlidingSegments } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
 
-export type TeamMember = { id: string; display_name: string; nexus_color: string | null };
+export type TeamMember = { id: string; display_name: string; nexus_color: string | null; avatar_url?: string | null };
 export type VacationRange = { user_id: string; start_date: string; end_date: string };
 export type ProjectDeadline = {
   id: string; deadline: string; status: string;
@@ -162,7 +162,7 @@ export default function CalendarioClient({
               <div key={u.id} className="flex items-center gap-3 py-2.5"
                 style={{ borderBottom: "0.5px solid var(--border)" }}>
                 <div className="flex items-center gap-2.5 w-[150px] shrink-0">
-                  <Avatar name={u.display_name} color={u.nexus_color} size={28} />
+                  <Avatar name={u.display_name} color={u.nexus_color} size={28} avatarUrl={u.avatar_url} />
                   <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
                 </div>
                 <div className="flex-1 grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${daysInMonth}, minmax(0,1fr))` }}>
@@ -255,7 +255,7 @@ export default function CalendarioClient({
                     <div className="flex -space-x-1.5 mt-auto pt-1 flex-wrap gap-y-1">
                       {people.slice(0, 4).map((u) => (
                         <div key={u.id} title={`${u.display_name} · Vacaciones`} style={{ border: "1.5px solid var(--surface-2)", borderRadius: "100px" }}>
-                          <Avatar name={u.display_name} color={u.nexus_color} size={18} />
+                          <Avatar name={u.display_name} color={u.nexus_color} size={18} avatarUrl={u.avatar_url} />
                         </div>
                       ))}
                       {people.length > 4 && (

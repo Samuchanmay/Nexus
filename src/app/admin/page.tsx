@@ -35,7 +35,7 @@ type ProjRow = {
   requests: { title: string; type: string; requester_name: string | null } | null;
   project_assignments: {
     is_lead: boolean;
-    users: { display_name: string; nexus_color: string | null } | null;
+    users: { display_name: string; nexus_color: string | null; avatar_url?: string | null } | null;
     project_checklist: { done: boolean }[];
   }[];
 };
@@ -62,7 +62,7 @@ export default async function AdminDashboard() {
     supabase.from("projects").select("id", { count: "exact", head: true }).in("status", ["aprobada", "en_progreso", "en_revision"]),
     supabase.from("attendance").select("*").eq("user_id", me!.id).eq("date", today).order("time"),
     supabase.from("schedules").select("*").eq("user_id", me!.id).is("valid_until", null).limit(1).single(),
-    supabase.from("users").select("id, display_name, nexus_color").eq("active", true).in("role", ["admin", "empleado"]),
+    supabase.from("users").select("id, display_name, nexus_color, avatar_url").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("id, user_id, type, reason, time").eq("date", today).order("time"),
     supabase.from("schedules").select("user_id, start_time, tolerance_min").is("valid_until", null),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", today).gte("end_date", today),
@@ -73,7 +73,7 @@ export default async function AdminDashboard() {
     supabase.from("projects").select(`
       id, status, deadline, priority,
       requests(title, type, requester_name),
-      project_assignments(is_lead, users(display_name, nexus_color), project_checklist(done))
+      project_assignments(is_lead, users(display_name, nexus_color, avatar_url), project_checklist(done))
     `).in("status", ["aprobada", "en_progreso", "en_revision"]),
     supabase.from("requests").select("id, title, type, requester_name, priority, created_at").eq("status", "solicitada").order("created_at", { ascending: false }),
     supabase.from("jornada_states").select("*").eq("activo", true),
@@ -253,7 +253,7 @@ export default async function AdminDashboard() {
                     </div>
                   </div>
                   <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
-                  {a.lead && <Avatar name={a.lead.display_name} color={a.lead.nexus_color ?? undefined} size={28} />}
+                  {a.lead && <Avatar name={a.lead.display_name} color={a.lead.nexus_color ?? undefined} size={28} avatarUrl={a.lead.avatar_url} />}
                 </div>
               ))}
             </div>
@@ -337,7 +337,7 @@ export default async function AdminDashboard() {
             {presence.map((p) => (
               <div key={p.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} />
+                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} />
                   <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
                 </div>
                 <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>

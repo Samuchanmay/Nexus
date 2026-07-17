@@ -68,7 +68,7 @@ export interface Vacation {
   calendar_event_id: string | null;
   calendar_id?: string | null;
   created_at: string;
-  users?: { full_name: string; display_name: string; nexus_color: string | null };
+  users?: { full_name: string; display_name: string; nexus_color: string | null; avatar_url?: string | null };
 }
 
 export interface Incident {

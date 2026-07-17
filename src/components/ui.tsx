@@ -74,9 +74,20 @@ export function SlidingSegments({ options, value, onChange }: {
     thumb.style.transform = `translateX(${b.left - w.left - 3}px)`;
   }, [value]);
   useEffect(() => {
+    // Requiere doble medición: la primera puede correr antes de que la
+    // fuente/layout terminen de asentarse (deja el thumb desfasado hasta el
+    // siguiente cambio de valor). rAF + ResizeObserver lo mantienen exacto
+    // incluso si el ancho del contenedor cambia sin un resize de ventana.
     move();
+    const raf = requestAnimationFrame(move);
     window.addEventListener("resize", move);
-    return () => window.removeEventListener("resize", move);
+    const ro = wrapRef.current ? new ResizeObserver(move) : null;
+    if (ro && wrapRef.current) ro.observe(wrapRef.current);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", move);
+      ro?.disconnect();
+    };
   }, [move]);
   return (
     <div className="seg" ref={wrapRef}>

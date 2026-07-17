@@ -7,10 +7,10 @@ export default async function VacacionesAdmin() {
   const { data: { user } } = await supabase.auth.getUser();
   const [{ data: vacs }, { data: team }, { data: resets }, meRes, { data: calSetting }, { data: authEmailSetting }, { data: hols }] = await Promise.all([
     supabase.from("vacations")
-      .select("*, users(full_name, display_name, nexus_color)")
+      .select("*, users(full_name, display_name, nexus_color, avatar_url)")
       .is("archived_at", null)
       .order("created_at", { ascending: false }),
-    supabase.from("users").select("id, display_name, vacation_balance, vacation_days_per_year, hire_date, nexus_color, vacation_balance_reset")
+    supabase.from("users").select("id, display_name, vacation_balance, vacation_days_per_year, hire_date, nexus_color, vacation_balance_reset, avatar_url")
       .eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("vacation_resets").select("user_id, reset_at, days_granted, days_used, days_forfeited")
       .order("reset_at", { ascending: false }),
