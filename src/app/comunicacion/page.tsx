@@ -61,6 +61,11 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
   const schedule = (sched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
   const day = summarizeDay(today, (att ?? []) as AttendanceRow[], schedule, states);
   const live = currentState((att ?? []) as AttendanceRow[], today, states);
+  // Inicio del tramo de trabajo continuo actual: la "Entrada" más reciente del
+  // día (la del arranque, o la de retomar tras un descanso) — así la pausa
+  // activa cuenta 2 horas desde que de verdad se reanudó, no desde medianoche.
+  const lastResume = [...day.movements].reverse().find((m) => m.type === "Entrada");
+  const workStartTime = lastResume?.time ?? day.firstIn ?? null;
   const weekDates = [...new Set((weekAtt ?? []).map((r) => r.date as string))];
 
   const tasks = (assignments ?? [])
@@ -99,6 +104,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
     })),
     birthDate: profile.birth_date ?? null,
     working: day.isOpen,
+    workStartTime,
   });
 
   return (

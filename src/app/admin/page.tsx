@@ -88,6 +88,10 @@ export default async function AdminDashboard() {
 
   const sched = (mySched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
   const myDay = summarizeDay(today, (myAtt ?? []) as AttendanceRow[], sched, states);
+  // Igual que en Mi Día del equipo: inicio del tramo de trabajo continuo
+  // actual (última "Entrada", del arranque o de retomar tras un descanso).
+  const myLastResume = [...myDay.movements].reverse().find((m) => m.type === "Entrada");
+  const myWorkStartTime = myLastResume?.time ?? myDay.firstIn ?? null;
 
   // Asistente Contextual (Plano Maestro §11): antes solo se armaba en Mi Día
   // del colaborador — el admin nunca lo veía porque su "Hoy" es otra página
@@ -122,7 +126,7 @@ export default async function AdminDashboard() {
     .filter((t): t is AssistantTask => t !== null && !["completada", "cancelada"].includes(t.status));
   const assistantMessages = contextualMessages({
     today, nowMin: nowMeridaMinutes(), tasks: myAssistantTasks,
-    birthDate: me!.birth_date ?? null, working: myDay.isOpen,
+    birthDate: me!.birth_date ?? null, working: myDay.isOpen, workStartTime: myWorkStartTime,
   });
 
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));
