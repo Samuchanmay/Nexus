@@ -140,7 +140,7 @@ export default async function AdminDashboard() {
   }
   for (const v of vacsToday ?? []) {
     if (v.start_date === today) {
-      alerts.push({ icon: "palm", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${shortDate(v.end_date)})`, tone: "accent" });
+      alerts.push({ icon: "plane", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${shortDate(v.end_date)})`, tone: "accent" });
     }
   }
 
@@ -165,7 +165,7 @@ export default async function AdminDashboard() {
     })),
     ...((vacsCreatedToday ?? []) as unknown as { id: string; start_date: string; end_date: string; created_at: string; users: { display_name: string } | null }[]).map((v) => ({
       key: `vac-${v.id}`,
-      icon: "palm",
+      icon: "plane",
       iconColor: "var(--accent)",
       text: `${v.users?.display_name ?? "—"} solicitó vacaciones (${shortDate(v.start_date)} → ${shortDate(v.end_date)})`,
       time: meridaClock(v.created_at),
@@ -218,6 +218,12 @@ export default async function AdminDashboard() {
         <div className="flex flex-col gap-2">
           {alerts.map((a, i) => (
             <Card key={i} pad={false} className="px-4 py-3 flex items-center gap-2.5">
+              {a.icon === "alarm" && (
+                <span className="relative flex w-2 h-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "var(--warn)" }} />
+                  <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: "var(--warn)" }} />
+                </span>
+              )}
               <Icon name={a.icon} size={16} />
               <p className="text-[13px] font-semibold text-text-1 flex-1">{a.text}</p>
               <Badge tone={a.tone === "accent" ? "accent" : a.tone}>{a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso"}</Badge>
@@ -331,7 +337,7 @@ export default async function AdminDashboard() {
             <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="neutral" dot>{pulse.completaron}</Badge> terminaron</span>
             <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="purple" dot>{pulse.vacaciones}</Badge> vacaciones</span>
           </div>
-          <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto nx-scroll">
+          <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto nx-scroll p-1 -m-1">
             {presence.map((p) => (
               <div key={p.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">

@@ -93,16 +93,66 @@ export function SlidingSegments({ options, value, onChange }: {
 }
 
 /* ── Avatar con color por empleado ── */
-export function Avatar({ name, color, size = 34 }: { name: string; color?: string | null; size?: number }) {
+export function Avatar({ name, color, size = 34, avatarUrl }: { name: string; color?: string | null; size?: number; avatarUrl?: string | null }) {
   const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  const ring = { boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "#8E8E93"}` };
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={avatarUrl} alt={name} title={name}
+        className="rounded-full object-cover shrink-0"
+        style={{ width: size, height: size, ...ring }} />
+    );
+  }
   return (
     <div className="rounded-full flex items-center justify-center font-semibold text-white shrink-0"
       style={{
         width: size, height: size, fontSize: size * 0.37, background: color ?? "#8E8E93",
-        boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "#8E8E93"}`,
+        ...ring,
       }}>
       {initials}
     </div>
+  );
+}
+
+/** Campo de fecha con máscara dd/mm/aaaa — reemplaza <input type="date"> cuando
+ * necesitamos garantizar el formato visual sin importar el locale del navegador
+ * (el nativo respeta el idioma/región del sistema operativo del usuario, no el
+ * de la app, y por eso a veces se ve aaaa/mm/dd aunque el resto de Nexus use
+ * dd/mm/aaaa). El valor que entra/sale sigue siendo ISO (aaaa-mm-dd). */
+export function DateField({ value, onChange, className, placeholder = "dd/mm/aaaa" }: {
+  value: string; onChange: (iso: string) => void; className?: string; placeholder?: string;
+}) {
+  const isoToDmy = (iso: string) => {
+    const [y, m, d] = iso.split("-");
+    return y && m && d ? `${d}/${m}/${y}` : "";
+  };
+  const [text, setText] = useState(value ? isoToDmy(value) : "");
+  useEffect(() => { setText(value ? isoToDmy(value) : ""); }, [value]);
+
+  const handle = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    let out = digits;
+    if (digits.length > 4) out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    else if (digits.length > 2) out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    setText(out);
+    if (digits.length === 8) {
+      const d = digits.slice(0, 2), m = digits.slice(2, 4), y = digits.slice(4, 8);
+      const iso = `${y}-${m}-${d}`;
+      const dt = new Date(`${iso}T12:00:00`);
+      if (!isNaN(dt.getTime()) && dt.getUTCDate() === Number(d) && dt.getUTCMonth() + 1 === Number(m)) {
+        onChange(iso);
+      }
+    } else if (value) {
+      onChange("");
+    }
+  };
+
+  return (
+    <input
+      className={className ?? "field-input"} placeholder={placeholder} value={text}
+      onChange={(e) => handle(e.target.value)} inputMode="numeric" maxLength={10}
+    />
   );
 }
 

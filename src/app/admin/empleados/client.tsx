@@ -156,7 +156,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
     <div className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
       style={!u.active ? { opacity: 0.55 } : undefined}>
       <div className="flex items-center gap-3">
-        <Avatar name={u.display_name} color={u.nexus_color} size={38} />
+        <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} />
         <div>
           <p className="text-[14px] font-bold">{u.title ? `${u.title} ${u.full_name}` : u.full_name}</p>
           <p className="text-[12px]" style={{ color: "var(--text-2)" }}>

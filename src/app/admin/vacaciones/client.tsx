@@ -315,9 +315,12 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
               <Avatar name={t.display_name} color={t.nexus_color} size={32} />
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-bold truncate">{t.display_name}</p>
-                <p className="text-[11.5px] flex items-center gap-1.5" style={{ color: "var(--text-2)" }}>
-                  <span style={{ color }}>●</span> {t.vacation_balance} días
-                </p>
+                <div className="flex items-center gap-2.5 mt-0.5">
+                  <span className="text-[13px] font-bold tabular-nums" style={{ color }}>{t.vacation_balance}</span>
+                  <span className="text-[10.5px]" style={{ color: "var(--text-3)" }}>
+                    de {total} · {used} tomados
+                  </span>
+                </div>
                 {seniority && (
                   <p className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-3)" }}>{seniority}</p>
                 )}
