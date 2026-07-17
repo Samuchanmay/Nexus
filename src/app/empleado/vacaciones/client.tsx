@@ -66,20 +66,25 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
       .insert({ user_id: userId, start_date: start, end_date: end, days })
       .select("id").single();
     if (error || !data) { toast("No se pudo enviar — intenta de nuevo"); setSaving(false); return; }
-    // Notificar a Samuel por correo (Edge Function)
+    // Notificar a Samuel por correo (Edge Function) — el correo es best-effort:
+    // si Resend falla, la solicitud ya quedó guardada y el admin igual recibe
+    // la notificación de campana de abajo, más una alerta de que el correo falló.
+    let emailOk = false;
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/notify-vacation`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/notify-vacation`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify({ vacation_id: data.id }),
       });
+      const json = await res.json().catch(() => null);
+      emailOk = !!json?.ok;
     } catch { /* el correo es best-effort; la solicitud ya quedó guardada */ }
     notifyAdmins(supabase, `${displayName} solicitó vacaciones`, `${days} día${days === 1 ? "" : "s"} · ${shortDate(start)} → ${shortDate(end)}`, "vacation", "/admin/vacaciones");
     setSaving(false);
     setOpen(false);
     setStart(""); setEnd("");
-    toast("Solicitud enviada — Samuel recibió un correo");
+    toast(emailOk ? "Solicitud enviada — Samuel recibió un correo" : "Solicitud enviada — el correo automático no pudo enviarse, pero Samuel ya la ve en Nexus");
     router.refresh();
   };
 

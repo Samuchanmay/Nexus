@@ -282,18 +282,16 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         <p className="text-[12px] mb-3" style={{ color: "var(--text-3)" }}>
           Salta el flujo de solicitud/aprobación — útil para correcciones o cambios de último momento. Queda como Aprobada de inmediato.
         </p>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 max-w-[340px]">
           <SelectField value={regUserId} onChange={setRegUserId} label="Empleado">
             <option value="">Seleccionar…</option>
             {team.map((t) => <option key={t.id} value={t.id}>{t.display_name} · {t.vacation_balance} días</option>)}
           </SelectField>
-          <div className="max-w-[300px]">
-            <DateRangeCalendar
-              start={regStart} end={regEnd}
-              onSelect={(s, e) => { setRegStart(s); setRegEnd(e); }}
-              holidays={holidaySet}
-            />
-          </div>
+          <DateRangeCalendar
+            start={regStart} end={regEnd}
+            onSelect={(s, e) => { setRegStart(s); setRegEnd(e); }}
+            holidays={holidaySet}
+          />
           {regDays > 0 && (
             <div className="rounded-sm px-4 py-3 text-[13px] font-semibold"
               style={{ background: regOverBalance ? "var(--danger-tint)" : "var(--ok-tint)", color: regOverBalance ? "var(--danger)" : "var(--ok)" }}>

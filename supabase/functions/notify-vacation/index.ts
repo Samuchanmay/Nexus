@@ -143,9 +143,26 @@ Deno.serve(async (req) => {
 
     if (res.ok) {
       await admin.from("vacations").update({ notification_sent: true }).eq("id", vacation_id);
+      return Response.json({ ok: true }, { headers: cors });
     }
-    return Response.json({ ok: res.ok }, { headers: cors });
-  } catch {
+
+    const errBody = await res.text();
+    console.error(`notify-vacation: Resend respondió ${res.status} — ${errBody}`);
+    // No se pudo enviar el correo — avisamos por campana para que no pase
+    // desapercibido (antes fallaba en silencio y el admin nunca se enteraba).
+    const admins = await admin.from("users").select("id").eq("role", "admin").eq("active", true);
+    for (const a of admins.data ?? []) {
+      await admin.from("notifications").insert({
+        user_id: a.id,
+        title: "No se pudo enviar el correo de solicitud de vacaciones",
+        body: `${u.display_name} · Resend respondió ${res.status}. Revisa RESEND_API_KEY y que el dominio esté verificado.`,
+        kind: "info",
+        link: "/admin/vacaciones",
+      });
+    }
+    return Response.json({ ok: false, error: "resend-error", status: res.status, detail: errBody }, { headers: cors });
+  } catch (e) {
+    console.error(`notify-vacation: excepción — ${e instanceof Error ? e.message : String(e)}`);
     return Response.json({ ok: false, error: "Error del servidor" }, { status: 500, headers: cors });
   }
 });
