@@ -124,9 +124,17 @@ export default async function AdminDashboard() {
       };
     })
     .filter((t): t is AssistantTask => t !== null && !["completada", "cancelada"].includes(t.status));
+  const [{ data: pausaFrases }, { data: pausaSettings }] = await Promise.all([
+    supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
+    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min"]),
+  ]);
+  const pausaSettingsMap = new Map((pausaSettings ?? []).map((s) => [s.key, s.value]));
   const assistantMessages = contextualMessages({
     today, nowMin: nowMeridaMinutes(), tasks: myAssistantTasks,
     birthDate: me!.birth_date ?? null, working: myDay.isOpen, workStartTime: myWorkStartTime,
+    pausaActivaFrases: (pausaFrases ?? []).map((f) => f.texto as string),
+    pausaActivaIntervalMin: Number(pausaSettingsMap.get("pausa_activa_interval_min")) || undefined,
+    pausaActivaWindowMin: Number(pausaSettingsMap.get("pausa_activa_window_min")) || undefined,
   });
 
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));
@@ -276,11 +284,11 @@ export default async function AdminDashboard() {
           <SectionTitle>Asistente</SectionTitle>
           <div className="space-y-1.5">
             {assistantMessages.map((m) => (
-              <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
+              <div key={m.id} className="nx-pop flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
                 style={{
                   background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",
                 }}>
-                <span className="shrink-0" style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
+                <span className={`shrink-0 ${m.animated ? "nx-msg-icon-bounce" : ""}`} style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
                   <Icon name={m.icon} size={16} />
                 </span>
                 <p className="text-[13px] font-semibold flex-1"

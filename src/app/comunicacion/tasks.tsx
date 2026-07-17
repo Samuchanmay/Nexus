@@ -341,11 +341,11 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
           <SectionTitle>Asistente</SectionTitle>
           <div className="space-y-1.5">
             {assistantMessages.map((m) => (
-              <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
+              <div key={m.id} className="nx-pop flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
                 style={{
                   background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",
                 }}>
-                <span className="shrink-0" style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
+                <span className={`shrink-0 ${m.animated ? "nx-msg-icon-bounce" : ""}`} style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
                   <Icon name={m.icon} size={16} />
                 </span>
                 <p className="text-[13px] font-semibold flex-1"

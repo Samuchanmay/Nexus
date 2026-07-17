@@ -13,6 +13,8 @@ export interface AssistantMessage {
   tone: "info" | "warn" | "danger";
   icon: "clock" | "alert" | "sparkle" | "cake" | "food";
   text: string;
+  /** true para mensajes que deben resaltar con animación (pausa activa, cumpleaños). */
+  animated?: boolean;
 }
 
 export interface AssistantTask {
@@ -41,14 +43,18 @@ const VENCE_WINDOW_DAYS = 2;
  * descanso de por medio, el conteo se reinicia desde que retomó).
  * Se avisa en una ventana de ~12 min cada vez que se cumple el ciclo,
  * para que alcance a notarlo sin que el aviso se quede pegado todo el día.
+ *
+ * El intervalo, la ventana y las frases ahora son configurables desde
+ * Configuración → Pausa activa (admin) — viven en app_settings y en la
+ * tabla pausa_activa_frases. Estos valores son solo el respaldo por si la
+ * configuración llegara vacía (nunca debería, pero el asistente no debe
+ * romperse por eso).
  */
-const PAUSA_ACTIVA_INTERVAL_MIN = 120; // cada 2 horas de trabajo continuo
-const PAUSA_ACTIVA_WINDOW_MIN = 12;    // ventana en la que se muestra el aviso
+const PAUSA_ACTIVA_INTERVAL_MIN_DEFAULT = 120; // cada 2 horas de trabajo continuo
+const PAUSA_ACTIVA_WINDOW_MIN_DEFAULT = 12;    // ventana en la que se muestra el aviso
 
-const PAUSA_ACTIVA_FRASES = [
+const PAUSA_ACTIVA_FRASES_DEFAULT = [
   "Llevas 2 horas seguidas — buen momento para una pausa activa. ¿Bala time o Taxito time? ☕",
-  "Pausa activa: camina un poco, despeja la mente con un chismecito — bala time / taxito time ☕",
-  "2 horas de corrido — párate, estira las piernas, un cafecito no le hace mal a nadie ☕",
 ];
 
 export function contextualMessages(params: {
@@ -59,8 +65,17 @@ export function contextualMessages(params: {
   working?: boolean;           // true si ya fichó entrada y la jornada sigue abierta
   workStartTime?: string | null; // HH:MM[:SS] — inicio del tramo de trabajo continuo actual
                                   // (la última "Entrada", ya sea la del día o tras un descanso)
+  pausaActivaFrases?: string[];   // frases configurables (Configuración → Pausa activa)
+  pausaActivaIntervalMin?: number; // minutos de trabajo continuo entre avisos
+  pausaActivaWindowMin?: number;   // minutos que dura visible cada aviso
 }): AssistantMessage[] {
-  const { today, nowMin, tasks, birthDate, working, workStartTime } = params;
+  const {
+    today, nowMin, tasks, birthDate, working, workStartTime,
+    pausaActivaFrases, pausaActivaIntervalMin, pausaActivaWindowMin,
+  } = params;
+  const frases = pausaActivaFrases && pausaActivaFrases.length > 0 ? pausaActivaFrases : PAUSA_ACTIVA_FRASES_DEFAULT;
+  const intervalMin = pausaActivaIntervalMin && pausaActivaIntervalMin > 0 ? pausaActivaIntervalMin : PAUSA_ACTIVA_INTERVAL_MIN_DEFAULT;
+  const windowMin = pausaActivaWindowMin && pausaActivaWindowMin > 0 ? pausaActivaWindowMin : PAUSA_ACTIVA_WINDOW_MIN_DEFAULT;
   const msgs: AssistantMessage[] = [];
 
   // Regla 0a — Cumpleaños: mensaje cálido, siempre primero, todo el día.
@@ -71,25 +86,27 @@ export function contextualMessages(params: {
         id: "cumpleanos",
         tone: "info",
         icon: "cake",
+        animated: true,
         text: "¡Feliz cumpleaños! 🎉 Eres una parte muy valiosa del equipo — que tengas un día increíble.",
       });
     }
   }
 
-  // Regla 0b — Pausa activa: cada 2 horas de trabajo continuo (no de reloj fijo).
+  // Regla 0b — Pausa activa: cada N horas de trabajo continuo (no de reloj fijo).
   if (working && workStartTime) {
     const [hStr, mStr] = workStartTime.slice(0, 5).split(":");
     const startMin = Number(hStr) * 60 + Number(mStr);
     const elapsed = nowMin - startMin;
-    if (elapsed >= PAUSA_ACTIVA_INTERVAL_MIN) {
-      const cycle = Math.floor(elapsed / PAUSA_ACTIVA_INTERVAL_MIN);
-      const intoCycle = elapsed % PAUSA_ACTIVA_INTERVAL_MIN;
-      if (intoCycle <= PAUSA_ACTIVA_WINDOW_MIN) {
+    if (elapsed >= intervalMin) {
+      const cycle = Math.floor(elapsed / intervalMin);
+      const intoCycle = elapsed % intervalMin;
+      if (intoCycle <= windowMin) {
         msgs.push({
           id: `pausa-activa-${cycle}`,
           tone: "info",
           icon: "food",
-          text: PAUSA_ACTIVA_FRASES[(cycle - 1) % PAUSA_ACTIVA_FRASES.length],
+          animated: true,
+          text: frases[(cycle - 1) % frases.length],
         });
       }
     }

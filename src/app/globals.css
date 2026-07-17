@@ -381,6 +381,18 @@ body{ transition: background .28s ease, color .28s ease; }
 .nx-pop{ animation:nx-pop .22s cubic-bezier(.34,1.4,.64,1) both; }
 .nx-fade{ animation:nx-fade .2s ease both; }
 
+/* ── Asistente Contextual — mensajes destacados (pausa activa, cumpleaños):
+   el ícono tiene un pequeño "wiggle" de vida propia, igual de espíritu al
+   wave-emoji del saludo, para que no se sientan como una fila más de lista. */
+.nx-msg-icon-bounce{ display:inline-flex; transform-origin:50% 80%; animation:nx-icon-bounce 1.8s ease-in-out infinite; }
+@keyframes nx-icon-bounce{
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  15% { transform: rotate(-12deg) scale(1.08); }
+  30% { transform: rotate(10deg) scale(1.05); }
+  45% { transform: rotate(-6deg) scale(1.03); }
+  60% { transform: rotate(0deg) scale(1); }
+}
+
 /* ── Impresión (Reportes → "Guardar como PDF") ──
    Oculta el chrome del shell (sidebar, topbar) y deja solo el
    contenido del reporte, a ancho completo, en blanco y negro legible. */

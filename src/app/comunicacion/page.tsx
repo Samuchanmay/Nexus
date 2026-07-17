@@ -21,7 +21,10 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
   const monday = addDays(today, dow === 0 ? -6 : 1 - dow);
   const sunday = addDays(monday, 6);
 
-  const [{ data: att }, { data: weekAtt }, { data: sched }, { data: assignments }, { data: jornadaStates }, { data: actTypes }] = await Promise.all([
+  const [
+    { data: att }, { data: weekAtt }, { data: sched }, { data: assignments }, { data: jornadaStates }, { data: actTypes },
+    { data: pausaFrases }, { data: pausaSettings },
+  ] = await Promise.all([
     supabase.from("attendance").select("*").eq("user_id", profile.id).eq("date", today).order("time"),
     supabase.from("attendance").select("date").eq("user_id", profile.id).gte("date", monday).lte("date", sunday),
     supabase.from("schedules").select("*").eq("user_id", profile.id).is("valid_until", null).limit(1).single(),
@@ -30,6 +33,8 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
       .eq("user_id", profile.id),
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("activity_types").select("*").eq("activo", true).order("orden"),
+    supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
+    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min"]),
   ]);
   const states = (jornadaStates ?? []) as JornadaState[];
   const activityTypes = (actTypes ?? []) as ActivityType[];
@@ -96,6 +101,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
   // El asistente observa TODAS las tareas asignadas (incluidas completada/cancelada
   // recién cerradas no aplica — ya se filtraron arriba), calculado en cada carga,
   // sin persistencia: siempre datos frescos.
+  const pausaSettingsMap = new Map((pausaSettings ?? []).map((s) => [s.key, s.value]));
   const assistantMessages = contextualMessages({
     today, nowMin: nowMeridaMinutes(),
     tasks: tasks.map((t): AssistantTask => ({
@@ -105,6 +111,9 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
     birthDate: profile.birth_date ?? null,
     working: day.isOpen,
     workStartTime,
+    pausaActivaFrases: (pausaFrases ?? []).map((f) => f.texto as string),
+    pausaActivaIntervalMin: Number(pausaSettingsMap.get("pausa_activa_interval_min")) || undefined,
+    pausaActivaWindowMin: Number(pausaSettingsMap.get("pausa_activa_window_min")) || undefined,
   });
 
   return (

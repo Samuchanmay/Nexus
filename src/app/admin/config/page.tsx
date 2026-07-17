@@ -32,6 +32,8 @@ const CATEGORIES: { title: string; items: LinkCard[] }[] = [
     items: [
       { href: "/admin/config/tipos-actividad", title: "Tipos de actividad", icon: "tag",
         desc: "Agrega tipos nuevos (ej. Podcast) y sus checklists, sin tocar código." },
+      { href: "/admin/config/pausa-activa", title: "Pausa activa", icon: "food",
+        desc: "Frases y ritmo del aviso de pausa activa que muestra el Asistente." },
       { href: "/admin/empleados", title: "Equipo", icon: "users",
         desc: "Invitar, dar de baja, cambiar rol o coordinación/departamento." },
       { href: "/admin/reportes", title: "Reportes", icon: "chart",
