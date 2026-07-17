@@ -163,7 +163,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
             <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>{u.title}</p>
           )}
           <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
-            {u.email} · {ROLE_LABELS[u.role]}{areaName(u) && ` · ${areaName(u)}`}
+            {u.email}
             {!u.onboarded && " · Pendiente de completar perfil"}
           </p>
         </div>
