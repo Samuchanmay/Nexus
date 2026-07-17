@@ -266,7 +266,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
           </div>
           {p.deadline && (
             <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
-              entrega {p.deadline}
+              entrega {dmy(p.deadline)}
             </span>
           )}
         </div>

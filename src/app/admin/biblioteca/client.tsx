@@ -118,7 +118,7 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
                 <div className="flex items-center gap-4 mt-3 text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
                   <span>{it.evidences.length} evidencia{it.evidences.length === 1 ? "" : "s"}</span>
                   <span>{it.comments.length} comentario{it.comments.length === 1 ? "" : "s"}</span>
-                  {it.deadline && <span>Entregada · {it.deadline}</span>}
+                  {it.deadline && <span>Entregada · {dmy(it.deadline)}</span>}
                 </div>
 
                 {it.evidences.length > 0 && (
