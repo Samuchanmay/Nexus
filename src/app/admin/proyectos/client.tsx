@@ -9,6 +9,8 @@ import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
 import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
 import { PrintButton } from "../reportes/print-button";
+import { fmtMin } from "@/lib/hours";
+import { dmy, todayMerida } from "@/lib/tz";
 
 /* ═══════════════════════════════════════════════════════════════
    Dependencias entre Actividades — Plano Maestro §04.
@@ -22,20 +24,87 @@ import { PrintButton } from "../reportes/print-button";
 export type ProjectRow = {
   id: string; status: string; priority: string; deadline: string | null; created_at: string;
   requests: { title: string; type: RequestType } | null;
-  project_assignments: { is_lead: boolean; users: { display_name: string; nexus_color: string | null } }[];
+  project_assignments: { is_lead: boolean; users: { id: string; display_name: string; full_name: string; nexus_color: string | null } }[];
 };
 export type DepRow = {
   id: string; project_id: string; depends_on_project_id: string;
   projects: { id: string; status: string; requests: { title: string } | null } | null;
 };
-type Member = { id: string; display_name: string; nexus_color: string | null };
+type Member = { id: string; display_name: string; full_name: string; nexus_color: string | null };
 type ActTypeOpt = { key: string; label: string };
 
 const PRIORITIES: Priority[] = ["baja", "normal", "alta", "urgente"];
 
-export default function ProyectosClient({ projects, dependencies, typeLabel, types, team, adminId }: {
+/** Reporte HTML de Actividades agrupadas por persona — título, tipo, estado,
+ * prioridad y entrega de cada quien, más el total de horas registradas
+ * (histórico, vía task_time_logs) por persona. */
+function printByEmployeeReport(
+  team: Member[], projects: ProjectRow[], hoursByUserMin: Record<string, number>, typeLabel: Record<string, string>,
+) {
+  const today = dmy(todayMerida());
+  const byUser = new Map<string, ProjectRow[]>();
+  for (const p of projects) {
+    for (const a of p.project_assignments) {
+      const arr = byUser.get(a.users.id) ?? [];
+      arr.push(p);
+      byUser.set(a.users.id, arr);
+    }
+  }
+  const sections = team.map((m) => {
+    const mine = (byUser.get(m.id) ?? []).slice().sort((a, b) => (b.deadline ?? "").localeCompare(a.deadline ?? ""));
+    const color = m.nexus_color || "#5856D6";
+    const initial = (m.display_name || m.full_name || "?").charAt(0).toUpperCase();
+    const min = hoursByUserMin[m.id] ?? 0;
+    const horasTxt = min > 0 ? fmtMin(min) : "—";
+    const rows = mine.map((p) => {
+      const statusBg = p.status === "completada" ? "#D1FAE5" : p.status === "cancelada" ? "#FEE2E2" : "#DBEAFE";
+      const statusFg = p.status === "completada" ? "#065F46" : p.status === "cancelada" ? "#991B1B" : "#1D4ED8";
+      return `<tr>
+        <td style="padding:9px 12px">${p.requests?.title ?? "Actividad"}</td>
+        <td style="padding:9px 12px;color:#6B7280">${p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</td>
+        <td style="padding:9px 12px"><span style="background:${statusBg};color:${statusFg};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${STATUS_LABELS[p.status as RequestStatus] ?? p.status}</span></td>
+        <td style="padding:9px 12px;text-transform:capitalize">${p.priority}</td>
+        <td style="padding:9px 12px;color:#6B7280">${p.deadline ? p.deadline.split("-").reverse().join("/") : "—"}</td>
+      </tr>`;
+    }).join("");
+    return `<div class="card">
+      <div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;background:${color}14">
+        <span style="display:flex;align-items:center;gap:10px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:${color};color:#fff;font-size:13px;font-weight:800">${initial}</span>
+          <strong style="font-size:14px">${m.full_name}</strong>
+        </span>
+        <span style="font-size:12px;color:#6B7280">${mine.length} actividad${mine.length === 1 ? "" : "es"} · <strong style="color:${color}">${horasTxt}</strong> registradas</span>
+      </div>
+      <table><thead><tr><th>Actividad</th><th>Tipo</th><th>Estado</th><th>Prioridad</th><th>Entrega</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" style="padding:12px;color:#9CA3AF">Sin actividades asignadas</td></tr>'}</tbody></table>
+    </div>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Actividades por empleado — ${today}</title>
+    <style>
+      *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
+      .wrap{max-width:900px;margin:0 auto}
+      .header{background:linear-gradient(135deg,#1E293B,#334155);border-radius:16px;padding:28px 32px;margin-bottom:20px;color:#fff}
+      .header h1{margin:0 0 4px;font-size:22px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13px}
+      .card{background:#fff;border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+      table{width:100%;border-collapse:collapse;font-size:12.5px}
+      th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6B7280;border-bottom:1px solid #F1F5F9}
+      td{border-bottom:.5px solid #F1F5F9}tr:last-child td{border-bottom:none}
+      @media print{body{background:#fff;padding:0}.no-print{display:none}}
+    </style></head><body><div class="wrap">
+    <div class="header"><h1>Actividades por empleado</h1><p>CERT Comunicación · Generado el ${today}</p></div>
+    <div class="no-print" style="text-align:right;margin-bottom:12px">
+      <button onclick="window.print()" style="padding:10px 22px;background:#1E293B;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Imprimir / Guardar PDF</button>
+    </div>
+    ${sections}
+    </div></body></html>`;
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
+export default function ProyectosClient({ projects, dependencies, typeLabel, types, team, hoursByUserMin, adminId }: {
   projects: ProjectRow[]; dependencies: DepRow[]; typeLabel: Record<string, string>;
-  types: ActTypeOpt[]; team: Member[]; adminId: string;
+  types: ActTypeOpt[]; team: Member[]; hoursByUserMin: Record<string, number>; adminId: string;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -265,6 +334,13 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
             onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
             Exportar CSV ↓
           </a>
+          <button className="btn-secondary text-[13px] px-4 py-2"
+            onClick={() => {
+              if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
+              printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
+            }}>
+            Por empleado ↓
+          </button>
           <PrintButton />
           <button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>
             + Añadir proyecto
