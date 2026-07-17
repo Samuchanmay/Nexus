@@ -6,6 +6,8 @@ import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes, shortDate } from "@/lib/tz";
 import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
+import { contextualMessages } from "@/lib/assistant";
+import type { AssistantTask } from "@/lib/assistant";
 
 /* ═══════════════════════════════════════════════════════════════
    Hoy · Centro de Operaciones (admin)
@@ -86,6 +88,42 @@ export default async function AdminDashboard() {
 
   const sched = (mySched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
   const myDay = summarizeDay(today, (myAtt ?? []) as AttendanceRow[], sched, states);
+
+  // Asistente Contextual (Plano Maestro §11): antes solo se armaba en Mi Día
+  // del colaborador — el admin nunca lo veía porque su "Hoy" es otra página
+  // y nunca se conectó aquí. El admin también lleva actividades propias
+  // (cobertura, diseño, etc. — la bitácora de productividad ya lo asume),
+  // así que le aplican las mismas reglas: reunión por empezar, actividad
+  // por vencer, evidencia faltante, cumpleaños, pausa activa.
+  const { data: myAssignments } = await supabase
+    .from("project_assignments")
+    .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, event_date, event_time))")
+    .eq("user_id", me!.id);
+  const myProjectIds = [...new Set((myAssignments ?? [])
+    .map((a) => (a.projects as unknown as { id: string } | null)?.id)
+    .filter((id): id is string => !!id))];
+  const { data: myEvidenceRows } = myProjectIds.length
+    ? await supabase.from("evidences").select("project_id").in("project_id", myProjectIds)
+    : { data: [] as { project_id: string }[] };
+  const myProjectsWithEvidence = new Set((myEvidenceRows ?? []).map((e) => e.project_id as string));
+  const myAssistantTasks: AssistantTask[] = (myAssignments ?? [])
+    .map((a) => {
+      const p = a.projects as unknown as {
+        id: string; status: string; deadline: string | null;
+        requests: { title: string; event_date: string | null; event_time: string | null } | null;
+      } | null;
+      if (!p) return null;
+      return {
+        projectId: p.id, title: p.requests?.title ?? "Actividad", status: p.status, deadline: p.deadline,
+        eventDate: p.requests?.event_date ?? null, eventTime: p.requests?.event_time ?? null,
+        isLead: a.is_lead as boolean, hasEvidence: myProjectsWithEvidence.has(p.id),
+      };
+    })
+    .filter((t): t is AssistantTask => t !== null && !["completada", "cancelada"].includes(t.status));
+  const assistantMessages = contextualMessages({
+    today, nowMin: nowMeridaMinutes(), tasks: myAssistantTasks,
+    birthDate: me!.birth_date ?? null, working: myDay.isOpen,
+  });
 
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));
   const onVacation = new Set((vacsToday ?? []).map((v) => v.user_id));
@@ -226,6 +264,29 @@ export default async function AdminDashboard() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Asistente Contextual (Plano Maestro §11) */}
+      {assistantMessages.length > 0 && (
+        <Card>
+          <SectionTitle>Asistente</SectionTitle>
+          <div className="space-y-1.5">
+            {assistantMessages.map((m) => (
+              <div key={m.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
+                style={{
+                  background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",
+                }}>
+                <span className="shrink-0" style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
+                  <Icon name={m.icon} size={16} />
+                </span>
+                <p className="text-[13px] font-semibold flex-1"
+                  style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-1)" }}>
+                  {m.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Stat cards */}
