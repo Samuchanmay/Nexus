@@ -36,6 +36,7 @@ const HREF: Record<Role, Record<string, string>> = {
     hoy: "/comunicacion",
     actividades: "/comunicacion/actividades",
     calendario: "/comunicacion/calendario",
+    biblioteca: "/comunicacion/biblioteca",
     jornada: "/comunicacion/jornada",
     vacaciones: "/comunicacion/vacaciones",
     incidencias: "/comunicacion/incidencias",
