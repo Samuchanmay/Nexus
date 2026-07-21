@@ -66,11 +66,21 @@ html {
   /* Toda la app ~10% más grande (como el navegador al 110%) — pedido explícito para mejorar legibilidad sin saturar. */
   zoom: 1.1;
 }
+@media (max-width: 767px) {
+  html {
+    /* El zoom de escritorio rompe el viewport en móvil (Chrome/Safari
+       recalculan el ancho "visual" con el zoom aplicado, así que el
+       contenido termina más ancho que la pantalla real y se corta o
+       genera scroll horizontal). En pantallas chicas se respeta el 100%. */
+    zoom: 1;
+  }
+}
 body {
   font-family: -apple-system, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
   color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden; /* red de seguridad — ningún elemento debería poder generar scroll horizontal */
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }

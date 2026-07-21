@@ -11,7 +11,7 @@ export default async function RHDashboard() {
     supabase.from("users").select("id, full_name, display_name, nexus_color, area, vacation_balance, vacation_days_per_year, hire_date, vacation_balance_reset")
       .eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
-    supabase.from("schedules").select("*").is("valid_until", null),
+    supabase.from("schedules").select("*"),
     supabase.from("vacations").select("*, users(full_name, display_name, nexus_color)").is("archived_at", null).order("start_date", { ascending: false }),
     supabase.from("holidays").select("date, name"),
     supabase.from("jornada_states").select("*").eq("activo", true),

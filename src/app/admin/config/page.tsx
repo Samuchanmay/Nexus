@@ -23,6 +23,8 @@ const CATEGORIES: { title: string; items: LinkCard[] }[] = [
         desc: "Qué cuenta como tiempo trabajado y qué pausa la actividad en curso." },
       { href: "/admin/config/dispositivos", title: "Dispositivos", icon: "device",
         desc: "Teléfonos vinculados a cada persona en /fichar — desactiva los perdidos o reasignados." },
+      { href: "/admin/config/horarios", title: "Horarios", icon: "clock",
+        desc: "Hora de entrada y horas objetivo por persona — crea horarios temporales para vacaciones." },
       { href: "/admin/dias-inhabiles", title: "Días inhábiles", icon: "calendar",
         desc: "Fechas que no cuentan como jornada laboral." },
     ],

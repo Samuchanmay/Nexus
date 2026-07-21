@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay, stateAfter } from "@/lib/hours";
+import { summarizeDay, stateAfter, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import { typeLabels } from "@/lib/types";
 import type { ActivityType } from "@/lib/types";
@@ -18,7 +18,7 @@ export default async function Equipo() {
       supabase.from("project_assignments")
         .select("user_id, is_lead, projects(status, priority, requests(title, type))"),
       supabase.from("attendance").select("*").eq("date", today).order("time"),
-      supabase.from("schedules").select("*").is("valid_until", null),
+      supabase.from("schedules").select("*"),
       supabase.from("vacations").select("user_id, start_date, end_date, status")
         .in("status", ["Aprobada", "Pendiente"]).is("archived_at", null).gte("end_date", today).order("start_date").limit(40),
       supabase.from("incidents").select("user_id, kind, start_date, end_date, status")
@@ -36,7 +36,7 @@ export default async function Equipo() {
       const p = a.projects as unknown as { status: string } | null;
       return a.user_id === u.id && p && !["completada", "cancelada"].includes(p.status);
     });
-    const sched = (scheds ?? []).find((s) => s.user_id === u.id) as Schedule | undefined;
+    const sched = scheduleFor((scheds ?? []) as Schedule[], u.id, today);
     const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 }, states);
     const myRows = rows.filter((r) => r.user_id === u.id);
     const last = myRows.at(-1);

@@ -3,7 +3,7 @@
 // NUNCA ve retardos ni faltas — no existen en Nexus.
 import { useMemo, useState } from "react";
 import { SlidingSegments, Avatar, Pill, SelectField } from "@/components/ui";
-import { summarizeDay, fmtMin } from "@/lib/hours";
+import { summarizeDay, fmtMin, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
 import { IconDownload } from "@/components/icons";
@@ -157,11 +157,12 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
   const cutoff = useMemo(() => addDays(todayMerida(), -PERIOD_DAYS[period]), [period]);
 
   const stats = useMemo(() => {
+    const today = todayMerida();
     return team.map((u) => {
-      const sched = schedules.find((s) => s.user_id === u.id) ?? { target_min: 480, tolerance_min: 15 };
+      const currentSched = scheduleFor(schedules, u.id, today) ?? { target_min: 480, tolerance_min: 15 };
       const rows = attendance.filter((r) => r.user_id === u.id && r.date >= cutoff);
       const dates = [...new Set(rows.map((r) => r.date))];
-      const days = dates.map((d) => summarizeDay(d, rows, sched, states));
+      const days = dates.map((d) => summarizeDay(d, rows, scheduleFor(schedules, u.id, d) ?? { target_min: 480, tolerance_min: 15 }, states));
       const closed = days.filter((d) => !d.isOpen);
       const total = closed.reduce((s, d) => s + d.totalMin, 0);
       const extra = closed.reduce((s, d) => s + d.extraMin, 0);
@@ -171,7 +172,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
         totalMin: total,
         extraMin: extra,
         avgMin: closed.length ? Math.round(total / closed.length) : 0,
-        targetMin: sched.target_min,
+        targetMin: currentSched.target_min,
       };
     });
   }, [team, attendance, schedules, cutoff, states]);

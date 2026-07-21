@@ -67,6 +67,24 @@ const toMin = (t: string) => {
   return h * 60 + m;
 };
 
+/**
+ * Elige, de entre TODOS los registros de `schedules` de una persona, el que
+ * aplica en una fecha dada. Soporta horarios temporales (ej. cobertura de
+ * vacaciones): un registro con valid_from/valid_until acotado gana sobre el
+ * horario permanente (valid_until = null) si su rango cubre la fecha,
+ * porque su valid_from es más reciente. Al pasar valid_until, el horario
+ * temporal deja de aplicar solo y vuelve a regir el permanente.
+ */
+export function scheduleFor<T extends { user_id: string; valid_from: string; valid_until: string | null }>(
+  scheds: T[], userId: string, date: string,
+): T | undefined {
+  const candidates = scheds.filter(
+    (s) => s.user_id === userId && s.valid_from <= date && (!s.valid_until || s.valid_until >= date),
+  );
+  if (candidates.length === 0) return undefined;
+  return candidates.reduce((best, s) => (s.valid_from > best.valid_from ? s : best));
+}
+
 export const fmtMin = (min: number) => {
   const h = Math.floor(Math.abs(min) / 60);
   const m = Math.abs(min) % 60;

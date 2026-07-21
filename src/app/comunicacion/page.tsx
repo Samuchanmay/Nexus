@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay, currentState } from "@/lib/hours";
+import { summarizeDay, currentState, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, ActivityType } from "@/lib/types";
 import MiDiaClient from "./tasks";
@@ -27,7 +27,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
   ] = await Promise.all([
     supabase.from("attendance").select("*").eq("user_id", profile.id).eq("date", today).order("time"),
     supabase.from("attendance").select("date").eq("user_id", profile.id).gte("date", monday).lte("date", sunday),
-    supabase.from("schedules").select("*").eq("user_id", profile.id).is("valid_until", null).limit(1).single(),
+    supabase.from("schedules").select("*").eq("user_id", profile.id),
     supabase.from("project_assignments")
       .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, requester_name, event_date, event_time))")
       .eq("user_id", profile.id),
@@ -63,7 +63,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
   // Asistente Contextual (Plano Maestro §11): qué proyectos ya tienen evidencia subida.
   const projectsWithEvidence = new Set((evidenceRows ?? []).map((e) => e.project_id as string));
 
-  const schedule = (sched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
+  const schedule = scheduleFor((sched ?? []) as Schedule[], profile.id, today) ?? ({ target_min: 480, tolerance_min: 15 } as Schedule);
   const day = summarizeDay(today, (att ?? []) as AttendanceRow[], schedule, states);
   const live = currentState((att ?? []) as AttendanceRow[], today, states);
   // Inicio del tramo de trabajo continuo actual: la "Entrada" más reciente del

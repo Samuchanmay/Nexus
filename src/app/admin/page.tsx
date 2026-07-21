@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
+import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes, shortDate } from "@/lib/tz";
@@ -51,7 +51,7 @@ export default async function AdminDashboard() {
   const utcDayStart = `${today}T06:00:00Z`; // medianoche Mérida (UTC-6)
   const [
     { count: pendingReqs }, { count: pendingVacs }, { count: pendingIncs },
-    { count: activeProjects }, { data: myAtt }, { data: mySched },
+    { count: activeProjects }, { data: myAtt }, { data: myScheds },
     { data: team }, { data: teamAtt }, { data: allScheds },
     { data: vacsToday }, { data: urgentReqs }, { data: holidayToday },
     { data: reqsToday }, { data: vacsCreatedToday },
@@ -63,10 +63,10 @@ export default async function AdminDashboard() {
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("status", "Pendiente"),
     supabase.from("projects").select("id", { count: "exact", head: true }).in("status", ["aprobada", "en_progreso", "en_revision"]),
     supabase.from("attendance").select("*").eq("user_id", me!.id).eq("date", today).order("time"),
-    supabase.from("schedules").select("*").eq("user_id", me!.id).is("valid_until", null).limit(1).single(),
+    supabase.from("schedules").select("*").eq("user_id", me!.id),
     supabase.from("users").select("id, display_name, nexus_color, avatar_url").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("id, user_id, type, reason, time").eq("date", today).order("time"),
-    supabase.from("schedules").select("user_id, start_time, tolerance_min").is("valid_until", null),
+    supabase.from("schedules").select("user_id, start_time, tolerance_min, valid_from, valid_until"),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", today).gte("end_date", today),
     supabase.from("requests").select("id, title, priority").eq("status", "solicitada").in("priority", ["alta", "urgente"]),
     supabase.from("holidays").select("date, name").eq("date", today).maybeSingle(),
@@ -86,7 +86,7 @@ export default async function AdminDashboard() {
   const states = (jornadaStates ?? []) as JornadaState[];
   const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
 
-  const sched = (mySched ?? { target_min: 480, tolerance_min: 15 }) as Schedule;
+  const sched = scheduleFor((myScheds ?? []) as Schedule[], me!.id, today) ?? ({ target_min: 480, tolerance_min: 15 } as Schedule);
   const myDay = summarizeDay(today, (myAtt ?? []) as AttendanceRow[], sched, states);
   // Igual que en Mi Día del equipo: inicio del tramo de trabajo continuo
   // actual (última "Entrada", del arranque o de retomar tras un descanso).
@@ -173,7 +173,7 @@ export default async function AdminDashboard() {
   if (isWorkday) {
     for (const p of presence) {
       if (p.status !== "Sin iniciar") continue;
-      const s = (allScheds ?? []).find((x) => x.user_id === p.id);
+      const s = scheduleFor((allScheds ?? []) as { user_id: string; start_time: string; tolerance_min: number; valid_from: string; valid_until: string | null }[], p.id, today);
       const start = toMin((s?.start_time ?? "09:00:00").slice(0, 5));
       const expected = start + (s?.tolerance_min ?? 15);
       if (nowMin > expected) {

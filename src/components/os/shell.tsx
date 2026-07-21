@@ -95,7 +95,7 @@ export function Shell({
           </button>
         </header>
 
-        <main className="flex-1 nx-scroll overflow-y-auto p-4 pb-24 md:p-6 flex flex-col">
+        <main className="flex-1 nx-scroll overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 flex flex-col">
           <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
           <footer className="max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[11px]"
             style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>

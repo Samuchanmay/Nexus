@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay } from "@/lib/hours";
+import { summarizeDay, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, addDays } from "@/lib/tz";
@@ -78,7 +78,7 @@ export default async function AsistenciaEquipo() {
   const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, meRes] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area, avatar_url").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
-    supabase.from("schedules").select("*").is("valid_until", null),
+    supabase.from("schedules").select("*"),
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
     supabase.from("app_settings").select("key, value").in("key", ["weekly_report_enabled", "weekly_report_email"]),
@@ -93,7 +93,7 @@ export default async function AsistenciaEquipo() {
 
   const rows = (att ?? []) as AttendanceRow[];
   const people: PersonDay[] = (team ?? []).map((u) => {
-    const sched = (scheds ?? []).find((s) => s.user_id === u.id) as Schedule | undefined;
+    const sched = scheduleFor((scheds ?? []) as Schedule[], u.id, today);
     const schedule = {
       start_time: sched?.start_time ?? "09:00:00",
       end_time: sched?.end_time ?? "18:00:00",
@@ -115,13 +115,12 @@ export default async function AsistenciaEquipo() {
   const weekRows: WeekRow[] = [];
   const weekAttRows = (weekAtt ?? []) as AttendanceRow[];
   for (const u of (team ?? [])) {
-    const sched = (scheds ?? []).find((s) => s.user_id === u.id) as Schedule | undefined;
-    const mySched = sched ?? { target_min: 480, tolerance_min: 15 };
     const myRows = weekAttRows.filter((r) => r.user_id === u.id);
     const dates = [...new Set(myRows.map((r) => r.date))];
     const byWeek = new Map<string, { totalMin: number; extraMin: number; days: number }>();
     for (const d of dates) {
-      const day = summarizeDay(d, myRows, mySched, states);
+      const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, d) ?? { target_min: 480, tolerance_min: 15 };
+      const day = summarizeDay(d, myRows, daySched, states);
       const wk = mondayOf(d);
       const acc = byWeek.get(wk) ?? { totalMin: 0, extraMin: 0, days: 0 };
       acc.totalMin += day.totalMin;
@@ -138,15 +137,14 @@ export default async function AsistenciaEquipo() {
   // ── Bloques por empleado/semana para el reporte Excel descargable (últimas 6 semanas con actividad) ──
   const weekBlocks: WeekBlock[] = [];
   for (const u of (team ?? [])) {
-    const sched = (scheds ?? []).find((s) => s.user_id === u.id) as Schedule | undefined;
-    const mySched = sched ?? { target_min: 480, tolerance_min: 15 };
     const myRows = weekAttRows.filter((r) => r.user_id === u.id);
     const mondays = [...new Set(myRows.map((r) => mondayOf(r.date)))].sort().reverse().slice(0, 6);
     for (const wk of mondays) {
       const days: DayDetail[] = [];
       for (let i = 0; i < 6; i++) { // Lunes..Sábado
         const date = addDays(wk, i);
-        days.push(buildDayDetail(date, myRows, mySched, states));
+        const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, date) ?? { target_min: 480, tolerance_min: 15 };
+        days.push(buildDayDetail(date, myRows, daySched, states));
       }
       weekBlocks.push({ userId: u.id, name: u.display_name, color: u.nexus_color ?? "#5856D6", weekStart: wk, weekLabel: weekLabelOf(wk), days });
     }

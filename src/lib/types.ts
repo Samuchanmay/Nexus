@@ -40,6 +40,9 @@ export interface Schedule {
   end_time: string;
   target_min: number;   // 480 / 420
   tolerance_min: number;
+  valid_from: string;    // "aaaa-mm-dd" — desde cuándo aplica
+  valid_until: string | null; // null = horario permanente vigente
+  work_days?: string;
 }
 
 export type AttendanceReason =
