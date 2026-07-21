@@ -11,10 +11,11 @@ import CalendarioClient, { type TeamMember, type ProjectDeadline, type VacationR
    cert_nexus; Actividades y Vacaciones son nuevas.
    ═══════════════════════════════════════════════════════════════ */
 
-export default async function Calendario({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  const { m } = await searchParams;
+export default async function Calendario({ searchParams }: { searchParams: Promise<{ m?: string; d?: string }> }) {
+  const { m, d } = await searchParams;
   const today = todayMerida();
   const ym = /^\d{4}-\d{2}$/.test(m ?? "") ? m! : today.slice(0, 7);
+  const initialFocusDate = /^\d{4}-\d{2}-\d{2}$/.test(d ?? "") && (d as string).slice(0, 7) === ym ? d! : undefined;
   const { year, month, daysInMonth, first, last } = monthBounds(ym);
 
   const supabase = await createClient();
@@ -73,6 +74,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       efemerides={efemerides.map((e) => e.title)}
       gcalEvents={gcalEvents}
       gcalError={gcalError}
+      initialFocusDate={initialFocusDate}
     />
   );
 }
