@@ -318,9 +318,9 @@ create policy req_admin_update on public.requests for update to authenticated
 create policy prj_read on public.projects for select to authenticated
   using (public.my_role() = 'admin'
      or exists (select 1 from public.project_assignments a
-                where a.project_id = id and a.user_id = public.my_user_id())
+                where a.project_id = projects.id and a.user_id = public.my_user_id())
      or exists (select 1 from public.requests r
-                where r.id = request_id and r.requester_id = public.my_user_id()));
+                where r.id = projects.request_id and r.requester_id = public.my_user_id()));
 create policy prj_admin on public.projects for all to authenticated
   using (public.my_role() = 'admin') with check (public.my_role() = 'admin');
 create policy prj_lead_update on public.projects for update to authenticated
@@ -351,11 +351,11 @@ create policy ter_admin on public.time_edit_requests for update to authenticated
 create policy ev_rw on public.evidences for all to authenticated
   using (public.my_role() = 'admin'
      or exists (select 1 from public.project_assignments a
-                where a.project_id = project_id and a.user_id = public.my_user_id()));
+                where a.project_id = evidences.project_id and a.user_id = public.my_user_id()));
 create policy cm_rw on public.comments for all to authenticated
   using (public.my_role() = 'admin'
      or exists (select 1 from public.project_assignments a
-                where a.project_id = project_id and a.user_id = public.my_user_id()));
+                where a.project_id = comments.project_id and a.user_id = public.my_user_id()));
 create policy nt_own on public.notifications for all to authenticated
   using (user_id = public.my_user_id());
 create policy al_read on public.activity_logs for select to authenticated

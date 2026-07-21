@@ -3,15 +3,17 @@
 // Deploy: supabase functions deploy fichar
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const OFICINA_LAT = Number(Deno.env.get("OFICINA_LAT") ?? "20.405833");
 const COOLDOWN_MIN = Number(Deno.env.get("COOLDOWN_MIN") ?? "2"); // B6: mismo motivo, mínimo N min entre registros
 
 // B1: fecha/hora SIEMPRE en America/Merida, calculadas aquí (no defaults UTC de Postgres)
 const TZ = "America/Merida";
 const dateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
 const timeFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-const OFICINA_LNG = Number(Deno.env.get("OFICINA_LNG") ?? "-89.529222");
-const RADIO_MAX_M = Number(Deno.env.get("RADIO_MAX_M") ?? "50");
+
+// Respaldo SOLO por si la tabla gps_zones llegara a estar vacía (no debería
+// pasar en producción — Configuración → Zona GPS siempre debe tener al
+// menos una zona activa).
+const FALLBACK_ZONE = { lat: 20.405833, lng: -89.529222, radio_m: 50 };
 
 // Mismo mapeo que src/lib/hours.ts (motivos fijos del checador → nombre de
 // estado en jornada_states). Si el estado tiene pausa_actividad = true,
@@ -69,14 +71,26 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: "Cuenta no autorizada" }, { status: 403, headers: cors });
     }
 
-    // GPS server-side — el cliente no puede saltarse esta validación
+    // GPS server-side — el cliente no puede saltarse esta validación.
+    // Las zonas viven en la BD (Configuración → Zona GPS, editable sin
+    // redeploy) y se soportan varias activas a la vez (ej. dos planteles):
+    // basta con estar dentro del radio de CUALQUIERA de ellas.
     if (typeof lat !== "number" || typeof lng !== "number") {
       return Response.json({ ok: false, error: "Ubicación requerida" }, { status: 400, headers: cors });
     }
-    const dist = Math.round(haversine(lat, lng, OFICINA_LAT, OFICINA_LNG));
-    if (dist > RADIO_MAX_M) {
+    const { data: zonesRaw } = await supabase
+      .from("gps_zones").select("nombre, lat, lng, radio_m").eq("activo", true);
+    const zones = zonesRaw?.length ? zonesRaw : [{ nombre: "Oficina", ...FALLBACK_ZONE }];
+    let dist = Infinity;
+    let withinZone = false;
+    for (const z of zones) {
+      const d = Math.round(haversine(lat, lng, z.lat, z.lng));
+      if (d < dist) dist = d;
+      if (d <= z.radio_m) { withinZone = true; break; }
+    }
+    if (!withinZone) {
       return Response.json(
-        { ok: false, error: `Fuera de rango: estás a ${dist} m de la oficina (máx ${RADIO_MAX_M} m)` },
+        { ok: false, error: `Fuera de rango: estás a ${dist} m de la zona más cercana` },
         { status: 422, headers: cors },
       );
     }

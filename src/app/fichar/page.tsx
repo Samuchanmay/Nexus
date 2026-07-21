@@ -13,11 +13,11 @@ import { createClient } from "@/lib/supabase/client";
 import { QUOTES_ENTRADA, QUOTES_SALIDA } from "./quotes";
 import { Icon } from "@/components/os/icons";
 
-const OFICINA = {
-  lat: Number(process.env.NEXT_PUBLIC_OFICINA_LAT ?? "20.405833"),
-  lng: Number(process.env.NEXT_PUBLIC_OFICINA_LNG ?? "-89.529222"),
-  radio: Number(process.env.NEXT_PUBLIC_RADIO_MAX_M ?? "50"),
-};
+// Zonas GPS — antes vivían fijas en env vars (NEXT_PUBLIC_OFICINA_LAT/LNG/
+// RADIO_MAX_M), ahora se leen de la tabla gps_zones (Configuración → Zona
+// GPS) y soportan varias zonas activas a la vez. Este valor es solo el
+// respaldo mientras carga la primera consulta.
+const ZONA_RESPALDO = { lat: 20.405833, lng: -89.529222, radio_m: 50 };
 
 // Motivos EXACTOS del checador del cliente (etiqueta → valor en BD)
 const MOTIVOS_ENTRADA = [
@@ -98,6 +98,7 @@ export default function Fichar() {
   const [gps, setGps] = useState<{ ok: boolean; txt: string; lat: number | null; lng: number | null }>(
     { ok: false, txt: "Obteniendo ubicación…", lat: null, lng: null },
   );
+  const [zonas, setZonas] = useState<{ lat: number; lng: number; radio_m: number }[]>([ZONA_RESPALDO]);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<
     | null
@@ -137,27 +138,42 @@ export default function Fichar() {
     })();
   }, []);
 
-  // GPS con compensación de precisión (igual que el checador: margen ≤ 15 m)
+  // Zonas GPS activas — se leen de la BD para no depender de env vars/redeploy.
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("gps_zones").select("lat, lng, radio_m").eq("activo", true);
+      if (data && data.length) setZonas(data);
+    })();
+  }, []);
+
+  // GPS con compensación de precisión (igual que el checador: margen ≤ 15 m).
+  // "Dentro de rango" = dentro del radio de CUALQUIERA de las zonas activas.
   useEffect(() => {
     if (!navigator.geolocation) { setGps({ ok: false, txt: "GPS no disponible", lat: null, lng: null }); return; }
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-        const dist = haversine(lat, lng, OFICINA.lat, OFICINA.lng);
         const precision = Math.round(accuracy || 0);
         const margen = Math.min(accuracy || 0, 15);
-        const efectiva = Math.max(0, dist - margen);
-        if (efectiva <= OFICINA.radio) {
+        let dist = Infinity;
+        let dentro = false;
+        for (const z of zonas) {
+          const d = haversine(lat, lng, z.lat, z.lng);
+          if (d < dist) dist = d;
+          if (Math.max(0, d - margen) <= z.radio_m) { dentro = true; break; }
+        }
+        if (dentro) {
           setGps({ ok: true, txt: `Ubicación verificada (${Math.round(dist)} m · ±${precision} m)`, lat, lng });
         } else {
-          setGps({ ok: false, txt: `Fuera de rango · ${Math.round(dist)} m de la oficina (±${precision} m)`, lat, lng });
+          setGps({ ok: false, txt: `Fuera de rango · ${Math.round(dist)} m de la zona más cercana (±${precision} m)`, lat, lng });
         }
       },
       (err) => setGps({ ok: false, txt: err.code === 1 ? "Permiso denegado — activa ubicación" : "No se pudo obtener GPS", lat: null, lng: null }),
       { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 },
     );
     return () => navigator.geolocation.clearWatch(id);
-  }, []);
+  }, [zonas]);
 
   // ── Envío al servidor: éxito SOLO con UUID devuelto ──
   const enviar = useCallback(async (reg: QueuedReg): Promise<{ ok: true; time: string; pausedActivity: boolean } | { ok: false; msg: string; retriable: boolean }> => {

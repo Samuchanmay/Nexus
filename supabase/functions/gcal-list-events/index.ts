@@ -22,7 +22,7 @@ async function getFreshAccessToken(
     .eq("user_id", userRowId)
     .single();
 
-  if (!row?.refresh_token) return { error: "sin-permiso-google" };
+  if (!row?.refresh_token) return { error: "Nadie ha conectado una cuenta de Google todavía — entra sesión con Google para activar esto." };
 
   const stillValid =
     row.access_token &&
@@ -32,7 +32,7 @@ async function getFreshAccessToken(
 
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
   const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
-  if (!clientId || !clientSecret) return { error: "faltan-credenciales-google" };
+  if (!clientId || !clientSecret) return { error: "Faltan las credenciales de Google configuradas en el servidor (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)." };
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -45,7 +45,23 @@ async function getFreshAccessToken(
     }),
   });
   const json = await res.json();
-  if (!res.ok || !json.access_token) return { error: "no-se-pudo-renovar-permiso" };
+  if (!res.ok || !json.access_token) {
+    // Mensaje en español, sin jerga técnica — la versión anterior mostraba
+    // el código crudo de Google (ej. "invalid_client: The provided client
+    // secret is invalid.") que no le decía a nadie qué hacer. Se traducen
+    // los dos casos reales que pueden pasar aquí; cualquier otro cae en un
+    // mensaje genérico igual de claro.
+    const code = json?.error as string | undefined;
+    let msg: string;
+    if (code === "invalid_client") {
+      msg = "Las credenciales de Google (client secret) guardadas en el servidor ya no coinciden con las de Google Cloud — hay que actualizarlas en Configuración del proyecto (Supabase → Edge Functions → Secrets).";
+    } else if (code === "invalid_grant") {
+      msg = "El permiso de Google Calendar venció o fue revocado — hay que volver a conectar la cuenta de Google (cerrar sesión y entrar de nuevo con Google).";
+    } else {
+      msg = `Google Calendar rechazó la conexión${json?.error_description ? ": " + json.error_description : ""}.`;
+    }
+    return { error: msg };
+  }
 
   await admin.from("google_oauth_tokens").update({
     access_token: json.access_token,
@@ -96,7 +112,7 @@ Deno.serve(async (req) => {
     );
     const evJson = await evRes.json();
     if (!evRes.ok) {
-      return Response.json({ ok: false, error: "google-rechazo-la-lectura", detail: evJson, events: [] }, { status: 200, headers: cors });
+      return Response.json({ ok: false, error: "Google Calendar rechazó la lectura de eventos — revisa que el calendario siga compartido con el permiso correcto.", detail: evJson, events: [] }, { status: 200, headers: cors });
     }
 
     type GEvent = { id: string; summary?: string; start?: { date?: string; dateTime?: string }; end?: { date?: string; dateTime?: string }; htmlLink?: string };

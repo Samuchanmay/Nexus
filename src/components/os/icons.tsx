@@ -48,6 +48,8 @@ const P: Record<string, React.ReactNode> = {
   pause: <><rect x="6" y="4.5" width="4" height="15" rx="1" /><rect x="14" y="4.5" width="4" height="15" rx="1" /></>,
   login: <><path d="M9 12h11M15 8l4 4-4 4" /><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6" /></>,
   plane: <g transform="rotate(45 12 12)"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2.5 2v1.5l4-1 4 1V21l-2.5-2v-5.5z" fill="currentColor" stroke="none" /></g>,
+  pin: <><path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.3" /></>,
+  palette: <><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1 0 1.5-.6 1.5-1.4 0-.4-.15-.7-.4-1-.25-.3-.4-.6-.4-1 0-.8.65-1.4 1.4-1.4H16a4.5 4.5 0 0 0 4.5-4.5C20.5 6.6 16.7 3.5 12 3.5Z" /><circle cx="7.3" cy="10" r="1.1" fill="currentColor" stroke="none" /><circle cx="9.5" cy="7" r="1.1" fill="currentColor" stroke="none" /><circle cx="14.5" cy="7" r="1.1" fill="currentColor" stroke="none" /><circle cx="16.7" cy="10.3" r="1.1" fill="currentColor" stroke="none" /></>,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {

@@ -27,6 +27,8 @@ const CATEGORIES: { title: string; items: LinkCard[] }[] = [
         desc: "Hora de entrada y horas objetivo por persona — crea horarios temporales para vacaciones." },
       { href: "/admin/dias-inhabiles", title: "Días inhábiles", icon: "calendar",
         desc: "Fechas que no cuentan como jornada laboral." },
+      { href: "/admin/config/gps", title: "Zona GPS", icon: "pin",
+        desc: "Coordenadas y radio permitido para fichar — cámbialas sin tocar código ni redesplegar." },
     ],
   },
   {
@@ -38,6 +40,8 @@ const CATEGORIES: { title: string; items: LinkCard[] }[] = [
         desc: "Frases y ritmo del aviso de pausa activa que muestra el Asistente." },
       { href: "/admin/empleados", title: "Equipo", icon: "users",
         desc: "Invitar, dar de baja, cambiar rol o coordinación/departamento." },
+      { href: "/admin/config/colores", title: "Colores de equipo", icon: "palette",
+        desc: "El color fijo de cada coordinación/departamento y de RH — ninguno se repite." },
       { href: "/admin/reportes", title: "Reportes", icon: "chart",
         desc: "Solicitudes y actividades agregadas por tipo, coordinación y tiempo." },
     ],

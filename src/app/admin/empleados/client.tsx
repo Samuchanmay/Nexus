@@ -7,12 +7,12 @@ import { useToast, Sheet, Avatar, SelectField } from "@/components/ui";
 import { IconUserPlus, IconPen } from "@/components/icons";
 import { Switch } from "@/components/shared";
 import { todayMerida } from "@/lib/tz";
+import { PALETTE, nextAvailableColor } from "@/lib/colors";
 
 const SPECIALTIES = ["video", "fotografia", "diseno", "difusion", "redaccion"];
 const SPECIALTY_LABELS: Record<string, string> = {
   video: "Video", fotografia: "Fotografía", diseno: "Diseño", difusion: "Difusión", redaccion: "Redacción",
 };
-const COLORS = ["#5856D6", "#FF3B30", "#FF8A00", "#0066FF", "#2FB344", "#AF52DE", "#FF2D55"];
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrador", empleado: "Empleado", rh: "RH",
   coordinador: "Coordinador", departamento: "Departamento",
@@ -37,14 +37,16 @@ function AreaSelect({ role, areas, value, onChange }: {
   );
 }
 
-export default function EmpleadosClient({ users, areas }: { users: UserProfile[]; areas: Department[] }) {
+export default function EmpleadosClient({ users, areas, rhColor }: { users: UserProfile[]; areas: Department[]; rhColor: string | null }) {
   const toast = useToast();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const usedLockedColors = [...areas.map((a) => a.color), rhColor];
+  const availableColors = PALETTE.filter((c) => !usedLockedColors.some((u) => u?.toUpperCase() === c.toUpperCase()));
   const [form, setForm] = useState({
     email: "", full_name: "", display_name: "", title: "", honorific: "", hire_date: "", role: "empleado",
-    area: "", area_id: "", color: COLORS[4], specialties: [] as string[],
+    area: "", area_id: "", color: nextAvailableColor(usedLockedColors), specialties: [] as string[],
     start: "09:00", end: "18:00", targetHours: "8", balance: "0",
   });
 
@@ -61,6 +63,14 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
 
   const isEquipo = form.role === "empleado";
 
+  /** Color final que se guarda: RH y coordinador/departamento lo heredan de
+      su grupo (bloqueado); empleado lo elige a mano entre los disponibles. */
+  const resolvedColor = (): string | null => {
+    if (form.role === "rh") return rhColor;
+    if (AREA_TIPO[form.role]) return areas.find((a) => a.id === form.area_id)?.color ?? null;
+    return form.color;
+  };
+
   const save = async () => {
     if (!form.email.trim() || !form.full_name.trim()) { toast("Correo y nombre son obligatorios"); return; }
     setSaving(true);
@@ -76,7 +86,7 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
       requester_kind: requesterKind,
       area_id: form.area_id || null,
       nexus_clave: form.display_name.trim() || form.full_name.split(" ")[0],
-      nexus_color: form.color,
+      nexus_color: resolvedColor(),
       area: form.area || null,
       specialties: isEquipo ? form.specialties : [],
       vacation_balance: parseInt(form.balance) || 0,
@@ -337,35 +347,58 @@ export default function EmpleadosClient({ users, areas }: { users: UserProfile[]
                     onChange={(e) => setForm({ ...form, targetHours: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Saldo vacaciones</label>
-                  <input type="number" className="field-input" value={form.balance}
-                    onChange={(e) => setForm({ ...form, balance: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Color</label>
-                  <div className="flex gap-1.5 items-center h-[46px]">
-                    {COLORS.map((c) => (
-                      <button key={c} onClick={() => setForm({ ...form, color: c })}
-                        aria-label={`Color ${c}`}
-                        className="w-7 h-7 rounded-full transition-transform"
-                        style={{
-                          background: c,
-                          transform: form.color === c ? "scale(1.2)" : "scale(1)",
-                          border: form.color === c ? "2.5px solid var(--text-1)" : "2.5px solid transparent",
-                        }} />
-                    ))}
-                  </div>
-                </div>
+              <div>
+                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Saldo vacaciones</label>
+                <input type="number" className="field-input" value={form.balance}
+                  onChange={(e) => setForm({ ...form, balance: e.target.value })} />
               </div>
             </>
           )}
 
           {AREA_TIPO[form.role] && (
             <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
-              Si dejas el área en blanco, la persona la elegirá ella misma la primera vez que entre.
+              Si dejas el área en blanco, la persona la elegirá ella misma la primera vez que entre — su color se
+              asigna automático en cuanto elija.
             </p>
+          )}
+
+          {/* Color — bloqueado y automático por grupo (RH, coordinación/departamento);
+              libre solo para colaboradores de Equipo, y excluye los colores ya tomados. */}
+          {form.role !== "admin" && (
+            <div>
+              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Color</label>
+              {form.role === "rh" ? (
+                <div className="flex items-center gap-2 h-[38px]">
+                  <span className="w-7 h-7 rounded-full shrink-0" style={{ background: rhColor ?? "#8E8E93" }} />
+                  <span className="text-[12px]" style={{ color: "var(--text-3)" }}>Color de grupo de RH</span>
+                </div>
+              ) : AREA_TIPO[form.role] ? (
+                form.area_id ? (
+                  <div className="flex items-center gap-2 h-[38px]">
+                    <span className="w-7 h-7 rounded-full shrink-0"
+                      style={{ background: areas.find((a) => a.id === form.area_id)?.color ?? "#8E8E93" }} />
+                    <span className="text-[12px]" style={{ color: "var(--text-3)" }}>Color del área — automático</span>
+                  </div>
+                ) : (
+                  <p className="text-[12px] h-[38px] flex items-center" style={{ color: "var(--text-3)" }}>
+                    Se asignará cuando elija su área
+                  </p>
+                )
+              ) : (
+                <div className="flex gap-1.5 items-center flex-wrap">
+                  {availableColors.map((c) => (
+                    <button key={c} onClick={() => setForm({ ...form, color: c })}
+                      aria-label={`Color ${c}`}
+                      className="w-7 h-7 rounded-full transition-transform"
+                      style={{
+                        background: c,
+                        transform: form.color === c ? "scale(1.2)" : "scale(1)",
+                        border: form.color === c ? "2.5px solid var(--text-1)" : "2.5px solid transparent",
+                      }} />
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           <div className="flex gap-2.5 mt-1">

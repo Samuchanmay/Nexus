@@ -31,6 +31,16 @@ export interface Department {
   nombre: string;
   tipo: "coordinacion" | "departamento";
   activo: boolean;
+  color: string | null;
+}
+
+export interface GpsZone {
+  id: string;
+  nombre: string;
+  lat: number;
+  lng: number;
+  radio_m: number;
+  activo: boolean;
 }
 
 export interface Schedule {
