@@ -8,6 +8,7 @@ import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/compo
 import { Icon } from "@/components/os/icons";
 import { contextualMessages } from "@/lib/assistant";
 import type { AssistantTask } from "@/lib/assistant";
+import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
 
 /* ═══════════════════════════════════════════════════════════════
    Hoy · Centro de Operaciones (admin)
@@ -278,12 +279,15 @@ export default async function AdminDashboard() {
         </div>
       )}
 
+      {/* Pausa activa: pop-up aparte, no se pierde en la lista */}
+      <PausaActivaPopup messages={assistantMessages} />
+
       {/* Asistente Contextual (Plano Maestro §11) */}
-      {assistantMessages.length > 0 && (
+      {assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-")).length > 0 && (
         <Card>
           <SectionTitle>Asistente</SectionTitle>
           <div className="space-y-1.5">
-            {assistantMessages.map((m) => (
+            {assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-")).map((m) => (
               <div key={m.id} className="nx-pop flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
                 style={{
                   background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",

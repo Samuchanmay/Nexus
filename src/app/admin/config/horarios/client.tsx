@@ -111,10 +111,10 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
                         {fmtMin(current.target_min)}{isOverride ? " · temporal" : ""}
                       </p>
                     </div>
-                    <button onClick={() => openEdit(p)} aria-label="Editar horario"
-                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
-                      <IconPen className="w-3.5 h-3.5" />
+                    <button onClick={() => openEdit(p)}
+                      className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shrink-0"
+                      style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
+                      <IconPen className="w-3.5 h-3.5" /> Editar
                     </button>
                   </div>
                 }

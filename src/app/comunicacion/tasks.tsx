@@ -16,6 +16,7 @@ import { todayMerida, addDays } from "@/lib/tz";
 import { fmtMin } from "@/lib/hours";
 import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
+import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
 
 interface Task {
   assignmentId: string; isLead: boolean; projectId: string;
@@ -335,28 +336,34 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
         </div>
       </header>
 
+      {/* ── Pausa activa: pop-up aparte, no se pierde en la lista ── */}
+      <PausaActivaPopup messages={assistantMessages} />
+
       {/* ── Asistente Contextual (Plano Maestro §11) ── */}
-      {assistantMessages.length > 0 && (
-        <Card>
-          <SectionTitle>Asistente</SectionTitle>
-          <div className="space-y-1.5">
-            {assistantMessages.map((m) => (
-              <div key={m.id} className="nx-pop flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
-                style={{
-                  background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",
-                }}>
-                <span className={`shrink-0 ${m.animated ? "nx-msg-icon-bounce" : ""}`} style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
-                  <Icon name={m.icon} size={16} />
-                </span>
-                <p className="text-[13px] font-semibold flex-1"
-                  style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-1)" }}>
-                  {m.text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      {(() => {
+        const inlineMessages = assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-"));
+        return inlineMessages.length > 0 && (
+          <Card>
+            <SectionTitle>Asistente</SectionTitle>
+            <div className="space-y-1.5">
+              {inlineMessages.map((m) => (
+                <div key={m.id} className="nx-pop flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
+                  style={{
+                    background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",
+                  }}>
+                  <span className={`shrink-0 ${m.animated ? "nx-msg-icon-bounce" : ""}`} style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
+                    <Icon name={m.icon} size={16} />
+                  </span>
+                  <p className="text-[13px] font-semibold flex-1"
+                    style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-1)" }}>
+                    {m.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* ── Tira semanal — clicable: lleva al Calendario centrado en ese día ── */}
       <div className="grid grid-cols-7 gap-1.5">

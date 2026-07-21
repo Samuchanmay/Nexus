@@ -23,6 +23,7 @@ export interface UserProfile {
   hire_date: string | null;
   birth_date: string | null;
   onboarded: boolean;
+  nivel: "licenciatura" | "centro_educativo" | "posgrado" | null;
   departments?: { id: string; nombre: string; tipo: "coordinacion" | "departamento" } | null;
 }
 

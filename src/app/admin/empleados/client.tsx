@@ -1,13 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
 import { useToast, Sheet, Avatar, SelectField } from "@/components/ui";
-import { IconUserPlus, IconPen } from "@/components/icons";
+import { IconUserPlus, IconPen, IconCamera } from "@/components/icons";
 import { Switch } from "@/components/shared";
 import { todayMerida } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
+
+const NIVEL_LABELS: Record<string, string> = {
+  licenciatura: "Licenciatura", centro_educativo: "Centro Educativo", posgrado: "Posgrado",
+};
 
 const SPECIALTIES = ["video", "fotografia", "diseno", "difusion", "redaccion"];
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -46,16 +50,18 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
   const availableColors = PALETTE.filter((c) => !usedLockedColors.some((u) => u?.toUpperCase() === c.toUpperCase()));
   const [form, setForm] = useState({
     email: "", full_name: "", display_name: "", title: "", honorific: "", hire_date: "", role: "empleado",
-    area: "", area_id: "", color: nextAvailableColor(usedLockedColors), specialties: [] as string[],
+    area: "", area_id: "", nivel: "licenciatura", color: nextAvailableColor(usedLockedColors), specialties: [] as string[],
     start: "09:00", end: "18:00", targetHours: "8", balance: "0",
   });
 
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({
-    role: "empleado", area_id: "", balance: "0", daysPerYear: "0",
+    role: "empleado", area_id: "", nivel: "licenciatura", balance: "0", daysPerYear: "0",
     fullName: "", displayName: "", title: "", honorific: "", hireDate: "", birthDate: "",
   });
   const [editSaving, setEditSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const toggleSpec = (s: string) => setForm((f) => ({
     ...f, specialties: f.specialties.includes(s) ? f.specialties.filter((x) => x !== s) : [...f.specialties, s],
@@ -87,6 +93,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
       area_id: form.area_id || null,
       nexus_clave: form.display_name.trim() || form.full_name.split(" ")[0],
       nexus_color: resolvedColor(),
+      nivel: form.role === "coordinador" ? form.nivel : null,
       area: form.area || null,
       specialties: isEquipo ? form.specialties : [],
       vacation_balance: parseInt(form.balance) || 0,
@@ -122,7 +129,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
   const openEdit = (u: UserProfile) => {
     setEditing(u);
     setEditForm({
-      role: u.role, area_id: u.area_id ?? "",
+      role: u.role, area_id: u.area_id ?? "", nivel: u.nivel ?? "licenciatura",
       balance: String(u.vacation_balance ?? 0), daysPerYear: String(u.vacation_days_per_year ?? 0),
       fullName: u.full_name ?? "", displayName: u.display_name ?? "", title: u.title ?? "",
       honorific: u.honorific ?? "",
@@ -140,6 +147,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
       role: editForm.role,
       requester_kind: requesterKind,
       area_id: AREA_TIPO[editForm.role] ? (editForm.area_id || null) : null,
+      nivel: editForm.role === "coordinador" ? editForm.nivel : null,
       vacation_balance: parseInt(editForm.balance) || 0,
       vacation_days_per_year: parseInt(editForm.daysPerYear) || 0,
       full_name: editForm.fullName.trim() || editing.full_name,
@@ -156,6 +164,32 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     router.refresh();
   };
 
+  /** Foto subida por el admin a nombre de OTRA persona — vive en team/<id>.<ext>
+      del bucket avatars (distinto del auth.uid()/avatar.<ext> que usa cada quien
+      para su propia foto vía ProfileModal), para no depender de que la persona
+      ya haya iniciado sesión con Google. */
+  const uploadTeamPhoto = async (file: File) => {
+    if (!editing) return;
+    setAvatarUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `team/${editing.id}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (upErr) {
+      toast(`No se pudo subir la foto: ${upErr.message}`);
+      setAvatarUploading(false);
+      return;
+    }
+    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = `${pub.publicUrl}?t=${Date.now()}`;
+    const { error } = await supabase.from("users").update({ avatar_url: url }).eq("id", editing.id);
+    setAvatarUploading(false);
+    if (error) { toast("La foto se subió pero no se pudo guardar"); return; }
+    setEditing({ ...editing, avatar_url: url });
+    toast("Foto actualizada");
+    router.refresh();
+  };
+
   const areaName = (u: UserProfile) => {
     if (u.area_id) return areas.find((a) => a.id === u.area_id)?.nombre;
     return u.area;
@@ -163,7 +197,14 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
 
   const administradores = users.filter((u) => u.role === "admin");
   const equipo = users.filter((u) => u.role === "empleado");
-  const otros = users.filter((u) => u.role !== "empleado" && u.role !== "admin");
+  const coordinadores = users.filter((u) => u.role === "coordinador");
+  const otrosGrupos: { label: string; list: UserProfile[] }[] = [
+    { label: "Coordinadores Licenciatura", list: coordinadores.filter((u) => (u.nivel ?? "licenciatura") === "licenciatura") },
+    { label: "Coordinadores Centro Educativo", list: coordinadores.filter((u) => u.nivel === "centro_educativo") },
+    { label: "Coordinadores Posgrados", list: coordinadores.filter((u) => u.nivel === "posgrado") },
+    { label: "Departamentos", list: users.filter((u) => u.role === "departamento") },
+    { label: "RH", list: users.filter((u) => u.role === "rh") },
+  ];
 
   const Row = ({ u }: { u: UserProfile }) => (
     <div className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
@@ -226,14 +267,16 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
           ) : equipo.map((u) => <Row key={u.id} u={u} />)}
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
-            Otro personal · coordinadores, departamentos y RH · {otros.length}
-          </p>
-          {otros.length === 0 ? (
-            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
-          ) : otros.map((u) => <Row key={u.id} u={u} />)}
-        </div>
+        {otrosGrupos.map((g) => (
+          <div key={g.label} className="flex flex-col gap-2.5">
+            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+              {g.label} · {g.list.length}
+            </p>
+            {g.list.length === 0 ? (
+              <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
+            ) : g.list.map((u) => <Row key={u.id} u={u} />)}
+          </div>
+        ))}
       </div>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Agregar personal">
@@ -313,6 +356,13 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
                   value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
               </div>
             ) : null}
+
+          {form.role === "coordinador" && (
+            <SelectField label="Nivel educativo" value={form.nivel}
+              onChange={(v) => setForm({ ...form, nivel: v })}>
+              {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+            </SelectField>
+          )}
 
           {isEquipo && (
             <>
@@ -414,6 +464,22 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
         title={editing ? `Editar · ${editing.full_name}` : "Editar"}>
         {editing && (
           <div className="flex flex-col gap-3">
+            <div className="flex flex-col items-center gap-2 mb-1">
+              <div className="relative">
+                <Avatar name={editing.display_name} color={editing.nexus_color} size={72} avatarUrl={editing.avatar_url} />
+                <button onClick={() => avatarFileRef.current?.click()} disabled={avatarUploading}
+                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-accent text-white grid place-items-center border-2 disabled:opacity-50"
+                  style={{ borderColor: "var(--panel)" }}
+                  aria-label="Cambiar foto" title="Cambiar foto">
+                  <IconCamera className="w-3.5 h-3.5" />
+                </button>
+                <input ref={avatarFileRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadTeamPhoto(f); }} />
+              </div>
+              <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                {avatarUploading ? "Subiendo…" : "Foto de perfil"}
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
@@ -461,6 +527,12 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
             {AREA_TIPO[editForm.role] && (
               <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
                 onChange={(v) => setEditForm({ ...editForm, area_id: v })} />
+            )}
+            {editForm.role === "coordinador" && (
+              <SelectField label="Nivel educativo" value={editForm.nivel}
+                onChange={(v) => setEditForm({ ...editForm, nivel: v })}>
+                {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+              </SelectField>
             )}
             <div className="grid grid-cols-2 gap-2.5">
               <div>
