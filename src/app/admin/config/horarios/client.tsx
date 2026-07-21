@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, PersonRow, EmptyState, Field } from "@/components/shared";
 import { Sheet, SelectField, DateField, Pill, useToast } from "@/components/ui";
-import { IconPlus, IconX, IconPen } from "@/components/icons";
+import { IconPlus, IconX } from "@/components/icons";
 import { todayMerida, shortDate } from "@/lib/tz";
 import { scheduleFor, fmtTime, fmtMin } from "@/lib/hours";
 import type { Schedule } from "@/lib/types";
@@ -112,9 +112,9 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
                       </p>
                     </div>
                     <button onClick={() => openEdit(p)}
-                      className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shrink-0"
+                      className="px-3.5 py-2 rounded-full text-[12px] font-semibold shrink-0"
                       style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-                      <IconPen className="w-3.5 h-3.5" /> Editar
+                      Editar
                     </button>
                   </div>
                 }

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
 import { useToast, Sheet, Avatar, SelectField } from "@/components/ui";
-import { IconUserPlus, IconPen, IconCamera } from "@/components/icons";
+import { IconUserPlus, IconCamera } from "@/components/icons";
 import { Switch } from "@/components/shared";
 import { todayMerida } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
@@ -224,9 +224,9 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
       </div>
       <div className="flex items-center gap-2.5">
         <button onClick={() => openEdit(u)}
-          className="px-3.5 py-2 rounded-full text-[12px] font-semibold flex items-center gap-1.5"
+          className="px-3.5 py-2 rounded-full text-[12px] font-semibold"
           style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-          <IconPen className="w-3.5 h-3.5" /> Editar
+          Editar
         </button>
         <Switch tone="status" checked={u.active} onChange={() => toggleActive(u)}
           label={u.active ? "Activo" : "Inactivo"} />
