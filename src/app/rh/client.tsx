@@ -9,9 +9,10 @@ import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
 import { IconDownload } from "@/components/icons";
 import { todayMerida, addDays, shortDate, seniorityLabel, dmy, nextAnniversary } from "@/lib/tz";
 import { VACATION_TONE } from "@/lib/ui-maps";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
 type Member = {
-  id: string; full_name: string; display_name: string; nexus_color: string | null; avatar_url: string | null; area: string | null;
+  id: string; full_name: string; display_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null; area: string | null;
   vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; vacation_balance_reset: string | null;
 };
 
@@ -280,7 +281,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
           <div key={s.user.id} className="card px-5 py-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
-                <Avatar name={s.user.display_name} color={s.user.nexus_color} avatarUrl={s.user.avatar_url} size={36} />
+                <Avatar name={s.user.display_name} color={s.user.nexus_color} avatarUrl={s.user.avatar_url} size={36} birthday={isBirthdayToday(s.user.birth_date, todayISO())} />
                 <div>
                   <p className="text-[14px] font-bold">{s.user.full_name}</p>
                   <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{s.user.area}</p>
@@ -322,7 +323,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
           {upcomingVacs.map((v) => (
             <div key={v.id} className="card px-5 py-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={32} />
+                <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={32} birthday={isBirthdayToday(v.users?.birth_date, todayISO())} />
                 <div>
                   <p className="text-[13.5px] font-bold">{v.users?.full_name}</p>
                   <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
@@ -348,7 +349,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
         {vacSummary.map(({ m, used, pctUsed }) => (
           <div key={m.id} className="card px-5 py-3.5 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <Avatar name={m.display_name} color={m.nexus_color} avatarUrl={m.avatar_url} size={34} />
+              <Avatar name={m.display_name} color={m.nexus_color} avatarUrl={m.avatar_url} size={34} birthday={isBirthdayToday(m.birth_date, todayISO())} />
               <div>
                 <p className="text-[13.5px] font-bold">{m.full_name}</p>
                 <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
@@ -427,7 +428,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                 {items.map((v) => (
                   <div key={v.id} className="card px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3">
-                      <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={30} />
+                      <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={30} birthday={isBirthdayToday(v.users?.birth_date, todayISO())} />
                       <div>
                         <p className="text-[13px] font-bold">{v.users?.full_name}</p>
                         <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)}</p>

@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { Avatar, Pill } from "@/components/ui";
 import { dmy } from "@/lib/tz";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
 export type Item = {
   id: string;
@@ -11,7 +12,7 @@ export type Item = {
     title: string; type: string; subtype: string | null;
     requester_name: string | null; requester_area: string | null; event_date: string | null;
   } | null;
-  project_assignments: { is_lead: boolean; users: { display_name: string; nexus_color: string | null; avatar_url: string | null } | null }[];
+  project_assignments: { is_lead: boolean; users: { display_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null } | null }[];
   evidences: { id: string; drive_url: string | null; publish_url: string | null; created_at: string }[];
   comments: { id: string }[];
 };
@@ -109,7 +110,7 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   {it.project_assignments.map((a, i) => a.users && (
                     <span key={i} className="flex items-center gap-1.5">
-                      <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={22} />
+                      <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={22} birthday={isBirthdayToday(a.users.birth_date, todayISO())} />
                       <span className="text-[12px] font-semibold">{a.users.display_name}{a.is_lead ? " (responsable)" : ""}</span>
                     </span>
                   ))}

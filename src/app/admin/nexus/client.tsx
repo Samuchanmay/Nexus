@@ -13,11 +13,12 @@ import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import { dmy } from "@/lib/tz";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { logAdminAction } from "@/lib/admin-log";
 import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
 
 export interface PersonDay {
-  user: { id: string; display_name: string; area: string | null; nexus_color: string | null; avatar_url?: string | null };
+  user: { id: string; display_name: string; area: string | null; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null };
   schedule: { start_time: string; end_time: string; target_min: number };
   day: {
     firstIn: string | null; lastOut: string | null; totalMin: number;
@@ -186,7 +187,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             <div key={u.id} className="card p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} />
+                  <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                   <div>
                     <p className="text-[14.5px] font-bold">{u.display_name}</p>
                     <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{u.area}</p>
@@ -267,7 +268,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                   <div key={u.id} className="flex items-center gap-3 py-2.5"
                     style={{ borderBottom: "0.5px solid var(--border)" }}>
                     <div className="flex items-center gap-2.5 w-[156px] shrink-0">
-                      <Avatar name={u.display_name} color={u.nexus_color} size={30} avatarUrl={u.avatar_url} />
+                      <Avatar name={u.display_name} color={u.nexus_color} size={30} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                       <div className="min-w-0">
                         <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
                         <p className="text-[10px] tabular-nums" style={{ color: "var(--text-3)" }}>

@@ -10,7 +10,7 @@ export default async function Solicitudes() {
     supabase.from("requests")
       .select("*, users:requester_id(full_name, title, honorific)")
       .order("created_at", { ascending: false }),
-    supabase.from("users").select("id, display_name, nexus_color, specialties, avatar_url")
+    supabase.from("users").select("id, display_name, nexus_color, specialties, avatar_url, birth_date")
       .eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("activity_types").select("*"),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
@@ -20,7 +20,7 @@ export default async function Solicitudes() {
   return (
     <SolicitudesClient
       requests={(reqs ?? []) as unknown as CommRequest[]}
-      team={(team ?? []) as { id: string; display_name: string; nexus_color: string | null; specialties: string[]; avatar_url: string | null }[]}
+      team={(team ?? []) as { id: string; display_name: string; nexus_color: string | null; specialties: string[]; avatar_url: string | null; birth_date: string | null }[]}
       typeLabel={typeLabels(activityTypes)}
       minHours={typeMinHours(activityTypes)}
       adminId={meRes?.data?.id ?? ""}

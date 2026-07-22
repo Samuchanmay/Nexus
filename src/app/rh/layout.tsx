@@ -22,6 +22,7 @@ export default async function RHLayout({ children }: { children: React.ReactNode
           id: profile.id,
           name: profile.display_name,
           avatarUrl: profile.avatar_url ?? null,
+          birthDate: profile.birth_date ?? null,
           area: profile.area ?? "",
           color: profile.nexus_color ?? "#5856D6",
           roleLabel: roleLabel(profile.role === "admin" ? "admin" : "rh"),

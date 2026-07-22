@@ -22,6 +22,7 @@ export default async function CoordinadorLayout({ children }: { children: React.
           id: profile.id,
           name: profile.display_name,
           avatarUrl: profile.avatar_url ?? null,
+          birthDate: profile.birth_date ?? null,
           area: profile.area ?? "",
           color: profile.nexus_color ?? "#0066FF",
           roleLabel: roleLabel(profile.role === "departamento" ? "departamento" : profile.role === "admin" ? "admin" : "coordinador"),

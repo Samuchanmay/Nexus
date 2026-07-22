@@ -18,7 +18,7 @@ export default async function Biblioteca() {
       .select(`
         id, deadline, priority,
         requests(title, type, subtype, requester_name, requester_area, event_date),
-        project_assignments(is_lead, users(display_name, nexus_color, avatar_url)),
+        project_assignments(is_lead, users(display_name, nexus_color, avatar_url, birth_date)),
         evidences(id, drive_url, publish_url, created_at),
         comments(id)
       `)

@@ -106,25 +106,36 @@ export function SlidingSegments({ options, value, onChange }: {
 }
 
 /* ── Avatar con color por empleado ── */
-export function Avatar({ name, color, size = 34, avatarUrl }: { name: string; color?: string | null; size?: number; avatarUrl?: string | null }) {
+export function Avatar({ name, color, size = 34, avatarUrl, birthday }: { name: string; color?: string | null; size?: number; avatarUrl?: string | null; birthday?: boolean }) {
   const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   const ring = { boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "#8E8E93"}` };
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={avatarUrl} alt={name} title={name}
-        className="rounded-full object-cover shrink-0"
-        style={{ width: size, height: size, ...ring }} />
-    );
-  }
-  return (
-    <div className="rounded-full flex items-center justify-center font-semibold text-white shrink-0"
+  const content = avatarUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={avatarUrl} alt={name} title={name}
+      className="rounded-full object-cover"
+      style={{ width: size, height: size, ...ring }} />
+  ) : (
+    <div className="rounded-full flex items-center justify-center font-semibold text-white"
       style={{
         width: size, height: size, fontSize: size * 0.37, background: color ?? "#8E8E93",
         ...ring,
       }}>
       {initials}
     </div>
+  );
+  if (!birthday) return <span className="inline-block shrink-0" style={{ width: size, height: size }}>{content}</span>;
+  const badge = Math.max(13, Math.round(size * 0.4));
+  return (
+    <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>
+      {content}
+      <span
+        className="absolute grid place-items-center rounded-full"
+        style={{ right: -2, bottom: -2, width: badge, height: badge, fontSize: badge * 0.62, lineHeight: 1, background: "var(--bg)", boxShadow: "0 0 0 2px var(--bg)" }}
+        title="¡Feliz cumpleaños!"
+      >
+        🎉
+      </span>
+    </span>
   );
 }
 

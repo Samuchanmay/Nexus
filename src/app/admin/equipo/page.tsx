@@ -13,7 +13,7 @@ export default async function Equipo() {
   const today = todayMerida();
   const [{ data: team }, { data: assignments }, { data: att }, { data: scheds }, { data: vacs }, { data: incs }, { data: jornadaStates }, { data: activityTypes }] =
     await Promise.all([
-      supabase.from("users").select("id, display_name, full_name, nexus_color, specialties, area, avatar_url")
+      supabase.from("users").select("id, display_name, full_name, nexus_color, specialties, area, avatar_url, birth_date")
         .eq("active", true).in("role", ["admin", "empleado"]),
       supabase.from("project_assignments")
         .select("user_id, is_lead, projects(status, priority, requests(title, type))"),
@@ -48,6 +48,7 @@ export default async function Equipo() {
       area: u.area,
       nexus_color: u.nexus_color,
       avatar_url: u.avatar_url,
+      birth_date: u.birth_date,
       specialties: (u.specialties as string[]) ?? [],
       tasks: mine.map((a) => {
         const p = a.projects as unknown as { status: string; priority: Priority; requests: { title: string; type: RequestType } | null };

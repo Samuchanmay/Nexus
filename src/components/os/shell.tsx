@@ -6,10 +6,11 @@ import { Avatar, IconButton, Kbd, cx } from "./ui";
 import { NotificationBell } from "./notifications";
 import { ProfileModal } from "./profile-modal";
 import { useTheme } from "@/lib/theme";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { navFor, SECTIONS, type NavItem, type Role } from "@/lib/nav";
 import { createClient } from "@/lib/supabase/client";
 
-export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string; avatarUrl?: string | null };
+export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string; avatarUrl?: string | null; birthDate?: string | null };
 
 export function Shell({
   role, user, active, onNavigate, title, actions, children,
@@ -91,7 +92,7 @@ export function Shell({
             title={user.name}
             onClick={() => setProfileOpen(true)}
           >
-            <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} />
+            <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
           </button>
         </header>
 
@@ -220,7 +221,7 @@ function Sidebar({ items, active, onGo, user, onProfileOpen, className, theme }:
           onClick={onProfileOpen}
           className="w-full flex items-center gap-2.5 p-2 rounded-sm hover:bg-hover transition-colors cursor-pointer text-left"
         >
-          <Avatar name={user.name} color={user.color} size={34} avatarUrl={user.avatarUrl} />
+          <Avatar name={user.name} color={user.color} size={34} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
           <div className="min-w-0 leading-tight">
             <p className="text-[13px] font-semibold text-text-1 truncate">{user.name}</p>
             <p className="text-[11px] text-text-3 truncate">{user.roleLabel}</p>

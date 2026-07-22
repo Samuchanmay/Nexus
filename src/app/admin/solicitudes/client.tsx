@@ -10,7 +10,7 @@ import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
 
-type Member = { id: string; display_name: string; nexus_color: string | null; specialties: string[]; avatar_url?: string | null };
+type Member = { id: string; display_name: string; nexus_color: string | null; specialties: string[]; avatar_url?: string | null; birth_date?: string | null };
 
 const SPECIALTY_LABELS: Record<string, string> = {
   video: "Video", fotografia: "Fotografía", diseno: "Diseño", difusion: "Difusión", redaccion: "Redacción",
@@ -21,6 +21,7 @@ import { requestCalendarUrl } from "@/lib/gcal";
 import { logAdminAction } from "@/lib/admin-log";
 import { notifyUser } from "@/lib/notify";
 import { dmy } from "@/lib/tz";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { fmtTime } from "@/lib/hours";
 
 const PRIORITIES: Priority[] = ["baja", "normal", "alta", "urgente"];
@@ -247,7 +248,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                         background: included ? "var(--accent-tint)" : "var(--surface)",
                       }}
                       onClick={() => toggleAssignee(m.id)}>
-                      <Avatar name={m.display_name} color={m.nexus_color} size={30} avatarUrl={m.avatar_url} />
+                      <Avatar name={m.display_name} color={m.nexus_color} size={30} avatarUrl={m.avatar_url} birthday={isBirthdayToday(m.birth_date, todayISO())} />
                       <div className="flex-1">
                         <p className="text-[13.5px] font-semibold">{m.display_name}</p>
                         <p className="text-[11px]" style={{ color: "var(--text-3)" }}>

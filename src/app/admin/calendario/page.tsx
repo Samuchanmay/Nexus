@@ -20,7 +20,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
 
   const supabase = await createClient();
   const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }, { data: efemSetting }, { data: activitySetting }] = await Promise.all([
-    supabase.from("users").select("id, display_name, nexus_color, avatar_url").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
+    supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", last).gte("end_date", first),
     supabase.from("holidays").select("date, name").gte("date", first).lte("date", last),

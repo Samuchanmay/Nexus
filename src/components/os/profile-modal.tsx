@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "./ui";
 import { Icon } from "./icons";
 import { useToast } from "@/components/ui";
+import { ImageCropper } from "./image-cropper";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
 type ProfileData = {
   email: string;
@@ -46,6 +48,7 @@ export function ProfileModal({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
@@ -136,18 +139,9 @@ export function ProfileModal({
         {/* Avatar superpuesto */}
         <div className="flex flex-col items-center -mt-10 px-5">
           <div className="relative">
-            {data?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={data.avatar_url} alt={name}
-                className="h-20 w-20 rounded-full object-cover"
-                style={{ boxShadow: "0 0 0 4px var(--panel)" }}
-              />
-            ) : (
-              <div className="rounded-full" style={{ boxShadow: "0 0 0 4px var(--panel)" }}>
-                <Avatar name={name} color={color} size={80} />
-              </div>
-            )}
+            <div className="rounded-full" style={{ boxShadow: "0 0 0 4px var(--panel)" }}>
+              <Avatar name={name} color={color} size={80} avatarUrl={data?.avatar_url} birthday={isBirthdayToday(data?.birth_date, todayISO())} />
+            </div>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
@@ -159,7 +153,7 @@ export function ProfileModal({
             </button>
             <input
               ref={fileRef} type="file" accept="image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFile(f); e.target.value = ""; }}
             />
           </div>
           <p className="text-[17px] font-bold text-text-1 mt-2.5">{name}</p>
@@ -224,6 +218,14 @@ export function ProfileModal({
           </button>
         </div>
       </div>
+
+      {cropFile && (
+        <ImageCropper
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onSave={(blob) => { setCropFile(null); uploadPhoto(new File([blob], "avatar.jpg", { type: "image/jpeg" })); }}
+        />
+      )}
     </div>
   );
 }

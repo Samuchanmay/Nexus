@@ -6,8 +6,10 @@ import type { UserProfile, Department } from "@/lib/types";
 import { useToast, Sheet, Avatar, SelectField } from "@/components/ui";
 import { IconUserPlus, IconCamera } from "@/components/icons";
 import { Switch } from "@/components/shared";
+import { ImageCropper } from "@/components/os/image-cropper";
 import { todayMerida } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
 const NIVEL_LABELS: Record<string, string> = {
   licenciatura: "Licenciatura", centro_educativo: "Centro Educativo", posgrado: "Posgrado",
@@ -61,6 +63,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
   });
   const [editSaving, setEditSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
   const toggleSpec = (s: string) => setForm((f) => ({
@@ -210,7 +213,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     <div className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
       style={!u.active ? { opacity: 0.55 } : undefined}>
       <div className="flex items-center gap-3">
-        <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} />
+        <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
         <div>
           <p className="text-[14px] font-bold">{u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}</p>
           {u.title && (
@@ -466,7 +469,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
           <div className="flex flex-col gap-3">
             <div className="flex flex-col items-center gap-2 mb-1">
               <div className="relative">
-                <Avatar name={editing.display_name} color={editing.nexus_color} size={72} avatarUrl={editing.avatar_url} />
+                <Avatar name={editing.display_name} color={editing.nexus_color} size={72} avatarUrl={editing.avatar_url} birthday={isBirthdayToday(editing.birth_date, todayISO())} />
                 <button onClick={() => avatarFileRef.current?.click()} disabled={avatarUploading}
                   className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-accent text-white grid place-items-center border-2 disabled:opacity-50"
                   style={{ borderColor: "var(--panel)" }}
@@ -474,7 +477,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
                   <IconCamera className="w-3.5 h-3.5" />
                 </button>
                 <input ref={avatarFileRef} type="file" accept="image/*" className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadTeamPhoto(f); }} />
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFile(f); e.target.value = ""; }} />
               </div>
               <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
                 {avatarUploading ? "Subiendo…" : "Foto de perfil"}
@@ -562,6 +565,14 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
           </div>
         )}
       </Sheet>
+
+      {cropFile && (
+        <ImageCropper
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onSave={(blob) => { setCropFile(null); uploadTeamPhoto(new File([blob], "avatar.jpg", { type: "image/jpeg" })); }}
+        />
+      )}
     </>
   );
 }

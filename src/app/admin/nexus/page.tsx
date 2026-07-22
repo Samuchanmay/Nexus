@@ -76,7 +76,7 @@ export default async function AsistenciaEquipo() {
   const since = addDays(today, -56); // 8 semanas
 
   const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, meRes] = await Promise.all([
-    supabase.from("users").select("id, display_name, full_name, nexus_color, area, avatar_url").eq("active", true).in("role", ["admin", "empleado"]),
+    supabase.from("users").select("id, display_name, full_name, nexus_color, area, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
     supabase.from("schedules").select("*"),
     supabase.from("jornada_states").select("*").eq("activo", true),
@@ -101,7 +101,7 @@ export default async function AsistenciaEquipo() {
     };
     const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 }, states);
     return {
-      user: { id: u.id, display_name: u.display_name, area: u.area, nexus_color: u.nexus_color, avatar_url: u.avatar_url },
+      user: { id: u.id, display_name: u.display_name, area: u.area, nexus_color: u.nexus_color, avatar_url: u.avatar_url, birth_date: u.birth_date },
       schedule,
       day: {
         firstIn: day.firstIn, lastOut: day.lastOut, totalMin: day.totalMin,

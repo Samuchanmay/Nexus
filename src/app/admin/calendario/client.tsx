@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, SlidingSegments } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { dmy, addDays } from "@/lib/tz";
 
 const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -28,7 +29,7 @@ function weekRangeLabel(cells: { date: string }[]) {
   return `${ad} ${MONTHS_SHORT[am - 1]} – ${bd} ${MONTHS_SHORT[bm - 1]} ${by}`;
 }
 
-export type TeamMember = { id: string; display_name: string; nexus_color: string | null; avatar_url?: string | null };
+export type TeamMember = { id: string; display_name: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null };
 export type VacationRange = { user_id: string; start_date: string; end_date: string };
 export type ProjectDeadline = {
   id: string; deadline: string; status: string;
@@ -253,7 +254,7 @@ export default function CalendarioClient({
               <div key={u.id} className="flex items-center gap-3 py-2.5"
                 style={{ borderBottom: "0.5px solid var(--border)" }}>
                 <div className="flex items-center gap-2.5 w-[150px] shrink-0">
-                  <Avatar name={u.display_name} color={u.nexus_color} size={28} avatarUrl={u.avatar_url} />
+                  <Avatar name={u.display_name} color={u.nexus_color} size={28} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                   <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
                 </div>
                 <div className="flex-1 grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
@@ -347,7 +348,7 @@ export default function CalendarioClient({
                     <div className="flex -space-x-1.5 mt-auto pt-1 flex-wrap gap-y-1">
                       {people.slice(0, 4).map((u) => (
                         <div key={u.id} title={`${u.display_name} · Vacaciones`} style={{ border: "1.5px solid var(--surface-2)", borderRadius: "100px" }}>
-                          <Avatar name={u.display_name} color={u.nexus_color} size={18} avatarUrl={u.avatar_url} />
+                          <Avatar name={u.display_name} color={u.nexus_color} size={18} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                         </div>
                       ))}
                       {people.length > 4 && (
@@ -421,7 +422,7 @@ export default function CalendarioClient({
                     <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
                       {people.map((u) => (
                         <div key={u.id} title="Vacaciones" className="flex items-center gap-1 pr-1.5 rounded-full" style={{ background: "var(--purple-tint)" }}>
-                          <Avatar name={u.display_name} color={u.nexus_color} size={16} avatarUrl={u.avatar_url} />
+                          <Avatar name={u.display_name} color={u.nexus_color} size={16} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                           <span className="text-[9.5px] font-semibold" style={{ color: "var(--purple)" }}>{u.display_name.split(" ")[0]}</span>
                         </div>
                       ))}
@@ -474,7 +475,7 @@ export default function CalendarioClient({
                 <div className="flex flex-wrap gap-3">
                   {people.map((u) => (
                     <div key={u.id} className="flex items-center gap-1.5">
-                      <Avatar name={u.display_name} color={u.nexus_color} size={22} avatarUrl={u.avatar_url} />
+                      <Avatar name={u.display_name} color={u.nexus_color} size={22} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                       <span className="text-[12.5px] font-semibold">{u.display_name}</span>
                     </div>
                   ))}

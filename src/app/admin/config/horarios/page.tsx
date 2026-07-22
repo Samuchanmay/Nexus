@@ -11,7 +11,7 @@ import HorariosClient from "./client";
 export default async function Horarios() {
   const supabase = await createClient();
   const [{ data: team }, { data: scheds }] = await Promise.all([
-    supabase.from("users").select("id, display_name, full_name, nexus_color, avatar_url, area")
+    supabase.from("users").select("id, display_name, full_name, nexus_color, avatar_url, birth_date, area")
       .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("schedules").select("*").order("valid_from", { ascending: false }),
   ]);

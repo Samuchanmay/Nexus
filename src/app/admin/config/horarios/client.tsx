@@ -5,10 +5,11 @@ import { useSupabaseMutation, PageHeader, PersonRow, EmptyState, Field } from "@
 import { Sheet, SelectField, DateField, Pill, useToast } from "@/components/ui";
 import { IconPlus, IconX } from "@/components/icons";
 import { todayMerida, shortDate } from "@/lib/tz";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { scheduleFor, fmtTime, fmtMin } from "@/lib/hours";
 import type { Schedule } from "@/lib/types";
 
-type Person = { id: string; display_name: string; full_name?: string; nexus_color: string | null; avatar_url?: string | null; area: string | null };
+type Person = { id: string; display_name: string; full_name?: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null; area: string | null };
 
 const DEFAULT_SCHED = { start_time: "09:00:00", end_time: "18:00:00", target_min: 480, tolerance_min: 15 };
 
@@ -106,6 +107,7 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
                 name={p.display_name}
                 color={p.nexus_color}
                 avatarUrl={p.avatar_url}
+                birthday={isBirthdayToday(p.birth_date, todayISO())}
                 meta={p.area ?? undefined}
                 right={
                   <div className="flex items-center gap-3 shrink-0">

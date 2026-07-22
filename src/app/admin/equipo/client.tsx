@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/shared";
 import { PRIORITY_TONE, KIND_LABELS, INCIDENT_TONE } from "@/lib/ui-maps";
 import { fmtMin, fmtTime } from "@/lib/hours";
 import { dmy } from "@/lib/tz";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import type { Priority, RequestType, Incident } from "@/lib/types";
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -25,6 +26,7 @@ export interface TeamMember {
   area: string | null;
   nexus_color: string | null;
   avatar_url?: string | null;
+  birth_date?: string | null;
   specialties: string[];
   tasks: { title: string; type: RequestType | null; typeLabel: string | null; priority: Priority; status: string; is_lead: boolean }[];
   today: {
@@ -55,7 +57,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
               className="card card-hover w-full text-left cursor-pointer flex items-center gap-4 px-5 py-3.5 flex-wrap md:flex-nowrap">
               {/* Persona */}
               <div className="flex items-center gap-3 w-full md:w-[210px] shrink-0">
-                <Avatar name={u.display_name} color={u.nexus_color} size={36} avatarUrl={u.avatar_url} />
+                <Avatar name={u.display_name} color={u.nexus_color} size={36} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                 <div className="min-w-0">
                   <p className="text-[14px] font-bold truncate">{u.display_name}</p>
                   <p className="text-[11px] truncate" style={{ color: "var(--text-3)" }}>

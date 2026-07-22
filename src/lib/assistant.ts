@@ -1,3 +1,4 @@
+import { isBirthdayToday } from "./birthday";
 /**
  * lib/assistant.ts — Motor de reglas del Asistente Contextual (Plano Maestro §11).
  *
@@ -80,8 +81,7 @@ export function contextualMessages(params: {
 
   // Regla 0a — Cumpleaños: mensaje cálido, siempre primero, todo el día.
   if (birthDate) {
-    const md = birthDate.slice(5); // MM-DD
-    if (md === today.slice(5)) {
+    if (isBirthdayToday(birthDate, today)) {
       msgs.push({
         id: "cumpleanos",
         tone: "info",
