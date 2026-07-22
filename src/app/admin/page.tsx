@@ -307,11 +307,11 @@ export default async function AdminDashboard() {
       <PausaActivaPopup messages={assistantMessages} />
 
       {/* Asistente Contextual (Plano Maestro §11) */}
-      {assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-")).length > 0 && (
+      {assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-") && m.id !== "cumpleanos").length > 0 && (
         <Card>
           <SectionTitle>Asistente</SectionTitle>
           <div className="space-y-1.5">
-            {assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-")).map((m) => (
+            {assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-") && m.id !== "cumpleanos").map((m) => (
               <div key={m.id} className="nx-pop flex items-center gap-2.5 px-2.5 py-2 rounded-sm"
                 style={{
                   background: m.tone === "danger" ? "var(--danger-tint)" : m.tone === "warn" ? "var(--warn-tint)" : "var(--surface-2)",

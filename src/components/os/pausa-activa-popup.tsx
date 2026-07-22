@@ -1,20 +1,28 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Icon } from "./icons";
 import type { AssistantMessage } from "@/lib/assistant";
 
-const SEEN_KEY = "nx-pausa-activa-seen";
+const SEEN_KEY = "nx-assistant-popup-seen";
+
+/** Emoji grande en vez de ícono de línea — encaja mejor con el tono relajado
+ * (pausa activa) o festivo (cumpleaños) de estos dos avisos, y evita el
+ * problema de un ícono SVG que se ve descentrado a este tamaño. */
+function emojiFor(msg: AssistantMessage): string {
+  if (msg.id === "cumpleanos") return "🎉";
+  if (msg.id.startsWith("pausa-activa-")) return "☕";
+  return "✨";
+}
 
 /**
- * El aviso de pausa activa ("llevas 2 horas seguidas…") vivía como una fila
- * más dentro de la tarjeta del Asistente, algo fácil de no notar. Ahora se
- * muestra como un pop-up centrado la primera vez que aparece cada ciclo —
- * se recuerda con sessionStorage para no insistir si la persona ya lo vio
- * y solo recarga la página (pero sí vuelve a aparecer en el siguiente
- * ciclo de 2 horas, o en una sesión nueva).
+ * Aviso destacado (pausa activa, cumpleaños) como pop-up centrado, la
+ * primera vez que aparece cada ciclo/sesión — se recuerda con
+ * sessionStorage para no insistir. El cumpleaños tiene prioridad (es más
+ * especial y solo pasa un día al año); si además cae un aviso de pausa
+ * activa en la misma sesión, se muestra justo después de cerrar el de
+ * cumpleaños (ids distintos → sessionStorage no lo bloquea).
  */
 export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] }) {
-  const msg = messages.find((m) => m.id.startsWith("pausa-activa-")) ?? null;
+  const msg = messages.find((m) => m.id === "cumpleanos") ?? messages.find((m) => m.id.startsWith("pausa-activa-")) ?? null;
   const [shownId, setShownId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,9 +46,9 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
         style={{ background: "var(--panel)", border: "1px solid var(--border)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto w-14 h-14 rounded-full grid place-items-center mb-4 nx-msg-icon-bounce"
-          style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
-          <Icon name={msg.icon} size={26} />
+        <div className="mx-auto w-14 h-14 rounded-full grid place-items-center mb-4 text-[30px] leading-none nx-msg-icon-bounce"
+          style={{ background: "var(--accent-tint)" }}>
+          <span>{emojiFor(msg)}</span>
         </div>
         <p className="text-[15px] font-bold leading-snug mb-5">{msg.text}</p>
         <button className="btn-primary w-full py-2.5" onClick={dismiss}>Entendido</button>

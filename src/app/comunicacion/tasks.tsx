@@ -341,7 +341,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
 
       {/* ── Asistente Contextual (Plano Maestro §11) ── */}
       {(() => {
-        const inlineMessages = assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-"));
+        const inlineMessages = assistantMessages.filter((m) => !m.id.startsWith("pausa-activa-") && m.id !== "cumpleanos");
         return inlineMessages.length > 0 && (
           <Card>
             <SectionTitle>Asistente</SectionTitle>
