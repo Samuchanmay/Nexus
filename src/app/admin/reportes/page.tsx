@@ -235,7 +235,7 @@ export default async function Reportes() {
           <CsvLink
             rows={[["Persona", "Saldo", "Días asignados", "% usado", "Antigüedad", "Próxima vacación"],
               ...vacRows.map((r) => [r.name, r.balance, r.total, `${r.pctUsed}%`, r.seniority, r.next])]}
-            filename="vacaciones.csv" adminId={adminId} label="Exportar CSV ↓" />
+            filename="vacaciones.csv" adminId={adminId} label="Exportar CSV" />
         </div>
         {vacRows.length === 0 ? (
           <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>

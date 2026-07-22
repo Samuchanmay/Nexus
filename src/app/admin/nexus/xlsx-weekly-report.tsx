@@ -145,7 +145,7 @@ export function XlsxWeeklyReportButton({ blocks, adminId }: { blocks: WeekBlock[
       onClick={download} disabled={busy || blocks.length === 0}
       className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-[12.5px] font-semibold whitespace-nowrap"
       style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>
-      <IconDownload className="w-3.5 h-3.5" /> {busy ? "Generando…" : "Excel semanal ↓"}
+      <IconDownload className="w-3.5 h-3.5" /> {busy ? "Generando…" : "Excel semanal"}
     </button>
   );
 }

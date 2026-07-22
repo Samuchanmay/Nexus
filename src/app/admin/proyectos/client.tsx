@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Pill, Sheet, useToast, SelectField, CheckBox } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
+import { IconDownload } from "@/components/icons";
 import { logAdminAction } from "@/lib/admin-log";
 import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
@@ -330,16 +331,16 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <a href={activitiesCsvHref} download="actividades.csv" className="btn-secondary text-[13px] px-4 py-2"
+          <a href={activitiesCsvHref} download="actividades.csv" className="btn-secondary text-[13px] px-4 py-2 flex items-center gap-1.5"
             onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
-            Exportar CSV ↓
+            <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
           </a>
-          <button className="btn-secondary text-[13px] px-4 py-2"
+          <button className="btn-secondary text-[13px] px-4 py-2 flex items-center gap-1.5"
             onClick={() => {
               if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
               printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
             }}>
-            Por empleado ↓
+            <IconDownload className="w-3.5 h-3.5" /> Por empleado
           </button>
           <PrintButton />
           <button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>

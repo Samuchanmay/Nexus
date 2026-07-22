@@ -35,6 +35,7 @@ export default function TiposClient({ types, templates }: {
   const [form, setForm] = useState({ label: "", minDays: 3, icon: "generic", subtypes: "" });
   const [openType, setOpenType] = useState<string | null>(null);
   const [newItemLabel, setNewItemLabel] = useState<Record<string, string>>({});
+  const [confirmKey, setConfirmKey] = useState<string | null>(null);
 
   const templateByType = Object.fromEntries(templates.map((t) => [t.type, t]));
 
@@ -62,7 +63,7 @@ export default function TiposClient({ types, templates }: {
   };
 
   const remove = (row: ActivityType) => {
-    if (!window.confirm(`¿Eliminar el tipo "${row.label}" para siempre? Esto no se puede deshacer. Si solo quieres ocultarlo, usa el switch Activo/Inactivo en vez de esto.`)) return;
+    setConfirmKey(null);
     run(() => createClient().from("activity_types").delete().eq("key", row.key),
       { ok: "Tipo eliminado", err: "No se pudo eliminar — puede que ya tenga solicitudes o actividades asociadas" });
   };
@@ -153,11 +154,27 @@ export default function TiposClient({ types, templates }: {
                 <div className="flex items-center gap-2">
                   <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
                     label={row.activo ? "Activo" : "Inactivo"} />
-                  <button onClick={() => remove(row)} aria-label="Eliminar tipo (borra permanentemente)" title="Eliminar tipo — borra permanentemente"
-                    className="w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                    <IconTrash className="w-3.5 h-3.5" />
-                  </button>
+                  {confirmKey === row.key ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                      <button disabled={saving} onClick={() => remove(row)}
+                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                        Sí, eliminar
+                      </button>
+                      <button onClick={() => setConfirmKey(null)}
+                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmKey(row.key)} aria-label="Eliminar tipo (borra permanentemente)" title="Eliminar tipo — borra permanentemente"
+                      className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                      <IconTrash className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
 

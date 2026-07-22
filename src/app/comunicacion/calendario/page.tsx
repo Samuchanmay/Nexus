@@ -1,39 +1,25 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { todayMerida, isoWeekday, addDays, dmy } from "@/lib/tz";
+import { todayMerida } from "@/lib/tz";
+import { shiftMonth, monthBounds } from "@/lib/calendar-grid";
+import CalendarioClient, { type Deadline, type VacationRange, type NextActivity } from "./client";
 
 /* ═══════════════════════════════════════════════════════════════
-   Calendario personal del colaborador — vista de mes con:
-   · fechas límite de sus actividades asignadas
-   · sus vacaciones aprobadas
-   · días inhábiles del departamento
-   Todo derivado de Supabase; nada inventado.
+   Calendario personal (empleado/coordinador/departamento/rh) — mismas
+   tres vistas Día/Semana/Mes que admin/calendario, pero sobre los
+   datos de UNA sola persona: sus fechas límite, sus vacaciones
+   aprobadas, los días inhábiles y los eventos ya agendados en
+   "Eventos CERT" (Google Calendar). Antes esta pantalla solo tenía
+   vista de Mes fija — se lleva a la paridad de vistas que ya tiene
+   admin/calendario, porque el cambio debe aplicar parejo para todo
+   el equipo, no solo para el admin.
    ═══════════════════════════════════════════════════════════════ */
 
-const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-
-function shiftMonth(ym: string, delta: number) {
-  const [y, m] = ym.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-type ProjectRow = {
-  deadline: string | null;
-  status: string;
-  requests: { title: string; type: string } | null;
-};
-
 export default async function CalendarioEmpleado({ searchParams }: { searchParams: Promise<{ m?: string; d?: string }> }) {
-  const { m, d: selectedDate } = await searchParams;
+  const { m, d } = await searchParams;
   const today = todayMerida();
   const ym = /^\d{4}-\d{2}$/.test(m ?? "") ? m! : today.slice(0, 7);
-  const [year, month] = ym.split("-").map(Number);
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const first = `${ym}-01`;
-  const last = `${ym}-${String(daysInMonth).padStart(2, "0")}`;
+  const initialFocusDate = /^\d{4}-\d{2}-\d{2}$/.test(d ?? "") && (d as string).slice(0, 7) === ym ? d! : undefined;
+  const { year, month, daysInMonth, first, last } = monthBounds(ym);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -46,7 +32,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
       .lte("start_date", last).gte("end_date", first),
     supabase.from("holidays").select("date, name").gte("date", first).lte("date", last),
     supabase.from("project_assignments")
-      .select("projects(deadline, status, requests(title, type))")
+      .select("projects(id, deadline, status, requests(title, type))")
       .eq("user_id", profile!.id),
     // Todas las asignaciones (sin acotar al mes en pantalla) — para el aviso
     // de "próxima actividad", que no debe depender de qué mes se esté viendo.
@@ -78,167 +64,29 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
       gcalError = "Ocurrió un error inesperado leyendo Google Calendar. Intenta recargar la página.";
     }
   }
-  const gcalByDate = new Map<string, GEvent[]>();
-  for (const ev of gcalEvents) {
-    const d0 = new Date(`${ev.start}T12:00:00`);
-    const dEnd = new Date(`${ev.end}T12:00:00`);
-    if (!ev.allDay) dEnd.setDate(dEnd.getDate() + 1);
-    const d = new Date(d0);
-    let guard = 0;
-    while (d < dEnd && guard < 60) {
-      const iso = d.toISOString().slice(0, 10);
-      if (iso >= first && iso <= last) {
-        const list = gcalByDate.get(iso) ?? [];
-        list.push(ev);
-        gcalByDate.set(iso, list);
-      }
-      d.setDate(d.getDate() + 1);
-      guard++;
-    }
-  }
 
-  const nextActivity = (allAssignments ?? [])
+  const nextActivity: NextActivity = (allAssignments ?? [])
     .map((a) => a.projects as unknown as { deadline: string | null; status: string; requests: { title: string } | null } | null)
     .filter((p): p is { deadline: string; status: string; requests: { title: string } | null } =>
       !!p?.deadline && p.deadline >= today && !["completada", "cancelada", "rechazada"].includes(p.status))
     .sort((a, b) => a.deadline.localeCompare(b.deadline))[0] ?? null;
 
-  const holidayOf = new Map((hols ?? []).map((h) => [h.date, h.name]));
-  const onVacation = (date: string) =>
-    (vacs ?? []).some((v) => v.start_date <= date && v.end_date >= date);
-
-  const deadlines = new Map<string, { title: string; type: string }[]>();
-  for (const a of assignments ?? []) {
-    const p = a.projects as unknown as ProjectRow | null;
-    if (!p?.deadline || p.deadline < first || p.deadline > last) continue;
-    if (p.status === "cancelada" || p.status === "rechazada") continue;
-    const list = deadlines.get(p.deadline) ?? [];
-    list.push({ title: p.requests?.title ?? "Actividad", type: p.requests?.type ?? "" });
-    deadlines.set(p.deadline, list);
-  }
-
-  // Semanas Lun–Dom, empezando en la semana que contiene el día 1.
-  const firstDow = isoWeekday(first); // 0=dom..6=sáb
-  const leadDays = firstDow === 0 ? 6 : firstDow - 1; // días del mes anterior a rellenar
-  const gridStart = addDays(first, -leadDays);
-  const totalCells = Math.ceil((leadDays + daysInMonth) / 7) * 7;
-
-  const cells = Array.from({ length: totalCells }, (_, i) => {
-    const date = addDays(gridStart, i);
-    return {
-      date,
-      inMonth: date >= first && date <= last,
-      day: Number(date.slice(8, 10)),
-      holiday: holidayOf.get(date) ?? null,
-      vacation: onVacation(date),
-      acts: deadlines.get(date) ?? [],
-    };
-  });
+  const deadlines = (assignments ?? [])
+    .map((a) => a.projects as unknown as Deadline | null)
+    .filter((p): p is Deadline => !!p);
 
   return (
-    <>
-      <header className="pt-8 pb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight capitalize">
-            {MONTHS[month - 1]} {year}
-          </h1>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            Tus fechas límite, vacaciones y días inhábiles
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/comunicacion/calendario?m=${shiftMonth(ym, -1)}`} className="btn-secondary px-3.5 py-2 text-[13px]">←</Link>
-          <Link href="/comunicacion/calendario" className="btn-secondary px-3.5 py-2 text-[13px]">Hoy</Link>
-          <Link href={`/comunicacion/calendario?m=${shiftMonth(ym, 1)}`} className="btn-secondary px-3.5 py-2 text-[13px]">→</Link>
-        </div>
-      </header>
-
-      {nextActivity && (nextActivity.deadline < first || nextActivity.deadline > last) && (
-        <Link href={`/comunicacion/calendario?m=${nextActivity.deadline.slice(0, 7)}`}
-          className="card p-4 mb-4 flex items-center justify-between gap-3 hover:bg-hover transition-colors">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Tu próxima actividad</p>
-            <p className="text-[13.5px] font-semibold truncate mt-0.5">{nextActivity.requests?.title ?? "Actividad"}</p>
-          </div>
-          <span className="text-[12.5px] font-bold shrink-0" style={{ color: "var(--accent)" }}>
-            {nextActivity.deadline.slice(8, 10)}/{nextActivity.deadline.slice(5, 7)}/{nextActivity.deadline.slice(2, 4)} →
-          </span>
-        </Link>
-      )}
-
-      {gcalError && (
-        <div className="card px-4 py-2.5 mb-4 flex items-center gap-2 text-[12.5px]"
-          style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
-          <span>No se pudieron cargar los eventos de Google Calendar — {gcalError}</span>
-        </div>
-      )}
-
-      <div className="card p-4">
-        <div className="grid grid-cols-7 gap-1.5 mb-2">
-          {DOW.map((d) => (
-            <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1.5">
-          {cells.map((c) => (
-            <div key={c.date}
-              className="rounded-sm p-1.5 min-h-[74px] flex flex-col gap-1"
-              style={{
-                background: c.vacation ? "var(--purple-tint)" : c.holiday ? "var(--accent-tint)" : "var(--surface-2)",
-                opacity: c.inMonth ? 1 : 0.35,
-                outline: c.date === selectedDate ? "2px solid var(--purple)" : c.date === today ? "2px solid var(--accent)" : undefined,
-                outlineOffset: "-2px",
-              }}>
-              <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
-              {c.holiday && <p className="text-[9.5px] font-semibold truncate" style={{ color: "var(--accent)" }}>{c.holiday}</p>}
-              {c.vacation && <p className="text-[9.5px] font-semibold" style={{ color: "var(--purple)" }}>Vacaciones</p>}
-              {c.acts.map((a, i) => (
-                <p key={i} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
-                  style={{ background: "var(--warn-tint)", color: "var(--warn)" }} title={a.title}>
-                  {a.title}
-                </p>
-              ))}
-              {(gcalByDate.get(c.date) ?? []).slice(0, 2).map((ev) => (
-                <p key={ev.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
-                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
-                  title={`${ev.title} · Eventos CERT (Google Calendar)`}>
-                  {ev.title}
-                </p>
-              ))}
-              {(gcalByDate.get(c.date) ?? []).length > 2 && (
-                <p className="text-[9px] font-semibold" style={{ color: "var(--accent)" }}>
-                  +{(gcalByDate.get(c.date) ?? []).length - 2} evento{(gcalByDate.get(c.date) ?? []).length - 2 > 1 ? "s" : ""}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Tu actividad
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--accent-tint)" }} /> Evento (Google Calendar)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-3.5 h-3 rounded-full" style={{ background: "var(--purple)" }} /> Vacaciones
-          </span>
-        </div>
-      </div>
-
-      {(hols ?? []).length > 0 && (
-        <div className="card p-5 mt-4">
-          <h2 className="text-[15px] font-bold mb-2.5">Días inhábiles de {MONTHS[month - 1]}</h2>
-          <div className="flex flex-col gap-1.5">
-            {(hols ?? []).map((h) => (
-              <div key={h.date} className="flex items-center justify-between text-[13px]">
-                <span className="font-semibold">{h.name}</span>
-                <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{dmy(h.date)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
+    <CalendarioClient
+      ym={ym} year={year} month={month} daysInMonth={daysInMonth} today={today}
+      prevHref={`/comunicacion/calendario?m=${shiftMonth(ym, -1)}`}
+      nextHref={`/comunicacion/calendario?m=${shiftMonth(ym, 1)}`}
+      vacations={(vacs ?? []) as VacationRange[]}
+      holidays={(hols ?? []) as { date: string; name: string }[]}
+      deadlines={deadlines}
+      gcalEvents={gcalEvents}
+      gcalError={gcalError}
+      nextActivity={nextActivity}
+      initialFocusDate={initialFocusDate}
+    />
   );
 }

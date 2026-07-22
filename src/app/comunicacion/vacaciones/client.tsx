@@ -7,7 +7,8 @@ import { seniorityLabel, shortDate, dmy } from "@/lib/tz";
 import type { Vacation } from "@/lib/types";
 import { useToast, Sheet, Pill, DateRangeCalendar } from "@/components/ui";
 import { notifyAdmins } from "@/lib/notify";
-import { IconPalm, IconPlus } from "@/components/icons";
+import { IconPlus } from "@/components/icons";
+import { Icon } from "@/components/os/icons";
 
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 
@@ -111,7 +112,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
 
       {vacations.length === 0 && (
         <div className="card p-8 text-center">
-          <IconPalm className="w-7 h-7 mx-auto mb-2" />
+          <Icon name="plane" size={28} className="mx-auto mb-2" />
           <p className="font-semibold text-[14px]">Sin solicitudes aún</p>
           <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
             Tu historial de vacaciones aparecerá aquí

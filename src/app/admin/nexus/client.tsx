@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
+import { IconDownload } from "@/components/icons";
 import { PageHeader, Switch } from "@/components/shared";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
@@ -143,9 +144,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           <div className="w-full sm:w-[300px] flex justify-end">
             {view === "tabla" && (
               <a href={dayCsvHref} download={`asistencia-${today}.csv`}
-                className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap"
+                className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap flex items-center gap-1.5"
                 onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${today}.csv`); }}>
-                CSV del día ↓
+                <IconDownload className="w-3.5 h-3.5" /> CSV del día
               </a>
             )}
             {view === "semana" && (
@@ -340,9 +341,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Últimas 8 semanas</p>
             <a href={weekCsvHref} download="asistencia-semanal.csv"
-              className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}
+              className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--accent)" }}
               onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "asistencia-semanal.csv"); }}>
-              Exportar CSV ↓
+              <IconDownload className="w-3 h-3" /> Exportar CSV
             </a>
           </div>
           {weekRows.length === 0 ? (

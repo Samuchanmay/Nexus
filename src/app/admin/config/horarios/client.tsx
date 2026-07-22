@@ -33,6 +33,7 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
 
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({ personId: team[0]?.id ?? "", start: "16:00", hours: "5", from: "", to: "" });
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const overrides = schedules
     .filter((s) => s.valid_until !== null)
@@ -80,9 +81,11 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
     if (ok) setAddOpen(false);
   };
 
-  const removeOverride = (id: string) =>
+  const removeOverride = (id: string) => {
+    setConfirmId(null);
     run(() => createClient().from("schedules").delete().eq("id", id),
       { ok: "Horario temporal eliminado", err: "No se pudo eliminar" });
+  };
 
   return (
     <>
@@ -154,11 +157,27 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Pill tone={tone}>{status}</Pill>
-                    <button onClick={() => removeOverride(o.id)} disabled={saving} aria-label="Eliminar"
-                      className="w-7 h-7 rounded-full flex items-center justify-center"
-                      style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                      <IconX className="w-3 h-3" />
-                    </button>
+                    {confirmId === o.id ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                        <button disabled={saving} onClick={() => removeOverride(o.id)}
+                          className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                          style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                          Sí, eliminar
+                        </button>
+                        <button onClick={() => setConfirmId(null)}
+                          className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                          style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmId(o.id)} disabled={saving} aria-label="Eliminar"
+                        className="w-7 h-7 rounded-full flex items-center justify-center"
+                        style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                        <IconX className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );

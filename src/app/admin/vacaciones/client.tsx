@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Vacation } from "@/lib/types";
 import { useToast, Pill, Avatar, Sheet, SelectField, DateRangeCalendar } from "@/components/ui";
+import { IconDownload } from "@/components/icons";
 import { useSupabaseMutation } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
@@ -248,9 +249,9 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
             Aprueba una vez que tengas el visto bueno externo
           </p>
         </div>
-        <a href={vacCsvHref} download="vacaciones-registro.csv" className="btn-secondary px-4 py-2.5 text-[13px]"
+        <a href={vacCsvHref} download="vacaciones-registro.csv" className="btn-secondary px-4 py-2.5 text-[13px] flex items-center gap-1.5"
           onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "vacaciones-registro.csv"); }}>
-          Exportar CSV ↓
+          <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
         </a>
       </header>
 

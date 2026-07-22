@@ -12,6 +12,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin }: {
   const [newTexto, setNewTexto] = useState("");
   const [intervalHours, setIntervalHours] = useState(intervalMin / 60);
   const [windowMinutes, setWindowMinutes] = useState(windowMin);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const toggleActivo = (row: PausaFraseRow) =>
     run(() => createClient().from("pausa_activa_frases").update({ activo: !row.activo }).eq("id", row.id),
@@ -24,7 +25,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin }: {
   };
 
   const remove = (row: PausaFraseRow) => {
-    if (!window.confirm("¿Eliminar esta frase para siempre? Esto no se puede deshacer. Si solo quieres dejar de usarla, usa el switch Activa/Inactiva en vez de esto.")) return;
+    setConfirmId(null);
     run(() => createClient().from("pausa_activa_frases").delete().eq("id", row.id),
       { ok: "Frase eliminada", err: "No se pudo eliminar" });
   };
@@ -118,11 +119,27 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin }: {
               className="text-[13.5px] bg-transparent border-0 outline-none flex-1 min-w-0" />
             <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
               label={row.activo ? "Activa" : "Inactiva"} />
-            <button onClick={() => remove(row)} aria-label="Eliminar frase (borra permanentemente)" title="Eliminar frase — borra permanentemente"
-              className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-              <IconTrash className="w-3.5 h-3.5" />
-            </button>
+            {confirmId === row.id ? (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                <button disabled={saving} onClick={() => remove(row)}
+                  className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                  style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                  Sí, eliminar
+                </button>
+                <button onClick={() => setConfirmId(null)}
+                  className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                  style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                  No
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmId(row.id)} aria-label="Eliminar frase (borra permanentemente)" title="Eliminar frase — borra permanentemente"
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                <IconTrash className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         ))}
       </div>

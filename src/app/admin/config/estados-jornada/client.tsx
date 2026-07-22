@@ -19,6 +19,7 @@ const FLAGS: { key: "cuenta_tiempo" | "pausa_actividad" | "requiere_motivo"; lab
 export default function EstadosClient({ states }: { states: EstadoRow[] }) {
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ nombre: "", color: "#8E8E93", orden: (states.at(-1)?.orden ?? 0) + 1 });
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const toggle = (row: EstadoRow, key: (typeof FLAGS)[number]["key"]) =>
     run(() => createClient().from("jornada_states").update({ [key]: !row[key] }).eq("id", row.id),
@@ -44,9 +45,11 @@ export default function EstadosClient({ states }: { states: EstadoRow[] }) {
     if (ok) setForm({ nombre: "", color: "#8E8E93", orden: form.orden + 1 });
   };
 
-  const remove = (row: EstadoRow) =>
+  const remove = (row: EstadoRow) => {
+    setConfirmId(null);
     run(() => createClient().from("jornada_states").delete().eq("id", row.id),
       { ok: "Estado eliminado", err: "No se pudo eliminar — puede que ya tenga fichajes asociados" });
+  };
 
   return (
     <>
@@ -81,11 +84,27 @@ export default function EstadosClient({ states }: { states: EstadoRow[] }) {
                 <div className="flex items-center gap-2 shrink-0">
                   <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
                     label={row.activo ? "Activo" : "Inactivo"} />
-                  <button onClick={() => remove(row)} aria-label="Eliminar"
-                    className="w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                    <IconX className="w-3 h-3" />
-                  </button>
+                  {confirmId === row.id ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                      <button disabled={saving} onClick={() => remove(row)}
+                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                        Sí, eliminar
+                      </button>
+                      <button onClick={() => setConfirmId(null)}
+                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmId(row.id)} aria-label="Eliminar"
+                      className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                      <IconX className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="grid sm:grid-cols-3 gap-3">

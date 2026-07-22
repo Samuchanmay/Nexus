@@ -9,6 +9,7 @@ import type { GpsZone } from "@/lib/types";
 export default function GpsClient({ zones }: { zones: GpsZone[] }) {
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ nombre: "", lat: "", lng: "", radio_m: "50" });
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const toggleActivo = (z: GpsZone) =>
     run(() => createClient().from("gps_zones").update({ activo: !z.activo }).eq("id", z.id),
@@ -18,9 +19,11 @@ export default function GpsClient({ zones }: { zones: GpsZone[] }) {
     run(() => createClient().from("gps_zones").update(patch).eq("id", z.id),
       { err: "No se pudo actualizar" });
 
-  const remove = (z: GpsZone) =>
+  const remove = (z: GpsZone) => {
+    setConfirmId(null);
     run(() => createClient().from("gps_zones").delete().eq("id", z.id),
       { ok: "Zona eliminada", err: "No se pudo eliminar" });
+  };
 
   const add = async () => {
     const lat = parseFloat(form.lat);
@@ -65,11 +68,27 @@ export default function GpsClient({ zones }: { zones: GpsZone[] }) {
               <div className="flex items-center gap-2 shrink-0">
                 <Switch tone="status" checked={z.activo} onChange={() => toggleActivo(z)} disabled={saving}
                   label={z.activo ? "Activa" : "Inactiva"} />
-                <button onClick={() => remove(z)} aria-label="Eliminar"
-                  className="w-7 h-7 rounded-full flex items-center justify-center"
-                  style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                  <IconX className="w-3 h-3" />
-                </button>
+                {confirmId === z.id ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                    <button disabled={saving} onClick={() => remove(z)}
+                      className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                      style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                      Sí, eliminar
+                    </button>
+                    <button onClick={() => setConfirmId(null)}
+                      className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                      style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmId(z.id)} aria-label="Eliminar"
+                    className="w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                    <IconX className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
             <div className="grid sm:grid-cols-3 gap-2.5">
