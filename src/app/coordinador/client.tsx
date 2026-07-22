@@ -12,7 +12,7 @@ import type { CommRequest, RequestType, UserProfile, RequestStatus, ActivityType
 import { notifyAdmins } from "@/lib/notify";
 import { dmy } from "@/lib/tz";
 import { fmtTime } from "@/lib/hours";
-import { IconCamera, IconPen, IconVideo, IconMegaphone, IconClipboard, IconFolder, IconChevronLeft, IconCheck } from "@/components/icons";
+import { IconCamera, IconPen, IconVideo, IconMegaphone, IconClipboard, IconFolder, IconChevronLeft, IconCheck, IconX } from "@/components/icons";
 
 // Descripciones e iconos de los 5 tipos originales; los tipos nuevos que un
 // admin agregue desde Configuración usan un icono/descripción genéricos.
@@ -65,6 +65,8 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
 
   /* ── Wizard ── */
   const [step, setStep] = useState(0); // 0 = lista, 1 = tipo, 2 = detalle, 3 = resumen
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [type, setType] = useState<RequestType | null>(null);
   const [subtypes, setSubtypes] = useState<string[]>([]);
   const [form, setForm] = useState({ title: "", date: "", time: "", location: "", notes: "" });
@@ -111,6 +113,19 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
     notifyAdmins(supabase, `${profile.full_name} envió una solicitud`, form.title.trim(), "request", "/admin/solicitudes");
     toast("Solicitud enviada al equipo de Comunicación");
     resetWizard();
+    router.refresh();
+  };
+
+  // Solo se puede eliminar mientras siga "solicitada" — en cuanto Comunicación
+  // la aprueba se crea el proyecto y ya no tiene sentido borrarla desde aquí.
+  const removeRequest = async (id: string) => {
+    setDeleting(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("requests").delete().eq("id", id);
+    setDeleting(false);
+    setConfirmId(null);
+    if (error) { toast("No se pudo eliminar — intenta de nuevo"); return; }
+    toast("Solicitud eliminada");
     router.refresh();
   };
 
@@ -161,6 +176,29 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
                     </p>
                   )}
                 </div>
+                {r.status === "solicitada" && (
+                  confirmId === r.id ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                      <button disabled={deleting} onClick={() => removeRequest(r.id)}
+                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                        Sí, eliminar
+                      </button>
+                      <button onClick={() => setConfirmId(null)}
+                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmId(r.id)} aria-label="Eliminar" title="Eliminar solicitud"
+                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                      <IconX className="w-3 h-3" />
+                    </button>
+                  )
+                )}
               </div>
             </div>
           ))}
