@@ -188,18 +188,17 @@ function MobileBottomNav({ items, active, onGo, ficharAction }: {
     >
       {left.map(Tab)}
       {ficharAction && (
-        <div className="flex-1 flex items-start justify-center relative" style={{ marginTop: "-22px" }}>
+        <div className="flex-1 flex items-start justify-center relative" style={{ marginTop: "-16px" }}>
           <Link
             href="/fichar"
             aria-label="Registrar entrada o salida"
-            className="grid place-items-center h-14 w-14 rounded-full text-white shadow-nx active:scale-95 transition-transform"
+            className="grid place-items-center h-14 w-14 rounded-full text-white active:scale-95 transition-transform"
             style={{
               background: "var(--accent)",
-              boxShadow: "0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent)",
-              border: "3px solid var(--surface)",
+              boxShadow: "0 3px 10px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 0 5px var(--surface)",
             }}
           >
-            <Icon name="clock" size={24} />
+            <Icon name="clock" size={23} />
           </Link>
         </div>
       )}

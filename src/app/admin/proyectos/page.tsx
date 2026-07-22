@@ -8,7 +8,7 @@ export default async function Proyectos() {
   const { data: { user } } = await supabase.auth.getUser();
   const [{ data: projects }, { data: deps }, { data: types }, { data: team }, { data: logs }, meRes] = await Promise.all([
     supabase.from("projects")
-      .select("id, status, priority, deadline, created_at, requests(title, type), project_assignments(is_lead, users(id, display_name, full_name, nexus_color, avatar_url, birth_date))")
+      .select("id, status, priority, deadline, created_at, requests(title, type), project_assignments(is_lead, users(id, display_name, full_name, nexus_color, avatar_url, birth_date), project_checklist(done))")
       .order("created_at", { ascending: false }),
     supabase.from("project_dependencies")
       .select("id, project_id, depends_on_project_id, projects!project_dependencies_depends_on_project_id_fkey(id, status, requests(title))"),

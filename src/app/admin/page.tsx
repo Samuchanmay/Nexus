@@ -346,11 +346,14 @@ export default async function AdminDashboard() {
           ) : (
             <div className="space-y-1.5 md:space-y-1">
               {activities.map((a) => (
-                <div key={a.id} className="flex items-center gap-3.5 md:gap-3 p-3 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
+                <div key={a.id} className="flex items-center gap-2.5 p-2 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{a.title}</p>
-                    <div className="mt-2 md:mt-1.5 h-2 md:h-1.5 rounded-full bg-surface-3 overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${a.pct}%`, background: "var(--accent)" }} />
+                    <p className="text-[13.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{a.title}</p>
+                    <div className="flex items-center gap-2 mt-1 md:mt-1.5">
+                      <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${a.pct}%`, background: "var(--accent)" }} />
+                      </div>
+                      <span className="md:hidden text-[11px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{a.pct}%</span>
                     </div>
                   </div>
                   <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
@@ -371,10 +374,10 @@ export default async function AdminDashboard() {
           ) : (
             <div className="space-y-1.5 md:space-y-1">
               {pendingList.map((r) => (
-                <div key={r.id} className="flex items-center gap-3.5 md:gap-3 p-3 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
-                  <span className="grid place-items-center h-8 w-8 rounded-sm bg-surface-2 text-text-3 shrink-0"><Icon name="inbox" size={15} /></span>
+                <div key={r.id} className="flex items-center gap-2.5 p-2 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
+                  <span className="grid place-items-center h-7 w-7 md:h-8 md:w-8 rounded-sm bg-surface-2 text-text-3 shrink-0"><Icon name="inbox" size={14} /></span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{r.title}</p>
+                    <p className="text-[13.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{r.title}</p>
                     <p className="text-[12px] text-text-3 truncate">{r.requester_name ?? "—"}</p>
                   </div>
                   <Badge tone={PRIORITY_TONE[r.priority] ?? "neutral"}>{r.priority}</Badge>

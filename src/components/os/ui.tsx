@@ -226,22 +226,21 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
 }) {
   const t = TONE[tone];
   return (
-    <Card pad={false} className="p-4 h-full">
-      {/* Móvil */}
-      <div className="flex md:hidden flex-col h-full">
-        <div className="flex items-start justify-between">
-          <span className="grid place-items-center h-11 w-11 rounded-2xl shrink-0" style={{ background: t.fg, color: "#fff" }}>
-            <Icon name={icon} size={19} />
-          </span>
-          <span className="shrink-0 h-6 min-w-[24px] px-1.5 rounded-full grid place-items-center text-[12px] font-bold"
+    <Card pad={false} className="p-3.5 md:p-4">
+      {/* Móvil — icono discreto (tinte, no relleno sólido) + título/badge/flecha
+          en una sola fila para que se lea como un contador, no como un KPI suelto. */}
+      <div className="flex md:hidden flex-col gap-1.5">
+        <span className="grid place-items-center h-8 w-8 rounded-xl shrink-0" style={{ background: t.bg, color: t.fg }}>
+          <Icon name={icon} size={14} />
+        </span>
+        <div className="flex items-center gap-1.5">
+          <p className="text-[13px] font-bold leading-snug text-text-1 flex-1 min-w-0">{label}</p>
+          <span className="shrink-0 h-5 min-w-[20px] px-1.5 rounded-full grid place-items-center text-[11px] font-bold"
             style={{ background: t.bg, color: t.fg }}>
             {value}
           </span>
+          <Icon name="arrow" size={13} className="shrink-0" style={{ color: t.fg }} />
         </div>
-        <p className="mt-3 text-[13.5px] font-bold leading-snug text-text-1">{label}</p>
-        <span className="mt-auto pt-3 grid place-items-center h-8 w-8 rounded-full self-start" style={{ background: t.fg, color: "#fff" }}>
-          <Icon name="arrow" size={14} />
-        </span>
       </div>
 
       {/* Escritorio — sin cambios */}

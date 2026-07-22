@@ -26,7 +26,11 @@ import { isBirthdayToday, todayISO } from "@/lib/birthday";
 export type ProjectRow = {
   id: string; status: string; priority: string; deadline: string | null; created_at: string;
   requests: { title: string; type: RequestType } | null;
-  project_assignments: { is_lead: boolean; users: { id: string; display_name: string; full_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null } }[];
+  project_assignments: {
+    is_lead: boolean;
+    users: { id: string; display_name: string; full_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null };
+    project_checklist?: { done: boolean }[];
+  }[];
 };
 export type DepRow = {
   id: string; project_id: string; depends_on_project_id: string;
@@ -114,6 +118,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
   const [open, setOpen] = useState<string | null>(null); // project_id con el picker abierto
   const [picked, setPicked] = useState("");
   const [saving, setSaving] = useState(false);
+  const [acciones, setAcciones] = useState(false); // móvil — menú "Acciones" (Exportar/Por empleado/PDF)
 
   // ── Añadir proyecto (directo, sin pasar por Solicitud) ──
   const [addOpen, setAddOpen] = useState(false);
@@ -247,76 +252,121 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
     const myDeps = depsOf.get(p.id) ?? [];
     const pending = myDeps.filter((d) => d.projects && d.projects.status !== "completada");
     const otherOptions = projects.filter((o) => o.id !== p.id && !myDeps.some((d) => d.depends_on_project_id === o.id));
+    const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
+    const checklistItems = asgs.flatMap((a) => a.project_checklist ?? []);
+    const pct = checklistItems.length ? Math.round((checklistItems.filter((i) => i.done).length / checklistItems.length) * 100) : 0;
+
+    const badges = (
+      <>
+        <Pill tone="accent">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
+        <Pill tone={STATUS_TONE[p.status as RequestStatus] ?? "muted"}>{STATUS_LABELS[p.status as RequestStatus] ?? p.status}</Pill>
+        {(p.priority as Priority) !== "normal" && <Pill tone={PRIORITY_TONE[p.priority as Priority]}>{p.priority}</Pill>}
+        {pending.length > 0 && <Pill tone="danger"><span className="inline-flex items-center gap-1"><Icon name="lock" size={11} /> Bloqueada</span></Pill>}
+      </>
+    );
+
+    const depsBlock = (
+      <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+        <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Depende de</p>
+        {myDeps.length === 0 && open !== p.id && (
+          <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Sin dependencias</p>
+        )}
+        <div className="flex flex-col gap-1.5">
+          {myDeps.map((d) => {
+            const blocked = d.projects && d.projects.status !== "completada";
+            return (
+              <div key={d.id} className="flex items-center justify-between gap-2 text-[12.5px]">
+                <span className="truncate flex items-center gap-1" style={{ color: blocked ? "var(--danger)" : "var(--ok)" }}>
+                  <Icon name={blocked ? "lock" : "check"} size={11} /> {d.projects?.requests?.title ?? "Actividad"}
+                </span>
+                <button className="text-[11.5px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}
+                  onClick={() => removeDependency(d.id)}>
+                  Quitar
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {open === p.id ? (
+          <div className="flex items-center gap-2 mt-2">
+            <SelectField className="flex-1" value={picked} onChange={setPicked}>
+              <option value="">— elige una actividad —</option>
+              {otherOptions.map((o) => (
+                <option key={o.id} value={o.id}>{titleOf(o)}</option>
+              ))}
+            </SelectField>
+            <button className="btn-secondary text-[12px] px-2.5 py-1.5" disabled={saving} onClick={() => addDependency(p.id)}>
+              Agregar
+            </button>
+            <button className="text-[12px]" style={{ color: "var(--text-3)" }} onClick={() => { setOpen(null); setPicked(""); }}>
+              <Icon name="close" size={13} />
+            </button>
+          </div>
+        ) : (
+          <button className="text-[12px] font-semibold mt-2" style={{ color: "var(--accent)" }}
+            onClick={() => setOpen(p.id)}>
+            + Agregar dependencia
+          </button>
+        )}
+      </div>
+    );
 
     return (
-      <div className="card card-hover p-5">
-        <div className="flex items-center gap-2 flex-wrap mb-1.5">
-          <Pill tone="accent">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
-          <Pill tone={STATUS_TONE[p.status as RequestStatus] ?? "muted"}>{STATUS_LABELS[p.status as RequestStatus] ?? p.status}</Pill>
-          {(p.priority as Priority) !== "normal" && <Pill tone={PRIORITY_TONE[p.priority as Priority]}>{p.priority}</Pill>}
-          {pending.length > 0 && <Pill tone="danger"><span className="inline-flex items-center gap-1"><Icon name="lock" size={11} /> Bloqueada</span></Pill>}
-        </div>
-        <h3 className="text-[15px] font-bold leading-snug">{titleOf(p)}</h3>
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex -space-x-2">
-            {asgs.map((a, i) => (
-              <div key={i} title={a.users.display_name + (a.is_lead ? " (responsable)" : "")}
-                style={{ border: "2px solid var(--surface)", borderRadius: "100px" }}>
-                <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={28} birthday={isBirthdayToday(a.users.birth_date, todayISO())} />
-              </div>
-            ))}
+      <div className="card card-hover p-3.5 md:p-5">
+        {/* Móvil — jerarquía: título → badges → responsable → entrega → progreso → dependencias → acciones */}
+        <div className="flex md:hidden flex-col">
+          <h3 className="text-[14px] font-bold leading-snug">{titleOf(p)}</h3>
+          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">{badges}</div>
+
+          <div className="flex items-center gap-2 mt-2.5">
+            <div className="flex -space-x-2 shrink-0">
+              {asgs.map((a, i) => (
+                <div key={i} title={a.users.display_name + (a.is_lead ? " (responsable)" : "")}
+                  style={{ border: "2px solid var(--surface)", borderRadius: "100px" }}>
+                  <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={24} birthday={isBirthdayToday(a.users.birth_date, todayISO())} />
+                </div>
+              ))}
+            </div>
+            <span className="text-[12.5px] font-semibold truncate" style={{ color: "var(--text-2)" }}>{lead?.display_name ?? "Sin asignar"}</span>
           </div>
+
           {p.deadline && (
-            <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
-              entrega {dmy(p.deadline)}
+            <span className="inline-flex items-center gap-1 text-[12px] font-medium mt-1.5" style={{ color: "var(--text-3)" }}>
+              <Icon name="calendar" size={12} /> entrega {dmy(p.deadline)}
             </span>
           )}
-        </div>
 
-        {/* Dependencias */}
-        <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
-          <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Depende de</p>
-          {myDeps.length === 0 && open !== p.id && (
-            <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Sin dependencias</p>
-          )}
-          <div className="flex flex-col gap-1.5">
-            {myDeps.map((d) => {
-              const blocked = d.projects && d.projects.status !== "completada";
-              return (
-                <div key={d.id} className="flex items-center justify-between gap-2 text-[12.5px]">
-                  <span className="truncate flex items-center gap-1" style={{ color: blocked ? "var(--danger)" : "var(--ok)" }}>
-                    <Icon name={blocked ? "lock" : "check"} size={11} /> {d.projects?.requests?.title ?? "Actividad"}
-                  </span>
-                  <button className="text-[11.5px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}
-                    onClick={() => removeDependency(d.id)}>
-                    Quitar
-                  </button>
-                </div>
-              );
-            })}
+          <div className="flex items-center gap-2 mt-2.5">
+            <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--accent)" }} />
+            </div>
+            <span className="text-[11px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{pct}%</span>
           </div>
 
-          {open === p.id ? (
-            <div className="flex items-center gap-2 mt-2">
-              <SelectField className="flex-1" value={picked} onChange={setPicked}>
-                <option value="">— elige una actividad —</option>
-                {otherOptions.map((o) => (
-                  <option key={o.id} value={o.id}>{titleOf(o)}</option>
-                ))}
-              </SelectField>
-              <button className="btn-secondary text-[12px] px-2.5 py-1.5" disabled={saving} onClick={() => addDependency(p.id)}>
-                Agregar
-              </button>
-              <button className="text-[12px]" style={{ color: "var(--text-3)" }} onClick={() => { setOpen(null); setPicked(""); }}>
-                <Icon name="close" size={13} />
-              </button>
+          {depsBlock}
+        </div>
+
+        {/* Escritorio — sin cambios */}
+        <div className="hidden md:block">
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">{badges}</div>
+          <h3 className="text-[15px] font-bold leading-snug">{titleOf(p)}</h3>
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex -space-x-2">
+              {asgs.map((a, i) => (
+                <div key={i} title={a.users.display_name + (a.is_lead ? " (responsable)" : "")}
+                  style={{ border: "2px solid var(--surface)", borderRadius: "100px" }}>
+                  <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={28} birthday={isBirthdayToday(a.users.birth_date, todayISO())} />
+                </div>
+              ))}
             </div>
-          ) : (
-            <button className="text-[12px] font-semibold mt-2" style={{ color: "var(--accent)" }}
-              onClick={() => setOpen(p.id)}>
-              + Agregar dependencia
-            </button>
-          )}
+            {p.deadline && (
+              <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                entrega {dmy(p.deadline)}
+              </span>
+            )}
+          </div>
+          {depsBlock}
         </div>
       </div>
     );
@@ -324,14 +374,53 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
   return (
     <>
-      <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
+      <header className="pt-4 pb-4 md:pt-8 md:pb-6 flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight">Proyectos</h1>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
+          <h1 className="text-[22px] md:text-[28px] font-bold tracking-tight">Proyectos</h1>
+          <p className="text-[13px] md:text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
             {active.length} activos · {done.length} cerrados
           </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Móvil — fila compacta: menú "Acciones" (reportes) + Proyecto */}
+        <div className="flex md:hidden items-center gap-2 w-full justify-end">
+          <div className="relative">
+            <button className="btn-secondary text-[13px] px-3 py-2 flex items-center gap-1"
+              onClick={() => setAcciones((v) => !v)}>
+              Acciones <Icon name="chevronDown" size={13} />
+            </button>
+            {acciones && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setAcciones(false)} />
+                <div className="absolute right-0 top-full mt-1.5 w-[210px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden z-50 nx-pop">
+                  <a href={activitiesCsvHref} download="actividades.csv"
+                    className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-text-1 hover:bg-hover transition-colors"
+                    onClick={() => { setAcciones(false); if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
+                    <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
+                  </a>
+                  <button className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-text-1 hover:bg-hover transition-colors"
+                    onClick={() => {
+                      setAcciones(false);
+                      if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
+                      printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
+                    }}>
+                    <IconDownload className="w-3.5 h-3.5" /> Por empleado
+                  </button>
+                  <button className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-text-1 hover:bg-hover transition-colors"
+                    onClick={() => { setAcciones(false); window.print(); }}>
+                    <IconDownload className="w-3.5 h-3.5" /> Guardar como PDF
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <button className="btn-primary text-[13px] px-3.5 py-2 flex items-center gap-1 shrink-0" onClick={openAdd}>
+            <Icon name="plus" size={14} /> Proyecto
+          </button>
+        </div>
+
+        {/* Escritorio — sin cambios */}
+        <div className="hidden md:flex items-center gap-2">
           <a href={activitiesCsvHref} download="actividades.csv" className="btn-secondary text-[13px] px-4 py-2 flex items-center gap-1.5"
             onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
             <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
@@ -350,18 +439,18 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
         </div>
       </header>
 
-      <h2 className="text-[15px] font-bold mb-3">Activos</h2>
+      <h2 className="text-[15px] font-bold mb-2 md:mb-3">Activos</h2>
       {active.length === 0 && (
         <div className="card p-6 text-center mb-6">
           <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin proyectos activos — aprueba una solicitud o añade uno directamente</p>
         </div>
       )}
-      <div className="grid md:grid-cols-2 gap-3.5 mb-8">{active.map((p) => <Card key={p.id} p={p} />)}</div>
+      <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 mb-6 md:mb-8">{active.map((p) => <Card key={p.id} p={p} />)}</div>
 
       {done.length > 0 && (
         <>
-          <h2 className="text-[15px] font-bold mb-3">Cerrados</h2>
-          <div className="grid md:grid-cols-2 gap-3.5 opacity-70">{done.map((p) => <Card key={p.id} p={p} />)}</div>
+          <h2 className="text-[15px] font-bold mb-2 md:mb-3">Cerrados</h2>
+          <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 opacity-70">{done.map((p) => <Card key={p.id} p={p} />)}</div>
         </>
       )}
 
