@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "./icons";
 import { Avatar, IconButton, Kbd, cx } from "./ui";
@@ -13,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string; avatarUrl?: string | null; birthDate?: string | null };
 
 export function Shell({
-  role, user, active, onNavigate, title, actions, children,
+  role, user, active, onNavigate, title, actions, children, ficharAction = false,
 }: {
   role: Role;
   user: ShellUser;
@@ -22,11 +23,20 @@ export function Shell({
   title: string;
   actions?: ReactNode;
   children: ReactNode;
+  /** Muestra el botón central elevado de Registro de Jornada en el tab bar móvil. */
+  ficharAction?: boolean;
 }) {
   const items = useMemo(() => navFor(role), [role]);
   const [drawer, setDrawer] = useState(false);
   const [spot, setSpot] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [avatarMenu, setAvatarMenu] = useState(false);
+  const hasConfig = items.some((i) => i.key === "config");
+  const router = useRouter();
+  const signOut = async () => {
+    await createClient().auth.signOut();
+    router.push("/login");
+  };
   const { theme, toggle } = useTheme();
   // Badge del atajo de búsqueda: ⌘ solo en Mac, "Ctrl" en Windows/Linux —
   // antes se mostraba ⌘K fijo sin importar el sistema operativo del usuario.
@@ -88,13 +98,30 @@ export function Shell({
           <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Cambiar tema" onClick={toggle} />
           <NotificationBell userId={user.id} />
           <button
-            className="ml-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="ml-1 hidden md:inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             title={user.name}
             onClick={() => setProfileOpen(true)}
           >
             <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
           </button>
+          <button
+            className="ml-1 md:hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            title={user.name}
+            onClick={() => setAvatarMenu(true)}
+          >
+            <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
+          </button>
         </header>
+
+        {avatarMenu && (
+          <MobileAvatarMenu
+            hasConfig={hasConfig}
+            onProfile={() => { setAvatarMenu(false); setProfileOpen(true); }}
+            onConfig={() => { setAvatarMenu(false); go("config"); }}
+            onSignOut={() => { setAvatarMenu(false); signOut(); }}
+            onClose={() => setAvatarMenu(false)}
+          />
+        )}
 
         <main className="flex-1 nx-scroll overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 flex flex-col">
           <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
@@ -105,7 +132,7 @@ export function Shell({
         </main>
       </div>
 
-      <MobileBottomNav items={items} active={active} onGo={go} onMore={() => setDrawer(true)} />
+      <MobileBottomNav items={items} active={active} onGo={go} ficharAction={ficharAction} />
 
       {spot && <Spotlight items={items} onGo={go} onClose={() => setSpot(false)} />}
       {profileOpen && (
@@ -122,14 +149,33 @@ export function Shell({
 }
 
 /* ───────────────────────── Bottom Navigation (móvil) ─────────────────────────
-   Tab bar nativa para pantallas < md. Muestra hasta 4 destinos primarios
-   (el mismo orden que la sidebar) + "Más" para el resto vía el drawer ya
-   existente — no duplica navegación, solo la hace accesible con el pulgar. */
-function MobileBottomNav({ items, active, onGo, onMore }: {
-  items: NavItem[]; active: string; onGo: (k: string) => void; onMore: () => void;
+   Tab bar estilo Mercado Pago: hasta 4 destinos primarios (el mismo orden que
+   la sidebar) repartidos a los lados de un botón central elevado — Registro
+   de Jornada, el CTA principal de la app — cuando el rol lo tiene habilitado.
+   Sin "Más": el resto de la navegación vive en el drawer (ícono de menú del
+   header) y en el nuevo menú del avatar (Perfil/Configuración/Cerrar sesión). */
+function MobileBottomNav({ items, active, onGo, ficharAction }: {
+  items: NavItem[]; active: string; onGo: (k: string) => void; ficharAction: boolean;
 }) {
-  const primary = items.slice(0, 4);
-  const moreActive = !primary.some((i) => i.key === active);
+  const primary = items.slice(0, ficharAction ? 4 : 5);
+  const left = ficharAction ? primary.slice(0, 2) : primary;
+  const right = ficharAction ? primary.slice(2, 4) : [];
+
+  const Tab = (i: NavItem) => {
+    const on = active === i.key;
+    return (
+      <button
+        key={i.key}
+        onClick={() => onGo(i.key)}
+        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2"
+        style={{ color: on ? "var(--accent)" : "var(--text-3)" }}
+      >
+        <Icon name={i.icon} size={20} />
+        <span className="text-[10px] font-semibold leading-none">{i.label}</span>
+      </button>
+    );
+  };
+
   return (
     <nav
       className="md:hidden fixed inset-x-0 bottom-0 z-30 flex items-stretch"
@@ -140,29 +186,55 @@ function MobileBottomNav({ items, active, onGo, onMore }: {
         boxShadow: "0 -4px 20px rgba(0,0,0,0.08)",
       }}
     >
-      {primary.map((i) => {
-        const on = active === i.key;
-        return (
-          <button
-            key={i.key}
-            onClick={() => onGo(i.key)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2"
-            style={{ color: on ? "var(--accent)" : "var(--text-3)" }}
+      {left.map(Tab)}
+      {ficharAction && (
+        <div className="flex-1 flex items-start justify-center relative" style={{ marginTop: "-22px" }}>
+          <Link
+            href="/fichar"
+            aria-label="Registrar entrada o salida"
+            className="grid place-items-center h-14 w-14 rounded-full text-white shadow-nx active:scale-95 transition-transform"
+            style={{
+              background: "var(--accent)",
+              boxShadow: "0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent)",
+              border: "3px solid var(--surface)",
+            }}
           >
-            <Icon name={i.icon} size={20} />
-            <span className="text-[10px] font-semibold leading-none">{i.label}</span>
-          </button>
-        );
-      })}
-      <button
-        onClick={onMore}
-        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2"
-        style={{ color: moreActive ? "var(--accent)" : "var(--text-3)" }}
-      >
-        <Icon name="layers" size={20} />
-        <span className="text-[10px] font-semibold leading-none">Más</span>
-      </button>
+            <Icon name="clock" size={24} />
+          </Link>
+        </div>
+      )}
+      {right.map(Tab)}
     </nav>
+  );
+}
+
+/* ───────────────────────── Menú del avatar (móvil) ─────────────────────────
+   Reemplaza a la pestaña "Más": perfil, configuración (si el rol la tiene)
+   y cerrar sesión, anclado bajo el avatar del header. */
+function MobileAvatarMenu({ hasConfig, onProfile, onConfig, onSignOut, onClose }: {
+  hasConfig: boolean; onProfile: () => void; onConfig: () => void; onSignOut: () => void; onClose: () => void;
+}) {
+  return (
+    <div className="md:hidden fixed inset-0 z-50 nx-fade" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="absolute top-[60px] right-3 w-[220px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button onClick={onProfile} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
+          <Icon name="person" size={16} className="text-text-3" /> Perfil
+        </button>
+        {hasConfig && (
+          <button onClick={onConfig} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
+            <Icon name="settings" size={16} className="text-text-3" /> Configuración
+          </button>
+        )}
+        <div className="border-t border-border" />
+        <button onClick={onSignOut} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold hover:bg-hover transition-colors" style={{ color: "var(--danger)" }}>
+          <Icon name="logout" size={16} /> Cerrar sesión
+        </button>
+      </div>
+    </div>
   );
 }
 

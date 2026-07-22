@@ -98,18 +98,9 @@ export function AppShell({
     </Link>
   ) : null;
 
-  // Celular: botón flotante fijo (abajo-derecha), igual de accesible con el
-  // pulgar que la pestaña "Fichar" que tenía el diseño anterior.
-  const ficharFab = ficharAction ? (
-    <Link
-      href="/fichar"
-      aria-label="Registrar entrada o salida"
-      className="sm:hidden fixed z-40 grid place-items-center h-14 w-14 rounded-full text-white shadow-nx active:scale-95 transition-transform"
-      style={{ right: "18px", bottom: "calc(66px + env(safe-area-inset-bottom))", background: "var(--accent)" }}
-    >
-      <Icon name="clock" size={22} />
-    </Link>
-  ) : null;
+  // Celular: el CTA de Registro de Jornada ahora vive como botón central
+  // elevado dentro del propio tab bar (ver MobileBottomNav en shell.tsx),
+  // en vez del FAB flotante independiente que tenía el diseño anterior.
 
   return (
     <ThemeProvider>
@@ -120,10 +111,10 @@ export function AppShell({
         onNavigate={go}
         title={TITLES[active] ?? "Nexus"}
         actions={<>{fichar}{actions}</>}
+        ficharAction={ficharAction}
       >
         {children}
       </Shell>
-      {ficharFab}
     </ThemeProvider>
   );
 }

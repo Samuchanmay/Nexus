@@ -252,8 +252,8 @@ export default async function AdminDashboard() {
   const firstName = me!.display_name.split(" ")[0];
 
   return (
-    <div className="space-y-6 pb-10">
-      <header className="pt-2">
+    <div className="space-y-7 md:space-y-6 pb-10">
+      <header className="pt-3 md:pt-2">
         <p className="text-[13px] capitalize text-text-3">{dateLabel}</p>
         <h1 className="text-[26px] md:text-[30px] font-bold tracking-tight text-text-1">
           {greeting}, {firstName} <span className="wave-emoji">👋</span>
@@ -267,16 +267,39 @@ export default async function AdminDashboard() {
 
       {/* Alertas */}
       {alerts.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {alerts.map((a, i) => (
-            <Card key={i} pad={false} className="px-4 py-3 flex items-center gap-2.5">
-              <Icon name={a.icon} size={16} />
-              <p className="text-[13px] font-semibold text-text-1 flex-1">{a.text}</p>
-              <Badge tone={a.tone === "accent" ? "accent" : a.tone} dot={a.icon === "alarm"} pulse={a.icon === "alarm"}>
-                {a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso"}
-              </Badge>
-            </Card>
-          ))}
+        <div className="flex flex-col gap-2 md:gap-2">
+          {alerts.map((a, i) => {
+            const parenIdx = a.text.indexOf(" (");
+            const main = parenIdx >= 0 ? a.text.slice(0, parenIdx) : a.text;
+            const subRaw = parenIdx >= 0 ? a.text.slice(parenIdx + 2).replace(/\)$/, "") : null;
+            const sub = subRaw ? subRaw.charAt(0).toUpperCase() + subRaw.slice(1) : null;
+            const badgeLabel = a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso";
+            return (
+              <Card key={i} pad={false} className="px-5 py-4 md:px-4 md:py-3">
+                {/* Móvil */}
+                <div className="flex md:hidden items-center gap-3">
+                  <span className="shrink-0 grid place-items-center h-10 w-10 rounded-full" style={{ background: "var(--surface-2)" }}>
+                    <Icon name={a.icon} size={15} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-bold text-text-1 leading-snug">{main}</p>
+                    {sub && <p className="text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>{sub}</p>}
+                  </div>
+                  <Badge tone={a.tone === "accent" ? "accent" : a.tone} dot={a.icon === "alarm"} pulse={a.icon === "alarm"}>
+                    {badgeLabel}
+                  </Badge>
+                </div>
+                {/* Escritorio — sin cambios */}
+                <div className="hidden md:flex items-center gap-2.5">
+                  <Icon name={a.icon} size={16} />
+                  <p className="text-[13px] font-semibold text-text-1 flex-1">{a.text}</p>
+                  <Badge tone={a.tone === "accent" ? "accent" : a.tone} dot={a.icon === "alarm"} pulse={a.icon === "alarm"}>
+                    {badgeLabel}
+                  </Badge>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -307,7 +330,7 @@ export default async function AdminDashboard() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-3">
         <Link href="/admin/solicitudes"><StatCard label="Solicitudes por revisar" value={String(pendingReqs ?? 0)} icon="inbox" tone="warn" /></Link>
         <Link href="/admin/proyectos"><StatCard label="Actividades activas" value={String(activeProjects ?? 0)} icon="layers" tone="accent" /></Link>
         <Link href="/admin/vacaciones"><StatCard label="Vacaciones pendientes" value={String(pendingVacs ?? 0)} icon="plane" tone="purple" /></Link>
@@ -315,18 +338,18 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Dos columnas: actividades activas + solicitudes por revisar */}
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
+      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5 md:gap-4">
         <Card>
           <SectionTitle hint={`${activeProjects ?? 0} en total`}>Actividades activas</SectionTitle>
           {activities.length === 0 ? (
             <EmptyState icon="layers" title="Sin actividades activas" hint="Cuando se apruebe una solicitud, aparecerá aquí con su avance." />
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1.5 md:space-y-1">
               {activities.map((a) => (
-                <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors">
+                <div key={a.id} className="flex items-center gap-3.5 md:gap-3 p-3 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-text-1 truncate">{a.title}</p>
-                    <div className="mt-1.5 h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                    <p className="text-[14.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{a.title}</p>
+                    <div className="mt-2 md:mt-1.5 h-2 md:h-1.5 rounded-full bg-surface-3 overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${a.pct}%`, background: "var(--accent)" }} />
                     </div>
                   </div>
@@ -346,12 +369,12 @@ export default async function AdminDashboard() {
           {pendingList.length === 0 ? (
             <EmptyState icon="inbox" title="Bandeja en cero" hint="No hay solicitudes esperando revisión." />
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1.5 md:space-y-1">
               {pendingList.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-sm hover:bg-hover transition-colors">
+                <div key={r.id} className="flex items-center gap-3.5 md:gap-3 p-3 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
                   <span className="grid place-items-center h-8 w-8 rounded-sm bg-surface-2 text-text-3 shrink-0"><Icon name="inbox" size={15} /></span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-text-1 truncate">{r.title}</p>
+                    <p className="text-[14.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{r.title}</p>
                     <p className="text-[12px] text-text-3 truncate">{r.requester_name ?? "—"}</p>
                   </div>
                   <Badge tone={PRIORITY_TONE[r.priority] ?? "neutral"}>{r.priority}</Badge>
@@ -365,7 +388,7 @@ export default async function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-5 md:gap-4">
         {/* Mi jornada de hoy */}
         <Card>
           <div className="flex items-center justify-between mb-4">

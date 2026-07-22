@@ -216,21 +216,45 @@ export function EmptyState({ icon = "sparkle", title, hint, action }: {
   );
 }
 
-/* ───────────────────────── StatCard ───────────────────────── */
+/* ───────────────────────── StatCard ─────────────────────────
+   Escritorio: layout original (icono, valor grande, etiqueta) sin cambios.
+   Móvil: fila compacta estilo Mercado Pago — icono sólido arriba a la
+   izquierda, chip con el número arriba a la derecha, título debajo y un
+   botón circular de flecha para reforzar que la tarjeta navega a algo. */
 export function StatCard({ label, value, icon, tone = "accent", delta }: {
   label: string; value: string; icon: string; tone?: Tone; delta?: string;
 }) {
   const t = TONE[tone];
   return (
-    <Card pad={false} className="p-4">
-      <div className="flex items-center justify-between">
-        <span className="grid place-items-center h-9 w-9 rounded-sm" style={{ background: t.bg, color: t.fg }}>
-          <Icon name={icon} size={18} />
+    <Card pad={false} className="p-4 h-full">
+      {/* Móvil */}
+      <div className="flex md:hidden flex-col h-full">
+        <div className="flex items-start justify-between">
+          <span className="grid place-items-center h-11 w-11 rounded-2xl shrink-0" style={{ background: t.fg, color: "#fff" }}>
+            <Icon name={icon} size={19} />
+          </span>
+          <span className="shrink-0 h-6 min-w-[24px] px-1.5 rounded-full grid place-items-center text-[12px] font-bold"
+            style={{ background: t.bg, color: t.fg }}>
+            {value}
+          </span>
+        </div>
+        <p className="mt-3 text-[13.5px] font-bold leading-snug text-text-1">{label}</p>
+        <span className="mt-auto pt-3 grid place-items-center h-8 w-8 rounded-full self-start" style={{ background: t.fg, color: "#fff" }}>
+          <Icon name="arrow" size={14} />
         </span>
-        {delta && <span className="text-[12px] font-semibold" style={{ color: "var(--ok)" }}>{delta}</span>}
       </div>
-      <p className="mt-3 text-[26px] font-bold leading-none text-text-1">{value}</p>
-      <p className="mt-1 text-[13px] text-text-3">{label}</p>
+
+      {/* Escritorio — sin cambios */}
+      <div className="hidden md:block">
+        <div className="flex items-center justify-between">
+          <span className="grid place-items-center h-9 w-9 rounded-sm" style={{ background: t.bg, color: t.fg }}>
+            <Icon name={icon} size={18} />
+          </span>
+          {delta && <span className="text-[12px] font-semibold" style={{ color: "var(--ok)" }}>{delta}</span>}
+        </div>
+        <p className="mt-3 text-[26px] font-bold leading-none text-text-1">{value}</p>
+        <p className="mt-1 text-[13px] text-text-3">{label}</p>
+      </div>
     </Card>
   );
 }
