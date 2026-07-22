@@ -8,12 +8,12 @@ export default async function Proyectos() {
   const { data: { user } } = await supabase.auth.getUser();
   const [{ data: projects }, { data: deps }, { data: types }, { data: team }, { data: logs }, meRes] = await Promise.all([
     supabase.from("projects")
-      .select("id, status, priority, deadline, created_at, requests(title, type), project_assignments(is_lead, users(id, display_name, full_name, nexus_color))")
+      .select("id, status, priority, deadline, created_at, requests(title, type), project_assignments(is_lead, users(id, display_name, full_name, nexus_color, avatar_url))")
       .order("created_at", { ascending: false }),
     supabase.from("project_dependencies")
       .select("id, project_id, depends_on_project_id, projects!project_dependencies_depends_on_project_id_fkey(id, status, requests(title))"),
     supabase.from("activity_types").select("*").eq("activo", true).order("orden"),
-    supabase.from("users").select("id, display_name, full_name, nexus_color")
+    supabase.from("users").select("id, display_name, full_name, nexus_color, avatar_url")
       .eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("task_time_logs").select("minutes, project_assignments(user_id)"),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
@@ -35,7 +35,7 @@ export default async function Proyectos() {
       dependencies={(deps ?? []) as unknown as DepRow[]}
       typeLabel={typeLabels(activityTypes)}
       types={activityTypes.map((t) => ({ key: t.key, label: t.label }))}
-      team={(team ?? []) as { id: string; display_name: string; full_name: string; nexus_color: string | null }[]}
+      team={(team ?? []) as { id: string; display_name: string; full_name: string; nexus_color: string | null; avatar_url: string | null }[]}
       hoursByUserMin={hoursByUserMin}
       adminId={meRes?.data?.id ?? ""}
     />

@@ -24,13 +24,13 @@ import { dmy, todayMerida } from "@/lib/tz";
 export type ProjectRow = {
   id: string; status: string; priority: string; deadline: string | null; created_at: string;
   requests: { title: string; type: RequestType } | null;
-  project_assignments: { is_lead: boolean; users: { id: string; display_name: string; full_name: string; nexus_color: string | null } }[];
+  project_assignments: { is_lead: boolean; users: { id: string; display_name: string; full_name: string; nexus_color: string | null; avatar_url: string | null } }[];
 };
 export type DepRow = {
   id: string; project_id: string; depends_on_project_id: string;
   projects: { id: string; status: string; requests: { title: string } | null } | null;
 };
-type Member = { id: string; display_name: string; full_name: string; nexus_color: string | null };
+type Member = { id: string; display_name: string; full_name: string; nexus_color: string | null; avatar_url: string | null };
 type ActTypeOpt = { key: string; label: string };
 
 const PRIORITIES: Priority[] = ["baja", "normal", "alta", "urgente"];
@@ -260,7 +260,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
             {asgs.map((a, i) => (
               <div key={i} title={a.users.display_name + (a.is_lead ? " (responsable)" : "")}
                 style={{ border: "2px solid var(--surface)", borderRadius: "100px" }}>
-                <Avatar name={a.users.display_name} color={a.users.nexus_color} size={28} />
+                <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={28} />
               </div>
             ))}
           </div>
@@ -396,7 +396,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
                   }}>
                   <input type="checkbox" className="hidden" checked={assignees.includes(m.id)} onChange={() => toggleAssignee(m.id)} />
                   <CheckBox checked={assignees.includes(m.id)} />
-                  <Avatar name={m.display_name} color={m.nexus_color} size={26} />
+                  <Avatar name={m.display_name} color={m.nexus_color} avatarUrl={m.avatar_url} size={26} />
                   <span className="text-[13px] font-medium flex-1">{m.display_name}</span>
                   {assignees.includes(m.id) && (
                     assignees.length > 1 ? (

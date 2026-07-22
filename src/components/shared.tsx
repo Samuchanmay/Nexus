@@ -72,8 +72,8 @@ export function StatCard({ label, value, hint, tone = "default", onClick }: {
 }
 
 /* ── C7 · Fila-empleado (avatar + nombre + meta + extras) ── */
-export function PersonRow({ name, color, meta, right, onClick, active }: {
-  name: string; color?: string | null; meta?: React.ReactNode;
+export function PersonRow({ name, color, avatarUrl, meta, right, onClick, active }: {
+  name: string; color?: string | null; avatarUrl?: string | null; meta?: React.ReactNode;
   right?: React.ReactNode; onClick?: () => void; active?: boolean;
 }) {
   return (
@@ -84,7 +84,7 @@ export function PersonRow({ name, color, meta, right, onClick, active }: {
       onMouseEnter={onClick ? (e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "var(--surface-2)"; } : undefined}
       onMouseLeave={onClick ? (e) => { if (!active) (e.currentTarget as HTMLElement).style.background = ""; } : undefined}
     >
-      <Avatar name={name} color={color} size={34} />
+      <Avatar name={name} color={color} avatarUrl={avatarUrl} size={34} />
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-semibold truncate">{name}</p>
         {meta && <div className="text-[12px] truncate" style={{ color: "var(--text-2)" }}>{meta}</div>}

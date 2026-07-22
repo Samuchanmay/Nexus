@@ -102,6 +102,7 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
                 key={p.id}
                 name={p.display_name}
                 color={p.nexus_color}
+                avatarUrl={p.avatar_url}
                 meta={p.area ?? undefined}
                 right={
                   <div className="flex items-center gap-3 shrink-0">

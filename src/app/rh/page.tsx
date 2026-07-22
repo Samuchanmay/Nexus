@@ -8,18 +8,18 @@ export default async function RHDashboard() {
   const supabase = await createClient();
   const since = addDays(todayMerida(), -92);
   const [{ data: team }, { data: att }, { data: scheds }, { data: vacs }, { data: hols }, { data: jornadaStates }] = await Promise.all([
-    supabase.from("users").select("id, full_name, display_name, nexus_color, area, vacation_balance, vacation_days_per_year, hire_date, vacation_balance_reset")
+    supabase.from("users").select("id, full_name, display_name, nexus_color, avatar_url, area, vacation_balance, vacation_days_per_year, hire_date, vacation_balance_reset")
       .eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
     supabase.from("schedules").select("*"),
-    supabase.from("vacations").select("*, users(full_name, display_name, nexus_color)").is("archived_at", null).order("start_date", { ascending: false }),
+    supabase.from("vacations").select("*, users(full_name, display_name, nexus_color, avatar_url)").is("archived_at", null).order("start_date", { ascending: false }),
     supabase.from("holidays").select("date, name"),
     supabase.from("jornada_states").select("*").eq("activo", true),
   ]);
   return (
     <RHClient
       team={(team ?? []) as {
-        id: string; full_name: string; display_name: string; nexus_color: string | null; area: string | null;
+        id: string; full_name: string; display_name: string; nexus_color: string | null; avatar_url: string | null; area: string | null;
         vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; vacation_balance_reset: string | null;
       }[]}
       attendance={(att ?? []) as AttendanceRow[]}
