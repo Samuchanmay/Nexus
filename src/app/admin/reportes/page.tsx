@@ -107,7 +107,7 @@ export default async function Reportes() {
   const [{ data: requests }, { data: projects }, { data: logs }, { data: types }, { data: team }, { data: vacs }, meRes] = await Promise.all([
     supabase.from("requests").select("id, type, requester_area, status, created_at"),
     supabase.from("projects").select("id, request_id, created_at, status"),
-    supabase.from("task_time_logs").select("minutes, project_assignments(project_id)"),
+    supabase.from("task_time_logs").select("minutes, project_assignments(project_id, user_id)"),
     supabase.from("activity_types").select("*"),
     supabase.from("users").select("id, display_name, vacation_balance, vacation_days_per_year, hire_date")
       .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
@@ -190,6 +190,46 @@ export default async function Reportes() {
   const trendPrevHalf = trendValues.slice(0, 4).reduce((a, b) => a + b, 0);
   const trendRecentHalf = trendValues.slice(4).reduce((a, b) => a + b, 0);
   const trendUp = trendRecentHalf >= trendPrevHalf;
+  /* % de cambio recent vs. mitad anterior — "nuevo" cuando no había base
+     de comparación (mitad anterior en cero pero ya hay actividad ahora). */
+  const trendPct = trendPrevHalf > 0
+    ? Math.round(((trendRecentHalf - trendPrevHalf) / trendPrevHalf) * 100)
+    : trendRecentHalf > 0 ? null : 0;
+
+  /* Horas registradas por persona (todo el historial) — para "top empleado". */
+  const minutesByUser: Record<string, number> = {};
+  for (const l of (logs ?? [])) {
+    const uid = (l.project_assignments as unknown as { user_id: string } | null)?.user_id;
+    if (!uid) continue;
+    minutesByUser[uid] = (minutesByUser[uid] ?? 0) + (l.minutes ?? 0);
+  }
+  const nameByUserId = new Map((team ?? []).map((t) => [t.id, t.display_name]));
+  const topEmployeeEntry = Object.entries(minutesByUser).sort((a, b) => b[1] - a[1])[0];
+  const topEmployee = topEmployeeEntry
+    ? { name: nameByUserId.get(topEmployeeEntry[0]) ?? "—", hours: Math.round((topEmployeeEntry[1] / 60) * 10) / 10 }
+    : null;
+
+  /* Cuello de botella: la coordinación/departamento cuyo tiempo promedio de
+     aprobación (solicitud → actividad creada) es el más alto — es decir,
+     donde las solicitudes tardan más en convertirse en trabajo real. Solo
+     se considera un área si tiene al menos 2 solicitudes ya aprobadas, para
+     no señalar como "cuello de botella" un solo caso aislado. */
+  const approvalHoursByArea: Record<string, number[]> = {};
+  for (const p of projs) {
+    const r = reqById.get(p.request_id);
+    if (!r) continue;
+    const hrs = (new Date(p.created_at).getTime() - new Date(r.created_at).getTime()) / 3_600_000;
+    if (hrs < 0) continue;
+    const a = r.requester_area?.trim() || "Sin especificar";
+    (approvalHoursByArea[a] ??= []).push(hrs);
+  }
+  const bottleneckEntry = Object.entries(approvalHoursByArea)
+    .filter(([, hrs]) => hrs.length >= 2)
+    .map(([area, hrs]) => [area, hrs.reduce((a, b) => a + b, 0) / hrs.length] as const)
+    .sort((a, b) => b[1] - a[1])[0];
+  const bottleneck = bottleneckEntry
+    ? { area: bottleneckEntry[0], hours: Math.round(bottleneckEntry[1] * 10) / 10 }
+    : null;
 
   const totalReqs = reqs.length;
   const totalType = Object.values(byType).reduce((a, b) => a + b, 0);
@@ -275,12 +315,53 @@ export default async function Reportes() {
           <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>
             {trendTotal} en total ·{" "}
             <span style={{ color: trendUp ? "var(--ok)" : "var(--warn)" }}>
-              {trendUp ? "↑ subiendo" : "↓ bajando"}
+              {trendUp ? "↑" : "↓"} {trendPct == null ? "nuevo esta mitad" : `${trendPct > 0 ? "+" : ""}${trendPct}%`}
             </span>{" "}
             vs. la primera mitad del periodo
           </p>
         </div>
         <Sparkline values={trendValues} color={trendUp ? "var(--ok)" : "var(--warn)"} />
+      </div>
+
+      {/* Insights ejecutivos — lo que el admin necesita saber sin leer tablas:
+          quién más ha aportado horas, qué área concentra más solicitudes, y
+          dónde se está atorando el proceso (aprobación más lenta). */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+        <div className="card p-4">
+          <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>Top empleado (horas)</p>
+          {topEmployee ? (
+            <>
+              <p className="text-[15px] font-bold mt-1 truncate">{topEmployee.name}</p>
+              <p className="text-[12px] tabular-nums" style={{ color: "var(--ok)" }}>{topEmployee.hours} h registradas</p>
+            </>
+          ) : (
+            <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Aún sin registros.</p>
+          )}
+        </div>
+        <div className="card p-4">
+          <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>Área con más carga</p>
+          {topAreas.length > 0 ? (
+            <>
+              <p className="text-[15px] font-bold mt-1 truncate">{topAreas[0][0]}</p>
+              <p className="text-[12px] tabular-nums" style={{ color: "var(--accent)" }}>{topAreas[0][1]} solicitudes</p>
+            </>
+          ) : (
+            <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Sin datos todavía.</p>
+          )}
+        </div>
+        <div className="card p-4">
+          <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>Cuello de botella</p>
+          {bottleneck ? (
+            <>
+              <p className="text-[15px] font-bold mt-1 truncate">{bottleneck.area}</p>
+              <p className="text-[12px] tabular-nums" style={{ color: "var(--warn)" }}>
+                {bottleneck.hours < 24 ? `${bottleneck.hours} h` : `${(bottleneck.hours / 24).toFixed(1)} d`} prom. de aprobación
+              </p>
+            </>
+          ) : (
+            <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Sin suficientes datos todavía.</p>
+          )}
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">

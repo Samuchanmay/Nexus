@@ -23,7 +23,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", last).gte("end_date", first),
-    supabase.from("holidays").select("date, name").gte("date", first).lte("date", last),
+    supabase.from("holidays").select("date, name, kind").gte("date", first).lte("date", last),
     supabase.from("projects")
       .select("id, deadline, status, requests(title, type), project_assignments(is_lead, users(display_name, nexus_color))")
       .not("deadline", "is", null).gte("deadline", first).lte("deadline", last).order("deadline"),
@@ -69,7 +69,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       team={(team ?? []) as TeamMember[]}
       attendance={(att ?? []) as { user_id: string; date: string }[]}
       vacations={(vacs ?? []) as VacationRange[]}
-      holidays={(hols ?? []) as { date: string; name: string }[]}
+      holidays={(hols ?? []) as { date: string; name: string; kind: string }[]}
       deadlines={(projects ?? []) as unknown as ProjectDeadline[]}
       efemerides={efemerides.map((e) => e.title)}
       gcalEvents={gcalEvents}

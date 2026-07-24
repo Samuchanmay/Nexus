@@ -36,3 +36,23 @@ export const KIND_LABELS: Record<Incident["kind"], string> = {
   permiso: "Permiso", incapacidad: "Incapacidad", home_office: "Home office",
   comision: "Comisión", falta_justificada: "Falta justificada", cambio_jornada: "Cambio de jornada",
 };
+
+/** Días inhábiles (holidays.kind) — mapa único de etiqueta/tono/color usado
+ * en Días inhábiles (admin) y en los calendarios (admin/comunicacion), para
+ * que un feriado se lea igual en toda la app sin importar dónde se muestre. */
+export type HolidayKind = "nacional" | "estatal" | "empresa" | "puente";
+export const HOLIDAY_KIND_LABEL: Record<HolidayKind, string> = {
+  nacional: "Nacional", estatal: "Estatal", empresa: "Empresa", puente: "Puente",
+};
+export const HOLIDAY_KIND_TONE: Record<HolidayKind, "accent" | "warn" | "ok" | "muted"> = {
+  nacional: "accent", estatal: "warn", empresa: "ok", puente: "muted",
+};
+export const HOLIDAY_KIND_STYLE: Record<HolidayKind, { bg: string; fg: string }> = {
+  nacional: { bg: "var(--accent-tint)", fg: "var(--accent)" },
+  estatal: { bg: "var(--warn-tint)", fg: "var(--warn)" },
+  empresa: { bg: "var(--ok-tint)", fg: "var(--ok)" },
+  puente: { bg: "var(--surface-3)", fg: "var(--text-3)" },
+};
+export function holidayStyle(kind?: string | null) {
+  return HOLIDAY_KIND_STYLE[(kind as HolidayKind) ?? "empresa"] ?? HOLIDAY_KIND_STYLE.empresa;
+}

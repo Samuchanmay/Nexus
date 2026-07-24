@@ -30,7 +30,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
     supabase.from("vacations").select("start_date, end_date")
       .eq("user_id", profile!.id).eq("status", "Aprobada").is("archived_at", null)
       .lte("start_date", last).gte("end_date", first),
-    supabase.from("holidays").select("date, name").gte("date", first).lte("date", last),
+    supabase.from("holidays").select("date, name, kind").gte("date", first).lte("date", last),
     supabase.from("project_assignments")
       .select("projects(id, deadline, status, requests(title, type))")
       .eq("user_id", profile!.id),
@@ -81,7 +81,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
       prevHref={`/comunicacion/calendario?m=${shiftMonth(ym, -1)}`}
       nextHref={`/comunicacion/calendario?m=${shiftMonth(ym, 1)}`}
       vacations={(vacs ?? []) as VacationRange[]}
-      holidays={(hols ?? []) as { date: string; name: string }[]}
+      holidays={(hols ?? []) as { date: string; name: string; kind: string }[]}
       deadlines={deadlines}
       gcalEvents={gcalEvents}
       gcalError={gcalError}

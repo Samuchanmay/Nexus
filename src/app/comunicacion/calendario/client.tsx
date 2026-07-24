@@ -6,6 +6,11 @@ import { SlidingSegments } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
 import { dmy, addDays } from "@/lib/tz";
+import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
+
+const HOLIDAY_KIND_ICON: Record<HolidayKind, string> = {
+  nacional: "calendar", estatal: "pin", empresa: "building", puente: "sun",
+};
 
 const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const DOW_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
@@ -47,7 +52,7 @@ export default function CalendarioClient({
 }: {
   ym: string; year: number; month: number; daysInMonth: number; today: string;
   prevHref: string; nextHref: string;
-  vacations: VacationRange[]; holidays: { date: string; name: string }[];
+  vacations: VacationRange[]; holidays: { date: string; name: string; kind: string }[];
   deadlines: Deadline[]; gcalEvents?: GcalEvent[]; gcalError?: string | null;
   nextActivity?: NextActivity; initialFocusDate?: string;
 }) {
@@ -58,6 +63,7 @@ export default function CalendarioClient({
   const first = `${ym}-01`;
   const last = `${ym}-${String(daysInMonth).padStart(2, "0")}`;
   const holidayOf = useMemo(() => new Map(holidays.map((h) => [h.date, h.name])), [holidays]);
+  const holidayKindOf = useMemo(() => new Map(holidays.map((h) => [h.date, h.kind])), [holidays]);
   const onVacation = (date: string) => vacations.some((v) => v.start_date <= date && v.end_date >= date);
 
   const monthCells = useMemo(() => buildMonthGrid(first, last, daysInMonth), [first, last, daysInMonth]);
@@ -203,7 +209,10 @@ export default function CalendarioClient({
                       background: c.date === today ? "var(--accent)" : "transparent",
                     }}>{c.day}</p>
                   {holidayOf.get(c.date) && (
-                    <p className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>
+                    <p className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                      style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
+                      {holidayOf.get(c.date)}
+                    </p>
                   )}
                   {vac && (
                     <p className="text-[9.5px] font-semibold px-1 py-0.5 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
@@ -272,7 +281,10 @@ export default function CalendarioClient({
                       }}>{c.day}</p>
                   </div>
                   {holidayOf.get(c.date) && (
-                    <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>
+                    <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]"
+                      style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
+                      {holidayOf.get(c.date)}
+                    </p>
                   )}
                   {vac && (
                     <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
@@ -309,12 +321,16 @@ export default function CalendarioClient({
         const empty = acts.length === 0 && gevs.length === 0 && !vac && !holiday;
         return (
           <div className="card p-5 flex flex-col gap-3">
-            {holiday && (
-              <div className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: "var(--accent-tint)" }}>
-                <Icon name="calendar" size={16} style={{ color: "var(--accent)" }} />
-                <p className="text-[13.5px] font-bold" style={{ color: "var(--accent)" }}>{holiday} · Día inhábil</p>
-              </div>
-            )}
+            {holiday && (() => {
+              const k = (holidayKindOf.get(focusDate) as HolidayKind) ?? "empresa";
+              const st = holidayStyle(k);
+              return (
+                <div className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: st.bg }}>
+                  <Icon name={HOLIDAY_KIND_ICON[k]} size={16} style={{ color: st.fg }} />
+                  <p className="text-[13.5px] font-bold" style={{ color: st.fg }}>{holiday} · {HOLIDAY_KIND_LABEL[k]}</p>
+                </div>
+              );
+            })()}
             {vac && (
               <div className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: "var(--purple-tint)" }}>
                 <Icon name="plane" size={16} style={{ color: "var(--purple)" }} />
@@ -346,12 +362,18 @@ export default function CalendarioClient({
         <div className="card p-5 mt-4">
           <h2 className="text-[15px] font-bold mb-2.5">Días inhábiles de {MONTHS[month - 1]}</h2>
           <div className="flex flex-col gap-1.5">
-            {holidays.map((h) => (
-              <div key={h.date} className="flex items-center justify-between text-[13px]">
-                <span className="font-semibold">{h.name}</span>
-                <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{dmy(h.date)}</span>
-              </div>
-            ))}
+            {holidays.map((h) => {
+              const st = holidayStyle(h.kind);
+              return (
+                <div key={h.date} className="flex items-center justify-between text-[13px]">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: st.fg }} />
+                    <span className="font-semibold">{h.name}</span>
+                  </span>
+                  <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{dmy(h.date)}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

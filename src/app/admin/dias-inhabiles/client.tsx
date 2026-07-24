@@ -1,16 +1,18 @@
 "use client";
+import type React from "react";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, Pill, SlidingSegments, DateField } from "@/components/ui";
+import { useToast, SlidingSegments, DateField } from "@/components/ui";
 import { dmy } from "@/lib/tz";
 import { useSupabaseMutation, EmptyState } from "@/components/shared";
-import { IconPlus, IconX } from "@/components/icons";
+import { IconPlus, IconX, IconCalendar, IconMapPin, IconFolder, IconSun } from "@/components/icons";
 import { mexicanHolidays } from "@/lib/holidays";
 import { MONTHS, DOW, shiftMonth, monthBounds, buildMonthGrid } from "@/lib/calendar-grid";
 import { todayMerida } from "@/lib/tz";
+import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
 
-const KIND_TONE: Record<string, "accent" | "warn" | "ok" | "muted"> = {
-  nacional: "accent", estatal: "warn", empresa: "ok", puente: "muted",
+const KIND_ICON: Record<HolidayKind, React.ComponentType<{ className?: string }>> = {
+  nacional: IconCalendar, estatal: IconMapPin, empresa: IconFolder, puente: IconSun,
 };
 
 export default function DiasClient({ holidays }: { holidays: { id: string; date: string; name: string; kind: string }[] }) {
@@ -19,10 +21,11 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
   const [form, setForm] = useState({ date: "", name: "", kind: "empresa" });
   const [genYear, setGenYear] = useState(String(new Date().getFullYear()));
   const { run: runGen, saving: generating } = useSupabaseMutation();
-  const [view, setView] = useState<"Lista" | "Mes">("Lista");
+  const [view, setView] = useState<"Año" | "Mes" | "Lista">("Año");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const today = todayMerida();
   const [ym, setYm] = useState(today.slice(0, 7));
+  const [yearView, setYearView] = useState(Number(today.slice(0, 4)));
 
   const generar = () => runGen(async () => {
     const year = parseInt(genYear);
@@ -53,6 +56,19 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
   const { year, month, daysInMonth, first, last } = monthBounds(ym);
   const holidayOf = useMemo(() => new Map(holidays.map((h) => [h.date, h])), [holidays]);
   const monthCells = useMemo(() => buildMonthGrid(first, last, daysInMonth), [first, last, daysInMonth]);
+
+  /** 12 mini-meses del año seleccionado, cada uno con su propia rejilla —
+      para la vista Año (calendario anual en vez de una lista plana). */
+  const yearMonths = useMemo(() => Array.from({ length: 12 }, (_, i) => {
+    const ymI = `${yearView}-${String(i + 1).padStart(2, "0")}`;
+    const b = monthBounds(ymI);
+    return { ...b, cells: buildMonthGrid(b.first, b.last, b.daysInMonth) };
+  }), [yearView]);
+  const kindCounts = useMemo(() => {
+    const c: Record<string, number> = { nacional: 0, estatal: 0, empresa: 0, puente: 0 };
+    for (const h of holidays) if (h.date.slice(0, 4) === String(yearView)) c[h.kind] = (c[h.kind] ?? 0) + 1;
+    return c;
+  }, [holidays, yearView]);
 
   return (
     <>
@@ -92,7 +108,7 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
       </div>
 
       <div className="mb-4">
-        <SlidingSegments options={["Lista", "Mes"]} value={view} onChange={(v) => setView(v as typeof view)} />
+        <SlidingSegments options={["Año", "Mes", "Lista"]} value={view} onChange={(v) => setView(v as typeof view)} />
       </div>
 
       {view === "Lista" && (
@@ -122,7 +138,11 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
                 </div>
               ) : (
                 <div className="flex items-center gap-2.5">
-                  <Pill tone={KIND_TONE[h.kind] ?? "muted"}>{h.kind}</Pill>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold"
+                    style={{ background: holidayStyle(h.kind).bg, color: holidayStyle(h.kind).fg }}>
+                    {(() => { const KIcon = KIND_ICON[(h.kind as HolidayKind)] ?? IconCalendar; return <KIcon className="w-3 h-3" />; })()}
+                    {HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind}
+                  </span>
                   <button onClick={() => setConfirmId(h.id)} aria-label="Eliminar"
                     className="w-7 h-7 rounded-full flex items-center justify-center"
                     style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
@@ -132,6 +152,64 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {view === "Año" && (
+        <div className="flex flex-col gap-4">
+          <div className="card p-4 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Categorías</span>
+              {(Object.keys(HOLIDAY_KIND_LABEL) as HolidayKind[]).map((k) => {
+                const KIcon = KIND_ICON[k];
+                const st = holidayStyle(k);
+                return (
+                  <span key={k} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold"
+                    style={{ background: st.bg, color: st.fg }}>
+                    <KIcon className="w-3 h-3" /> {HOLIDAY_KIND_LABEL[k]} · {kindCounts[k] ?? 0}
+                  </span>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYearView((y) => y - 1)}>←</button>
+              <span className="text-[15px] font-bold tabular-nums w-[52px] text-center">{yearView}</span>
+              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYearView((y) => y + 1)}>→</button>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {yearMonths.map((m) => (
+              <div key={m.month} className="card p-3">
+                <p className="text-[12.5px] font-bold capitalize mb-2">{MONTHS[m.month - 1]}</p>
+                <div className="grid grid-cols-7 gap-[3px] mb-1">
+                  {DOW.map((d) => (
+                    <p key={d} className="text-center text-[8px] font-bold" style={{ color: "var(--text-3)" }}>{d[0]}</p>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-[3px]">
+                  {m.cells.map((c) => {
+                    const h = holidayOf.get(c.date);
+                    const st = h ? holidayStyle(h.kind) : null;
+                    return (
+                      <div key={c.date}
+                        title={h ? `${dmy(c.date)} · ${h.name} (${HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind})` : dmy(c.date)}
+                        className="aspect-square rounded-[3px] flex items-center justify-center text-[8.5px] font-semibold tabular-nums"
+                        style={{
+                          background: st ? st.bg : "transparent",
+                          color: st ? st.fg : "var(--text-3)",
+                          opacity: c.inMonth ? 1 : 0.25,
+                          outline: c.date === today ? "1.5px solid var(--accent)" : undefined,
+                          outlineOffset: "-1.5px",
+                        }}>
+                        {c.day}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -151,16 +229,21 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
           <div className="grid grid-cols-7 gap-1.5">
             {monthCells.map((c) => {
               const h = holidayOf.get(c.date);
+              const style = h ? holidayStyle(h.kind) : null;
+              const KIcon = h ? (KIND_ICON[(h.kind as HolidayKind)] ?? IconCalendar) : null;
               return (
                 <div key={c.date} className="rounded-sm p-1.5 min-h-[64px] flex flex-col gap-1"
                   style={{
-                    background: h ? "var(--accent-tint)" : "var(--surface-2)",
+                    background: style ? style.bg : "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.35,
                     outline: c.date === today ? "2px solid var(--accent)" : undefined,
                     outlineOffset: "-2px",
                   }}>
-                  <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
-                  {h && <p className="text-[9.5px] font-semibold truncate" style={{ color: "var(--accent)" }} title={h.name}>{h.name}</p>}
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
+                    {KIcon && <span style={{ color: style!.fg }}><KIcon className="w-2.5 h-2.5" /></span>}
+                  </div>
+                  {h && <p className="text-[9.5px] font-semibold truncate" style={{ color: style!.fg }} title={h.name}>{h.name}</p>}
                 </div>
               );
             })}
