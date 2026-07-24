@@ -107,32 +107,41 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
         title={sel?.full_name ?? ""} subtitle={sel?.area ?? undefined}>
         {sel && (
           <div className="px-5 pt-4 flex flex-col gap-5">
-            {/* Jornada de hoy */}
+            {/* Jornada de hoy — indicador grande (mismo lenguaje que Mi jornada),
+                en vez de tres cajitas de igual peso (Entrada/Laborado/Objetivo). */}
             <section>
-              <h3 className="text-[13px] font-bold mb-2.5 flex items-center justify-between" style={{ color: "var(--text-3)" }}>
-                <span>Hoy</span>
-                <span className="normal-case font-semibold text-[11.5px]" style={{ color: "var(--text-2)" }}>
-                  {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
-                </span>
-              </h3>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                {[
-                  { v: fmtTime(sel.today.firstIn), l: "ENTRADA" },
-                  { v: sel.today.firstIn ? fmtMin(sel.today.totalMin) : "—", l: "LABORADO" },
-                  { v: fmtMin(sel.today.targetMin), l: "OBJETIVO" },
-                ].map((c) => (
-                  <div key={c.l} className="rounded-sm py-3" style={{ background: "var(--surface-2)" }}>
-                    <p className="text-[15px] font-bold tabular-nums">{c.v}</p>
-                    <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>{c.l}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11.5px] mt-2 flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
-                {sel.today.stateColor && <span className="w-1.5 h-1.5 rounded-full" style={{ background: sel.today.stateColor }} />}
-                {sel.today.movesCount === 0 ? "Sin fichajes hoy"
-                  : sel.today.stateName ? `${sel.today.movesCount} fichaje${sel.today.movesCount > 1 ? "s" : ""} · ${sel.today.stateName}`
-                  : `${sel.today.movesCount} fichaje${sel.today.movesCount > 1 ? "s" : ""} · jornada cerrada`}
-              </p>
+              {(() => {
+                const dotColor = !sel.today.firstIn ? "var(--text-3)" : sel.today.isOpen ? (sel.today.stateColor ?? "var(--ok)") : "var(--text-3)";
+                const statusLabel = !sel.today.firstIn ? "Sin iniciar" : sel.today.isOpen ? (sel.today.stateName ?? "En curso") : "Jornada terminada";
+                const pct = sel.today.targetMin > 0 ? Math.min(100, Math.round((sel.today.totalMin / sel.today.targetMin) * 100)) : 0;
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} />
+                        <span className="text-[13px] font-bold" style={{ color: "var(--text-2)" }}>Hoy · {statusLabel}</span>
+                      </div>
+                      <span className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
+                        {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
+                      </span>
+                    </div>
+                    <p className="text-[30px] font-bold tabular-nums leading-none">
+                      {sel.today.firstIn ? fmtMin(sel.today.totalMin) : "—"}
+                    </p>
+                    <div className="mt-3">
+                      <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
+                          {sel.today.firstIn ? `Entrada ${fmtTime(sel.today.firstIn)}` : "Objetivo diario"}
+                        </span>
+                        <span className="text-[11px] font-bold tabular-nums" style={{ color: "var(--text-3)" }}>{fmtMin(sel.today.targetMin)}</span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </section>
 
             {/* Tareas activas */}

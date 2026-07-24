@@ -394,27 +394,36 @@ export default async function AdminDashboard() {
       <div className="grid lg:grid-cols-2 gap-5 md:gap-4">
         {/* Mi jornada de hoy */}
         <Card>
-          <div className="flex items-center justify-between mb-4">
-            <SectionTitle>Mi jornada de hoy</SectionTitle>
-            {myDay.isOpen && myDay.firstIn ? <Badge tone="ok" dot>En curso</Badge>
-              : myDay.firstIn ? <Badge tone="neutral">Cerrada</Badge> : <Badge tone="neutral">Sin iniciar</Badge>}
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center mb-4">
-            <div className="rounded-sm py-3 bg-surface-2">
-              <p className="text-[15px] font-bold tabular-nums text-text-1">{fmtTime(myDay.firstIn)}</p>
-              <p className="text-[10px] font-semibold text-text-3">Entrada</p>
-            </div>
-            <div className="rounded-sm py-3 bg-surface-2">
-              <p className="text-[15px] font-bold tabular-nums text-text-1">{fmtMin(myDay.totalMin)}</p>
-              <p className="text-[10px] font-semibold text-text-3">Laborado</p>
-            </div>
-            <div className="rounded-sm py-3 bg-surface-2">
-              <p className="text-[15px] font-bold tabular-nums" style={{ color: myDay.extraMin > 0 ? "var(--ok)" : undefined }}>
-                {myDay.extraMin > 0 ? `+${fmtMin(myDay.extraMin)}` : "—"}
-              </p>
-              <p className="text-[10px] font-semibold text-text-3">Extra</p>
-            </div>
-          </div>
+          <SectionTitle>Mi jornada de hoy</SectionTitle>
+          {(() => {
+            const dotColor = !myDay.firstIn ? "var(--text-3)" : myDay.isOpen ? "var(--ok)" : "var(--text-3)";
+            const statusLabel = !myDay.firstIn ? "Sin iniciar" : myDay.isOpen ? "En curso" : "Jornada terminada";
+            const pct = myDay.targetMin > 0 ? Math.min(100, Math.round((myDay.totalMin / myDay.targetMin) * 100)) : 0;
+            return (
+              <>
+                <div className="flex items-center gap-2 mb-2.5 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} />
+                  <span className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Hoy · {statusLabel}</span>
+                </div>
+                <p className="text-[30px] font-bold tabular-nums leading-none text-text-1">
+                  {myDay.firstIn ? fmtMin(myDay.totalMin) : "—"}
+                </p>
+                <div className="mt-3 mb-4">
+                  <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}>
+                      Objetivo {fmtMin(myDay.targetMin)}{myDay.firstIn ? ` · Entrada ${fmtTime(myDay.firstIn)}` : ""}
+                    </span>
+                    {myDay.extraMin > 0 && (
+                      <span className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>+{fmtMin(myDay.extraMin)} extra</span>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
           <div className="flex gap-2">
             <Link href="/fichar" className="flex-1 inline-flex items-center justify-center h-10 px-4 rounded-sm text-[14px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
               Comenzar jornada

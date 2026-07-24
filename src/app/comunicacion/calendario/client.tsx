@@ -194,14 +194,20 @@ export default function CalendarioClient({
               return (
                 <div key={c.date} className="rounded-sm p-1.5 min-h-[80px] flex flex-col gap-1"
                   style={{
-                    background: vac ? "var(--purple-tint)" : holidayOf.get(c.date) ? "var(--accent-tint)" : "var(--surface-2)",
+                    background: "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.35,
-                    outline: c.date === today ? "2px solid var(--accent)" : undefined,
-                    outlineOffset: "-2px",
                   }}>
-                  <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
-                  {holidayOf.get(c.date) && <p className="text-[9.5px] font-semibold truncate" style={{ color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>}
-                  {vac && <p className="text-[9.5px] font-semibold" style={{ color: "var(--purple)" }}>Vacaciones</p>}
+                  <p className="text-[11.5px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
+                    style={{
+                      color: c.date === today ? "#fff" : "var(--text-2)",
+                      background: c.date === today ? "var(--accent)" : "transparent",
+                    }}>{c.day}</p>
+                  {holidayOf.get(c.date) && (
+                    <p className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>
+                  )}
+                  {vac && (
+                    <p className="text-[9.5px] font-semibold px-1 py-0.5 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
+                  )}
 
                   {acts.slice(0, 2).map((p) => (
                     <p key={p.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
@@ -255,16 +261,22 @@ export default function CalendarioClient({
               return (
                 <div key={c.date} className="rounded-sm p-2.5 flex flex-col gap-1.5 min-h-[110px]"
                   style={{
-                    background: vac ? "var(--purple-tint)" : holidayOf.get(c.date) ? "var(--accent-tint)" : "var(--surface-2)",
-                    outline: c.date === today ? "2px solid var(--accent)" : undefined,
-                    outlineOffset: "-2px",
+                    background: "var(--surface-2)",
                   }}>
                   <div className="flex items-center justify-between">
                     <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
-                    <p className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
+                    <p className="text-[13px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
+                      style={{
+                        color: c.date === today ? "#fff" : "var(--text-2)",
+                        background: c.date === today ? "var(--accent)" : "transparent",
+                      }}>{c.day}</p>
                   </div>
-                  {holidayOf.get(c.date) && <p className="text-[10px] font-semibold" style={{ color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>}
-                  {vac && <p className="text-[10px] font-semibold" style={{ color: "var(--purple)" }}>Vacaciones</p>}
+                  {holidayOf.get(c.date) && (
+                    <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>
+                  )}
+                  {vac && (
+                    <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
+                  )}
 
                   {acts.map((p) => (
                     <p key={p.id} className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px]"
