@@ -7,6 +7,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Pill, DatePicker } from "@/components/ui";
+import { EmptyState } from "@/components/shared";
+import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, RequestType, UserProfile, RequestStatus, ActivityType } from "@/lib/types";
 import { notifyAdmins } from "@/lib/notify";
@@ -148,12 +150,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
 
         <h2 className="text-[16px] font-bold mb-3">Mis solicitudes</h2>
         {requests.length === 0 && (
-          <div className="card p-8 text-center">
-            <p className="font-semibold text-[14px]">Aún no tienes solicitudes</p>
-            <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
-              Crea la primera con el botón de arriba
-            </p>
-          </div>
+          <EmptyState icon={<Icon name="inbox" size={22} />} title="Aún no tienes solicitudes" hint="Crea la primera con el botón de arriba." />
         )}
         <div className="flex flex-col gap-2.5">
           {requests.map((r) => (

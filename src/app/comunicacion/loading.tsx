@@ -1,9 +1,11 @@
 import { Skel, SkelList } from "@/components/os/ui";
+import { DelayedFallback } from "@/components/os/delayed-fallback";
 
 /** Skeleton de "Hoy" (colaborador) — se muestra mientras el server
     component junta jornada, semana, tareas y asistente. */
 export default function Loading() {
   return (
+    <DelayedFallback>
     <div className="space-y-5 pb-10">
       <header className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-2">
@@ -28,5 +30,6 @@ export default function Loading() {
         <SkelList rows={4} />
       </div>
     </div>
+    </DelayedFallback>
   );
 }

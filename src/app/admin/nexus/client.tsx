@@ -68,6 +68,19 @@ function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
   return <Pill tone={day.metTarget ? "ok" : "warn"}>{day.metTarget ? "Completa" : "Cerrada"}</Pill>;
 }
 
+/** Mismo criterio que estadoPill pero como color+etiqueta, para el
+    anillo de estado del Avatar (no solo el Pill de al lado). */
+function estadoStatus(day: PersonDay["day"]): { color: string; label: string } {
+  if (!day.firstIn) return { color: "var(--text-3)", label: "Sin iniciar" };
+  if (day.isOpen) {
+    const last = day.movements.at(-1);
+    const liveState = last ? stateAfter(last) : null;
+    if (liveState && liveState !== TRABAJANDO) return { color: "var(--warn)", label: liveState };
+    return { color: "var(--ok)", label: "Presente" };
+  }
+  return day.metTarget ? { color: "var(--ok)", label: "Completa" } : { color: "var(--warn)", label: "Cerrada" };
+}
+
 export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[]; weekBlocks: WeekBlock[];
   reportSettings: { enabled: boolean; email: string }; today: string; adminId: string;
@@ -187,7 +200,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             <div key={u.id} className="card p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
+                  <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url}
+                    birthday={isBirthdayToday(u.birth_date, todayISO())}
+                    status={estadoStatus(day).color} statusLabel={estadoStatus(day).label} />
                   <div>
                     <p className="text-[14.5px] font-bold">{u.display_name}</p>
                     <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{u.area}</p>

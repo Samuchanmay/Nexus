@@ -1,6 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Avatar, Pill } from "@/components/ui";
+import { EmptyState } from "@/components/shared";
+import { Icon } from "@/components/os/icons";
 import { dmy } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
@@ -86,11 +88,11 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="card p-10 text-center">
-          <p className="text-[14px] font-semibold" style={{ color: "var(--text-2)" }}>
-            {items.length === 0 ? "Aún no hay actividades terminadas." : "Sin resultados para este filtro."}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Icon name="book" size={22} />}
+          title={items.length === 0 ? "Aún no hay actividades terminadas" : "Sin resultados para este filtro"}
+          hint={items.length === 0 ? "Cuando una actividad se marque como completada, aparecerá aquí." : "Prueba con otro tipo o quita el filtro."}
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map((it) => {

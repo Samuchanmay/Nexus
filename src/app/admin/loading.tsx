@@ -1,9 +1,11 @@
 import { Skel, SkelStatCard, SkelList } from "@/components/os/ui";
+import { DelayedFallback } from "@/components/os/delayed-fallback";
 
 /** Skeleton de "Hoy" (admin) — se muestra mientras el server component
     junta las consultas reales (actividades, solicitudes, presencia, etc.). */
 export default function Loading() {
   return (
+    <DelayedFallback>
     <div className="space-y-7 md:space-y-6 pb-10">
       <header className="pt-3 md:pt-2 space-y-2">
         <Skel className="h-3 w-32" />
@@ -38,5 +40,6 @@ export default function Loading() {
         </div>
       </div>
     </div>
+    </DelayedFallback>
   );
 }

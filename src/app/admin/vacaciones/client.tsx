@@ -260,15 +260,15 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
         <div className="card p-4 text-center">
           <p className="text-[22px] font-bold tabular-nums" style={{ color: pending.length > 0 ? "var(--warn)" : undefined }}>{pending.length}</p>
-          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>PENDIENTES</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Pendientes</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[22px] font-bold tabular-nums">{futuras}</p>
-          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>FUTURAS</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Futuras</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[22px] font-bold tabular-nums" style={{ color: criticos > 0 ? "var(--danger)" : undefined }}>{criticos}</p>
-          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>SALDO BAJO (≤3 DÍAS)</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Saldo bajo (≤3 días)</p>
           {criticos > 0 && (
             <p className="text-[10px] mt-1 truncate" style={{ color: "var(--text-3)" }} title={criticosTeam.map((t) => t.display_name).join(", ")}>
               {criticosTeam.slice(0, 2).map((t) => t.display_name).join(", ")}{criticos > 2 ? ` +${criticos - 2}` : ""}
@@ -277,7 +277,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         </div>
         <div className="card p-4 text-center">
           <p className="text-[22px] font-bold tabular-nums">{diasParaReinicio ?? "—"}</p>
-          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>DÍAS P/PRÓX. REINICIO</p>
+          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Días para próx. reinicio</p>
           {proximoReinicio && (
             <p className="text-[10px] mt-1 truncate" style={{ color: "var(--text-3)" }}>
               {proximoReinicio.t.display_name} · {shortDate(proximoReinicio.next)}

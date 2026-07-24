@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Pill, SlidingSegments, DateField } from "@/components/ui";
 import { dmy } from "@/lib/tz";
-import { useSupabaseMutation } from "@/components/shared";
+import { useSupabaseMutation, EmptyState } from "@/components/shared";
 import { IconPlus, IconX } from "@/components/icons";
 import { mexicanHolidays } from "@/lib/holidays";
 import { MONTHS, DOW, shiftMonth, monthBounds, buildMonthGrid } from "@/lib/calendar-grid";
@@ -98,9 +98,7 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
       {view === "Lista" && (
         <div className="flex flex-col gap-2">
           {holidays.length === 0 && (
-            <div className="card p-8 text-center">
-              <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin días inhábiles registrados</p>
-            </div>
+            <EmptyState icon={<IconPlus className="w-[22px] h-[22px]" />} title="Sin días inhábiles registrados" hint="Agrégalos arriba — feriados, puentes u otros días que no cuenten como laborables." />
           )}
           {holidays.map((h) => (
             <div key={h.id} className="card px-5 py-3 flex items-center justify-between gap-3">

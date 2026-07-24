@@ -7,6 +7,8 @@ import { summarizeDay, fmtMin, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
 import { IconDownload } from "@/components/icons";
+import { EmptyState } from "@/components/shared";
+import { Icon } from "@/components/os/icons";
 import { todayMerida, addDays, shortDate, seniorityLabel, dmy, nextAnniversary } from "@/lib/tz";
 import { VACATION_TONE } from "@/lib/ui-maps";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
@@ -290,21 +292,21 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
               <div className="flex gap-5 text-center">
                 <div>
                   <p className="text-[15px] font-bold tabular-nums">{s.daysWorked}</p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>DÍAS</p>
+                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Días</p>
                 </div>
                 <div>
                   <p className="text-[15px] font-bold tabular-nums">{fmtMin(s.totalMin)}</p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>TOTAL</p>
+                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Total</p>
                 </div>
                 <div>
                   <p className="text-[15px] font-bold tabular-nums">{s.daysWorked ? fmtMin(s.avgMin) : "—"}</p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>PROMEDIO</p>
+                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Promedio</p>
                 </div>
                 <div>
                   <p className="text-[15px] font-bold tabular-nums" style={{ color: s.extraMin > 0 ? "var(--ok)" : undefined }}>
                     {s.extraMin > 0 ? `+${fmtMin(s.extraMin)}` : "—"}
                   </p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>EXTRA</p>
+                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Extra</p>
                 </div>
               </div>
             </div>
@@ -315,8 +317,8 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       {/* Vacaciones próximas (solo lectura) */}
       <h2 className="text-[16px] font-bold mb-3">Vacaciones próximas</h2>
       {upcomingVacs.length === 0 ? (
-        <div className="card p-6 text-center mb-8">
-          <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin vacaciones próximas</p>
+        <div className="mb-8">
+          <EmptyState icon={<Icon name="plane" size={22} />} title="Sin vacaciones próximas" hint="Las vacaciones aprobadas próximas a iniciar aparecerán aquí." />
         </div>
       ) : (
         <div className="flex flex-col gap-2.5 mb-8">
@@ -361,11 +363,11 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
             <div className="flex items-center gap-5 text-center">
               <div>
                 <p className="text-[14px] font-bold tabular-nums">{used}</p>
-                <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>TOMADOS</p>
+                <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Tomados</p>
               </div>
               <div>
                 <p className="text-[14px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>{m.vacation_balance}</p>
-                <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>RESTANTES</p>
+                <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Restantes</p>
               </div>
               <Pill tone={pctUsed < 50 ? "ok" : pctUsed < 80 ? "warn" : "danger"}>
                 {balanceLabel(pctUsed)} · {pctUsed}%
@@ -416,9 +418,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
         </SelectField>
       </div>
       {historyByMonth.length === 0 ? (
-        <div className="card p-6 text-center">
-          <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin movimientos registrados</p>
-        </div>
+        <EmptyState icon={<Icon name="clock" size={22} />} title="Sin movimientos registrados" hint="El historial de ajustes de saldo aparecerá aquí." />
       ) : (
         <div className="flex flex-col gap-5">
           {historyByMonth.map(([label, items]) => (

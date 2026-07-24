@@ -482,7 +482,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       {/* Comenzar jornada rápido si aún no hay entrada hoy */}
       {!day.hasEntry && (
         <Link href="/fichar"
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-sm text-[13px] font-semibold bg-accent text-white hover:brightness-110 shadow-sm transition-all duration-150">
+          className="btn-primary inline-flex items-center gap-1.5 h-9 px-4 text-[13px]">
           <Icon name="clock" size={15} /> Comenzar jornada
         </Link>
       )}

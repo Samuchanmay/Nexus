@@ -81,8 +81,8 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
 
   const approve = async () => {
     if (!sel) return;
-    if (assignees.length === 0) { toast("Asigna al menos a una persona"); return; }
-    if (!lead) { toast("Elige al responsable principal"); return; }
+    if (assignees.length === 0) { toast("Asigna al menos a una persona", "warn"); return; }
+    if (!lead) { toast("Elige al responsable principal", "warn"); return; }
     setSaving(true);
     const supabase = createClient();
 
@@ -151,7 +151,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
 
   const reject = async () => {
     if (!sel) return;
-    if (!rejectReason.trim()) { toast("Escribe el motivo del rechazo"); return; }
+    if (!rejectReason.trim()) { toast("Escribe el motivo del rechazo", "warn"); return; }
     setSaving(true);
     const supabase = createClient();
     const { error } = await supabase.from("requests")

@@ -1,6 +1,7 @@
 "use client";
 import { createClient } from "@/lib/supabase/client";
-import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
+import { useSupabaseMutation, PageHeader, Switch, EmptyState } from "@/components/shared";
+import { Icon } from "@/components/os/icons";
 
 export interface DeviceRow {
   id: string; device_id: string; active: boolean;
@@ -22,12 +23,7 @@ export default function DispositivosClient({ devices }: { devices: DeviceRow[] }
       />
 
       {devices.length === 0 ? (
-        <div className="card p-8 text-center">
-          <p className="font-semibold text-[14px]">Sin dispositivos registrados</p>
-          <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            Aparecerán aquí en cuanto alguien use /fichar por primera vez.
-          </p>
-        </div>
+        <EmptyState icon={<Icon name="clock" size={22} />} title="Sin dispositivos registrados" hint="Aparecerán aquí en cuanto alguien use /fichar por primera vez." />
       ) : (
         <div className="flex flex-col gap-2.5">
           {devices.map((d) => (

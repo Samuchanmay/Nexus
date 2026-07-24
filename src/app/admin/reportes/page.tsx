@@ -291,7 +291,7 @@ export default async function Reportes() {
           {totalStatus === 0 ? (
             <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
           ) : (
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-5 flex-wrap">
               <Donut segments={STATUS_ORDER.filter((s) => byStatus[s]).map((s) => ({ value: byStatus[s], color: TONE_COLOR[STATUS_TONE[s]] }))} />
               <div className="flex-1 min-w-0">
                 {STATUS_ORDER.filter((s) => byStatus[s]).map((s) => (
@@ -306,16 +306,33 @@ export default async function Reportes() {
           <CardHeader title="Por tipo de apoyo"
             rows={[["Tipo", "Cantidad"], ...byTypeSorted.map(([t, n]) => [TYPE_LABEL[t] ?? t, n])]}
             filename="solicitudes-por-tipo.csv" adminId={adminId} />
-          {byTypeSorted.map(([t, n]) => (
-            <Bar key={t} label={TYPE_LABEL[t] ?? t} count={n} total={totalType} color={typeColorOf[t] ?? "var(--accent)"} />
-          ))}
-          {totalType === 0 && <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>}
+          {totalType === 0 ? (
+            <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
+          ) : (
+            <div className="flex items-center gap-5 flex-wrap">
+              <Donut segments={byTypeSorted.map(([t, n]) => ({ value: n, color: typeColorOf[t] ?? "var(--accent)" }))} />
+              <div className="flex-1 min-w-0">
+                {byTypeSorted.map(([t, n]) => (
+                  <Bar key={t} label={TYPE_LABEL[t] ?? t} count={n} total={totalType} color={typeColorOf[t] ?? "var(--accent)"} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="card p-5">
-          <CardHeader title="Coordinaciones/departamentos que más solicitan"
-            rows={[["Área", "Cantidad"], ...topAreas.map(([area, n]) => [area, n])]}
-            filename="solicitudes-por-area.csv" adminId={adminId} />
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>
+              Coordinaciones/departamentos que más solicitan
+              {Object.keys(byArea).length > 0 && (
+                <span className="font-semibold ml-1.5" style={{ color: "var(--text-3)" }}>
+                  · {Object.keys(byArea).length} en total
+                </span>
+              )}
+            </h2>
+            <CsvLink rows={[["Área", "Cantidad"], ...topAreas.map(([area, n]) => [area, n])]}
+              filename="solicitudes-por-area.csv" adminId={adminId} />
+          </div>
           {topAreas.map(([area, n], i) => (
             <Bar key={area} label={area} count={n} total={maxArea} color={COLORS[i % COLORS.length]} />
           ))}
@@ -326,14 +343,20 @@ export default async function Reportes() {
           <CardHeader title="Horas registradas por tipo"
             rows={[["Tipo", "Horas"], ...minutesByTypeSorted.map(([t, min]) => [TYPE_LABEL[t] ?? t, Math.round(min / 6) / 10])]}
             filename="horas-por-tipo.csv" adminId={adminId} />
-          {minutesByTypeSorted.length === 0 && (
+          {minutesByTypeSorted.length === 0 ? (
             <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Aún no hay registros de tiempo.</p>
+          ) : (
+            <div className="flex items-center gap-5 flex-wrap">
+              <Donut segments={minutesByTypeSorted.map(([t, min]) => ({ value: min, color: typeColorOf[t] ?? "var(--accent)" }))} />
+              <div className="flex-1 min-w-0">
+                {minutesByTypeSorted.map(([t, min]) => (
+                  <Bar key={t} label={TYPE_LABEL[t] ?? t} count={Math.round(min / 6) / 10}
+                    total={maxMinutes / 60}
+                    color={typeColorOf[t] ?? "var(--accent)"} />
+                ))}
+              </div>
+            </div>
           )}
-          {minutesByTypeSorted.map(([t, min]) => (
-            <Bar key={t} label={TYPE_LABEL[t] ?? t} count={Math.round(min / 6) / 10}
-              total={maxMinutes / 60}
-              color={typeColorOf[t] ?? "var(--accent)"} />
-          ))}
         </div>
       </div>
 
