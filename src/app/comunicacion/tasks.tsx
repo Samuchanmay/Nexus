@@ -116,7 +116,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
     const { data, error } = await supabase.from("task_time_logs")
       .insert({ assignment_id: assignmentId, started_at: new Date().toISOString() })
       .select("id, started_at").single();
-    if (error || !data) { toast(error?.message?.includes("activa") ? error.message : "No se pudo iniciar — intenta de nuevo"); return; }
+    if (error || !data) { toast(error?.message?.includes("activa") ? error.message : "No se pudo iniciar — intenta de nuevo", "danger"); return; }
     setActiveLog({ id: data.id, assignmentId, startedAt: data.started_at });
     setPausedAssignment(null);
     toast("Tarea iniciada");
@@ -129,7 +129,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
     const minutes = Math.max(1, Math.floor((Date.now() - new Date(activeLog.startedAt).getTime()) / 60000));
     const { error } = await supabase.from("task_time_logs")
       .update({ ended_at: new Date().toISOString(), minutes }).eq("id", activeLog.id);
-    if (error) { toast("No se pudo guardar — intenta de nuevo"); return -1; }
+    if (error) { toast("No se pudo guardar — intenta de nuevo", "danger"); return -1; }
     setBaseMin((b) => ({ ...b, [activeLog.assignmentId]: (b[activeLog.assignmentId] ?? 0) + minutes }));
     return minutes;
   };
@@ -156,7 +156,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
   const toggleCheck = async (item: ChecklistItem) => {
     const supabase = createClient();
     const { error } = await supabase.from("project_checklist").update({ done: !item.done }).eq("id", item.id);
-    if (error) { toast("No se pudo actualizar"); return; }
+    if (error) { toast("No se pudo actualizar", "danger"); return; }
     setChecklists((c) => ({
       ...c,
       [item.assignment_id]: c[item.assignment_id].map((i) => i.id === item.id ? { ...i, done: !i.done } : i),
@@ -167,7 +167,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
   const markReview = async (t: Task) => {
     const supabase = createClient();
     const { error } = await supabase.from("projects").update({ status: "en_revision" }).eq("id", t.projectId);
-    if (error) { toast("No se pudo actualizar"); return; }
+    if (error) { toast("No se pudo actualizar", "danger"); return; }
     toast("Enviado a revisión");
     router.refresh();
   };
@@ -203,7 +203,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       if (!url) return;
     }
     const { error: e2 } = await supabase.from("evidences").insert({ project_id: t.projectId, uploaded_by: profile.id, drive_url: url });
-    toast(e2 ? "No se pudo guardar" : "Evidencia registrada");
+    toast(e2 ? "No se pudo guardar" : "Evidencia registrada", e2 ? "danger" : "ok");
     router.refresh();
   };
 
@@ -212,7 +212,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
     if (!body) return;
     const supabase = createClient();
     const { error } = await supabase.from("comments").insert({ project_id: t.projectId, user_id: profile.id, body });
-    toast(error ? "No se pudo comentar" : "Comentario agregado");
+    toast(error ? "No se pudo comentar" : "Comentario agregado", error ? "danger" : "ok");
   };
 
   // ── Agregar actividad (manual, queda en_revision) ──
@@ -227,7 +227,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       event_date: actForm.date, notes: actForm.note || null,
       status: "en_revision", min_hours_required: 0,
     }).select("id").single();
-    if (e1 || !req) { setSaving(false); toast("No se pudo registrar"); return; }
+    if (e1 || !req) { setSaving(false); toast("No se pudo registrar", "danger"); return; }
     const { data: prj, error: e2 } = await supabase.from("projects").insert({
       request_id: req.id, status: "en_revision", priority: "normal",
     }).select("id").single();

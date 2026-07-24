@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { Vacation } from "@/lib/types";
 import { useToast, Pill, Avatar, Sheet, SelectField, DateRangeCalendar, DatePicker } from "@/components/ui";
 import { IconDownload } from "@/components/icons";
-import { useSupabaseMutation } from "@/components/shared";
+import { Icon } from "@/components/os/icons";
+import { useSupabaseMutation, EmptyState } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
 import { seniorityLabel, addDays, shortDate, dmy, nextAnniversary, todayMerida } from "@/lib/tz";
@@ -369,8 +370,8 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
 
       <h2 className="text-[15px] font-bold mb-3">Pendientes {pending.length > 0 && `(${pending.length})`}</h2>
       {pending.length === 0 && (
-        <div className="card p-6 text-center mb-7">
-          <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin solicitudes pendientes</p>
+        <div className="mb-7">
+          <EmptyState icon={<Icon name="plane" size={22} />} title="Sin solicitudes pendientes" hint="Las nuevas solicitudes de vacaciones aparecerán aquí." />
         </div>
       )}
       <div className="flex flex-col gap-2.5 mb-7">

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { IconButton, cx } from "./ui";
+import { IconButton, cx, Skel } from "./ui";
 import { Icon } from "./icons";
 
 export type NotificationRow = {
@@ -277,7 +277,17 @@ export function NotificationBell({ userId }: { userId: string }) {
 
           <div className="flex-1 nx-scroll overflow-y-auto border-t border-border">
             {loading ? (
-              <p className="text-center text-[12.5px] text-text-3 py-10">Cargando…</p>
+              <div className="divide-y divide-border">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3">
+                    <Skel className="h-8 w-8 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-1.5 pt-0.5">
+                      <Skel className="h-3 w-[70%]" />
+                      <Skel className="h-2.5 w-[40%]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 gap-2">
                 <Icon name="bell" size={22} className="text-text-3" />

@@ -66,7 +66,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
     const { data, error } = await supabase.from("vacations")
       .insert({ user_id: userId, start_date: start, end_date: end, days })
       .select("id").single();
-    if (error || !data) { toast("No se pudo enviar — intenta de nuevo"); setSaving(false); return; }
+    if (error || !data) { toast("No se pudo enviar — intenta de nuevo", "danger"); setSaving(false); return; }
     // Notificar a Samuel por correo (Edge Function) — el correo es best-effort:
     // si Resend falla, la solicitud ya quedó guardada y el admin igual recibe
     // la notificación de campana de abajo, más una alerta de que el correo falló.

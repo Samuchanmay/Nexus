@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar } from "./ui";
+import { Avatar, Skel } from "./ui";
 import { Icon } from "./icons";
 import { useToast, DateField } from "@/components/ui";
 import { ImageCropper } from "./image-cropper";
@@ -96,7 +96,7 @@ export function ProfileModal({
     const supabase = createClient();
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) {
-      toast("No se pudo verificar tu sesión — vuelve a iniciar sesión e intenta de nuevo");
+      toast("No se pudo verificar tu sesión — vuelve a iniciar sesión e intenta de nuevo", "danger");
       setUploading(false);
       return;
     }
@@ -104,7 +104,7 @@ export function ProfileModal({
     const path = `${authUser.id}/avatar.${ext}`;
     const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (upErr) {
-      toast(`No se pudo subir la foto: ${upErr.message}`);
+      toast(`No se pudo subir la foto: ${upErr.message}`, "danger");
       setUploading(false);
       return;
     }
@@ -112,7 +112,7 @@ export function ProfileModal({
     const url = `${pub.publicUrl}?t=${Date.now()}`;
     const { error } = await supabase.from("users").update({ avatar_url: url }).eq("id", userId);
     if (error) {
-      toast("La foto se subió pero no se pudo guardar en tu perfil — intenta de nuevo");
+      toast("La foto se subió pero no se pudo guardar en tu perfil — intenta de nuevo", "danger");
     } else {
       set("avatar_url", url);
       toast("Foto actualizada");
@@ -165,7 +165,15 @@ export function ProfileModal({
 
         <div className="px-5 pb-5 flex flex-col gap-4 max-h-[52vh] nx-scroll overflow-y-auto">
           {loading || !data ? (
-            <p className="text-center text-[12.5px] text-text-3 py-6">Cargando…</p>
+            <div className="rounded-sm border border-border divide-y divide-border">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3.5 py-3">
+                  <Skel className="h-4 w-4 rounded-sm shrink-0" />
+                  <Skel className="h-3 w-24 shrink-0" />
+                  <Skel className="h-3 flex-1 max-w-[140px] ml-auto" />
+                </div>
+              ))}
+            </div>
           ) : (
             <>
               <div className="rounded-sm border border-border divide-y divide-border">

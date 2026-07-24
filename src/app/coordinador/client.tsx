@@ -109,7 +109,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
       min_hours_required: minHours,
     });
     setSaving(false);
-    if (error) { toast("No se pudo enviar — intenta de nuevo"); return; }
+    if (error) { toast("No se pudo enviar — intenta de nuevo", "danger"); return; }
     notifyAdmins(supabase, `${profile.full_name} envió una solicitud`, form.title.trim(), "request", "/admin/solicitudes");
     toast("Solicitud enviada al equipo de Comunicación");
     resetWizard();
@@ -124,7 +124,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
     const { error } = await supabase.from("requests").delete().eq("id", id);
     setDeleting(false);
     setConfirmId(null);
-    if (error) { toast("No se pudo eliminar — intenta de nuevo"); return; }
+    if (error) { toast("No se pudo eliminar — intenta de nuevo", "danger"); return; }
     toast("Solicitud eliminada");
     router.refresh();
   };

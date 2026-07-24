@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Incident } from "@/lib/types";
 import { useToast, Pill, Sheet, DatePicker } from "@/components/ui";
-import { useSupabaseMutation } from "@/components/shared";
+import { useSupabaseMutation, EmptyState } from "@/components/shared";
 import { IconPlus } from "@/components/icons";
 import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
@@ -33,7 +33,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
       note: form.note || null, status: "Autorizado",
     });
     setSaving(false);
-    if (error) { toast("No se pudo registrar"); return; }
+    if (error) { toast("No se pudo registrar", "danger"); return; }
     const person = team.find((t) => t.id === form.userId);
     if (adminId) logAdminAction(supabase, adminId, "Registró incidencia manual", `${person?.display_name ?? ""} · ${KIND_LABELS[form.kind as keyof typeof KIND_LABELS]}`);
     notifyUser(supabase, form.userId, "Se registró una incidencia", KIND_LABELS[form.kind as keyof typeof KIND_LABELS], "incident", "/comunicacion/incidencias");
@@ -77,8 +77,8 @@ export default function IncAdminClient({ incidents, team, adminId }: {
 
       <h2 className="text-[15px] font-bold mb-3">Pendientes {pending.length > 0 && `(${pending.length})`}</h2>
       {pending.length === 0 && (
-        <div className="card p-6 text-center mb-7">
-          <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin incidencias pendientes</p>
+        <div className="mb-7">
+          <EmptyState icon={<IconPlus className="w-[22px] h-[22px]" />} title="Sin incidencias pendientes" hint="Las incidencias nuevas aparecerán aquí." />
         </div>
       )}
       <div className="flex flex-col gap-2.5 mb-7">

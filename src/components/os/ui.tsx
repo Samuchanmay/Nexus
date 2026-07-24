@@ -82,6 +82,44 @@ export function SectionTitle({ children, hint }: { children: ReactNode; hint?: s
   );
 }
 
+/* ───────────────────────── Skeleton ─────────────────────────
+   Shimmer placeholder para reemplazar spinners/"Cargando…". Usar
+   Skel para una barra suelta, o los helpers de abajo para formas
+   comunes (fila de lista, card de stat, tabla). */
+export function Skel({ className }: { className?: string }) {
+  return <div className={cx("nx-skel rounded-[4px]", className)} />;
+}
+
+export function SkelRow({ avatar = false }: { avatar?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5 p-2 md:p-2.5">
+      {avatar && <Skel className="h-7 w-7 rounded-full shrink-0" />}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <Skel className="h-3 w-[60%]" />
+        <Skel className="h-2.5 w-[35%]" />
+      </div>
+    </div>
+  );
+}
+
+export function SkelStatCard() {
+  return (
+    <div className="rounded-m bg-card border border-border p-4 space-y-2.5">
+      <Skel className="h-7 w-7 rounded-sm" />
+      <Skel className="h-5 w-12" />
+      <Skel className="h-2.5 w-16" />
+    </div>
+  );
+}
+
+export function SkelList({ rows = 4, avatar = false }: { rows?: number; avatar?: boolean }) {
+  return (
+    <div className="space-y-1">
+      {Array.from({ length: rows }).map((_, i) => <SkelRow key={i} avatar={avatar} />)}
+    </div>
+  );
+}
+
 /* ───────────────────────── Input ───────────────────────── */
 export function Field({ label, hint, children }: { label?: string; hint?: string; children: ReactNode }) {
   return (
@@ -153,7 +191,12 @@ export function Pill({ active, children, ...rest }: { active?: boolean; children
 }
 
 /* ───────────────────────── Avatar ───────────────────────── */
-export function Avatar({ name, color, size = 34, avatarUrl, birthday }: { name: string; color?: string; size?: number; avatarUrl?: string | null; birthday?: boolean }) {
+export function Avatar({ name, color, size = 34, avatarUrl, birthday, status, statusLabel }: {
+  name: string; color?: string; size?: number; avatarUrl?: string | null; birthday?: boolean;
+  /** Color del anillo/punto de estado (trabajando/pausa/fuera). El cumpleaños
+      gana la esquina si ambos aplican — es lo más raro de los dos. */
+  status?: string | null; statusLabel?: string;
+}) {
   const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   // Anillo de color de usuario (mismo color en toda la app) — se aplica igual
   // tenga foto real o solo iniciales, para que nunca falte en ningún lugar
@@ -175,17 +218,25 @@ export function Avatar({ name, color, size = 34, avatarUrl, birthday }: { name: 
       {initials}
     </span>
   );
-  if (!birthday) return <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>{content}</span>;
+  if (!birthday && !status) return <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>{content}</span>;
   const badge = Math.max(13, Math.round(size * 0.4));
+  const dot = Math.max(9, Math.round(size * 0.28));
   return (
-    <span className="relative inline-block shrink-0" style={{ width: size, height: size }} title={`${name} · ¡Feliz cumpleaños!`}>
+    <span className="relative inline-block shrink-0" style={{ width: size, height: size }} title={birthday ? `${name} · ¡Feliz cumpleaños!` : statusLabel ? `${name} · ${statusLabel}` : name}>
       {content}
-      <span
-        className="absolute grid place-items-center rounded-full"
-        style={{ right: -2, bottom: -2, width: badge, height: badge, fontSize: badge * 0.62, lineHeight: 1, background: "var(--bg)", boxShadow: "0 0 0 2px var(--bg)" }}
-      >
-        🎉
-      </span>
+      {birthday ? (
+        <span
+          className="absolute grid place-items-center rounded-full"
+          style={{ right: -2, bottom: -2, width: badge, height: badge, fontSize: badge * 0.62, lineHeight: 1, background: "var(--bg)", boxShadow: "0 0 0 2px var(--bg)" }}
+        >
+          🎉
+        </span>
+      ) : status ? (
+        <span
+          className="absolute rounded-full"
+          style={{ right: -1, bottom: -1, width: dot, height: dot, background: status, boxShadow: "0 0 0 2px var(--bg)" }}
+        />
+      ) : null}
     </span>
   );
 }

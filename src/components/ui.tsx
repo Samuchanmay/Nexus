@@ -1,37 +1,54 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { IconCheck, IconMoon, IconSun, IconCalendar } from "./icons";
+import { IconCheck, IconMoon, IconSun, IconCalendar, IconAlert, IconX } from "./icons";
 import { MONTHS, DOW, buildMonthGrid, monthBounds, shiftMonth } from "@/lib/calendar-grid";
 
-/* ── Toast ── */
-const ToastCtx = createContext<(msg: string) => void>(() => {});
+/* ── Toast ──
+   Tono-consciente: éxito (default) hace un slide limpio con check;
+   error hace un pequeño "shake" con ícono de alerta — para que el
+   feedback de una acción clave (guardar/aprobar/rechazar) se sienta
+   distinto según si salió bien o mal, no solo el texto. */
+type ToastTone = "ok" | "danger" | "warn";
+const ToastCtx = createContext<(msg: string, tone?: ToastTone) => void>(() => {});
 export const useToast = () => useContext(ToastCtx);
+
+const TOAST_TONE: Record<ToastTone, { bg: string; fg: string; Icon: typeof IconCheck }> = {
+  ok: { bg: "color-mix(in srgb, var(--text-1) 92%, transparent)", fg: "var(--bg)", Icon: IconCheck },
+  danger: { bg: "var(--danger)", fg: "#fff", Icon: IconX },
+  warn: { bg: "var(--warn)", fg: "#fff", Icon: IconAlert },
+};
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [msg, setMsg] = useState("");
+  const [tone, setTone] = useState<ToastTone>("ok");
   const [show, setShow] = useState(false);
+  const [shake, setShake] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const toast = useCallback((m: string) => {
-    setMsg(m); setShow(true);
+  const toast = useCallback((m: string, t: ToastTone = "ok") => {
+    setMsg(m); setTone(t); setShow(true);
+    if (t !== "ok") { setShake(true); setTimeout(() => setShake(false), 420); }
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setShow(false), 3400);
   }, []);
+  const { bg, fg, Icon: ToneIcon } = TOAST_TONE[tone];
   return (
     <ToastCtx.Provider value={toast}>
       {children}
       <div
-        className="fixed left-1/2 z-[9999] flex items-center gap-2 rounded-full px-5 py-3 text-[13px] font-semibold whitespace-nowrap"
+        className={shake ? "nx-toast-shake" : undefined}
         style={{
+          position: "fixed", left: "50%", zIndex: 9999,
+          display: "flex", alignItems: "center", gap: 8,
+          borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap",
           top: "max(18px, env(safe-area-inset-top))",
-          background: "color-mix(in srgb, var(--text-1) 92%, transparent)",
-          color: "var(--bg)",
+          background: bg, color: fg,
           boxShadow: "0 16px 48px rgba(0,0,0,0.10)",
           transform: show ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-90px)",
-          transition: "transform .45s var(--spring)",
+          transition: "transform .45s var(--spring), background .2s ease",
         }}
         role="status"
       >
-        <IconCheck className="w-3.5 h-3.5" />{msg}
+        <ToneIcon className="w-3.5 h-3.5" />{msg}
       </div>
     </ToastCtx.Provider>
   );
@@ -106,7 +123,13 @@ export function SlidingSegments({ options, value, onChange }: {
 }
 
 /* ── Avatar con color por empleado ── */
-export function Avatar({ name, color, size = 34, avatarUrl, birthday }: { name: string; color?: string | null; size?: number; avatarUrl?: string | null; birthday?: boolean }) {
+export function Avatar({ name, color, size = 34, avatarUrl, birthday, status, statusLabel }: {
+  name: string; color?: string | null; size?: number; avatarUrl?: string | null; birthday?: boolean;
+  /** Color del anillo de estado (trabajando/pausa/fuera). Si se da junto con
+      birthday, el cumpleaños gana el espacio de la esquina — es lo más raro
+      de los dos y lo que más vale la pena celebrar. */
+  status?: string | null; statusLabel?: string;
+}) {
   const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   const ring = { boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "#8E8E93"}` };
   const content = avatarUrl ? (
@@ -123,18 +146,27 @@ export function Avatar({ name, color, size = 34, avatarUrl, birthday }: { name: 
       {initials}
     </div>
   );
-  if (!birthday) return <span className="inline-block shrink-0" style={{ width: size, height: size }}>{content}</span>;
+  if (!birthday && !status) return <span className="inline-block shrink-0" style={{ width: size, height: size }}>{content}</span>;
   const badge = Math.max(13, Math.round(size * 0.4));
+  const dot = Math.max(9, Math.round(size * 0.28));
   return (
     <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>
       {content}
-      <span
-        className="absolute grid place-items-center rounded-full"
-        style={{ right: -2, bottom: -2, width: badge, height: badge, fontSize: badge * 0.62, lineHeight: 1, background: "var(--bg)", boxShadow: "0 0 0 2px var(--bg)" }}
-        title="¡Feliz cumpleaños!"
-      >
-        🎉
-      </span>
+      {birthday ? (
+        <span
+          className="absolute grid place-items-center rounded-full"
+          style={{ right: -2, bottom: -2, width: badge, height: badge, fontSize: badge * 0.62, lineHeight: 1, background: "var(--bg)", boxShadow: "0 0 0 2px var(--bg)" }}
+          title="¡Feliz cumpleaños!"
+        >
+          🎉
+        </span>
+      ) : status ? (
+        <span
+          className="absolute rounded-full"
+          style={{ right: -1, bottom: -1, width: dot, height: dot, background: status, boxShadow: "0 0 0 2px var(--bg)" }}
+          title={statusLabel}
+        />
+      ) : null}
     </span>
   );
 }

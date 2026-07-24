@@ -35,7 +35,7 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
   }, { ok: `Feriados oficiales de ${genYear} generados` });
 
   const add = async () => {
-    if (!form.date || !form.name.trim()) { toast("Fecha y nombre son obligatorios"); return; }
+    if (!form.date || !form.name.trim()) { toast("Fecha y nombre son obligatorios", "warn"); return; }
     const ok = await run(async () => {
       const { error } = await createClient().from("holidays").insert(form);
       if (error) return { error: { message: error.code === "23505" ? "Esa fecha ya está registrada" : "No se pudo guardar" } };

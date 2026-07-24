@@ -81,7 +81,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
   };
 
   const save = async () => {
-    if (!form.email.trim() || !form.full_name.trim()) { toast("Correo y nombre son obligatorios"); return; }
+    if (!form.email.trim() || !form.full_name.trim()) { toast("Correo y nombre son obligatorios", "warn"); return; }
     setSaving(true);
     const supabase = createClient();
     const requesterKind = AREA_TIPO[form.role] === "coordinacion" ? "coordinador"
@@ -105,7 +105,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
       hire_date: form.hire_date || null,
     }).select("id").single();
     if (error || !u) {
-      toast(error?.code === "23505" ? "Ese correo ya está registrado" : "No se pudo guardar");
+      toast(error?.code === "23505" ? "Ese correo ya está registrado" : "No se pudo guardar", "danger");
       setSaving(false); return;
     }
     if (isEquipo) {
@@ -124,7 +124,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     const { error } = await supabase.from("users")
       .update({ active: !u.active, termination_date: u.active ? todayMerida() : null })
       .eq("id", u.id);
-    if (error) { toast("No se pudo actualizar"); return; }
+    if (error) { toast("No se pudo actualizar", "danger"); return; }
     toast(u.active ? "Cuenta desactivada — su historial se conserva" : "Cuenta reactivada");
     router.refresh();
   };
@@ -161,7 +161,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
       birth_date: editForm.birthDate || null,
     }).eq("id", editing.id);
     setEditSaving(false);
-    if (error) { toast("No se pudo actualizar"); return; }
+    if (error) { toast("No se pudo actualizar", "danger"); return; }
     toast("Perfil actualizado");
     setEditing(null);
     router.refresh();
@@ -179,7 +179,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     const path = `team/${editing.id}.${ext}`;
     const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (upErr) {
-      toast(`No se pudo subir la foto: ${upErr.message}`);
+      toast(`No se pudo subir la foto: ${upErr.message}`, "danger");
       setAvatarUploading(false);
       return;
     }
@@ -187,7 +187,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     const url = `${pub.publicUrl}?t=${Date.now()}`;
     const { error } = await supabase.from("users").update({ avatar_url: url }).eq("id", editing.id);
     setAvatarUploading(false);
-    if (error) { toast("La foto se subió pero no se pudo guardar"); return; }
+    if (error) { toast("La foto se subió pero no se pudo guardar", "danger"); return; }
     setEditing({ ...editing, avatar_url: url });
     toast("Foto actualizada");
     router.refresh();

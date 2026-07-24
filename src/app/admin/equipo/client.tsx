@@ -62,7 +62,10 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
               className="card card-hover w-full text-left cursor-pointer flex items-center gap-4 px-5 py-3.5 flex-wrap md:flex-nowrap">
               {/* Persona */}
               <div className="flex items-center gap-3 w-full md:w-[210px] shrink-0">
-                <Avatar name={u.display_name} color={u.nexus_color} size={36} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
+                <Avatar name={u.display_name} color={u.nexus_color} size={36} avatarUrl={u.avatar_url}
+                  birthday={isBirthdayToday(u.birth_date, todayISO())}
+                  status={u.today.isOpen ? (u.today.stateColor ?? "var(--ok)") : u.today.firstIn ? "var(--text-3)" : null}
+                  statusLabel={u.today.isOpen ? (u.today.stateName ?? "Trabajando") : u.today.firstIn ? "Jornada terminada" : "Sin iniciar"} />
                 <div className="min-w-0">
                   <p className="text-[14px] font-bold truncate">{u.display_name}</p>
                   <p className="text-[11px] truncate" style={{ color: "var(--text-3)" }}>

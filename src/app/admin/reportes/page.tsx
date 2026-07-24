@@ -31,6 +31,60 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
   );
 }
 
+/** Donut de proporciones — lectura de "de qué tamaño es cada parte del
+    total" más rápida que una pila de barras. Puro SVG server-renderable,
+    sin librería de charts. */
+function Donut({ segments, size = 96, thickness = 12 }: {
+  segments: { value: number; color: string }[]; size?: number; thickness?: number;
+}) {
+  const total = segments.reduce((a, s) => a + s.value, 0);
+  const r = (size - thickness) / 2;
+  const c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" style={{ transform: "rotate(-90deg)" }}>
+      {total === 0 ? (
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-2)" strokeWidth={thickness} />
+      ) : segments.filter((s) => s.value > 0).map((s, i) => {
+        const frac = s.value / total;
+        const dash = frac * c;
+        const el = (
+          <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={thickness}
+            strokeDasharray={`${dash} ${c - dash}`} strokeDashoffset={-offset}
+            strokeLinecap={segments.filter((x) => x.value > 0).length > 1 ? "butt" : "round"} />
+        );
+        offset += dash;
+        return el;
+      })}
+    </svg>
+  );
+}
+
+/** Sparkline de tendencia — misma idea que un mini gráfico de Excel: da
+    "sensación" de momentum (subiendo/bajando) de un vistazo, sin ejes ni
+    leyenda. Puro SVG, server-renderable. */
+function Sparkline({ values, width = 160, height = 40, color = "var(--accent)" }: {
+  values: number[]; width?: number; height?: number; color?: string;
+}) {
+  const max = Math.max(1, ...values);
+  const min = Math.min(0, ...values);
+  const range = max - min || 1;
+  const stepX = values.length > 1 ? width / (values.length - 1) : 0;
+  const points = values.map((v, i) => {
+    const x = i * stepX;
+    const y = height - ((v - min) / range) * height;
+    return `${x},${y}`;
+  });
+  const last = values[values.length - 1] ?? 0;
+  const lastY = height - ((last - min) / range) * height;
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      <polyline points={points.join(" ")} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={(values.length - 1) * stepX} cy={lastY} r={3} fill={color} />
+    </svg>
+  );
+}
+
 /** Encabezado de card con título discreto + botón de exportar a la derecha. */
 function CardHeader({ title, rows, filename, adminId }: { title: string; rows: (string | number)[][]; filename: string; adminId: string }) {
   return (
@@ -109,6 +163,34 @@ export default async function Reportes() {
     minutesByType[type] = (minutesByType[type] ?? 0) + (l.minutes ?? 0);
   }
 
+  /* Tendencia — solicitudes por semana (últimas 8 semanas), para el
+     sparkline. Bucket simple por lunes-de-la-semana en hora de Mérida. */
+  const weeksBack = 8;
+  const mondayOf = (iso: string) => {
+    const d = new Date(iso + "T12:00:00Z");
+    const dow = d.getUTCDay(); // 0=Dom
+    const delta = dow === 0 ? -6 : 1 - dow;
+    d.setUTCDate(d.getUTCDate() + delta);
+    return d.toISOString().slice(0, 10);
+  };
+  const weekKeys: string[] = [];
+  { const t = new Date(todayMerida() + "T12:00:00Z");
+    for (let i = weeksBack - 1; i >= 0; i--) {
+      const d = new Date(t); d.setUTCDate(d.getUTCDate() - i * 7);
+      weekKeys.push(mondayOf(d.toISOString().slice(0, 10)));
+    }
+  }
+  const reqsPerWeek: Record<string, number> = {};
+  for (const r of reqs) {
+    const wk = mondayOf(new Date(r.created_at).toISOString().slice(0, 10));
+    reqsPerWeek[wk] = (reqsPerWeek[wk] ?? 0) + 1;
+  }
+  const trendValues = weekKeys.map((wk) => reqsPerWeek[wk] ?? 0);
+  const trendTotal = trendValues.reduce((a, b) => a + b, 0);
+  const trendPrevHalf = trendValues.slice(0, 4).reduce((a, b) => a + b, 0);
+  const trendRecentHalf = trendValues.slice(4).reduce((a, b) => a + b, 0);
+  const trendUp = trendRecentHalf >= trendPrevHalf;
+
   const totalReqs = reqs.length;
   const totalType = Object.values(byType).reduce((a, b) => a + b, 0);
   const totalStatus = Object.values(byStatus).reduce((a, b) => a + b, 0);
@@ -150,6 +232,10 @@ export default async function Reportes() {
       next: next ? `${dmy(next.start_date)} → ${dmy(next.end_date)}` : "—",
     };
   });
+  const vacTotalDays = vacRows.reduce((a, r) => a + r.total, 0);
+  const vacUsedDays = vacRows.reduce((a, r) => a + Math.max(0, r.total - r.balance), 0);
+  const vacPctUsed = vacTotalDays > 0 ? Math.round((vacUsedDays / vacTotalDays) * 100) : 0;
+
   return (
     <>
       <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
@@ -181,15 +267,39 @@ export default async function Reportes() {
         </div>
       </div>
 
+      {/* Tendencia ejecutiva: sparkline de solicitudes por semana — da "sensación"
+          de momentum sin tener que leer una tabla de números. */}
+      <div className="card p-5 mb-4 flex items-center gap-5 flex-wrap">
+        <div className="flex-1 min-w-[180px]">
+          <h2 className="text-[13px] font-bold mb-1" style={{ color: "var(--text-3)" }}>Solicitudes — últimas {weeksBack} semanas</h2>
+          <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>
+            {trendTotal} en total ·{" "}
+            <span style={{ color: trendUp ? "var(--ok)" : "var(--warn)" }}>
+              {trendUp ? "↑ subiendo" : "↓ bajando"}
+            </span>{" "}
+            vs. la primera mitad del periodo
+          </p>
+        </div>
+        <Sparkline values={trendValues} color={trendUp ? "var(--ok)" : "var(--warn)"} />
+      </div>
+
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
           <CardHeader title="Solicitudes por estado"
             rows={[["Estado", "Cantidad"], ...STATUS_ORDER.filter((s) => byStatus[s]).map((s) => [STATUS_LABEL[s] ?? s, byStatus[s]])]}
             filename="solicitudes-por-estado.csv" adminId={adminId} />
-          {STATUS_ORDER.filter((s) => byStatus[s]).map((s) => (
-            <Bar key={s} label={STATUS_LABEL[s] ?? s} count={byStatus[s]} total={totalStatus} color={TONE_COLOR[STATUS_TONE[s]]} />
-          ))}
-          {totalStatus === 0 && <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>}
+          {totalStatus === 0 ? (
+            <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
+          ) : (
+            <div className="flex items-center gap-5">
+              <Donut segments={STATUS_ORDER.filter((s) => byStatus[s]).map((s) => ({ value: byStatus[s], color: TONE_COLOR[STATUS_TONE[s]] }))} />
+              <div className="flex-1 min-w-0">
+                {STATUS_ORDER.filter((s) => byStatus[s]).map((s) => (
+                  <Bar key={s} label={STATUS_LABEL[s] ?? s} count={byStatus[s]} total={totalStatus} color={TONE_COLOR[STATUS_TONE[s]]} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="card p-5">
@@ -229,9 +339,21 @@ export default async function Reportes() {
 
       <div className="card p-5 mt-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>
-            Vacaciones por persona
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>
+              Vacaciones por persona
+            </h2>
+            {vacTotalDays > 0 && (
+              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}>
+                <Donut size={20} thickness={4}
+                  segments={[
+                    { value: vacUsedDays, color: vacPctUsed < 50 ? "var(--ok)" : vacPctUsed < 80 ? "var(--warn)" : "var(--danger)" },
+                    { value: vacTotalDays - vacUsedDays, color: "var(--surface-3)" },
+                  ]} />
+                {vacPctUsed}% del total usado
+              </span>
+            )}
+          </div>
           <CsvLink
             rows={[["Persona", "Saldo", "Días asignados", "% usado", "Antigüedad", "Próxima vacación"],
               ...vacRows.map((r) => [r.name, r.balance, r.total, `${r.pctUsed}%`, r.seniority, r.next])]}
@@ -253,7 +375,7 @@ export default async function Reportes() {
               </thead>
               <tbody>
                 {vacRows.map((r) => (
-                  <tr key={r.name} className="border-t" style={{ borderColor: "var(--border)" }}>
+                  <tr key={r.name} className="border-t transition-colors hover:bg-hover" style={{ borderColor: "var(--border)" }}>
                     <td className="py-2 pr-4 font-semibold">{r.name}</td>
                     <td className="py-2 pr-4 tabular-nums">{r.balance}/{r.total}</td>
                     <td className="py-2 pr-4 tabular-nums"

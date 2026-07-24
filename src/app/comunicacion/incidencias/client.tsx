@@ -26,7 +26,7 @@ export default function IncidenciasClient({ userId, incidents }: { userId: strin
       user_id: userId, kind: form.kind, start_date: form.start, end_date: end, note: form.note || null,
     });
     setSaving(false);
-    if (error) { toast("No se pudo enviar — intenta de nuevo"); return; }
+    if (error) { toast("No se pudo enviar — intenta de nuevo", "danger"); return; }
     setOpen(false);
     setForm({ kind: "permiso", start: "", end: "", note: "" });
     toast("Incidencia enviada al administrador");

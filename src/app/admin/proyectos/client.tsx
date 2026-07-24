@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Pill, Sheet, useToast, SelectField, CheckBox, DatePicker, Menu, MenuItem } from "@/components/ui";
+import { EmptyState } from "@/components/shared";
 import { Icon } from "@/components/os/icons";
 import { IconDownload } from "@/components/icons";
 import { logAdminAction } from "@/lib/admin-log";
@@ -165,7 +166,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
       .select("id, project_id, depends_on_project_id, projects!project_dependencies_depends_on_project_id_fkey(id, status, requests(title))")
       .single();
     setSaving(false);
-    if (error || !data) { toast("No se pudo agregar la dependencia"); return; }
+    if (error || !data) { toast("No se pudo agregar la dependencia", "danger"); return; }
     setDeps((d) => [...d, data as unknown as DepRow]);
     setPicked("");
     setOpen(null);
@@ -175,7 +176,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
   const removeDependency = async (depId: string) => {
     const supabase = createClient();
     const { error } = await supabase.from("project_dependencies").delete().eq("id", depId);
-    if (error) { toast("No se pudo quitar"); return; }
+    if (error) { toast("No se pudo quitar", "danger"); return; }
     setDeps((d) => d.filter((x) => x.id !== depId));
     toast("Dependencia eliminada");
   };
@@ -216,13 +217,13 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
       type: form.type, title: form.title.trim(),
       status: "aprobada", priority: form.priority, min_hours_required: 0,
     }).select("id").single();
-    if (e1 || !req) { setCreating(false); toast("No se pudo registrar la actividad"); return; }
+    if (e1 || !req) { setCreating(false); toast("No se pudo registrar la actividad", "danger"); return; }
 
     const { data: prj, error: e2 } = await supabase.from("projects").insert({
       request_id: req.id, lead_user_id: lead, status: "aprobada",
       priority: form.priority, deadline: form.deadline || null,
     }).select("id").single();
-    if (e2 || !prj) { setCreating(false); toast("No se pudo crear el proyecto"); return; }
+    if (e2 || !prj) { setCreating(false); toast("No se pudo crear el proyecto", "danger"); return; }
 
     const { data: asgs } = await supabase.from("project_assignments")
       .insert(assignees.map((uid) => ({ project_id: prj.id, user_id: uid, is_lead: uid === lead })))
@@ -433,8 +434,13 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
       <h2 className="text-[15px] font-bold mb-2 md:mb-3">Activos</h2>
       {active.length === 0 && (
-        <div className="card p-6 text-center mb-6">
-          <p className="text-[13px]" style={{ color: "var(--text-2)" }}>Sin proyectos activos — aprueba una solicitud o añade uno directamente</p>
+        <div className="mb-6">
+          <EmptyState
+            icon={<Icon name="layers" size={22} />}
+            title="Sin actividades activas"
+            hint="Aprueba una solicitud o añade una directamente."
+            action={<button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>+ Añadir proyecto</button>}
+          />
         </div>
       )}
       <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 mb-6 md:mb-8">{active.map((p) => <Card key={p.id} p={p} />)}</div>

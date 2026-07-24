@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Sheet, Pill, Avatar, SlidingSegments, DatePicker } from "@/components/ui";
+import { EmptyState } from "@/components/shared";
 import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
@@ -88,14 +89,14 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
     // 1. actualizar solicitud
     const { error: e1 } = await supabase.from("requests")
       .update({ status: "aprobada", priority }).eq("id", sel.id);
-    if (e1) { toast("No se pudo aprobar"); setSaving(false); return; }
+    if (e1) { toast("No se pudo aprobar", "danger"); setSaving(false); return; }
 
     // 2. crear proyecto
     const { data: prj, error: e2 } = await supabase.from("projects").insert({
       request_id: sel.id, lead_user_id: lead, status: "aprobada",
       priority, deadline: deadline || null,
     }).select("id").single();
-    if (e2 || !prj) { toast("No se pudo crear el proyecto"); setSaving(false); return; }
+    if (e2 || !prj) { toast("No se pudo crear el proyecto", "danger"); setSaving(false); return; }
 
     // 3. asignaciones (múltiple con responsable)
     const { data: asgs } = await supabase.from("project_assignments")
@@ -156,7 +157,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
     const { error } = await supabase.from("requests")
       .update({ status: "cancelada", rejection_reason: rejectReason }).eq("id", sel.id);
     setSaving(false);
-    if (error) { toast("No se pudo rechazar"); return; }
+    if (error) { toast("No se pudo rechazar", "danger"); return; }
     if (adminId) logAdminAction(supabase, adminId, "Rechazó solicitud", sel.title);
     if (sel.requester_id) notifyUser(supabase, sel.requester_id, "Tu solicitud fue rechazada", `${sel.title} — ${rejectReason}`, "request", "/coordinador");
     setSel(null);
@@ -181,14 +182,11 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
       </header>
 
       {shown.length === 0 && (
-        <div className="card p-8 text-center">
-          <p className="font-semibold text-[14px]">
-            {tab === "Por revisar" ? "Sin solicitudes por revisar" : tab === "Aprobadas" ? "Sin solicitudes aprobadas" : "Sin solicitudes rechazadas"}
-          </p>
-          <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            {tab === "Por revisar" ? "Las nuevas solicitudes de coordinadores aparecerán aquí" : "Aparecerán aquí cuando cambien de estado"}
-          </p>
-        </div>
+        <EmptyState
+          icon={<Icon name="inbox" size={22} />}
+          title={tab === "Por revisar" ? "Bandeja en cero" : tab === "Aprobadas" ? "Sin solicitudes aprobadas" : "Sin solicitudes rechazadas"}
+          hint={tab === "Por revisar" ? "Las nuevas solicitudes de coordinadores aparecerán aquí." : "Aparecerán aquí cuando cambien de estado."}
+        />
       )}
 
       <div className="flex flex-col gap-3">

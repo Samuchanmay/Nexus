@@ -80,7 +80,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
     const { data, error } = await createClient().functions.invoke("weekly-attendance-report", { body: { manual: true } });
     setSending(false);
     const ok = (data as { ok?: boolean } | null)?.ok;
-    toast(!error && ok ? "Reporte semanal enviado por correo" : "No se pudo enviar el reporte");
+    toast(!error && ok ? "Reporte semanal enviado por correo" : "No se pudo enviar el reporte", !error && ok ? "ok" : "danger");
     if (!error && ok && adminId) logAdminAction(createClient(), adminId, "Envió reporte semanal de asistencia");
   };
   const weekCsvHref = useMemo(() => {
@@ -195,26 +195,33 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 </div>
                 {estadoPill(day, states)}
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                {[
-                  { v: fmtTime(day.firstIn), l: "ENTRADA" },
-                  { v: day.firstIn ? fmtMin(day.totalMin) : "—", l: "LABORADO" },
-                  { v: fmtMin(day.targetMin), l: "OBJETIVO" },
-                ].map((c) => (
-                  <div key={c.l} className="rounded-sm py-2.5" style={{ background: "var(--surface-2)" }}>
-                    <p className="text-[14px] font-bold tabular-nums">{c.v}</p>
-                    <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>{c.l}</p>
+              {(() => {
+                const pct = day.targetMin > 0 ? Math.min(100, Math.round((day.totalMin / day.targetMin) * 100)) : 0;
+                return (
+                  <div className="mb-3">
+                    <p className="text-[26px] font-bold tabular-nums leading-none">
+                      {day.firstIn ? fmtMin(day.totalMin) : "—"}
+                    </p>
+                    <div className="mt-2.5">
+                      <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
+                      </div>
+                      <p className="text-[11px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>
+                        Objetivo {fmtMin(day.targetMin)}{day.firstIn ? ` · Entrada ${fmtTime(day.firstIn)}` : ""}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })()}
               {day.movements.length > 0 && (
-                <details>
-                  <summary className="text-[12px] font-semibold cursor-pointer list-none" style={{ color: "var(--accent)" }}>
-                    {day.movements.length} movimientos hoy →
+                <details className="group">
+                  <summary className="text-[12px] font-semibold cursor-pointer list-none flex items-center gap-1 transition-colors hover:opacity-75" style={{ color: "var(--accent)" }}>
+                    {day.movements.length} movimientos hoy
+                    <span className="transition-transform group-open:rotate-90">→</span>
                   </summary>
                   <div className="mt-2">
                     {day.movements.map((m) => (
-                      <div key={m.id} className="flex justify-between py-1.5 text-[12.5px]"
+                      <div key={m.id} className="flex justify-between py-1.5 text-[12.5px] rounded-[4px] px-1.5 -mx-1.5 transition-colors hover:bg-hover"
                         style={{ borderBottom: "0.5px solid var(--border)" }}>
                         <span>{m.reason}</span>
                         <span className="font-semibold tabular-nums">{fmtTime(m.time)}</span>
@@ -363,7 +370,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 </thead>
                 <tbody>
                   {weekRows.map((r) => (
-                    <tr key={`${r.userId}-${r.week}`} className="border-t" style={{ borderColor: "var(--border)" }}>
+                    <tr key={`${r.userId}-${r.week}`} className="border-t transition-colors hover:bg-hover" style={{ borderColor: "var(--border)" }}>
                       <td className="py-2 pr-4 tabular-nums">{dmy(r.week)}</td>
                       <td className="py-2 pr-4 font-semibold">{r.name}</td>
                       <td className="py-2 pr-4 tabular-nums">{r.days}</td>

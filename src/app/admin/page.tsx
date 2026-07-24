@@ -450,7 +450,7 @@ export default async function AdminDashboard() {
             {presence.map((p) => (
               <div key={p.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} birthday={isBirthdayToday(p.birth_date, todayISO())} />
+                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} birthday={isBirthdayToday(p.birth_date, todayISO())} status={p.color ?? undefined} statusLabel={p.status} />
                   <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
                 </div>
                 <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>

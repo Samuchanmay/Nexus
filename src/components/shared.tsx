@@ -94,15 +94,18 @@ export function PersonRow({ name, color, avatarUrl, birthday, meta, right, onCli
   );
 }
 
-/* ── EmptyState ── */
-export function EmptyState({ icon, title, hint }: {
-  icon?: React.ReactNode; title: string; hint?: string;
+/* ── EmptyState ── con CTA opcional: un estado vacío sin acción es un
+   callejón sin salida; si hay una acción obvia (crear/añadir/registrar),
+   se ofrece aquí mismo en vez de obligar a buscarla en otro lado. */
+export function EmptyState({ icon, title, hint, action }: {
+  icon?: React.ReactNode; title: string; hint?: string; action?: React.ReactNode;
 }) {
   return (
     <div className="card px-6 py-12 text-center">
       {icon && <div className="mx-auto mb-3 w-10 h-10 flex items-center justify-center" style={{ color: "var(--text-3)" }}>{icon}</div>}
       <p className="text-[14.5px] font-semibold" style={{ color: "var(--text-2)" }}>{title}</p>
-      {hint && <p className="text-[12.5px] mt-1" style={{ color: "var(--text-3)" }}>{hint}</p>}
+      {hint && <p className="text-[12.5px] mt-1 max-w-[320px] mx-auto" style={{ color: "var(--text-3)" }}>{hint}</p>}
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
@@ -134,7 +137,7 @@ export function useSupabaseMutation() {
       const res = await fn();
       const error = res && "error" in res ? res.error : null;
       if (error) {
-        toast(msgs?.err ?? error.message ?? "Ocurrió un error");
+        toast(msgs?.err ?? error.message ?? "Ocurrió un error", "danger");
         return false;
       }
       if (msgs?.ok) toast(msgs.ok);
