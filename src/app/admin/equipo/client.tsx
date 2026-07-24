@@ -37,9 +37,15 @@ export interface TeamMember {
   pendingIncs: { kind: Incident["kind"]; start_date: string; end_date: string; status: Incident["status"] }[];
 }
 
+// Carga expresada como sensación, no como número suelto — entendible sin
+// tener que comparar contra el resto del equipo. Escala fija (no relativa
+// al máximo del equipo): 0 = Disponible, 1 = Normal, 2 = Alta, 3+ = Saturado.
+const loadLabel = (n: number) => n === 0 ? "Disponible" : n === 1 ? "Normal" : n === 2 ? "Alta" : "Saturado";
+const loadColor = (n: number) => n === 0 ? "var(--text-3)" : n === 1 ? "var(--ok)" : n === 2 ? "var(--warn)" : "var(--danger)";
+const loadPct = (n: number) => Math.min(100, Math.max(6, (n / 3) * 100));
+
 export default function EquipoClient({ members }: { members: TeamMember[] }) {
   const [sel, setSel] = useState<TeamMember | null>(null);
-  const max = Math.max(1, ...members.map((u) => u.tasks.length));
 
   return (
     <>
@@ -51,7 +57,6 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
       {/* Filas horizontales — carga de cada persona de un vistazo, sin tener que abrir tarjeta por tarjeta */}
       <div className="flex flex-col gap-2">
         {members.map((u) => {
-          const overloaded = u.tasks.length >= max && max > 1;
           return (
             <button key={u.id} onClick={() => setSel(u)}
               className="card card-hover w-full text-left cursor-pointer flex items-center gap-4 px-5 py-3.5 flex-wrap md:flex-nowrap">
@@ -66,42 +71,32 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                 </div>
               </div>
 
-              {/* Barra de carga horizontal */}
-              <div className="flex-1 min-w-[120px] flex items-center gap-3">
+              {/* Carga — barra + sensación (Disponible/Normal/Alta/Saturado), se lee sin comparar contra nadie más */}
+              <div className="flex-1 min-w-[140px] flex items-center gap-2.5">
                 <div className="flex-1 h-[7px] rounded-full overflow-hidden" style={{ background: "var(--surface-3)" }}>
                   <div className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${(u.tasks.length / max) * 100}%`,
-                      background: overloaded
-                        ? "linear-gradient(90deg,#FF9F0A,#FF8A00)"
-                        : "linear-gradient(90deg,#34D058,#2FB344)",
-                    }} />
+                    style={{ width: `${loadPct(u.tasks.length)}%`, background: loadColor(u.tasks.length) }} />
                 </div>
-                <p className="text-[15px] font-bold tabular-nums w-5 text-right shrink-0"
-                  style={{ color: overloaded ? "var(--warn)" : "var(--ok)" }}>
-                  {u.tasks.length}
-                </p>
+                <span className="text-[12px] font-bold shrink-0 w-[68px]" style={{ color: loadColor(u.tasks.length) }}>
+                  {loadLabel(u.tasks.length)}
+                </span>
               </div>
 
-              {/* Tareas activas — chips en línea */}
-              <div className="flex items-center gap-1.5 overflow-x-auto nx-scroll w-full md:w-auto md:max-w-[280px] shrink-0">
-                {u.tasks.length === 0 ? (
-                  <span className="text-[12px] shrink-0" style={{ color: "var(--text-3)" }}>Disponible</span>
-                ) : (
-                  <>
-                    {u.tasks.slice(0, 2).map((t, i) => (
-                      <span key={i} className="shrink-0 text-[12px] truncate max-w-[140px]" title={t.title}>
-                        <Pill tone="muted">{t.typeLabel ?? t.title}</Pill>
-                      </span>
-                    ))}
-                    {u.tasks.length > 2 && (
-                      <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--accent)" }}>
-                        +{u.tasks.length - 2} más
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
+              {/* Tareas activas — chips en línea (solo si hay algo que mostrar) */}
+              {u.tasks.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto nx-scroll w-full md:w-auto md:max-w-[280px] shrink-0">
+                  {u.tasks.slice(0, 2).map((t, i) => (
+                    <span key={i} className="shrink-0 text-[12px] truncate max-w-[140px]" title={t.title}>
+                      <Pill tone="muted">{t.typeLabel ?? t.title}</Pill>
+                    </span>
+                  ))}
+                  {u.tasks.length > 2 && (
+                    <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--accent)" }}>
+                      +{u.tasks.length - 2} más
+                    </span>
+                  )}
+                </div>
+              )}
             </button>
           );
         })}

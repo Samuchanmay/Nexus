@@ -31,12 +31,40 @@ export default async function Jornada() {
   const totalMin = days.reduce((s, d) => s + d.totalMin, 0);
   const totalExtra = days.reduce((s, d) => s + d.extraMin, 0);
 
+  // ── Hoy — indicador grande (Plano de refinamiento Fase 2): el número de
+  // hoy es lo primero que se debe leer, no un dato más perdido en la lista.
+  const todayIso = todayMerida();
+  const todaySchedule = scheduleFor(scheds, profile!.id, todayIso) ?? { target_min: 480, tolerance_min: 15 };
+  const todayEntry = days.find((d) => d.date === todayIso);
+  const todayTotalMin = todayEntry?.totalMin ?? 0;
+  const todayTargetMin = todayEntry?.targetMin ?? todaySchedule.target_min;
+  const todayPct = todayTargetMin > 0 ? Math.min(100, Math.round((todayTotalMin / todayTargetMin) * 100)) : 0;
+  const todayStatus = !todayEntry ? "Sin iniciar" : todayEntry.isOpen ? "En curso" : "Jornada terminada";
+  const todayStatusColor = !todayEntry ? "var(--text-3)" : todayEntry.isOpen ? "var(--ok)" : todayEntry.metTarget ? "var(--ok)" : "var(--warn)";
+
   return (
     <>
-      <header className="pt-8 pb-6">
+      <header className="pt-8 pb-5">
         <h1 className="text-[28px] font-bold tracking-tight">Mi jornada</h1>
         <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>Últimos 30 días</p>
       </header>
+
+      <div className="mb-7">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: todayStatusColor }} />
+          <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Hoy · {todayStatus}</p>
+        </div>
+        <p className="text-[40px] font-bold tabular-nums leading-none">{fmtMin(todayTotalMin)}</p>
+        <div className="mt-4">
+          <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${todayPct}%`, background: todayPct >= 100 ? "var(--ok)" : "var(--accent)" }} />
+          </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}>Objetivo diario</span>
+            <span className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-3)" }}>{fmtMin(todayTargetMin)}</span>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-2.5 mb-6">
         <div className="card p-4 text-center">
