@@ -40,9 +40,17 @@ const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h
 const pct = (min: number) => Math.min(100, Math.max(0, ((min - AXIS_START) / AXIS_SPAN) * 100));
 const HOURS = Array.from({ length: (AXIS_END - AXIS_START) / 120 + 1 }, (_, i) => AXIS_START + i * 120); // cada 2 h
 
-/** Segmentos presente/fuera a partir de los movimientos del día. */
+/** Etiqueta corta del motivo de salida (para tooltip y badges de incidencias). */
+const REASON_LABEL: Record<string, string> = {
+  "Salida a comer": "Comida", "Salida a diligencia": "Diligencia",
+  "Salida a cita médica": "Consulta médica", "Salida a permiso": "Permiso temporal",
+  "Salida a pendientes": "Pendientes",
+};
+
+/** Segmentos presente/comida/fuera a partir de los movimientos del día — cada
+    uno lleva su motivo textual para el tooltip del Gantt. */
 function segmentsOf(day: PersonDay["day"], nowMin: number) {
-  const segs: { from: number; to: number; kind: "presente" | "fuera" }[] = [];
+  const segs: { from: number; to: number; kind: "presente" | "comida" | "fuera"; reason: string }[] = [];
   const mv = day.movements;
   for (let i = 0; i < mv.length; i++) {
     const cur = mv[i], next = mv[i + 1];
@@ -53,9 +61,29 @@ function segmentsOf(day: PersonDay["day"], nowMin: number) {
       : toMin(next.time);
     if (cur.reason === "Fin de jornada") break;
     if (to <= from) continue;
-    segs.push({ from, to, kind: cur.type === "Entrada" ? "presente" : "fuera" });
+    const kind = cur.type === "Entrada" ? "presente" : cur.reason === "Salida a comer" ? "comida" : "fuera";
+    segs.push({ from, to, kind, reason: cur.type === "Entrada" ? "Presente" : (REASON_LABEL[cur.reason] ?? cur.reason) });
   }
   return segs;
+}
+
+/** Incidencias del día = salidas que no son comida (diligencia, cita médica,
+    permiso, pendientes) — la comida es rutina, no una incidencia a vigilar. */
+function incidentsOf(day: PersonDay["day"]) {
+  return day.movements.filter((m) => m.type === "Salida" && m.reason !== "Fin de jornada" && m.reason !== "Salida a comer");
+}
+
+/** Minutos totales de comida del día (Salida a comer → siguiente Entrada). */
+function mealMinutesOf(day: PersonDay["day"]) {
+  const mv = day.movements;
+  let total = 0;
+  for (let i = 0; i < mv.length; i++) {
+    if (mv[i].reason === "Salida a comer") {
+      const next = mv[i + 1];
+      if (next) total += toMin(next.time) - toMin(mv[i].time);
+    }
+  }
+  return total;
 }
 
 type Vacation = { today: boolean; soonDays: number | null } | undefined;
@@ -225,7 +253,16 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                     birthday={isBirthdayToday(u.birth_date, todayISO())}
                     status={estadoStatus(day, u.vacation).color} statusLabel={estadoStatus(day, u.vacation).label} />
                   <div>
-                    <p className="text-[14.5px] font-bold">{u.display_name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[14.5px] font-bold">{u.display_name}</p>
+                      {incidentsOf(day).length > 0 && (
+                        <span title={incidentsOf(day).map((m) => `${REASON_LABEL[m.reason] ?? m.reason} · ${fmtTime(m.time)}`).join(", ")}
+                          className="px-1.5 py-[1px] rounded-full text-[10px] font-bold"
+                          style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
+                          {incidentsOf(day).length} {incidentsOf(day).length === 1 ? "incidencia" : "incidencias"}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{u.title ?? u.area}</p>
                   </div>
                 </div>
@@ -244,7 +281,20 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                       </div>
                       <p className="text-[11px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>
                         Objetivo {fmtMin(day.targetMin)}{day.firstIn ? ` · Entrada ${fmtTime(day.firstIn)}` : ""}
+                        {!day.isOpen && day.lastOut ? ` · Salida ${fmtTime(day.lastOut)}` : ""}
                       </p>
+                      <div className="flex items-center gap-2.5 mt-1 flex-wrap">
+                        {day.totalMin > day.targetMin && (
+                          <p className="text-[11px] font-semibold" style={{ color: "var(--ok)" }}>
+                            +{fmtMin(day.totalMin - day.targetMin)} extra
+                          </p>
+                        )}
+                        {mealMinutesOf(day) > 0 && (
+                          <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
+                            Comida {fmtMin(mealMinutesOf(day))}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -313,7 +363,16 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                     <div className="flex items-center gap-2.5 w-[156px] shrink-0">
                       <Avatar name={u.display_name} color={u.nexus_color} size={30} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
                       <div className="min-w-0">
-                        <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
+                          {incidentsOf(day).length > 0 && (
+                            <span title={incidentsOf(day).map((m) => `${REASON_LABEL[m.reason] ?? m.reason} · ${fmtTime(m.time)}`).join(", ")}
+                              className="px-1 rounded-full text-[9px] font-bold shrink-0"
+                              style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
+                              {incidentsOf(day).length}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] tabular-nums" style={{ color: "var(--text-3)" }}>
                           {fmtTime(schedule.start_time)}–{fmtTime(schedule.end_time)}
                         </p>
@@ -329,20 +388,25 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                           border: "1px dashed var(--border-2)",
                         }} />
                       {/* Segmentos reales */}
-                      {segs.map((s, i) => (
-                        <div key={i}
-                          className="absolute top-[5px] bottom-[5px] rounded-[6px]"
-                          title={`${s.kind === "presente" ? "Presente" : "Fuera"} · ${fmtTime(`${String(Math.floor(s.from / 60)).padStart(2, "0")}:${String(s.from % 60).padStart(2, "0")}`)}–${fmtTime(`${String(Math.floor(s.to / 60)).padStart(2, "0")}:${String(s.to % 60).padStart(2, "0")}`)}`}
-                          style={{
-                            left: `${pct(s.from)}%`,
-                            width: `${Math.max(0.6, pct(s.to) - pct(s.from))}%`,
-                            background: s.kind === "presente"
-                              ? "linear-gradient(155deg,#34D058,#2FB344)"
-                              : "var(--warn-tint)",
-                            border: s.kind === "fuera" ? "1px dashed var(--warn)" : "none",
-                            boxShadow: s.kind === "presente" ? "0 2px 6px rgba(47,179,68,.3)" : "none",
-                          }} />
-                      ))}
+                      {segs.map((s, i) => {
+                        const fromLabel = fmtTime(`${String(Math.floor(s.from / 60)).padStart(2, "0")}:${String(s.from % 60).padStart(2, "0")}`);
+                        const toLabel = fmtTime(`${String(Math.floor(s.to / 60)).padStart(2, "0")}:${String(s.to % 60).padStart(2, "0")}`);
+                        return (
+                          <div key={i}
+                            className="absolute top-[5px] bottom-[5px] rounded-[6px]"
+                            title={`${s.reason} · ${fromLabel}–${toLabel} (${fmtMin(s.to - s.from)})`}
+                            style={{
+                              left: `${pct(s.from)}%`,
+                              width: `${Math.max(0.6, pct(s.to) - pct(s.from))}%`,
+                              background: s.kind === "presente"
+                                ? "linear-gradient(155deg,#34D058,#2FB344)"
+                                : s.kind === "comida" ? "var(--accent-tint)" : "var(--warn-tint)",
+                              border: s.kind === "comida" ? "1px dashed var(--accent)"
+                                : s.kind === "fuera" ? "1px dashed var(--warn)" : "none",
+                              boxShadow: s.kind === "presente" ? "0 2px 6px rgba(47,179,68,.3)" : "none",
+                            }} />
+                        );
+                      })}
                       {/* Marcadores de fichaje */}
                       {day.movements.map((m) => (
                         <div key={m.id} className="absolute top-0 bottom-0 w-px"
@@ -355,6 +419,11 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                         {day.firstIn ? fmtMin(day.totalMin) : "—"}
                       </p>
                       <p className="text-[9.5px]" style={{ color: "var(--text-3)" }}>de {fmtMin(day.targetMin)}</p>
+                      {day.totalMin > day.targetMin && (
+                        <p className="text-[9.5px] font-semibold tabular-nums" style={{ color: "var(--ok)" }}>
+                          +{fmtMin(day.totalMin - day.targetMin)}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
@@ -367,7 +436,10 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "linear-gradient(155deg,#34D058,#2FB344)" }} /> Presente
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "var(--warn-tint)", border: "1px dashed var(--warn)" }} /> Fuera (comida/diligencia)
+                <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "var(--accent-tint)", border: "1px dashed var(--accent)" }} /> Comida
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "var(--warn-tint)", border: "1px dashed var(--warn)" }} /> Fuera (diligencia/permiso)
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "var(--accent-tint)", border: "1px dashed var(--border-2)" }} /> Horario objetivo

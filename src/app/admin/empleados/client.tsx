@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
 import { useToast, Sheet, Avatar, SelectField, DatePicker } from "@/components/ui";
-import { IconUserPlus, IconCamera } from "@/components/icons";
+import { IconUserPlus, IconCamera, IconChevronLeft, IconClipboard } from "@/components/icons";
 import { Switch } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
 import { todayMerida } from "@/lib/tz";
@@ -65,6 +65,15 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarFileRef = useRef<HTMLInputElement>(null);
+
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"todos" | "admin" | "equipo" | "coordinador" | "departamento" | "rh">("todos");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleGroup = (label: string) => setCollapsed((c) => ({ ...c, [label]: !c[label] }));
+  const copyEmail = (email: string) => {
+    navigator.clipboard?.writeText(email);
+    toast("Correo copiado");
+  };
 
   const toggleSpec = (s: string) => setForm((f) => ({
     ...f, specialties: f.specialties.includes(s) ? f.specialties.filter((x) => x !== s) : [...f.specialties, s],
@@ -201,41 +210,108 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
   const administradores = users.filter((u) => u.role === "admin");
   const equipo = users.filter((u) => u.role === "empleado");
   const coordinadores = users.filter((u) => u.role === "coordinador");
-  const otrosGrupos: { label: string; list: UserProfile[] }[] = [
-    { label: "Coordinadores Licenciatura", list: coordinadores.filter((u) => (u.nivel ?? "licenciatura") === "licenciatura") },
-    { label: "Coordinadores Centro Educativo", list: coordinadores.filter((u) => u.nivel === "centro_educativo") },
-    { label: "Coordinadores Posgrados", list: coordinadores.filter((u) => u.nivel === "posgrado") },
-    { label: "Departamentos", list: users.filter((u) => u.role === "departamento") },
-    { label: "RH", list: users.filter((u) => u.role === "rh") },
+
+  type GroupKey = "admin" | "equipo" | "coordinador" | "departamento" | "rh";
+  const groups: { key: GroupKey; label: string; list: UserProfile[] }[] = [
+    { key: "admin", label: "Administrador", list: administradores },
+    { key: "equipo", label: "Equipo", list: equipo },
+    { key: "coordinador", label: "Coordinadores Licenciatura", list: coordinadores.filter((u) => (u.nivel ?? "licenciatura") === "licenciatura") },
+    { key: "coordinador", label: "Coordinadores Centro Educativo", list: coordinadores.filter((u) => u.nivel === "centro_educativo") },
+    { key: "coordinador", label: "Coordinadores Posgrados", list: coordinadores.filter((u) => u.nivel === "posgrado") },
+    { key: "departamento", label: "Departamentos", list: users.filter((u) => u.role === "departamento") },
+    { key: "rh", label: "RH", list: users.filter((u) => u.role === "rh") },
   ];
 
-  const Row = ({ u }: { u: UserProfile }) => (
-    <div className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
-      style={!u.active ? { opacity: 0.55 } : undefined}>
-      <div className="flex items-center gap-3">
-        <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
-        <div>
-          <p className="text-[14px] font-bold">{u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}</p>
-          {u.title && (
-            <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>{u.title}</p>
-          )}
-          <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
-            {u.email}
-            {!u.onboarded && " · Pendiente de completar perfil"}
-          </p>
+  const q = search.trim().toLowerCase();
+  const matches = (u: UserProfile) => {
+    if (!q) return true;
+    const dept = areaName(u) ?? u.area ?? "";
+    return [u.full_name, u.display_name, u.email, u.title, dept]
+      .some((v) => (v ?? "").toLowerCase().includes(q));
+  };
+
+  const ROLE_CHIPS: { key: typeof roleFilter; label: string }[] = [
+    { key: "todos", label: "Todos" },
+    { key: "admin", label: "Administrador" },
+    { key: "equipo", label: "Equipo" },
+    { key: "coordinador", label: "Coordinadores" },
+    { key: "departamento", label: "Departamentos" },
+    { key: "rh", label: "RH" },
+  ];
+
+  const Row = ({ u }: { u: UserProfile }) => {
+    const dept = areaName(u) ?? u.area;
+    return (
+      <div
+        role="button" tabIndex={0}
+        onClick={() => openEdit(u)}
+        onKeyDown={(e) => { if (e.key === "Enter") openEdit(u); }}
+        className="group card px-4 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors"
+        style={!u.active ? { opacity: 0.55 } : undefined}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Avatar name={u.display_name} color={u.nexus_color} size={32} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-[13.5px] font-bold truncate">{u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}</p>
+              {u.title && (
+                <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{u.title}</span>
+              )}
+              {dept && (
+                <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                  style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>{dept}</span>
+              )}
+            </div>
+            <p className="text-[11.5px] truncate" style={{ color: "var(--text-3)" }}>
+              {u.email}
+              {!u.onboarded && " · Pendiente de completar perfil"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); copyEmail(u.email); }}
+            title="Copiar correo" aria-label="Copiar correo"
+            className="h-7 w-7 rounded-full grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ color: "var(--text-3)" }}>
+            <IconClipboard className="w-3.5 h-3.5" />
+          </button>
+          <span onClick={(e) => e.stopPropagation()}>
+            <Switch tone="status" checked={u.active} onChange={() => toggleActive(u)}
+              label={u.active ? "Activo" : "Inactivo"} />
+          </span>
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-3)" }}>
+            <IconChevronLeft className="w-3.5 h-3.5 rotate-180" />
+          </span>
         </div>
       </div>
-      <div className="flex items-center gap-2.5">
-        <button onClick={() => openEdit(u)}
-          className="px-3.5 py-2 rounded-full text-[12px] font-semibold"
-          style={{ border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-          Editar
+    );
+  };
+
+  const Group = ({ g }: { g: { key: GroupKey; label: string; list: UserProfile[] } }) => {
+    if (roleFilter !== "todos" && g.key !== roleFilter) return null;
+    const filtered = g.list.filter(matches);
+    if (q && filtered.length === 0) return null;
+    const isCollapsed = !q && !!collapsed[g.label];
+    return (
+      <div className="flex flex-col gap-2.5">
+        <button onClick={() => toggleGroup(g.label)}
+          className="flex items-center gap-1.5 text-left w-fit">
+          <span className="transition-transform" style={{ color: "var(--text-3)", transform: isCollapsed ? "rotate(90deg)" : "rotate(-90deg)" }}>
+            <IconChevronLeft className="w-3 h-3" />
+          </span>
+          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
+            {g.label} · {filtered.length}
+          </p>
         </button>
-        <Switch tone="status" checked={u.active} onChange={() => toggleActive(u)}
-          label={u.active ? "Activo" : "Inactivo"} />
+        {!isCollapsed && (
+          filtered.length === 0 ? (
+            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
+          ) : filtered.map((u) => <Row key={u.id} u={u} />)
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -251,35 +327,24 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
         </button>
       </header>
 
+      <div className="flex items-center gap-2 flex-wrap mb-4">
+        <input className="field-input text-[12.5px] w-[220px]" placeholder="Buscar por nombre, correo, cargo o área…"
+          value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {ROLE_CHIPS.map((c) => (
+            <button key={c.key} onClick={() => setRoleFilter(c.key)}
+              className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold transition-colors"
+              style={roleFilter === c.key
+                ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
+                : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2.5">
-          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
-            Administrador · {administradores.length}
-          </p>
-          {administradores.length === 0 ? (
-            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
-          ) : administradores.map((u) => <Row key={u.id} u={u} />)}
-        </div>
-
-        <div className="flex flex-col gap-2.5">
-          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
-            Equipo · {equipo.length}
-          </p>
-          {equipo.length === 0 ? (
-            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin personas en el equipo todavía</p>
-          ) : equipo.map((u) => <Row key={u.id} u={u} />)}
-        </div>
-
-        {otrosGrupos.map((g) => (
-          <div key={g.label} className="flex flex-col gap-2.5">
-            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
-              {g.label} · {g.list.length}
-            </p>
-            {g.list.length === 0 ? (
-              <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
-            ) : g.list.map((u) => <Row key={u.id} u={u} />)}
-          </div>
-        ))}
+        {groups.map((g) => <Group key={g.label} g={g} />)}
       </div>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Agregar personal">
