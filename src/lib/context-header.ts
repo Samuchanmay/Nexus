@@ -162,9 +162,9 @@ const SUB_VACATION_RETURN: Entry[] = [
 ];
 const SUB_VACATION_SOON: Entry[] = [
   { key: "s-vac-soon-1", emoji: "🌴", text: "Solo faltan {days} día{s} para tus vacaciones." },
-  { key: "s-vac-soon-2", emoji: "✈️", text: "Ve preparando la maleta — quedan {days} día{s}." },
+  { key: "s-vac-soon-2", emoji: "📋", text: "Deja tus pendientes en orden antes de salir." },
   { key: "s-vac-soon-3", emoji: "🏝️", text: "Ya casi cambias la oficina por la playa." },
-  { key: "s-vac-soon-4", emoji: "😎", text: "La cuenta regresiva de tus vacaciones ya comenzó." },
+  { key: "s-vac-soon-4", emoji: "✅", text: "Todo está listo para tu descanso." },
 ];
 const SUB_HOLIDAY: Entry[] = [
   { key: "s-holiday-1", emoji: "🗓️", text: "Hoy es día inhábil — nada urgente en puerta." },
@@ -200,16 +200,16 @@ const SUB_ALL_CLEAR: Entry[] = [
   { key: "s-clear-4", emoji: "🌤️", text: "Sin pendientes por ahora — todo en orden." },
 ];
 const SUB_FRIDAY: Entry[] = [
-  { key: "s-friday-1", emoji: "🎉", text: "Ya casi es fin de semana." },
+  { key: "s-friday-1", emoji: "📋", text: "Aprovecha para cerrar pendientes importantes." },
   { key: "s-friday-2", emoji: "😌", text: "Cerramos la semana con buen ritmo." },
   { key: "s-friday-3", emoji: "🍕", text: "¿Ya pensaste qué harás este fin de semana?" },
-  { key: "s-friday-4", emoji: "📋", text: "Buen momento para cerrar pendientes antes del fin de semana." },
+  { key: "s-friday-4", emoji: "✅", text: "Todo va en orden. Mantén el ritmo." },
 ];
 const SUB_MONDAY: Entry[] = [
-  { key: "s-monday-1", emoji: "🚀", text: "Nueva semana, nuevas metas." },
-  { key: "s-monday-2", emoji: "🗓️", text: "Arrancamos la semana con todo." },
-  { key: "s-monday-3", emoji: "☕", text: "Buen momento para planear la semana." },
-  { key: "s-monday-4", emoji: "💪", text: "Empezamos la semana con energía." },
+  { key: "s-monday-1", emoji: "🗓️", text: "Buen momento para planear la semana." },
+  { key: "s-monday-2", emoji: "📋", text: "Revisa tus prioridades antes de arrancar." },
+  { key: "s-monday-3", emoji: "☕", text: "Un café y a organizar el día." },
+  { key: "s-monday-4", emoji: "🧭", text: "Define lo importante antes de lo urgente." },
 ];
 const SUB_CASUAL: Entry[] = [
   { key: "s-casual-1", emoji: "🌧️", text: "Buen día para un café tranquilo." },

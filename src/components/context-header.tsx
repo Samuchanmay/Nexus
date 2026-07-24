@@ -46,15 +46,24 @@ const EMOJI_ANIM: Record<string, Anim> = {
 
 function AnimatedEmoji({ emoji, size = 20 }: { emoji: string; size?: number }) {
   const a = EMOJI_ANIM[emoji] ?? DEFAULT_ANIM;
+  // La caja reserva ~45% más espacio que el glifo: el scale/rotate de la
+  // animación nunca debe salirse ni recortarse, y overflow:visible en ambas
+  // capas evita que un ancestro con overflow:hidden lo agrave.
+  const box = Math.ceil(size * 1.45);
   return (
-    <motion.span
-      className="inline-block"
-      style={{ fontSize: size, lineHeight: 1 }}
-      animate={a.animate}
-      transition={a.transition}
+    <span
+      className="inline-flex items-center justify-center shrink-0"
+      style={{ width: box, height: box, overflow: "visible" }}
     >
-      {emoji}
-    </motion.span>
+      <motion.span
+        className="inline-block"
+        style={{ fontSize: size, lineHeight: 1, overflow: "visible" }}
+        animate={a.animate}
+        transition={a.transition}
+      >
+        {emoji}
+      </motion.span>
+    </span>
   );
 }
 
@@ -90,7 +99,7 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
     return (
       <header className="pt-1">
         <p className="text-[12px] font-semibold text-text-3">&nbsp;</p>
-        <h1 className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1">
+        <h1 className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1" style={{ lineHeight: 1.35 }}>
           Hola, {input.name} 👋
         </h1>
         <p className="text-[13px] mt-0.5 text-text-3">&nbsp;</p>
@@ -109,8 +118,11 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
-          <h1 className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1 flex items-center gap-2">
-            {message.greetingText} <AnimatedEmoji emoji={message.greetingEmoji} size={22} />
+          <h1
+            className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1 flex items-center gap-2"
+            style={{ lineHeight: 1.35 }}
+          >
+            <span>{message.greetingText}</span> <AnimatedEmoji emoji={message.greetingEmoji} size={22} />
           </h1>
         </motion.div>
       </AnimatePresence>
