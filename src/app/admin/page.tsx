@@ -4,7 +4,7 @@ import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO, scheduleFor } fr
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes, shortDate, addDays } from "@/lib/tz";
-import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/components/os/ui";
+import { Card, SectionTitle, Badge, Avatar, EmptyState } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { contextualMessages } from "@/lib/assistant";
 import type { AssistantTask } from "@/lib/assistant";
@@ -187,7 +187,7 @@ export default async function AdminDashboard() {
   const nowMin = nowMeridaMinutes();
   const dow = new Date(`${today}T12:00:00`).getDay(); // 0=dom, 6=sáb
   const isWorkday = dow !== 0 && dow !== 6 && !holidayToday;
-  const alerts: { icon: string; text: string; tone: "warn" | "danger" | "accent" }[] = [];
+  const alerts: { icon: string; text: string; tone: "warn" | "danger" | "accent"; href?: string }[] = [];
 
   if (holidayToday) {
     alerts.push({ icon: "sparkle", text: `Hoy es día inhábil: ${holidayToday.name}`, tone: "accent" });
@@ -199,7 +199,7 @@ export default async function AdminDashboard() {
       const start = toMin((s?.start_time ?? "09:00:00").slice(0, 5));
       const expected = start + (s?.tolerance_min ?? 15);
       if (nowMin > expected) {
-        alerts.push({ icon: "alarm", text: `${p.display_name} aún no inicia jornada (se esperaba a las ${hhmm(start)})`, tone: "warn" });
+        alerts.push({ icon: "alarm", text: `${p.display_name} aún no inicia jornada (se esperaba a las ${hhmm(start)})`, tone: "warn", href: "/admin/nexus" });
       }
     }
   }
@@ -208,11 +208,12 @@ export default async function AdminDashboard() {
       icon: "flame",
       text: `${urgentReqs!.length} solicitud${urgentReqs!.length > 1 ? "es" : ""} de prioridad alta/urgente sin aprobar`,
       tone: "danger",
+      href: "/admin/solicitudes",
     });
   }
   for (const v of vacsToday ?? []) {
     if (v.start_date === today) {
-      alerts.push({ icon: "plane", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${shortDate(v.end_date)})`, tone: "accent" });
+      alerts.push({ icon: "plane", text: `${nameOf.get(v.user_id) ?? "Alguien"} inicia vacaciones hoy (hasta ${shortDate(v.end_date)})`, tone: "accent", href: "/admin/vacaciones" });
     }
   }
 
@@ -264,60 +265,39 @@ export default async function AdminDashboard() {
   /* ── Solicitudes por revisar ── */
   const pendingList = (pendingRequestsList ?? []).slice(0, 6);
 
-  const dateLabel = new Date().toLocaleDateString("es-MX", {
-    weekday: "long", day: "numeric", month: "long", timeZone: "America/Merida",
-  });
   const hour = Number(new Date().toLocaleTimeString("es-MX", { hour: "2-digit", hour12: false, timeZone: "America/Merida" }));
   const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const firstName = me!.display_name.split(" ")[0];
 
   return (
-    <div className="space-y-7 md:space-y-6 pb-10">
-      <header className="pt-3 md:pt-2">
-        <p className="text-[13px] capitalize text-text-3">{dateLabel}</p>
-        <h1 className="text-[26px] md:text-[30px] font-bold tracking-tight text-text-1">
+    <div className="space-y-5 pb-10">
+      {/* Bienvenida — corta: la fecha ya está en el sistema, no hace falta repetirla (punto 5) */}
+      <header className="pt-1">
+        <h1 className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1">
           {greeting}, {firstName} <span className="wave-emoji">👋</span>
         </h1>
-        <p className="text-[13.5px] mt-1 text-text-3">
-          {alerts.length === 0
-            ? "Todo en orden — sin alertas por ahora."
-            : `${alerts.length} cosa${alerts.length > 1 ? "s" : ""} necesita${alerts.length > 1 ? "n" : ""} tu atención hoy.`}
-        </p>
+        {alerts.length > 0 && (
+          <p className="text-[13px] mt-0.5 text-text-3">
+            {alerts.length} pendiente{alerts.length > 1 ? "s" : ""} requiere{alerts.length > 1 ? "n" : ""} tu atención.
+          </p>
+        )}
       </header>
 
-      {/* Alertas */}
+      {/* Atención — filas delgadas (no tarjeta grande): ícono, texto, "Ver →". Sin badge, sin caja. */}
       {alerts.length > 0 && (
-        <div className="flex flex-col gap-2 md:gap-2">
+        <div className="flex flex-col">
           {alerts.map((a, i) => {
-            const parenIdx = a.text.indexOf(" (");
-            const main = parenIdx >= 0 ? a.text.slice(0, parenIdx) : a.text;
-            const subRaw = parenIdx >= 0 ? a.text.slice(parenIdx + 2).replace(/\)$/, "") : null;
-            const sub = subRaw ? subRaw.charAt(0).toUpperCase() + subRaw.slice(1) : null;
-            const badgeLabel = a.tone === "danger" ? "Urgente" : a.tone === "warn" ? "Atención" : "Aviso";
+            const color = a.tone === "danger" ? "var(--danger)" : a.tone === "warn" ? "var(--warn)" : "var(--accent)";
             return (
-              <Card key={i} pad={false} className="px-5 py-4 md:px-4 md:py-3">
-                {/* Móvil */}
-                <div className="flex md:hidden items-center gap-3">
-                  <span className="shrink-0 grid place-items-center h-10 w-10 rounded-full" style={{ background: "var(--surface-2)" }}>
-                    <Icon name={a.icon} size={15} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-bold text-text-1 leading-snug">{main}</p>
-                    {sub && <p className="text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>{sub}</p>}
-                  </div>
-                  <Badge tone={a.tone === "accent" ? "accent" : a.tone} dot={a.icon === "alarm"} pulse={a.icon === "alarm"}>
-                    {badgeLabel}
-                  </Badge>
-                </div>
-                {/* Escritorio — sin cambios */}
-                <div className="hidden md:flex items-center gap-2.5">
-                  <Icon name={a.icon} size={16} />
-                  <p className="text-[13px] font-semibold text-text-1 flex-1">{a.text}</p>
-                  <Badge tone={a.tone === "accent" ? "accent" : a.tone} dot={a.icon === "alarm"} pulse={a.icon === "alarm"}>
-                    {badgeLabel}
-                  </Badge>
-                </div>
-              </Card>
+              <div key={i} className="flex items-center gap-2.5 py-2 border-b border-border last:border-0">
+                <span className="shrink-0" style={{ color }}><Icon name={a.icon} size={15} /></span>
+                <p className="text-[13px] font-semibold flex-1 min-w-0 truncate text-text-1">{a.text}</p>
+                {a.href && (
+                  <Link href={a.href} className="shrink-0 text-[12.5px] font-semibold" style={{ color }}>
+                    Ver →
+                  </Link>
+                )}
+              </div>
             );
           })}
         </div>
@@ -349,13 +329,111 @@ export default async function AdminDashboard() {
         </Card>
       )}
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-3">
-        <Link href="/admin/solicitudes"><StatCard label="Pendientes" value={String(pendingReqs ?? 0)} icon="inbox" tone="warn" /></Link>
-        <Link href="/admin/proyectos"><StatCard label="Actividades" value={String(activeProjects ?? 0)} icon="layers" tone="accent" /></Link>
-        <Link href="/admin/vacaciones"><StatCard label="Vacaciones pendientes" value={String(pendingVacs ?? 0)} icon="plane" tone="purple" /></Link>
-        <Link href="/admin/incidencias"><StatCard label="Incidencias pendientes" value={String(pendingIncs ?? 0)} icon="alert" tone="danger" /></Link>
-      </div>
+      {/* Mi jornada — la métrica protagonista del dashboard — y Equipo hoy comparten
+          una sola superficie: son la misma historia (mi día + el día del equipo),
+          no dos tarjetas independientes que compiten entre sí (punto 9). */}
+      <Card>
+        {(() => {
+          const dotColor = !myDay.firstIn ? "var(--text-3)" : myDay.isOpen ? "var(--ok)" : "var(--text-3)";
+          const statusLabel = !myDay.firstIn ? "Sin iniciar" : myDay.isOpen ? "Trabajando" : "Jornada terminada";
+          const pct = myDay.targetMin > 0 ? Math.min(100, Math.round((myDay.totalMin / myDay.targetMin) * 100)) : 0;
+          return (
+            <>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: "var(--text-2)" }}>
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} /> Mi jornada · {statusLabel}
+                </span>
+                {myDay.extraMin > 0 && (
+                  <span className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>+{fmtMin(myDay.extraMin)} extra</span>
+                )}
+              </div>
+              <p className="text-[42px] font-bold tabular-nums leading-none text-text-1 mb-1.5">
+                {myDay.firstIn ? fmtMin(myDay.totalMin) : "—"}
+              </p>
+              <p className="text-[12.5px] mb-3" style={{ color: "var(--text-3)" }}>
+                {myDay.firstIn
+                  ? `${pct}% de la jornada · Objetivo ${fmtMin(myDay.targetMin)} · Entrada ${fmtTime(myDay.firstIn)}`
+                  : `Objetivo ${fmtMin(myDay.targetMin)}`}
+              </p>
+              <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden mb-4">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
+              </div>
+              {/* Botones secundarios — la protagonista es la jornada de arriba, no el CTA (punto 14) */}
+              <div className="flex gap-2 mb-5">
+                <Link href="/fichar" className="btn-secondary flex-1 inline-flex items-center justify-center h-9 px-4 text-[13.5px]">
+                  Comenzar jornada
+                </Link>
+                <Link href="/comunicacion" className="btn-tertiary flex-1 inline-flex items-center justify-center h-9 px-4 text-[13.5px]">
+                  Mis actividades
+                </Link>
+              </div>
+            </>
+          );
+        })()}
+
+        <div className="pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[12.5px] font-bold" style={{ color: "var(--text-3)" }}>Equipo</span>
+            <Link href="/admin/nexus" className="text-[12.5px] font-semibold text-accent">Ver asistencia →</Link>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3.5 pb-3.5 border-b border-border">
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="ok" dot>{pulse.presentes}</Badge> presentes</span>
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="warn" dot>{pulse.fuera}</Badge> fuera</span>
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="neutral" dot>{pulse.completaron}</Badge> terminaron</span>
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="purple" dot>{pulse.vacaciones}</Badge> vacaciones</span>
+          </div>
+          <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto nx-scroll p-1 -m-1">
+            {presence.map((p) => (
+              <div key={p.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} birthday={isBirthdayToday(p.birth_date, todayISO())} status={p.display.color ?? undefined} statusLabel={p.display.label} />
+                  <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
+                </div>
+                <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
+                  {p.display.color && <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.display.color }} />}
+                  {p.display.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Actividad de hoy — timeline (punto 10): línea vertical + puntos, no filas de tabla */}
+      <Card>
+        <SectionTitle hint="registros · solicitudes · vacaciones">Actividad de hoy</SectionTitle>
+        {feed.length === 0 ? (
+          <p className="text-[13px] py-4 text-center text-text-3">Aún no hay actividad registrada hoy</p>
+        ) : (
+          <div className="relative">
+            <div className="absolute left-[9px] top-2 bottom-2 w-px" style={{ background: "var(--border-2)" }} />
+            {feed.map((f) => (
+              <div key={f.key} className="relative flex items-center gap-3 py-2.5 pl-5">
+                <span className="absolute left-[5px] w-[9px] h-[9px] rounded-full" style={{ background: f.iconColor ?? "var(--text-3)" }} />
+                <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">{f.text}</p>
+                <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{f.time}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Todo lo demás — una sola banda de métricas, no cuatro cajas (punto 3) */}
+      <Card pad={false} className="flex items-stretch overflow-hidden">
+        {[
+          { label: "Pendientes", value: pendingReqs ?? 0, href: "/admin/solicitudes" },
+          { label: "Actividades", value: activeProjects ?? 0, href: "/admin/proyectos" },
+          { label: "Vacaciones", value: pendingVacs ?? 0, href: "/admin/vacaciones" },
+          { label: "Incidencias", value: pendingIncs ?? 0, href: "/admin/incidencias" },
+        ].map((m, i) => (
+          <Link key={m.label} href={m.href}
+            className="flex-1 px-4 py-3.5 hover:bg-hover transition-colors"
+            style={i > 0 ? { borderLeft: "1px solid var(--border)" } : undefined}>
+            <p className="text-[21px] font-bold tabular-nums leading-none text-text-1">{m.value}</p>
+            <p className="text-[12px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>{m.label}</p>
+          </Link>
+        ))}
+      </Card>
 
       {/* Dos columnas: actividades activas + solicitudes por revisar */}
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5 md:gap-4">
@@ -390,7 +468,15 @@ export default async function AdminDashboard() {
         <Card>
           <SectionTitle hint={`${pendingReqs ?? 0} en total`}>Pendientes</SectionTitle>
           {pendingList.length === 0 ? (
-            <EmptyState icon="inbox" title="Bandeja en cero" hint="No hay solicitudes esperando revisión." />
+            <div className="flex items-center gap-3 py-3">
+              <span className="grid place-items-center h-9 w-9 rounded-full shrink-0" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
+                <Icon name="check" size={16} />
+              </span>
+              <div>
+                <p className="text-[13.5px] font-bold text-text-1">Todo al día</p>
+                <p className="text-[12px] text-text-3">No hay solicitudes esperando revisión.</p>
+              </div>
+            </div>
           ) : (
             <div className="space-y-1.5 md:space-y-1">
               {pendingList.map((r) => (
@@ -411,78 +497,6 @@ export default async function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-5 md:gap-4">
-        {/* Mi jornada de hoy */}
-        <Card>
-          <SectionTitle>Mi jornada de hoy</SectionTitle>
-          {(() => {
-            const dotColor = !myDay.firstIn ? "var(--text-3)" : myDay.isOpen ? "var(--ok)" : "var(--text-3)";
-            const statusLabel = !myDay.firstIn ? "Sin iniciar" : myDay.isOpen ? "En curso" : "Jornada terminada";
-            const pct = myDay.targetMin > 0 ? Math.min(100, Math.round((myDay.totalMin / myDay.targetMin) * 100)) : 0;
-            return (
-              <>
-                <div className="flex items-center gap-2 mb-2.5 mt-1">
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} />
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Hoy · {statusLabel}</span>
-                </div>
-                <p className="text-[30px] font-bold tabular-nums leading-none text-text-1">
-                  {myDay.firstIn ? fmtMin(myDay.totalMin) : "—"}
-                </p>
-                <div className="mt-3 mb-4">
-                  <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
-                  </div>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}>
-                      Objetivo {fmtMin(myDay.targetMin)}{myDay.firstIn ? ` · Entrada ${fmtTime(myDay.firstIn)}` : ""}
-                    </span>
-                    {myDay.extraMin > 0 && (
-                      <span className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>+{fmtMin(myDay.extraMin)} extra</span>
-                    )}
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-          <div className="flex gap-2">
-            <Link href="/fichar" className="btn-primary flex-1 inline-flex items-center justify-center h-10 px-4 text-[14px]">
-              Comenzar jornada
-            </Link>
-            <Link href="/comunicacion" className="btn-secondary flex-1 inline-flex items-center justify-center h-10 px-4 text-[14px]">
-              Mis actividades
-            </Link>
-          </div>
-        </Card>
-
-        {/* Equipo hoy */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <SectionTitle>Equipo hoy</SectionTitle>
-            <Link href="/admin/nexus" className="text-[12.5px] font-semibold text-accent">Ver asistencia →</Link>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3.5 pb-3.5 border-b border-border">
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="ok" dot>{pulse.presentes}</Badge> presentes</span>
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="warn" dot>{pulse.fuera}</Badge> fuera</span>
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="neutral" dot>{pulse.completaron}</Badge> terminaron</span>
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="purple" dot>{pulse.vacaciones}</Badge> vacaciones</span>
-          </div>
-          <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto nx-scroll p-1 -m-1">
-            {presence.map((p) => (
-              <div key={p.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} birthday={isBirthdayToday(p.birth_date, todayISO())} status={p.display.color ?? undefined} statusLabel={p.display.label} />
-                  <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
-                </div>
-                <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
-                  {p.display.color && <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.display.color }} />}
-                  {p.display.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
       {/* Mi productividad hoy — todo lo que hice como admin también es trabajo:
           aprobar, rechazar, asignar, exportar. Cuenta para "Mi día". */}
       <Card>
@@ -490,8 +504,15 @@ export default async function AdminDashboard() {
           Mi productividad hoy
         </SectionTitle>
         {(myActionsToday ?? []).length === 0 ? (
-          <EmptyState icon="check" title="Sin acciones registradas hoy"
-            hint="Aprobar solicitudes, revisar vacaciones o exportar un reporte aparecerá aquí." />
+          <div className="flex items-center gap-3 py-3">
+            <span className="grid place-items-center h-9 w-9 rounded-full shrink-0" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
+              <Icon name="check" size={16} />
+            </span>
+            <div>
+              <p className="text-[13.5px] font-bold text-text-1">Sin acciones registradas hoy</p>
+              <p className="text-[12px] text-text-3">Aprobar solicitudes, revisar vacaciones o exportar un reporte aparecerá aquí.</p>
+            </div>
+          </div>
         ) : (
           <div className="flex flex-col">
             {(myActionsToday ?? []).map((a) => (
@@ -501,24 +522,6 @@ export default async function AdminDashboard() {
                   {a.action}{a.detail ? ` — ${a.detail}` : ""}
                 </p>
                 <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{meridaClock(a.created_at)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* Actividad de hoy (feed) */}
-      <Card>
-        <SectionTitle hint="registros · solicitudes · vacaciones">Actividad de hoy</SectionTitle>
-        {feed.length === 0 ? (
-          <p className="text-[13px] py-4 text-center text-text-3">Aún no hay actividad registrada hoy</p>
-        ) : (
-          <div className="flex flex-col">
-            {feed.map((f) => (
-              <div key={f.key} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                <span className="w-5 text-center shrink-0 flex justify-center" style={{ color: f.iconColor }}><Icon name={f.icon} size={f.icon === "dot" ? 9 : 14} /></span>
-                <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">{f.text}</p>
-                <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{f.time}</span>
               </div>
             ))}
           </div>
