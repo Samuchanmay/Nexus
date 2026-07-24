@@ -10,6 +10,8 @@ import { contextualMessages } from "@/lib/assistant";
 import type { AssistantTask } from "@/lib/assistant";
 import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
+import { ContextHeader } from "@/components/context-header";
+import type { ContextHeaderInput } from "@/lib/context-header";
 
 /* ═══════════════════════════════════════════════════════════════
    Hoy · Centro de Operaciones (admin)
@@ -90,6 +92,14 @@ export default async function AdminDashboard() {
     supabase.from("vacations").select("user_id, start_date").eq("status", "Aprobada").is("archived_at", null)
       .gt("start_date", today).lte("start_date", addDays(today, 3)),
   ]);
+
+  // Regreso de vacaciones: propias, que hayan terminado en los últimos 2
+  // días (no hoy — hoy todavía cuenta como "de vacaciones"). Consulta aparte
+  // y ligera, solo para el Context Header — no afecta el resto del panel.
+  const { data: myRecentVac } = await supabase.from("vacations").select("end_date")
+    .eq("user_id", me!.id).eq("status", "Aprobada").is("archived_at", null)
+    .gte("end_date", addDays(today, -2)).lt("end_date", today).limit(1);
+  const returnedRecently = (myRecentVac ?? []).length > 0;
 
   const states = (jornadaStates ?? []) as JornadaState[];
   const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
@@ -266,22 +276,39 @@ export default async function AdminDashboard() {
   const pendingList = (pendingRequestsList ?? []).slice(0, 6);
 
   const hour = Number(new Date().toLocaleTimeString("es-MX", { hour: "2-digit", hour12: false, timeZone: "America/Merida" }));
-  const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const firstName = me!.display_name.split(" ")[0];
+
+  /* ── Context Header — señales reales para el motor de saludo/subtítulo ── */
+  const myBirthdayToday = isBirthdayToday(me!.birth_date, todayISO());
+  const othersBirthdayToday = (team ?? [])
+    .filter((u) => u.id !== me!.id && isBirthdayToday(u.birth_date, todayISO()))
+    .map((u) => u.display_name.split(" ")[0]);
+  const roleContextPendingCount = (pendingReqs ?? 0) + (pendingVacs ?? 0) + (pendingIncs ?? 0);
+  const activeTeam = presence.filter((p) => p.status !== "Vacaciones");
+  const teamAllIn = isWorkday && activeTeam.length > 0 && activeTeam.every((p) => p.status !== "Sin iniciar");
+  const contextInput: ContextHeaderInput = {
+    role: "admin",
+    name: firstName,
+    hour, dow,
+    isBirthdayToday: myBirthdayToday,
+    vacation: { today: onVacation.has(me!.id), soonDays: soonDaysOf.get(me!.id) ?? null, returnedRecently },
+    pendingCount: roleContextPendingCount,
+    teamAllIn,
+    othersBirthdayToday,
+    allDone: alerts.length === 0 && roleContextPendingCount === 0,
+    isHoliday: !!holidayToday,
+  };
 
   return (
     <div className="space-y-5 pb-10">
-      {/* Bienvenida — corta: la fecha ya está en el sistema, no hace falta repetirla (punto 5) */}
-      <header className="pt-1">
-        <h1 className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1">
-          {greeting}, {firstName} <span className="wave-emoji">👋</span>
-        </h1>
+      <div className="space-y-0.5">
+        <ContextHeader input={contextInput} />
         {alerts.length > 0 && (
-          <p className="text-[13px] mt-0.5 text-text-3">
-            {alerts.length} pendiente{alerts.length > 1 ? "s" : ""} requiere{alerts.length > 1 ? "n" : ""} tu atención.
+          <p className="text-[13px] text-text-3">
+            {alerts.length} alerta{alerts.length > 1 ? "s" : ""} de equipo requiere{alerts.length > 1 ? "n" : ""} tu atención.
           </p>
         )}
-      </header>
+      </div>
 
       {/* Atención — filas delgadas (no tarjeta grande): ícono, texto, "Ver →". Sin badge, sin caja. */}
       {alerts.length > 0 && (

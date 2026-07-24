@@ -18,6 +18,9 @@ import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } fro
 import { DatePicker } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
+import { ContextHeader } from "@/components/context-header";
+import type { ContextHeaderInput } from "@/lib/context-header";
+import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
 interface Task {
   assignmentId: string; isLead: boolean; projectId: string;
@@ -35,8 +38,12 @@ const PRI_TONE: Record<string, "neutral" | "warn" | "danger"> = {
   baja: "neutral", normal: "neutral", alta: "warn", urgente: "danger",
 };
 
-export default function MiDiaClient({ profile, day, week, assignments, activityTypes, assistantMessages, highlightProjectId }: {
-  profile: { id: string; displayName: string };
+export default function MiDiaClient({ profile, context, day, week, assignments, activityTypes, assistantMessages, highlightProjectId }: {
+  profile: { id: string; displayName: string; birthDate: string | null };
+  context: {
+    vacation: { today: boolean; soonDays: number | null; returnedRecently: boolean };
+    isHoliday: boolean;
+  };
   day: {
     totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
     stateName: string | null; stateColor: string | null;
@@ -262,15 +269,25 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
     ? `${pad(Math.floor(totalActiveSec / 3600))}:${pad(Math.floor((totalActiveSec % 3600) / 60))}:${pad(totalActiveSec % 60)}`
     : "00:00:00";
 
-  const dateLabel = useMemo(() => {
-    const n = new Date();
-    return n.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-  }, []);
-  const weekNum = useMemo(() => {
-    const d = new Date(week.today + "T12:00:00Z");
-    const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - start.getTime()) / 86400000 + start.getUTCDay() + 1) / 7);
-  }, [week.today]);
+  const contextInput: ContextHeaderInput = useMemo(() => {
+    const now = new Date();
+    const hourStr = now.toLocaleTimeString("es-MX", { hour: "2-digit", hour12: false, timeZone: "America/Merida" });
+    const hour = Number(hourStr.split(":")[0]);
+    const dow = new Date(week.today + "T12:00:00").getDay();
+    return {
+      role: "empleado",
+      name: profile.displayName.split(" ")[0],
+      hour,
+      dow,
+      isBirthdayToday: isBirthdayToday(profile.birthDate, todayISO()),
+      vacation: context.vacation,
+      pendingCount,
+      teamAllIn: null,
+      othersBirthdayToday: [],
+      allDone: pendingCount === 0 && assignments.length > 0,
+      isHoliday: context.isHoliday,
+    };
+  }, [profile.displayName, profile.birthDate, week.today, context, pendingCount, assignments.length]);
 
   const weekDays = useMemo(() => {
     const labels = ["L", "M", "M", "J", "V", "S", "D"];
@@ -312,10 +329,9 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       />
       {/* ── Hero — sin recuadro, igual que el saludo de admin ── */}
       <header className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-[12px] font-semibold text-text-3">{dateLabel} · Semana {weekNum}</p>
+        <div className="space-y-0.5">
+          <ContextHeader input={contextInput} />
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-[24px] font-bold text-text-1 mt-0.5">{profile.displayName} <span className="wave-emoji">👋</span></h1>
             {day.hasEntry && day.stateName && (
               <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11.5px] font-semibold"
                 style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
@@ -324,7 +340,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
               </span>
             )}
           </div>
-          <p className="text-[13px] text-text-3 mt-1">
+          <p className="text-[13px] text-text-3">
             {assignments.length} tarea{assignments.length !== 1 ? "s" : ""} · {inProgress} en curso · {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""}
           </p>
         </div>

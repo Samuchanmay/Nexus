@@ -23,7 +23,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
 
   const [
     { data: att }, { data: weekAtt }, { data: sched }, { data: assignments }, { data: jornadaStates }, { data: actTypes },
-    { data: pausaFrases }, { data: pausaSettings },
+    { data: pausaFrases }, { data: pausaSettings }, { data: myVacs }, { data: holidayToday },
   ] = await Promise.all([
     supabase.from("attendance").select("*").eq("user_id", profile.id).eq("date", today).order("time"),
     supabase.from("attendance").select("date").eq("user_id", profile.id).gte("date", monday).lte("date", sunday),
@@ -35,7 +35,18 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
     supabase.from("activity_types").select("*").eq("activo", true).order("orden"),
     supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
     supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min"]),
+    // Vacaciones propias — para el Context Header (hoy / próximas / regreso reciente).
+    supabase.from("vacations").select("start_date, end_date").eq("user_id", profile.id).eq("status", "Aprobada").is("archived_at", null),
+    supabase.from("holidays").select("date").eq("date", today).maybeSingle(),
   ]);
+  const vacToday = (myVacs ?? []).some((v) => v.start_date <= today && v.end_date >= today);
+  const vacSoonRow = (myVacs ?? [])
+    .filter((v) => v.start_date > today && v.start_date <= addDays(today, 3))
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+  const vacSoonDays = vacSoonRow
+    ? Math.round((new Date(vacSoonRow.start_date + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getTime()) / 86400000)
+    : null;
+  const vacReturnedRecently = (myVacs ?? []).some((v) => v.end_date < today && v.end_date >= addDays(today, -2));
   const states = (jornadaStates ?? []) as JornadaState[];
   const activityTypes = (actTypes ?? []) as ActivityType[];
 
@@ -118,7 +129,11 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <MiDiaClient
-      profile={{ id: profile.id, displayName: profile.display_name }}
+      profile={{ id: profile.id, displayName: profile.display_name, birthDate: profile.birth_date ?? null }}
+      context={{
+        vacation: { today: vacToday, soonDays: vacSoonDays, returnedRecently: vacReturnedRecently },
+        isHoliday: !!holidayToday,
+      }}
       day={{
         totalMin: day.totalMin, targetMin: day.targetMin, isOpen: day.isOpen, hasEntry: !!day.firstIn,
         stateName: live?.nombre ?? null, stateColor: live?.color ?? null,
