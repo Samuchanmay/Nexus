@@ -259,7 +259,7 @@ function Sidebar({ items, active, onGo, user, onProfileOpen, className, theme }:
         </div>
       </div>
 
-      <nav className="flex-1 nx-scroll overflow-y-auto px-3 py-4 space-y-5">
+      <nav className="flex-1 nx-scroll overflow-y-auto px-3 py-4 space-y-6">
         {SECTIONS.map((sec) => {
           const list = items.filter((i) => i.section === sec.id);
           if (!list.length) return null;

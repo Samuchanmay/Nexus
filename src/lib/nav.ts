@@ -5,7 +5,7 @@ export type NavItem = {
   label: string;
   icon: string;
   roles: Role[] | "all";
-  section: "trabajo" | "personal" | "gestion";
+  section: "trabajo" | "personal" | "administracion" | "config";
 };
 
 /** Navegación única de Nexus. El shell filtra por rol con navFor(). */
@@ -20,18 +20,21 @@ export const NAV: NavItem[] = [
   { key: "vacaciones", label: "Vacaciones", icon: "plane", roles: "all", section: "personal" },
   { key: "incidencias", label: "Incidencias", icon: "alert", roles: "all", section: "personal" },
 
-  { key: "equipo", label: "Carga del equipo", icon: "users", roles: ["admin"], section: "gestion" },
-  { key: "empleados", label: "Equipo", icon: "users", roles: ["admin"], section: "gestion" },
-  { key: "asistencia", label: "Asistencia", icon: "clock", roles: ["admin"], section: "gestion" },
-  { key: "dias-inhabiles", label: "Días inhábiles", icon: "calendar", roles: ["admin"], section: "gestion" },
-  { key: "reportes", label: "Reportes", icon: "chart", roles: ["admin"], section: "gestion" },
-  { key: "config", label: "Configuración", icon: "settings", roles: ["admin"], section: "gestion" },
+  { key: "equipo", label: "Carga del equipo", icon: "users", roles: ["admin"], section: "administracion" },
+  { key: "empleados", label: "Equipo", icon: "users", roles: ["admin"], section: "administracion" },
+  { key: "asistencia", label: "Asistencia", icon: "clock", roles: ["admin"], section: "administracion" },
+  { key: "dias-inhabiles", label: "Días inhábiles", icon: "calendar", roles: ["admin"], section: "administracion" },
+  { key: "reportes", label: "Reportes", icon: "chart", roles: ["admin"], section: "administracion" },
+  { key: "config", label: "Configuración", icon: "settings", roles: ["admin"], section: "config" },
 ];
 
+/** 4 grupos (no 3): Trabajo / Personal / Administración / Configuración — la
+    config ya no vive mezclada dentro de Administración (auditoría, punto 10). */
 export const SECTIONS: { id: NavItem["section"]; label: string }[] = [
   { id: "trabajo", label: "Trabajo" },
   { id: "personal", label: "Personal" },
-  { id: "gestion", label: "Gestión" },
+  { id: "administracion", label: "Administración" },
+  { id: "config", label: "Configuración" },
 ];
 
 export function navFor(role: Role): NavItem[] {
