@@ -91,7 +91,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
                   <>
                     {u.tasks.slice(0, 2).map((t, i) => (
                       <span key={i} className="shrink-0 text-[12px] truncate max-w-[140px]" title={t.title}>
-                        <Pill tone="accent">{t.typeLabel ?? t.title}</Pill>
+                        <Pill tone="muted">{t.typeLabel ?? t.title}</Pill>
                       </span>
                     ))}
                     {u.tasks.length > 2 && (
@@ -114,7 +114,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
           <div className="px-5 pt-4 flex flex-col gap-5">
             {/* Jornada de hoy */}
             <section>
-              <h3 className="text-[13px] font-bold uppercase tracking-wide mb-2.5 flex items-center justify-between" style={{ color: "var(--text-3)" }}>
+              <h3 className="text-[13px] font-bold mb-2.5 flex items-center justify-between" style={{ color: "var(--text-3)" }}>
                 <span>Hoy</span>
                 <span className="normal-case font-semibold text-[11.5px]" style={{ color: "var(--text-2)" }}>
                   {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
@@ -142,7 +142,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
 
             {/* Tareas activas */}
             <section>
-              <h3 className="text-[13px] font-bold uppercase tracking-wide mb-2.5" style={{ color: "var(--text-3)" }}>
+              <h3 className="text-[13px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
                 Tareas activas ({sel.tasks.length})
               </h3>
               {sel.tasks.length === 0
@@ -172,7 +172,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
 
             {/* Vacaciones próximas */}
             <section>
-              <h3 className="text-[13px] font-bold uppercase tracking-wide mb-2.5" style={{ color: "var(--text-3)" }}>
+              <h3 className="text-[13px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
                 Vacaciones próximas
               </h3>
               {sel.upcomingVacs.length === 0
@@ -192,7 +192,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
             {/* Incidencias pendientes */}
             {sel.pendingIncs.length > 0 && (
               <section>
-                <h3 className="text-[13px] font-bold uppercase tracking-wide mb-2.5" style={{ color: "var(--text-3)" }}>
+                <h3 className="text-[13px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
                   Incidencias pendientes
                 </h3>
                 <div className="flex flex-col gap-1.5">

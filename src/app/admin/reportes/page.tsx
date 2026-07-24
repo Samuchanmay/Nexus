@@ -31,11 +31,11 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
   );
 }
 
-/** Encabezado de card con título uppercase + botón de exportar a la derecha. */
+/** Encabezado de card con título discreto + botón de exportar a la derecha. */
 function CardHeader({ title, rows, filename, adminId }: { title: string; rows: (string | number)[][]; filename: string; adminId: string }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{title}</h2>
+      <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>{title}</h2>
       <CsvLink rows={rows} filename={filename} adminId={adminId} />
     </div>
   );
@@ -229,7 +229,7 @@ export default async function Reportes() {
 
       <div className="card p-5 mt-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 className="text-[13px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+          <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>
             Vacaciones por persona
           </h2>
           <CsvLink

@@ -76,7 +76,7 @@ export function Card({ children, className, pad = true, hover = false }: {
 export function SectionTitle({ children, hint }: { children: ReactNode; hint?: string }) {
   return (
     <div className="flex items-baseline justify-between mb-3">
-      <h2 className="text-[13px] font-bold tracking-wide uppercase text-text-3">{children}</h2>
+      <h2 className="text-[13.5px] font-bold text-text-3">{children}</h2>
       {hint && <span className="text-[12px] text-text-3">{hint}</span>}
     </div>
   );

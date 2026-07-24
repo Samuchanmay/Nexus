@@ -331,8 +331,8 @@ export default async function AdminDashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-3">
-        <Link href="/admin/solicitudes"><StatCard label="Solicitudes por revisar" value={String(pendingReqs ?? 0)} icon="inbox" tone="warn" /></Link>
-        <Link href="/admin/proyectos"><StatCard label="Actividades activas" value={String(activeProjects ?? 0)} icon="layers" tone="accent" /></Link>
+        <Link href="/admin/solicitudes"><StatCard label="Pendientes" value={String(pendingReqs ?? 0)} icon="inbox" tone="warn" /></Link>
+        <Link href="/admin/proyectos"><StatCard label="Actividades" value={String(activeProjects ?? 0)} icon="layers" tone="accent" /></Link>
         <Link href="/admin/vacaciones"><StatCard label="Vacaciones pendientes" value={String(pendingVacs ?? 0)} icon="plane" tone="purple" /></Link>
         <Link href="/admin/incidencias"><StatCard label="Incidencias pendientes" value={String(pendingIncs ?? 0)} icon="alert" tone="danger" /></Link>
       </div>
@@ -340,7 +340,7 @@ export default async function AdminDashboard() {
       {/* Dos columnas: actividades activas + solicitudes por revisar */}
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5 md:gap-4">
         <Card>
-          <SectionTitle hint={`${activeProjects ?? 0} en total`}>Actividades activas</SectionTitle>
+          <SectionTitle hint={`${activeProjects ?? 0} en total`}>Actividades</SectionTitle>
           {activities.length === 0 ? (
             <EmptyState icon="layers" title="Sin actividades activas" hint="Cuando se apruebe una solicitud, aparecerá aquí con su avance." />
           ) : (
@@ -368,7 +368,7 @@ export default async function AdminDashboard() {
         </Card>
 
         <Card>
-          <SectionTitle hint={`${pendingReqs ?? 0} en total`}>Solicitudes por revisar</SectionTitle>
+          <SectionTitle hint={`${pendingReqs ?? 0} en total`}>Pendientes</SectionTitle>
           {pendingList.length === 0 ? (
             <EmptyState icon="inbox" title="Bandeja en cero" hint="No hay solicitudes esperando revisión." />
           ) : (

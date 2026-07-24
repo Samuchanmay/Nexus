@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, Sheet, Pill, Avatar, SlidingSegments } from "@/components/ui";
+import { useToast, Sheet, Pill, Avatar, SlidingSegments, DatePicker } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
@@ -197,7 +197,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <Pill tone="accent">{typeLabel[r.type] ?? r.type}</Pill>
+                  <Pill tone="muted">{typeLabel[r.type] ?? r.type}</Pill>
                   <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABELS[r.status]}</Pill>
                   {r.priority !== "normal" && <Pill tone={PRIORITY_TONE[r.priority]}>{r.priority}</Pill>}
                 </div>
@@ -279,7 +279,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
               </div>
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de entrega</label>
-                <input type="date" className="field-input" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+                <DatePicker value={deadline} onChange={setDeadline} />
               </div>
             </div>
             {sel.event_date && (

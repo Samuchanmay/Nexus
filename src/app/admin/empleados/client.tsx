@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
-import { useToast, Sheet, Avatar, SelectField } from "@/components/ui";
+import { useToast, Sheet, Avatar, SelectField, DatePicker } from "@/components/ui";
 import { IconUserPlus, IconCamera } from "@/components/icons";
 import { Switch } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
@@ -253,7 +253,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
 
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2.5">
-          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
             Administrador · {administradores.length}
           </p>
           {administradores.length === 0 ? (
@@ -262,7 +262,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
         </div>
 
         <div className="flex flex-col gap-2.5">
-          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
             Equipo · {equipo.length}
           </p>
           {equipo.length === 0 ? (
@@ -272,7 +272,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
 
         {otrosGrupos.map((g) => (
           <div key={g.label} className="flex flex-col gap-2.5">
-            <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
               {g.label} · {g.list.length}
             </p>
             {g.list.length === 0 ? (
@@ -335,8 +335,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
               </div>
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
-                <input type="date" className="field-input" value={form.hire_date}
-                  onChange={(e) => setForm({ ...form, hire_date: e.target.value })} />
+                <DatePicker value={form.hire_date} onChange={(v) => setForm({ ...form, hire_date: v })} />
               </div>
             </div>
           )}
@@ -344,8 +343,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
           {!isEquipo && (
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
-              <input type="date" className="field-input" value={form.hire_date}
-                onChange={(e) => setForm({ ...form, hire_date: e.target.value })} />
+              <DatePicker value={form.hire_date} onChange={(v) => setForm({ ...form, hire_date: v })} />
             </div>
           )}
 
@@ -510,13 +508,11 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
-                <input type="date" className="field-input" value={editForm.hireDate}
-                  onChange={(e) => setEditForm({ ...editForm, hireDate: e.target.value })} />
+                <DatePicker value={editForm.hireDate} onChange={(v) => setEditForm({ ...editForm, hireDate: v })} />
               </div>
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de cumpleaños</label>
-                <input type="date" className="field-input" value={editForm.birthDate}
-                  onChange={(e) => setEditForm({ ...editForm, birthDate: e.target.value })} />
+                <DatePicker value={editForm.birthDate} onChange={(v) => setEditForm({ ...editForm, birthDate: v })} />
               </div>
             </div>
             <SelectField label="Rol" value={editForm.role}

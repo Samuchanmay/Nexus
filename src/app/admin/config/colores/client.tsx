@@ -78,7 +78,7 @@ export default function ColoresClient({ areas, rhColor }: { areas: Department[];
 
       {(["coordinacion", "departamento"] as const).map((tipo) => (
         <div key={tipo} className="mb-6">
-          <h3 className="text-[11.5px] font-bold uppercase tracking-wide mb-2.5" style={{ color: "var(--text-3)" }}>
+          <h3 className="text-[11.5px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
             {tipo === "coordinacion" ? "Coordinaciones" : "Departamentos"}
           </h3>
           <div className="flex flex-col gap-2">

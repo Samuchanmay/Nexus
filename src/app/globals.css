@@ -145,22 +145,35 @@ body {
 .card-hover { transition: transform .22s var(--spring), box-shadow .22s var(--ease); }
 .card-hover:hover { transform: translateY(-3px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
 
+/* ── Botones — 3 niveles ──
+   Primario: un solo protagonista por pantalla, glow discreto (no "anuncio").
+   Secundario: neutro, para acciones de apoyo junto al primario.
+   Terciario: texto/ghost, para acciones de bajo compromiso (cancelar, ver más). */
 .btn-primary {
   @apply rounded-sm font-semibold text-white;
   background: linear-gradient(155deg, #0A84FF, #0066FF);
-  box-shadow: 0 6px 18px rgba(0,102,255,.30);
+  box-shadow: 0 4px 12px rgba(0,102,255,.20);
   transition: transform .25s var(--spring), box-shadow .25s var(--ease);
 }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,102,255,.4); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,102,255,.26); }
 .btn-primary:disabled { opacity: .45; transform: none; }
-.btn-ok { background: linear-gradient(155deg, #34D058, #2FB344); box-shadow: 0 6px 18px rgba(47,179,68,.30); }
+.btn-ok { background: linear-gradient(155deg, #34D058, #2FB344); box-shadow: 0 4px 12px rgba(47,179,68,.20); }
 .btn-secondary {
   @apply rounded-sm font-semibold;
   border: 1px solid var(--border-2);
   background: var(--surface);
   color: var(--text-2);
+  transition: background .18s var(--ease);
 }
 .btn-secondary:hover { background: var(--surface-2); }
+.btn-tertiary {
+  @apply rounded-sm font-semibold;
+  background: transparent;
+  color: var(--text-2);
+  transition: background .18s var(--ease), color .18s var(--ease);
+}
+.btn-tertiary:hover { background: var(--surface-2); color: var(--text-1); }
+.btn-tertiary:disabled { opacity: .45; }
 
 .pill { @apply text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap; }
 .field-input {

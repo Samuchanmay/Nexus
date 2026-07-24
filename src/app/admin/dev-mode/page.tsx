@@ -86,7 +86,7 @@ export default function DevMode() {
         {GROUPS.map((g) => (
           <section key={g.label}>
             <div className="flex items-baseline gap-2 mb-2.5">
-              <h2 className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+              <h2 className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
                 {g.label}
               </h2>
               {g.note && <span className="text-[11.5px]" style={{ color: "var(--text-3)" }}>· {g.note}</span>}

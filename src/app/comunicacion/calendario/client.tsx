@@ -158,7 +158,7 @@ export default function CalendarioClient({
         <Link href={`/comunicacion/calendario?m=${nextActivity.deadline.slice(0, 7)}&d=${nextActivity.deadline}`}
           className="card p-4 mb-4 flex items-center justify-between gap-3 hover:bg-hover transition-colors">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Tu próxima actividad</p>
+            <p className="text-[11px] font-bold" style={{ color: "var(--text-3)" }}>Tu próxima actividad</p>
             <p className="text-[13.5px] font-semibold truncate mt-0.5">{nextActivity.requests?.title ?? "Actividad"}</p>
           </div>
           <span className="text-[12.5px] font-bold shrink-0" style={{ color: "var(--accent)" }}>
@@ -260,7 +260,7 @@ export default function CalendarioClient({
                     outlineOffset: "-2px",
                   }}>
                   <div className="flex items-center justify-between">
-                    <p className="text-[10.5px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
+                    <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
                     <p className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
                   </div>
                   {holidayOf.get(c.date) && <p className="text-[10px] font-semibold" style={{ color: "var(--accent)" }}>{holidayOf.get(c.date)}</p>}

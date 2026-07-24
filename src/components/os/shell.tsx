@@ -264,7 +264,7 @@ function Sidebar({ items, active, onGo, user, onProfileOpen, className, theme }:
           if (!list.length) return null;
           return (
             <div key={sec.id}>
-              <p className="px-2.5 mb-1.5 text-[11px] font-bold uppercase tracking-wider text-text-3">{sec.label}</p>
+              <p className="px-2.5 mb-1.5 text-[11px] font-bold text-text-3">{sec.label}</p>
               <div className="space-y-0.5">
                 {list.map((i) => {
                   const on = active === i.key;

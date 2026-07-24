@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "./ui";
 import { Icon } from "./icons";
-import { useToast } from "@/components/ui";
+import { useToast, DateField } from "@/components/ui";
 import { ImageCropper } from "./image-cropper";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
@@ -176,16 +176,16 @@ export function ProfileModal({
 
               <div className="rounded-sm border border-border divide-y divide-border">
                 <InfoRow icon="cake" label="Fecha de nacimiento" color={color}>
-                  <input
-                    type="date" value={data.birth_date ?? ""}
-                    onChange={(e) => set("birth_date", e.target.value)}
+                  <DateField
+                    value={data.birth_date ?? ""}
+                    onChange={(v) => set("birth_date", v)}
                     className="w-full bg-transparent text-[13.5px] text-text-1 focus:outline-none"
                   />
                 </InfoRow>
                 <InfoRow icon="calendar" label="Fecha de ingreso" color={color}>
-                  <input
-                    type="date" value={data.hire_date ?? ""}
-                    onChange={(e) => set("hire_date", e.target.value)}
+                  <DateField
+                    value={data.hire_date ?? ""}
+                    onChange={(v) => set("hire_date", v)}
                     className="w-full bg-transparent text-[13.5px] text-text-1 focus:outline-none"
                   />
                 </InfoRow>

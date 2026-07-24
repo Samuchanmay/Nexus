@@ -93,7 +93,7 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
       <PageHeader title="Horarios" subtitle="Hora de entrada y horas objetivo por persona — crea horarios temporales para cubrir vacaciones u otros periodos" />
 
       <section className="mb-7">
-        <h2 className="text-[12px] font-bold uppercase tracking-wide mb-2.5" style={{ color: "var(--text-3)" }}>
+        <h2 className="text-[12px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
           Horario base
         </h2>
         <div className="card p-2 flex flex-col gap-0.5">
@@ -132,7 +132,7 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
 
       <section>
         <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+          <h2 className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
             Horarios temporales
           </h2>
           <button

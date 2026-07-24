@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Vacation } from "@/lib/types";
-import { useToast, Pill, Avatar, Sheet, SelectField, DateRangeCalendar } from "@/components/ui";
+import { useToast, Pill, Avatar, Sheet, SelectField, DateRangeCalendar, DatePicker } from "@/components/ui";
 import { IconDownload } from "@/components/icons";
 import { useSupabaseMutation } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
@@ -309,17 +309,16 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           </SelectField>
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de inicio</label>
-            <input type="date" className="field-input" value={regStart ?? ""}
-              onChange={(e) => {
-                const v = e.target.value || null;
-                setRegStart(v);
+            <DatePicker value={regStart ?? ""}
+              onChange={(v) => {
+                setRegStart(v || null);
                 if (v && regEnd && v > regEnd) setRegEnd(null);
               }} />
           </div>
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de fin</label>
-            <input type="date" className="field-input" value={regEnd ?? ""} min={regStart ?? undefined} disabled={!regStart}
-              onChange={(e) => setRegEnd(e.target.value || null)} />
+            <DatePicker value={regEnd ?? ""} minDate={regStart ?? undefined} disabled={!regStart}
+              onChange={(v) => setRegEnd(v || null)} />
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 mt-3.5 flex-wrap">

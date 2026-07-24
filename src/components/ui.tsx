@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { IconCheck, IconMoon, IconSun } from "./icons";
+import { IconCheck, IconMoon, IconSun, IconCalendar } from "./icons";
 import { MONTHS, DOW, buildMonthGrid, monthBounds, shiftMonth } from "@/lib/calendar-grid";
 
 /* ── Toast ── */
@@ -178,6 +178,132 @@ export function DateField({ value, onChange, className, placeholder = "dd/mm/aaa
       onChange={(e) => handle(e.target.value)} inputMode="numeric" maxLength={10}
     />
   );
+}
+
+/* ── DatePicker: calendario propio en popover — reemplaza <input type="date">
+   (que abre el selector nativo del sistema operativo y rompe la identidad
+   visual de Nexus). Reusa la rejilla mensual de DateRangeCalendar/Calendario
+   pero para un solo día, ancorado a un DateField para poder también escribir
+   la fecha directamente. ── */
+export function DatePicker({ value, onChange, placeholder = "dd/mm/aaaa", className, minDate, maxDate, disabled }: {
+  value: string; onChange: (iso: string) => void; placeholder?: string; className?: string;
+  minDate?: string; maxDate?: string; disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [ym, setYm] = useState<string>((value || minDate || todayIso).slice(0, 7));
+  useEffect(() => { if (open) setYm((value || minDate || todayIso).slice(0, 7)); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { first, last, daysInMonth, year, month } = monthBounds(ym);
+  const cells = useMemo(() => buildMonthGrid(first, last, daysInMonth), [first, last, daysInMonth]);
+
+  const isBlocked = (date: string) => (!!minDate && date < minDate) || (!!maxDate && date > maxDate);
+
+  const pick = (date: string) => {
+    if (isBlocked(date)) return;
+    onChange(date);
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <DateField value={value} onChange={onChange} className={className} placeholder={placeholder} />
+        <button type="button" disabled={disabled} onClick={() => setOpen((v) => !v)}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-sm transition-colors hover:bg-hover"
+          style={{ color: "var(--text-3)" }} aria-label="Abrir calendario">
+          <IconCalendar className="w-[15px] h-[15px]" />
+        </button>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1.5 z-50 nx-pop" style={{ width: 280 }}>
+            <div className="rounded-md overflow-hidden shadow-nx" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+              <div className="flex items-center justify-between px-3.5 py-2.5" style={{ background: "var(--surface-2)" }}>
+                <button type="button" onClick={() => setYm(shiftMonth(ym, -1))}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[15px] font-bold"
+                  style={{ color: "var(--text-2)" }} aria-label="Mes anterior">‹</button>
+                <p className="text-[13px] font-bold capitalize">{MONTHS[month - 1]} {year}</p>
+                <button type="button" onClick={() => setYm(shiftMonth(ym, 1))}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[15px] font-bold"
+                  style={{ color: "var(--text-2)" }} aria-label="Mes siguiente">›</button>
+              </div>
+              <div className="grid grid-cols-7 px-2.5 pt-2.5 text-center">
+                {DOW.map((d) => (
+                  <span key={d} className="text-[10px] font-semibold py-1" style={{ color: "var(--text-3)" }}>{d}</span>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-[3px] px-2.5 pb-3">
+                {cells.map((c) => {
+                  const blocked = isBlocked(c.date);
+                  const selected = c.date === value;
+                  const isToday = c.date === todayIso;
+                  return (
+                    <button
+                      key={c.date} type="button" disabled={!c.inMonth || blocked}
+                      onClick={() => pick(c.date)}
+                      className="aspect-square rounded-sm text-[12px] font-semibold flex items-center justify-center transition-colors"
+                      style={{
+                        opacity: c.inMonth ? 1 : 0.22,
+                        background: selected ? "var(--accent)" : "transparent",
+                        color: selected ? "#fff" : blocked && c.inMonth ? "var(--text-3)" : "var(--text-1)",
+                        boxShadow: isToday && !selected ? "inset 0 0 0 1.5px var(--accent)" : "none",
+                        cursor: !c.inMonth || blocked ? "default" : "pointer",
+                      }}>
+                      {c.day}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Menu / MenuItem: menú desplegable propio (look Apple, ancla junto al
+   botón que lo abre) — reemplaza los menús ad-hoc que se repetían por
+   pantalla (Acciones en Proyectos, menú del avatar en el shell). ── */
+export function Menu({ trigger, align = "right", width = 210, children }: {
+  trigger: (props: { onClick: () => void; open: boolean }) => React.ReactNode;
+  align?: "left" | "right";
+  width?: number;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      {trigger({ onClick: () => setOpen((v) => !v), open })}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className={`absolute ${align === "right" ? "right-0" : "left-0"} top-full mt-1.5 z-50 nx-pop`}
+            style={{ width }}
+            onClick={() => setOpen(false)}
+          >
+            <div className="rounded-lg overflow-hidden shadow-nx" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
+              {children}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function MenuItem({ icon, children, onClick, danger, href, download }: {
+  icon?: React.ReactNode; children: React.ReactNode; onClick?: () => void; danger?: boolean;
+  href?: string; download?: string;
+}) {
+  const cls = "w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-left transition-colors hover:bg-hover";
+  const style = { color: danger ? "var(--danger)" : "var(--text-1)" };
+  if (href) {
+    return <a href={href} download={download} onClick={onClick} className={cls} style={style}>{icon}{children}</a>;
+  }
+  return <button type="button" onClick={onClick} className={cls} style={style}>{icon}{children}</button>;
 }
 
 /* ── SelectField: select nativo con chevron propio (look Apple, sin la flecha fea del navegador) ── */

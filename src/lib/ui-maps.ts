@@ -4,14 +4,20 @@
 // ═══════════════════════════════════════════════════════════════
 import type { Incident, Priority, RequestStatus, Vacation } from "./types";
 
-/** Tono visual por estado de solicitud/proyecto (usado por <Pill/>). */
+/** Tono visual por estado de solicitud/proyecto (usado por <Pill/>).
+ * El azul (accent) se reserva solo para "en_progreso" — el único estado
+ * realmente activo. "Aprobada" ya no compite por el mismo azul: es un
+ * estado neutro (aprobado pero no necesariamente en marcha todavía). */
 export const STATUS_TONE: Record<RequestStatus, "warn" | "accent" | "ok" | "danger" | "muted"> = {
-  solicitada: "warn", aprobada: "accent", en_progreso: "accent",
+  solicitada: "warn", aprobada: "muted", en_progreso: "accent",
   en_revision: "warn", completada: "ok", pausada: "muted", cancelada: "danger",
 };
 
+/** "Normal" ya no es azul — es la prioridad por defecto, no algo que deba
+ * competir visualmente. El azul se reserva para acciones/estados que sí
+ * importan; alta/urgente siguen con warn/danger. */
 export const PRIORITY_TONE: Record<Priority, "muted" | "accent" | "warn" | "danger"> = {
-  baja: "muted", normal: "accent", alta: "warn", urgente: "danger",
+  baja: "muted", normal: "muted", alta: "warn", urgente: "danger",
 };
 
 export const PRIORITY_LABELS: Record<Priority, string> = {

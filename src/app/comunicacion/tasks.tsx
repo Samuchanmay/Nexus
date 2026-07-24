@@ -15,6 +15,7 @@ import type { AssistantMessage } from "@/lib/assistant";
 import { todayMerida, addDays } from "@/lib/tz";
 import { fmtMin } from "@/lib/hours";
 import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } from "@/components/os/ui";
+import { DatePicker } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
 
@@ -312,7 +313,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
       {/* ── Hero — sin recuadro, igual que el saludo de admin ── */}
       <header className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-3">{dateLabel} · Semana {weekNum}</p>
+          <p className="text-[12px] font-semibold text-text-3">{dateLabel} · Semana {weekNum}</p>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-[24px] font-bold text-text-1 mt-0.5">{profile.displayName} <span className="wave-emoji">👋</span></h1>
             {day.hasEntry && day.stateName && (
@@ -328,7 +329,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
           </p>
         </div>
         <div className="rounded-m px-4 py-3 text-center sm:text-right bg-surface-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-3">Tiempo activo</p>
+          <p className="text-[11px] font-semibold text-text-3">Tiempo activo</p>
           <p className={`text-[24px] font-bold tabular-nums ${activeLog ? "text-accent" : pausedAssignment ? "" : "text-text-3"}`}
             style={pausedAssignment && !activeLog ? { color: "var(--warn)" } : undefined}>
             {timerStr}
@@ -386,7 +387,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: activeTask ? "var(--ok)" : "var(--warn)" }} />
-            <p className="text-[12.5px] font-bold uppercase tracking-wide" style={{ color: activeTask ? "var(--ok)" : "var(--warn)" }}>
+            <p className="text-[12.5px] font-bold" style={{ color: activeTask ? "var(--ok)" : "var(--warn)" }}>
               {activeTask ? "En curso ahora" : "En pausa"}
             </p>
           </div>
@@ -506,7 +507,7 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
             Esta actividad quedará marcada como <strong>sin validar</strong> hasta que el administrador la revise.
           </span>
         </div>
-        <p className="text-[11px] font-bold uppercase tracking-wider mb-2.5 text-text-3">Tipo de actividad</p>
+        <p className="text-[11px] font-bold mb-2.5 text-text-3">Tipo de actividad</p>
         <div className="flex flex-wrap gap-2 mb-4">
           {activityTypes.map((t) => (
             <Pill key={t.key} active={actForm.type === t.key} onClick={() => setActForm((f) => ({ ...f, type: t.key }))}>
@@ -521,8 +522,8 @@ export default function MiDiaClient({ profile, day, week, assignments, activityT
           </Field>
           <div className="grid grid-cols-2 gap-2.5">
             <Field label="Fecha">
-              <Input type="date" value={actForm.date} max={todayMerida()}
-                onChange={(e) => setActForm((f) => ({ ...f, date: e.target.value }))} />
+              <DatePicker value={actForm.date} maxDate={todayMerida()}
+                onChange={(v) => setActForm((f) => ({ ...f, date: v }))} />
             </Field>
             <Field label="Tiempo invertido (min)">
               <Input type="number" min="1" placeholder="90"

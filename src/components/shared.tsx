@@ -62,7 +62,7 @@ export function StatCard({ label, value, hint, tone = "default", onClick }: {
   const color = tone === "default" ? "var(--text-1)" : `var(--${tone === "accent" ? "accent" : tone})`;
   return (
     <div className={`card px-4 py-3.5 ${onClick ? "card-hover cursor-pointer" : ""}`} onClick={onClick}>
-      <p className="text-[10.5px] font-bold uppercase tracking-[.07em]" style={{ color: "var(--text-3)" }}>
+      <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>
         {label}
       </p>
       <p className="text-[24px] font-bold mt-1 tabular-nums leading-none" style={{ color }}>{value}</p>

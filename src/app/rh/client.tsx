@@ -423,7 +423,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
         <div className="flex flex-col gap-5">
           {historyByMonth.map(([label, items]) => (
             <div key={label}>
-              <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>{label}</p>
+              <p className="text-[11px] font-bold mb-2" style={{ color: "var(--text-3)" }}>{label}</p>
               <div className="flex flex-col gap-2">
                 {items.map((v) => (
                   <div key={v.id} className="card px-5 py-3 flex items-center justify-between gap-3 flex-wrap">

@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, Pill } from "@/components/ui";
+import { useToast, Pill, DatePicker } from "@/components/ui";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, RequestType, UserProfile, RequestStatus, ActivityType } from "@/lib/types";
 import { notifyAdmins } from "@/lib/notify";
@@ -161,7 +161,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Pill tone="accent">{typeLabel[r.type] ?? r.type}</Pill>
+                    <Pill tone="muted">{typeLabel[r.type] ?? r.type}</Pill>
                     <Pill tone={STATUS_TONE[effectiveStatus(r)]}>{STATUS_LABELS[effectiveStatus(r)]}</Pill>
                   </div>
                   <p className="text-[14.5px] font-bold">{r.title}</p>
@@ -280,8 +280,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
                 Fecha del evento / entrega *
               </label>
-              <input type="date" className="field-input" value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <DatePicker value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
             </div>
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Hora</label>
@@ -322,7 +321,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
         <div className="flex flex-col gap-4">
           <div className="card p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Pill tone="accent">{meta.label}</Pill>
+              <Pill tone="muted">{meta.label}</Pill>
               {subtypes.map((s) => <Pill key={s} tone="muted">{s}</Pill>)}
             </div>
             <p className="text-[16px] font-bold mb-3">{form.title}</p>

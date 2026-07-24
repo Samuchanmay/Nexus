@@ -112,7 +112,7 @@ export default async function Config() {
       <div className="flex flex-col gap-7">
         {CATEGORIES.map((cat) => (
           <section key={cat.title}>
-            <h2 className="text-[12px] font-bold uppercase tracking-wide mb-2.5" style={{ color: "var(--text-3)" }}>
+            <h2 className="text-[12px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
               {cat.title}
             </h2>
             <div className="grid sm:grid-cols-2 gap-3">

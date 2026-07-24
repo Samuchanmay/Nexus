@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Incident } from "@/lib/types";
-import { useToast, Pill, Sheet } from "@/components/ui";
+import { useToast, Pill, Sheet, DatePicker } from "@/components/ui";
 import { useSupabaseMutation } from "@/components/shared";
 import { IconPlus } from "@/components/icons";
 import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
@@ -144,15 +144,13 @@ export default function IncAdminClient({ incidents, team, adminId }: {
           <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Desde</label>
-              <input type="date" className="field-input" value={form.start}
-                onChange={(e) => setForm({ ...form, start: e.target.value })} />
+              <DatePicker value={form.start} onChange={(v) => setForm({ ...form, start: v })} />
             </div>
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
                 Hasta <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(opcional)</span>
               </label>
-              <input type="date" className="field-input" value={form.end}
-                onChange={(e) => setForm({ ...form, end: e.target.value })} />
+              <DatePicker value={form.end} onChange={(v) => setForm({ ...form, end: v })} />
             </div>
           </div>
           <div>

@@ -288,7 +288,7 @@ export function NotificationBell({ userId }: { userId: string }) {
             ) : (
               groupedByDay(filtered).map((group) => (
                 <div key={group.label}>
-                  <p className="px-5 pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-wide text-text-3 sticky top-0"
+                  <p className="px-5 pt-3 pb-1.5 text-[11px] font-bold text-text-3 sticky top-0"
                     style={{ background: "var(--surface)" }}>
                     {group.label}
                   </p>

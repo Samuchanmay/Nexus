@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, Pill, Sheet, useToast, SelectField, CheckBox } from "@/components/ui";
+import { Avatar, Pill, Sheet, useToast, SelectField, CheckBox, DatePicker, Menu, MenuItem } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { IconDownload } from "@/components/icons";
 import { logAdminAction } from "@/lib/admin-log";
@@ -118,7 +118,6 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
   const [open, setOpen] = useState<string | null>(null); // project_id con el picker abierto
   const [picked, setPicked] = useState("");
   const [saving, setSaving] = useState(false);
-  const [acciones, setAcciones] = useState(false); // móvil — menú "Acciones" (Exportar/Por empleado/PDF)
 
   // ── Añadir proyecto (directo, sin pasar por Solicitud) ──
   const [addOpen, setAddOpen] = useState(false);
@@ -258,7 +257,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
     const badges = (
       <>
-        <Pill tone="accent">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
+        <Pill tone="muted">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
         <Pill tone={STATUS_TONE[p.status as RequestStatus] ?? "muted"}>{STATUS_LABELS[p.status as RequestStatus] ?? p.status}</Pill>
         {(p.priority as Priority) !== "normal" && <Pill tone={PRIORITY_TONE[p.priority as Priority]}>{p.priority}</Pill>}
         {pending.length > 0 && <Pill tone="danger"><span className="inline-flex items-center gap-1"><Icon name="lock" size={11} /> Bloqueada</span></Pill>}
@@ -267,7 +266,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
     const depsBlock = (
       <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Depende de</p>
+        <p className="text-[11px] font-bold mb-1.5" style={{ color: "var(--text-3)" }}>Depende de</p>
         {myDeps.length === 0 && open !== p.id && (
           <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Sin dependencias</p>
         )}
@@ -384,36 +383,29 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
         {/* Móvil — fila compacta: menú "Acciones" (reportes) + Proyecto */}
         <div className="flex md:hidden items-center gap-2 w-full justify-end">
-          <div className="relative">
-            <button className="btn-secondary text-[13px] px-3 py-2 flex items-center gap-1"
-              onClick={() => setAcciones((v) => !v)}>
-              Acciones <Icon name="chevronDown" size={13} />
-            </button>
-            {acciones && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setAcciones(false)} />
-                <div className="absolute right-0 top-full mt-1.5 w-[210px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden z-50 nx-pop">
-                  <a href={activitiesCsvHref} download="actividades.csv"
-                    className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-text-1 hover:bg-hover transition-colors"
-                    onClick={() => { setAcciones(false); if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
-                    <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
-                  </a>
-                  <button className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-text-1 hover:bg-hover transition-colors"
-                    onClick={() => {
-                      setAcciones(false);
-                      if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
-                      printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
-                    }}>
-                    <IconDownload className="w-3.5 h-3.5" /> Por empleado
-                  </button>
-                  <button className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-text-1 hover:bg-hover transition-colors"
-                    onClick={() => { setAcciones(false); window.print(); }}>
-                    <IconDownload className="w-3.5 h-3.5" /> Guardar como PDF
-                  </button>
-                </div>
-              </>
+          <Menu
+            align="right"
+            trigger={({ onClick }) => (
+              <button className="btn-secondary text-[13px] px-3 py-2 flex items-center gap-1" onClick={onClick}>
+                Acciones <Icon name="chevronDown" size={13} />
+              </button>
             )}
-          </div>
+          >
+            <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} href={activitiesCsvHref} download="actividades.csv"
+              onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
+              Exportar CSV
+            </MenuItem>
+            <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />}
+              onClick={() => {
+                if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
+                printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
+              }}>
+              Por empleado
+            </MenuItem>
+            <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} onClick={() => window.print()}>
+              Guardar como PDF
+            </MenuItem>
+          </Menu>
           <button className="btn-primary text-[13px] px-3.5 py-2 flex items-center gap-1 shrink-0" onClick={openAdd}>
             <Icon name="plus" size={14} /> Proyecto
           </button>
@@ -473,7 +465,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
           <div>
             <label className="text-[12px] font-semibold mb-1.5 block" style={{ color: "var(--text-2)" }}>Fecha de entrega (opcional)</label>
-            <input type="date" className="field-input" value={form.deadline} onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))} />
+            <DatePicker value={form.deadline} onChange={(v) => setForm((f) => ({ ...f, deadline: v }))} />
           </div>
 
           <div>
