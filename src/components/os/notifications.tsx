@@ -237,11 +237,6 @@ export function NotificationBell({ userId }: { userId: string }) {
                   Marcar todo leído
                 </button>
               )}
-              <button onClick={() => setOpen(false)} aria-label="Cerrar"
-                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
-                <Icon name="close" size={13} />
-              </button>
             </div>
           </div>
 

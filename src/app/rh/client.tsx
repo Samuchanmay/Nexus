@@ -8,6 +8,7 @@ import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
 import { IconDownload } from "@/components/icons";
 import { EmptyState } from "@/components/shared";
+import { usePersistedView } from "@/lib/persisted-view";
 import { Icon } from "@/components/os/icons";
 import { todayMerida, addDays, shortDate, seniorityLabel, dmy, nextAnniversary } from "@/lib/tz";
 import { VACATION_TONE } from "@/lib/ui-maps";
@@ -155,17 +156,17 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
   team: Member[]; attendance: AttendanceRow[]; schedules: Schedule[];
   vacations: Vacation[]; holidays: { date: string; name: string }[]; states: JornadaState[];
 }) {
-  const [period, setPeriod] = useState("Quincena");
+  const [period, setPeriod] = usePersistedView("rh.period", PERIODS, "Quincena");
 
   const cutoff = useMemo(() => addDays(todayMerida(), -PERIOD_DAYS[period]), [period]);
 
   const stats = useMemo(() => {
     const today = todayMerida();
     return team.map((u) => {
-      const currentSched = scheduleFor(schedules, u.id, today) ?? { target_min: 480, tolerance_min: 15 };
+      const currentSched = scheduleFor(schedules, u.id, today) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
       const rows = attendance.filter((r) => r.user_id === u.id && r.date >= cutoff);
       const dates = [...new Set(rows.map((r) => r.date))];
-      const days = dates.map((d) => summarizeDay(d, rows, scheduleFor(schedules, u.id, d) ?? { target_min: 480, tolerance_min: 15 }, states));
+      const days = dates.map((d) => summarizeDay(d, rows, scheduleFor(schedules, u.id, d) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" }, states));
       const closed = days.filter((d) => !d.isOpen);
       const total = closed.reduce((s, d) => s + d.totalMin, 0);
       const extra = closed.reduce((s, d) => s + d.extraMin, 0);

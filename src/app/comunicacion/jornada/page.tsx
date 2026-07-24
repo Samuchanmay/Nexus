@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime, scheduleFor } from "@/lib/hours";
+import { resolvePresence } from "@/lib/status";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { Pill } from "@/components/ui";
@@ -26,7 +27,7 @@ export default async function Jornada() {
   const rows = (att ?? []) as AttendanceRow[];
   const dates = [...new Set(rows.map((r) => r.date))];
   const days = dates.map((d) => summarizeDay(
-    d, rows, scheduleFor(scheds, profile!.id, d) ?? { target_min: 480, tolerance_min: 15 }, states,
+    d, rows, scheduleFor(scheds, profile!.id, d) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" }, states,
   ));
   const totalMin = days.reduce((s, d) => s + d.totalMin, 0);
   const totalExtra = days.reduce((s, d) => s + d.extraMin, 0);
@@ -34,13 +35,19 @@ export default async function Jornada() {
   // ── Hoy — indicador grande (Plano de refinamiento Fase 2): el número de
   // hoy es lo primero que se debe leer, no un dato más perdido en la lista.
   const todayIso = todayMerida();
-  const todaySchedule = scheduleFor(scheds, profile!.id, todayIso) ?? { target_min: 480, tolerance_min: 15 };
+  const todaySchedule = scheduleFor(scheds, profile!.id, todayIso) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
   const todayEntry = days.find((d) => d.date === todayIso);
   const todayTotalMin = todayEntry?.totalMin ?? 0;
   const todayTargetMin = todayEntry?.targetMin ?? todaySchedule.target_min;
   const todayPct = todayTargetMin > 0 ? Math.min(100, Math.round((todayTotalMin / todayTargetMin) * 100)) : 0;
-  const todayStatus = !todayEntry ? "Sin iniciar" : todayEntry.isOpen ? "En curso" : "Jornada terminada";
-  const todayStatusColor = !todayEntry ? "var(--text-3)" : todayEntry.isOpen ? "var(--ok)" : todayEntry.metTarget ? "var(--ok)" : "var(--warn)";
+  const todayPresence = resolvePresence({
+    firstIn: todayEntry?.firstIn ?? null, isOpen: todayEntry?.isOpen ?? false,
+    noRegistroSalida: todayEntry?.noRegistroSalida ?? false, liveStateName: null, liveStateColor: null,
+  });
+  const todayStatus = todayPresence.label;
+  const todayStatusColor = !todayEntry ? "var(--text-3)"
+    : todayEntry.noRegistroSalida ? "var(--danger)"
+    : todayEntry.isOpen ? "var(--ok)" : todayEntry.metTarget ? "var(--ok)" : "var(--warn)";
 
   return (
     <>
@@ -54,7 +61,7 @@ export default async function Jornada() {
           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: todayStatusColor }} />
           <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Hoy · {todayStatus}</p>
         </div>
-        <p className="text-[40px] font-bold tabular-nums leading-none">{fmtMin(todayTotalMin)}</p>
+        <p className="text-[40px] font-bold tabular-nums leading-none">{todayEntry?.noRegistroSalida ? "—" : fmtMin(todayTotalMin)}</p>
         <div className="mt-4">
           <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
             <div className="h-full rounded-full" style={{ width: `${todayPct}%`, background: todayPct >= 100 ? "var(--ok)" : "var(--accent)" }} />
@@ -109,7 +116,8 @@ export default async function Jornada() {
                 <div className="flex items-center gap-2.5">
                   {isHoliday
                     ? <Pill tone="accent">Inhábil</Pill>
-                    : d.isOpen ? <Pill tone="ok">En curso</Pill>
+                    : d.noRegistroSalida ? <Pill tone="danger">No registró salida</Pill>
+                    : d.isOpen ? <Pill tone="ok">Trabajando</Pill>
                     : <Pill tone={d.metTarget ? "ok" : "warn"}>{fmtMin(d.totalMin)}</Pill>}
                 </div>
               </summary>

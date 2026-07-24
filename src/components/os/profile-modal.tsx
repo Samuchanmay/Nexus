@@ -14,6 +14,9 @@ type ProfileData = {
   rfc: string | null;
   curp: string | null;
   avatar_url: string | null;
+  title: string | null;
+  honorific: string | null;
+  area: string | null;
 };
 
 /** Fila tipo "ajustes de iOS": icono en burbuja + etiqueta + valor/input. */
@@ -56,7 +59,7 @@ export function ProfileModal({
     let active = true;
     createClient()
       .from("users")
-      .select("email, birth_date, hire_date, rfc, curp, avatar_url")
+      .select("email, birth_date, hire_date, rfc, curp, avatar_url, title, honorific, area")
       .eq("id", userId)
       .single()
       .then(({ data: row }) => { if (active && row) { setData(row as ProfileData); setLoading(false); } });
@@ -127,11 +130,6 @@ export function ProfileModal({
         className="relative w-full max-w-[420px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} aria-label="Cerrar"
-          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full grid place-items-center bg-black/25 text-white hover:bg-black/40 transition-colors backdrop-blur-sm">
-          <Icon name="close" size={16} />
-        </button>
-
         {/* Portada con el color del usuario */}
         <div className="h-20 relative"
           style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 60%, black))` }} />
@@ -159,7 +157,7 @@ export function ProfileModal({
           <p className="text-[17px] font-bold text-text-1 mt-2.5">{name}</p>
           <span className="mt-1 mb-4 px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold"
             style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}>
-            {roleLabel}
+            {(data?.honorific ? `${data.honorific} ` : "") + (data?.title || roleLabel)}
           </span>
         </div>
 

@@ -13,6 +13,7 @@ import { PRIORITY_TONE, KIND_LABELS, INCIDENT_TONE } from "@/lib/ui-maps";
 import { fmtMin, fmtTime } from "@/lib/hours";
 import { dmy } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
+import { resolvePresence } from "@/lib/status";
 import type { Priority, RequestType, Incident } from "@/lib/types";
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -31,7 +32,7 @@ export interface TeamMember {
   tasks: { title: string; type: RequestType | null; typeLabel: string | null; priority: Priority; status: string; is_lead: boolean }[];
   today: {
     firstIn: string | null; totalMin: number; targetMin: number; isOpen: boolean; movesCount: number;
-    stateName: string | null; stateColor: string | null;
+    stateName: string | null; stateColor: string | null; noRegistroSalida: boolean;
   };
   upcomingVacs: { start_date: string; end_date: string; status: string }[];
   pendingIncs: { kind: Incident["kind"]; start_date: string; end_date: string; status: Incident["status"] }[];
@@ -80,17 +81,19 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
               className="card card-hover w-full text-left cursor-pointer flex items-center gap-4 px-5 py-3.5 flex-wrap md:flex-nowrap">
               {/* Persona */}
               <div className="flex items-center gap-3 w-full md:w-[210px] shrink-0">
-                <Avatar name={u.display_name} color={u.nexus_color} size={36} avatarUrl={u.avatar_url}
-                  birthday={isBirthdayToday(u.birth_date, todayISO())}
-                  status={
-                    vac.today || vac.soonDays != null ? "var(--purple)"
-                    : u.today.isOpen ? (u.today.stateColor ?? "var(--ok)") : u.today.firstIn ? "var(--text-3)" : null
-                  }
-                  statusLabel={
-                    vac.today ? "Vacaciones"
-                    : vac.soonDays != null ? soonLabel(vac.soonDays)
-                    : u.today.isOpen ? (u.today.stateName ?? "Trabajando") : u.today.firstIn ? "Jornada terminada" : "Sin iniciar"
-                  } />
+                {(() => {
+                  const presence = resolvePresence({
+                    firstIn: u.today.firstIn, isOpen: u.today.isOpen, noRegistroSalida: u.today.noRegistroSalida,
+                    liveStateName: u.today.stateName, liveStateColor: u.today.stateColor, onVacationToday: vac.today,
+                  });
+                  const showSoon = vac.soonDays != null && !vac.today;
+                  return (
+                    <Avatar name={u.display_name} color={u.nexus_color} size={36} avatarUrl={u.avatar_url}
+                      birthday={isBirthdayToday(u.birth_date, todayISO())}
+                      status={showSoon ? "var(--purple)" : presence.color}
+                      statusLabel={showSoon ? soonLabel(vac.soonDays as number) : presence.label} />
+                  );
+                })()}
                 <div className="min-w-0">
                   <p className="text-[14px] font-bold truncate">{u.display_name}</p>
                   <p className="text-[11px] truncate" style={{ color: "var(--text-3)" }}>
@@ -139,22 +142,37 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                 en vez de tres cajitas de igual peso (Entrada/Laborado/Objetivo). */}
             <section>
               {(() => {
-                const dotColor = !sel.today.firstIn ? "var(--text-3)" : sel.today.isOpen ? (sel.today.stateColor ?? "var(--ok)") : "var(--text-3)";
-                const statusLabel = !sel.today.firstIn ? "Sin iniciar" : sel.today.isOpen ? (sel.today.stateName ?? "En curso") : "Jornada terminada";
+                const vac = vacationStatus(sel.upcomingVacs, today);
+                const presence = resolvePresence({
+                  firstIn: sel.today.firstIn, isOpen: sel.today.isOpen, noRegistroSalida: sel.today.noRegistroSalida,
+                  liveStateName: sel.today.stateName, liveStateColor: sel.today.stateColor, onVacationToday: vac.today,
+                });
+                if (vac.today) {
+                  const current = sel.upcomingVacs.find((v) => v.status === "Aprobada" && v.start_date <= today && v.end_date >= today);
+                  return (
+                    <div className="flex items-center gap-3 rounded-m px-4 py-3.5" style={{ background: "var(--purple-tint)" }}>
+                      <Icon name="plane" size={20} style={{ color: "var(--purple)" }} />
+                      <div>
+                        <p className="text-[14px] font-bold" style={{ color: "var(--purple)" }}>Vacaciones</p>
+                        {current && <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>{dmy(current.start_date)} → {dmy(current.end_date)}</p>}
+                      </div>
+                    </div>
+                  );
+                }
                 const pct = sel.today.targetMin > 0 ? Math.min(100, Math.round((sel.today.totalMin / sel.today.targetMin) * 100)) : 0;
                 return (
                   <>
                     <div className="flex items-center justify-between mb-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} />
-                        <span className="text-[13px] font-bold" style={{ color: "var(--text-2)" }}>Hoy · {statusLabel}</span>
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: presence.color }} />
+                        <span className="text-[13px] font-bold" style={{ color: "var(--text-2)" }}>Hoy · {presence.label}</span>
                       </div>
                       <span className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
                         {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
                       </span>
                     </div>
                     <p className="text-[30px] font-bold tabular-nums leading-none">
-                      {sel.today.firstIn ? fmtMin(sel.today.totalMin) : "—"}
+                      {sel.today.noRegistroSalida ? "—" : sel.today.firstIn ? fmtMin(sel.today.totalMin) : "—"}
                     </p>
                     <div className="mt-3">
                       <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">

@@ -33,7 +33,7 @@ function weekLabelOf(monday: string): string {
 /** Desglose de un día para el Excel: entrada, salida a comer, regreso, salida final. */
 function buildDayDetail(
   date: string, rows: AttendanceRow[],
-  sched: Pick<Schedule, "target_min" | "tolerance_min">, states: JornadaState[],
+  sched: Pick<Schedule, "target_min" | "tolerance_min" | "end_time">, states: JornadaState[],
 ): DayDetail {
   const mv = rows.filter((r) => r.date === date).sort((a, b) => a.time.localeCompare(b.time));
   const entradas = mv.filter((m) => m.type === "Entrada");
@@ -96,7 +96,10 @@ export default async function AsistenciaEquipo() {
   const vacationOf = new Map((vacs ?? []).map((v) => {
     const today_ = v.start_date <= today && v.end_date >= today;
     const until = daysUntil(v.start_date);
-    return [v.user_id, { today: today_, soonDays: !today_ && until >= 0 && until <= PROXIMO_DIAS ? until : null }];
+    return [v.user_id, {
+      today: today_, soonDays: !today_ && until >= 0 && until <= PROXIMO_DIAS ? until : null,
+      startDate: v.start_date, endDate: v.end_date,
+    }];
   }));
   const states = (jornadaStates ?? []) as JornadaState[];
   const settingsMap = new Map((settingsRows ?? []).map((s) => [s.key, s.value as string]));
@@ -113,17 +116,18 @@ export default async function AsistenciaEquipo() {
       end_time: sched?.end_time ?? "18:00:00",
       target_min: sched?.target_min ?? 480,
     };
-    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 }, states);
+    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" }, states);
     return {
       user: {
         id: u.id, display_name: u.display_name, area: u.area, title: u.title,
         nexus_color: u.nexus_color, avatar_url: u.avatar_url, birth_date: u.birth_date,
-        vacation: vacationOf.get(u.id) ?? { today: false, soonDays: null },
+        vacation: vacationOf.get(u.id) ?? { today: false, soonDays: null, startDate: null, endDate: null },
       },
       schedule,
       day: {
         firstIn: day.firstIn, lastOut: day.lastOut, totalMin: day.totalMin,
         targetMin: day.targetMin, metTarget: day.metTarget, isOpen: day.isOpen,
+        noRegistroSalida: day.noRegistroSalida,
         movements: day.movements.map((m) => ({ id: m.id, type: m.type, reason: m.reason, time: m.time })),
       },
     };
@@ -137,7 +141,7 @@ export default async function AsistenciaEquipo() {
     const dates = [...new Set(myRows.map((r) => r.date))];
     const byWeek = new Map<string, { totalMin: number; extraMin: number; days: number }>();
     for (const d of dates) {
-      const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, d) ?? { target_min: 480, tolerance_min: 15 };
+      const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, d) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
       const day = summarizeDay(d, myRows, daySched, states);
       const wk = mondayOf(d);
       const acc = byWeek.get(wk) ?? { totalMin: 0, extraMin: 0, days: 0 };
@@ -161,7 +165,7 @@ export default async function AsistenciaEquipo() {
       const days: DayDetail[] = [];
       for (let i = 0; i < 6; i++) { // Lunes..Sábado
         const date = addDays(wk, i);
-        const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, date) ?? { target_min: 480, tolerance_min: 15 };
+        const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, date) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
         days.push(buildDayDetail(date, myRows, daySched, states));
       }
       weekBlocks.push({ userId: u.id, name: u.display_name, color: u.nexus_color ?? "#5856D6", weekStart: wk, weekLabel: weekLabelOf(wk), days });

@@ -10,6 +10,7 @@ import { mexicanHolidays } from "@/lib/holidays";
 import { MONTHS, DOW, shiftMonth, monthBounds, buildMonthGrid } from "@/lib/calendar-grid";
 import { todayMerida } from "@/lib/tz";
 import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
+import { usePersistedView } from "@/lib/persisted-view";
 
 const KIND_ICON: Record<HolidayKind, React.ComponentType<{ className?: string }>> = {
   nacional: IconCalendar, estatal: IconMapPin, empresa: IconFolder, puente: IconSun,
@@ -21,7 +22,9 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
   const [form, setForm] = useState({ date: "", name: "", kind: "empresa" });
   const [genYear, setGenYear] = useState(String(new Date().getFullYear()));
   const { run: runGen, saving: generating } = useSupabaseMutation();
-  const [view, setView] = useState<"Año" | "Mes" | "Lista">("Año");
+  const [view, setView] = usePersistedView<"Año" | "Mes" | "Lista">(
+    "dias-inhabiles.view", ["Año", "Mes", "Lista"], "Año"
+  );
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const today = todayMerida();
   const [ym, setYm] = useState(today.slice(0, 7));

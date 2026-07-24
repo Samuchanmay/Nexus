@@ -389,10 +389,41 @@ export function CheckBox({ checked }: { checked: boolean }) {
   );
 }
 
-/* ── Sheet (modal deslizable desde abajo) ── */
+/* ── Sheet (modal deslizable desde abajo) ──
+   Cierre unificado: click fuera, tecla ESC, o arrastrar hacia abajo
+   desde el handle/encabezado. Sin botón "X": el handle superior ya
+   comunica que el panel es deslizable. */
 export function Sheet({ open, onClose, title, subtitle, children }: {
   open: boolean; onClose: () => void; title: string; subtitle?: string; children: React.ReactNode;
 }) {
+  const [dragY, setDragY] = useState(0);
+  const dragging = useRef(false);
+  const startY = useRef(0);
+
+  useEffect(() => {
+    if (!open) return;
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [open, onClose]);
+
+  useEffect(() => { if (!open) setDragY(0); }, [open]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    dragging.current = true;
+    startY.current = e.touches[0].clientY;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!dragging.current) return;
+    const delta = e.touches[0].clientY - startY.current;
+    if (delta > 0) setDragY(delta);
+  };
+  const onTouchEnd = () => {
+    dragging.current = false;
+    if (dragY > 90) onClose();
+    setDragY(0);
+  };
+
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center"
       style={{
@@ -408,20 +439,18 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
           borderRadius: "26px 26px 0 0",
           borderTop: "0.5px solid var(--border-2)",
           boxShadow: "0 -8px 60px rgba(0,0,0,0.18)",
-          transform: open ? "translateY(0)" : "translateY(100%)",
-          transition: "transform .46s var(--spring)",
+          transform: open ? `translateY(${dragY}px)` : "translateY(100%)",
+          transition: dragY ? "none" : "transform .46s var(--spring)",
         }}>
-        <div className="w-[34px] h-[5px] rounded-[3px] mx-auto mt-3" style={{ background: "var(--surface-3)" }} />
-        <div className="flex items-center justify-between px-5 pt-4">
-          <h2 className="text-[19px] font-bold tracking-tight">{title}</h2>
-          {subtitle && <p className="text-[13px] mt-1" style={{ color: "var(--text-2)" }}>{subtitle}</p>}
-          <button onClick={onClose} aria-label="Cerrar"
-            className="w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className="w-[13px] h-[13px]">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+        <div
+          className="cursor-grab active:cursor-grabbing"
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        >
+          <div className="w-[34px] h-[5px] rounded-[3px] mx-auto mt-3" style={{ background: "var(--surface-3)" }} />
+          <div className="flex items-center justify-between px-5 pt-4">
+            <h2 className="text-[19px] font-bold tracking-tight">{title}</h2>
+            {subtitle && <p className="text-[13px] mt-1" style={{ color: "var(--text-2)" }}>{subtitle}</p>}
+          </div>
         </div>
         <div className="px-5 pt-4">{children}</div>
       </div>

@@ -8,6 +8,7 @@ import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { dmy, addDays } from "@/lib/tz";
 import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
+import { usePersistedView } from "@/lib/persisted-view";
 
 const HOLIDAY_KIND_ICON: Record<HolidayKind, string> = {
   nacional: "calendar", estatal: "pin", empresa: "building", puente: "sun",
@@ -58,12 +59,17 @@ export default function CalendarioClient({
   initialFocusDate?: string;
 }) {
   const router = useRouter();
-  const [view, setView] = useState<"Asistencia" | "Equipo">("Equipo");
+  const [view, setView] = usePersistedView<"Asistencia" | "Equipo">(
+    "calendario.admin.view", ["Asistencia", "Equipo"], "Equipo"
+  );
   // Granularidad Día/Semana/Mes (Plano Maestro — pedido explícito: "que haya
   // la opción de poner día, semana o mes"). focusDate es la fecha "activa"
   // para Día/Semana; en Mes no se usa para la rejilla pero sí para saber
   // qué semana mostrar si se cambia a Semana desde un día cualquiera.
-  const [granularity, setGranularity] = useState<"Día" | "Semana" | "Mes">("Mes");
+  // Persistida: no debe reiniciar a "Mes" al salir y volver a entrar (punto 1).
+  const [granularity, setGranularity] = usePersistedView<"Día" | "Semana" | "Mes">(
+    "calendario.admin.granularity", ["Día", "Semana", "Mes"], "Mes"
+  );
   const [focusDate, setFocusDate] = useState(initialFocusDate ?? today);
 
   const first = `${ym}-01`;

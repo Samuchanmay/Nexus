@@ -38,12 +38,6 @@ export function Shell({
     router.push("/login");
   };
   const { theme, toggle } = useTheme();
-  // Badge del atajo de búsqueda: ⌘ solo en Mac, "Ctrl" en Windows/Linux —
-  // antes se mostraba ⌘K fijo sin importar el sistema operativo del usuario.
-  const [isMac, setIsMac] = useState(false);
-  useEffect(() => {
-    setIsMac(/Mac|iPod|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent));
-  }, []);
 
   // ⌘K / Ctrl+K abre el Spotlight
   useEffect(() => {
@@ -62,8 +56,7 @@ export function Shell({
   return (
     <div className="nx-os min-h-screen bg-bg flex mesh" data-mesh={role}>
       {/* Sidebar */}
-      <Sidebar items={items} active={active} onGo={go} user={user}
-        onProfileOpen={() => setProfileOpen(true)}
+      <Sidebar items={items} active={active} onGo={go}
         className="hidden md:flex" theme={theme} />
 
       {/* Drawer móvil */}
@@ -71,8 +64,7 @@ export function Shell({
         <div className="md:hidden fixed inset-0 z-40 nx-fade" onClick={() => setDrawer(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="absolute inset-y-0 left-0 nx-slide" onClick={(e) => e.stopPropagation()} style={{ animation: "nx-slide .2s ease both" }}>
-            <Sidebar items={items} active={active} onGo={go} user={user}
-              onProfileOpen={() => setProfileOpen(true)}
+            <Sidebar items={items} active={active} onGo={go}
               className="flex h-full" theme={theme} />
           </div>
         </div>
@@ -86,26 +78,25 @@ export function Shell({
           <div className="flex-1" />
           <button
             onClick={() => setSpot(true)}
-            className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors"
+            aria-label="Buscar"
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full text-text-3 hover:bg-hover transition-colors"
           >
-            <span className="flex items-center justify-center shrink-0 w-[15px] h-[15px]">
-              <Icon name="search" size={15} />
+            <Icon name="search" size={16} />
+          </button>
+          <button
+            onClick={() => setSpot(true)}
+            className="hidden sm:flex items-center gap-1.5 h-8 pl-2.5 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors"
+          >
+            <span className="flex items-center justify-center shrink-0 w-[13px] h-[13px]">
+              <Icon name="search" size={13} />
             </span>
-            <span className="text-[13px] leading-none shrink-0">Buscar…</span>
-            <span className="flex items-center gap-0.5 ml-2 shrink-0">{isMac ? <Kbd>⌘</Kbd> : <Kbd>Ctrl</Kbd>}<Kbd>K</Kbd></span>
+            <span className="text-[12px] leading-none shrink-0">Buscar</span>
           </button>
           {actions}
           <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Cambiar tema" onClick={toggle} />
           <NotificationBell userId={user.id} />
           <button
-            className="ml-1 hidden md:inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            title={user.name}
-            onClick={() => setProfileOpen(true)}
-          >
-            <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
-          </button>
-          <button
-            className="ml-1 md:hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="ml-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             title={user.name}
             onClick={() => setAvatarMenu(true)}
           >
@@ -114,10 +105,16 @@ export function Shell({
         </header>
 
         {avatarMenu && (
-          <MobileAvatarMenu
+          <UserMenu
+            hasJornada={items.some((i) => i.key === "jornada")}
+            hasVacaciones={items.some((i) => i.key === "vacaciones")}
             hasConfig={hasConfig}
+            theme={theme}
             onProfile={() => { setAvatarMenu(false); setProfileOpen(true); }}
+            onJornada={() => { setAvatarMenu(false); go("jornada"); }}
+            onVacaciones={() => { setAvatarMenu(false); go("vacaciones"); }}
             onConfig={() => { setAvatarMenu(false); go("config"); }}
+            onToggleTheme={() => { setAvatarMenu(false); toggle(); }}
             onSignOut={() => { setAvatarMenu(false); signOut(); }}
             onClose={() => setAvatarMenu(false)}
           />
@@ -208,27 +205,54 @@ function MobileBottomNav({ items, active, onGo, ficharAction }: {
   );
 }
 
-/* ───────────────────────── Menú del avatar (móvil) ─────────────────────────
-   Reemplaza a la pestaña "Más": perfil, configuración (si el rol la tiene)
-   y cerrar sesión, anclado bajo el avatar del header. */
-function MobileAvatarMenu({ hasConfig, onProfile, onConfig, onSignOut, onClose }: {
-  hasConfig: boolean; onProfile: () => void; onConfig: () => void; onSignOut: () => void; onClose: () => void;
+/* ───────────────────────── Centro de Usuario (avatar superior) ─────────────────────────
+   Un solo menú anclado al avatar del header (escritorio y móvil): perfil,
+   accesos directos personales, tema y cerrar sesión. Sustituye por completo
+   al perfil inferior del Sidebar — ya no hay dos lugares para lo mismo. */
+function UserMenu({
+  hasJornada, hasVacaciones, hasConfig, theme,
+  onProfile, onJornada, onVacaciones, onConfig, onToggleTheme, onSignOut, onClose,
+}: {
+  hasJornada: boolean; hasVacaciones: boolean; hasConfig: boolean; theme: "light" | "dark";
+  onProfile: () => void; onJornada: () => void; onVacaciones: () => void;
+  onConfig: () => void; onToggleTheme: () => void; onSignOut: () => void; onClose: () => void;
 }) {
+  useEffect(() => {
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [onClose]);
+
   return (
-    <div className="md:hidden fixed inset-0 z-50 nx-fade" onClick={onClose}>
+    <div className="fixed inset-0 z-50 nx-fade" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
       <div
-        className="absolute top-[60px] right-3 w-[220px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
+        className="absolute top-[60px] right-3 w-[230px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onProfile} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
-          <Icon name="person" size={16} className="text-text-3" /> Perfil
+          <Icon name="person" size={16} className="text-text-3" /> Mi perfil
         </button>
+        {hasJornada && (
+          <button onClick={onJornada} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
+            <Icon name="clock" size={16} className="text-text-3" /> Mi jornada
+          </button>
+        )}
+        {hasVacaciones && (
+          <button onClick={onVacaciones} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
+            <Icon name="plane" size={16} className="text-text-3" /> Vacaciones
+          </button>
+        )}
         {hasConfig && (
           <button onClick={onConfig} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
             <Icon name="settings" size={16} className="text-text-3" /> Configuración
           </button>
         )}
+        <div className="border-t border-border" />
+        <button onClick={onToggleTheme} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
+          <Icon name={theme === "dark" ? "sun" : "moon"} size={16} className="text-text-3" />
+          Tema {theme === "dark" ? "claro" : "oscuro"}
+        </button>
         <div className="border-t border-border" />
         <button onClick={onSignOut} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold hover:bg-hover transition-colors" style={{ color: "var(--danger)" }}>
           <Icon name="logout" size={16} /> Cerrar sesión
@@ -239,15 +263,9 @@ function MobileAvatarMenu({ hasConfig, onProfile, onConfig, onSignOut, onClose }
 }
 
 /* ───────────────────────── Sidebar ───────────────────────── */
-function Sidebar({ items, active, onGo, user, onProfileOpen, className, theme }: {
-  items: NavItem[]; active: string; onGo: (k: string) => void; user: ShellUser; onProfileOpen: () => void; className?: string; theme: "light" | "dark";
+function Sidebar({ items, active, onGo, className, theme }: {
+  items: NavItem[]; active: string; onGo: (k: string) => void; className?: string; theme: "light" | "dark";
 }) {
-  const router = useRouter();
-  const signOut = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    await createClient().auth.signOut();
-    router.push("/login");
-  };
   return (
     <aside className={cx("w-[248px] shrink-0 flex-col bg-sidebar border-r border-border", className)}>
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border">
@@ -287,27 +305,6 @@ function Sidebar({ items, active, onGo, user, onProfileOpen, className, theme }:
           );
         })}
       </nav>
-
-      <div className="p-3 border-t border-border">
-        <button
-          onClick={onProfileOpen}
-          className="w-full flex items-center gap-2.5 p-2 rounded-sm hover:bg-hover transition-colors cursor-pointer text-left"
-        >
-          <Avatar name={user.name} color={user.color} size={34} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
-          <div className="min-w-0 leading-tight">
-            <p className="text-[13px] font-semibold text-text-1 truncate">{user.name}</p>
-            <p className="text-[11px] text-text-3 truncate">{user.roleLabel}</p>
-          </div>
-          <span
-            className="ml-auto text-text-3 hover:text-danger transition-colors"
-            onClick={signOut}
-            title="Cerrar sesión"
-            role="button"
-          >
-            <Icon name="logout" size={16} />
-          </span>
-        </button>
-      </div>
     </aside>
   );
 }

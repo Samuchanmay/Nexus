@@ -37,7 +37,7 @@ export default async function Equipo() {
       return a.user_id === u.id && p && !["completada", "cancelada"].includes(p.status);
     });
     const sched = scheduleFor((scheds ?? []) as Schedule[], u.id, today);
-    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 }, states);
+    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" }, states);
     const myRows = rows.filter((r) => r.user_id === u.id);
     const last = myRows.at(-1);
     const liveState = day.isOpen && last ? stateAfter(last) : null;
@@ -65,6 +65,7 @@ export default async function Equipo() {
         firstIn: day.firstIn, totalMin: day.totalMin, targetMin: day.targetMin,
         isOpen: day.isOpen, movesCount: day.movements.length,
         stateName: liveState, stateColor: liveState ? (stateColor.get(liveState) ?? null) : null,
+        noRegistroSalida: day.noRegistroSalida,
       },
       upcomingVacs: (vacs ?? []).filter((v) => v.user_id === u.id)
         .map((v) => ({ start_date: v.start_date, end_date: v.end_date, status: v.status })),

@@ -7,9 +7,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
 import { IconDownload } from "@/components/icons";
+import { usePersistedView } from "@/lib/persisted-view";
 import { PageHeader, Switch } from "@/components/shared";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
+import { resolvePresence } from "@/lib/status";
 import { dmy } from "@/lib/tz";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
@@ -20,12 +22,12 @@ import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
 export interface PersonDay {
   user: {
     id: string; display_name: string; area: string | null; title?: string | null; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null;
-    vacation?: { today: boolean; soonDays: number | null };
+    vacation?: { today: boolean; soonDays: number | null; startDate?: string | null; endDate?: string | null };
   };
   schedule: { start_time: string; end_time: string; target_min: number };
   day: {
     firstIn: string | null; lastOut: string | null; totalMin: number;
-    targetMin: number; metTarget: boolean; isOpen: boolean;
+    targetMin: number; metTarget: boolean; isOpen: boolean; noRegistroSalida: boolean;
     movements: { id: string; type: "Entrada" | "Salida"; reason: string; time: string }[];
   };
 }
@@ -94,40 +96,30 @@ function soonLabel(days: number): string {
   return `Vacaciones en ${days} día${days === 1 ? "" : "s"}`;
 }
 
-function estadoPill(day: PersonDay["day"], states: JornadaState[], vacation?: Vacation) {
-  if (vacation?.today) return <Pill tone="purple">Vacaciones</Pill>;
-  if (!day.firstIn) {
-    if (vacation?.soonDays != null) return <Pill tone="purple">{soonLabel(vacation.soonDays)}</Pill>;
-    return <Pill tone="muted">Sin iniciar</Pill>;
-  }
-  if (day.isOpen) {
-    const last = day.movements.at(-1);
-    const liveState = last ? stateAfter(last) : null;
-    if (liveState && liveState !== TRABAJANDO) {
-      return <Pill tone="warn">{liveState}</Pill>;
-    }
-    return <Pill tone="ok">Presente</Pill>;
-  }
-  return <Pill tone={day.metTarget ? "ok" : "warn"}>{day.metTarget ? "Completa" : "Cerrada"}</Pill>;
+/** Estado unificado (lib/status.ts) + los matices propios de esta pantalla
+    (Completa/Cerrada al día terminado, "por iniciar" cuando la vacación es
+    en los próximos días). La vacación de HOY siempre pesa más que cualquier
+    otra cosa — no tiene caso alertar por una jornada que no va a pasar. */
+function estadoOf(day: PersonDay["day"], vacation?: Vacation): { color: string; label: string; tone: "ok" | "warn" | "muted" | "purple" | "danger" } {
+  if (vacation?.today) return { color: "var(--purple)", label: "Vacaciones", tone: "purple" };
+  if (!day.firstIn && vacation?.soonDays != null) return { color: "var(--purple)", label: soonLabel(vacation.soonDays), tone: "purple" };
+  const last = day.movements.at(-1);
+  const liveState = day.isOpen && last ? stateAfter(last) : null;
+  const presence = resolvePresence({
+    firstIn: day.firstIn, isOpen: day.isOpen, noRegistroSalida: day.noRegistroSalida,
+    liveStateName: liveState, liveStateColor: null,
+  });
+  if (day.noRegistroSalida) return { color: presence.color, label: presence.label, tone: "danger" };
+  if (!day.firstIn) return { color: presence.color, label: presence.label, tone: "muted" };
+  if (day.isOpen) return { color: presence.color, label: presence.label, tone: presence.key === "trabajando" ? "ok" : "warn" };
+  return day.metTarget ? { color: "var(--ok)", label: "Completa", tone: "ok" } : { color: "var(--warn)", label: "Cerrada", tone: "warn" };
 }
-
-/** Mismo criterio que estadoPill pero como color+etiqueta, para el
-    anillo de estado del Avatar (no solo el Pill de al lado). La vacación
-    (hoy o por iniciar pronto) siempre pesa más que "sin iniciar" — no
-    tiene caso alertar por una jornada que no va a pasar. */
+function estadoPill(day: PersonDay["day"], states: JornadaState[], vacation?: Vacation) {
+  const e = estadoOf(day, vacation);
+  return <Pill tone={e.tone}>{e.label}</Pill>;
+}
 function estadoStatus(day: PersonDay["day"], vacation?: Vacation): { color: string; label: string } {
-  if (vacation?.today) return { color: "var(--purple)", label: "Vacaciones" };
-  if (!day.firstIn) {
-    if (vacation?.soonDays != null) return { color: "var(--purple)", label: soonLabel(vacation.soonDays) };
-    return { color: "var(--text-3)", label: "Sin iniciar" };
-  }
-  if (day.isOpen) {
-    const last = day.movements.at(-1);
-    const liveState = last ? stateAfter(last) : null;
-    if (liveState && liveState !== TRABAJANDO) return { color: "var(--warn)", label: liveState };
-    return { color: "var(--ok)", label: "Presente" };
-  }
-  return day.metTarget ? { color: "var(--ok)", label: "Completa" } : { color: "var(--warn)", label: "Cerrada" };
+  return estadoOf(day, vacation);
 }
 
 export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId }: {
@@ -135,7 +127,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
   reportSettings: { enabled: boolean; email: string }; today: string; adminId: string;
 }) {
   const toast = useToast();
-  const [view, setView] = useState<"tabla" | "gantt" | "semana">("tabla");
+  const [view, setView] = usePersistedView<"tabla" | "gantt" | "semana">(
+    "asistencia.view", ["tabla", "gantt", "semana"], "tabla"
+  );
   const [sending, setSending] = useState(false);
   const enviarReporte = async () => {
     setSending(true);
@@ -268,53 +262,67 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 </div>
                 {estadoPill(day, states, u.vacation)}
               </div>
-              {(() => {
-                const pct = day.targetMin > 0 ? Math.min(100, Math.round((day.totalMin / day.targetMin) * 100)) : 0;
-                return (
-                  <div className="mb-3">
-                    <p className="text-[26px] font-bold tabular-nums leading-none">
-                      {day.firstIn ? fmtMin(day.totalMin) : "—"}
-                    </p>
-                    <div className="mt-2.5">
-                      <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
-                      </div>
-                      <p className="text-[11px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>
-                        Objetivo {fmtMin(day.targetMin)}{day.firstIn ? ` · Entrada ${fmtTime(day.firstIn)}` : ""}
-                        {!day.isOpen && day.lastOut ? ` · Salida ${fmtTime(day.lastOut)}` : ""}
-                      </p>
-                      <div className="flex items-center gap-2.5 mt-1 flex-wrap">
-                        {day.totalMin > day.targetMin && (
-                          <p className="text-[11px] font-semibold" style={{ color: "var(--ok)" }}>
-                            +{fmtMin(day.totalMin - day.targetMin)} extra
-                          </p>
-                        )}
-                        {mealMinutesOf(day) > 0 && (
-                          <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
-                            Comida {fmtMin(mealMinutesOf(day))}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+              {u.vacation?.today ? (
+                <div className="flex items-center gap-2.5 rounded-m px-3.5 py-3" style={{ background: "var(--purple-tint)" }}>
+                  <span style={{ color: "var(--purple)" }}>🏖</span>
+                  <div>
+                    <p className="text-[13.5px] font-bold" style={{ color: "var(--purple)" }}>Vacaciones</p>
+                    {u.vacation.startDate && u.vacation.endDate && (
+                      <p className="text-[12px]" style={{ color: "var(--text-2)" }}>{dmy(u.vacation.startDate)} → {dmy(u.vacation.endDate)}</p>
+                    )}
                   </div>
-                );
-              })()}
-              {day.movements.length > 0 && (
-                <details className="group">
-                  <summary className="text-[12px] font-semibold cursor-pointer list-none flex items-center gap-1 transition-colors hover:opacity-75" style={{ color: "var(--accent)" }}>
-                    {day.movements.length} movimientos hoy
-                    <span className="transition-transform group-open:rotate-90">→</span>
-                  </summary>
-                  <div className="mt-2">
-                    {day.movements.map((m) => (
-                      <div key={m.id} className="flex justify-between py-1.5 text-[12.5px] rounded-[4px] px-1.5 -mx-1.5 transition-colors hover:bg-hover"
-                        style={{ borderBottom: "0.5px solid var(--border)" }}>
-                        <span>{m.reason}</span>
-                        <span className="font-semibold tabular-nums">{fmtTime(m.time)}</span>
+                </div>
+              ) : (
+                <>
+                  {(() => {
+                    const pct = day.targetMin > 0 ? Math.min(100, Math.round((day.totalMin / day.targetMin) * 100)) : 0;
+                    return (
+                      <div className="mb-3">
+                        <p className="text-[26px] font-bold tabular-nums leading-none">
+                          {day.noRegistroSalida ? "—" : day.firstIn ? fmtMin(day.totalMin) : "—"}
+                        </p>
+                        <div className="mt-2.5">
+                          <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
+                          </div>
+                          <p className="text-[11px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>
+                            Objetivo {fmtMin(day.targetMin)}{day.firstIn ? ` · Entrada ${fmtTime(day.firstIn)}` : ""}
+                            {!day.isOpen && day.lastOut ? ` · Salida ${fmtTime(day.lastOut)}` : ""}
+                          </p>
+                          <div className="flex items-center gap-2.5 mt-1 flex-wrap">
+                            {day.totalMin > day.targetMin && (
+                              <p className="text-[11px] font-semibold" style={{ color: "var(--ok)" }}>
+                                +{fmtMin(day.totalMin - day.targetMin)} extra
+                              </p>
+                            )}
+                            {mealMinutesOf(day) > 0 && (
+                              <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
+                                Comida {fmtMin(mealMinutesOf(day))}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </details>
+                    );
+                  })()}
+                  {day.movements.length > 0 && (
+                    <details className="group">
+                      <summary className="text-[12px] font-semibold cursor-pointer list-none flex items-center gap-1 transition-colors hover:opacity-75" style={{ color: "var(--accent)" }}>
+                        {day.movements.length} movimientos hoy
+                        <span className="transition-transform group-open:rotate-90">→</span>
+                      </summary>
+                      <div className="mt-2">
+                        {day.movements.map((m) => (
+                          <div key={m.id} className="flex justify-between py-1.5 text-[12.5px] rounded-[4px] px-1.5 -mx-1.5 transition-colors hover:bg-hover"
+                            style={{ borderBottom: "0.5px solid var(--border)" }}>
+                            <span>{m.reason}</span>
+                            <span className="font-semibold tabular-nums">{fmtTime(m.time)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </>
               )}
             </div>
           ))}

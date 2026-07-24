@@ -7,6 +7,7 @@ import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
 import { dmy, addDays } from "@/lib/tz";
 import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
+import { usePersistedView } from "@/lib/persisted-view";
 
 const HOLIDAY_KIND_ICON: Record<HolidayKind, string> = {
   nacional: "calendar", estatal: "pin", empresa: "building", puente: "sun",
@@ -57,7 +58,9 @@ export default function CalendarioClient({
   nextActivity?: NextActivity; initialFocusDate?: string;
 }) {
   const router = useRouter();
-  const [granularity, setGranularity] = useState<"Día" | "Semana" | "Mes">("Mes");
+  const [granularity, setGranularity] = usePersistedView<"Día" | "Semana" | "Mes">(
+    "calendario.empleado.granularity", ["Día", "Semana", "Mes"], "Mes"
+  );
   const [focusDate, setFocusDate] = useState(initialFocusDate ?? today);
 
   const first = `${ym}-01`;

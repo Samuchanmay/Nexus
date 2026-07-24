@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
+import { resolvePresence, WORK_STATUS_LABEL } from "@/lib/status";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes, shortDate, addDays } from "@/lib/tz";
@@ -71,7 +72,7 @@ export default async function AdminDashboard() {
     supabase.from("schedules").select("*").eq("user_id", me!.id),
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("id, user_id, type, reason, time").eq("date", today).order("time"),
-    supabase.from("schedules").select("user_id, start_time, tolerance_min, valid_from, valid_until"),
+    supabase.from("schedules").select("user_id, start_time, end_time, tolerance_min, valid_from, valid_until"),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", today).gte("end_date", today),
     supabase.from("requests").select("id, title, priority").eq("status", "solicitada").in("priority", ["alta", "urgente"]),
     supabase.from("holidays").select("date, name").eq("date", today).maybeSingle(),
@@ -104,7 +105,7 @@ export default async function AdminDashboard() {
   const states = (jornadaStates ?? []) as JornadaState[];
   const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
 
-  const sched = scheduleFor((myScheds ?? []) as Schedule[], me!.id, today) ?? ({ target_min: 480, tolerance_min: 15 } as Schedule);
+  const sched = scheduleFor((myScheds ?? []) as Schedule[], me!.id, today) ?? ({ target_min: 480, tolerance_min: 15, end_time: "18:00:00" } as Schedule);
   const myDay = summarizeDay(today, (myAtt ?? []) as AttendanceRow[], sched, states);
   // Igual que en Mi Día del equipo: inicio del tramo de trabajo continuo
   // actual (última "Entrada", del arranque o de retomar tras un descanso).
@@ -174,13 +175,18 @@ export default async function AdminDashboard() {
     const done = rows.some((r) => r.reason === "Fin de jornada");
     const last = rows.at(-1);
     const liveState = last ? stateAfter(last) : null;
-    const status = onVacation.has(u.id) ? "Vacaciones"
-      : done ? "Terminó"
-      : hasIn && liveState ? liveState
-      : "Sin iniciar";
-    const color = status === "Vacaciones" ? "var(--purple)" : stateColor.get(status) ?? null;
+    const uSched = scheduleFor((allScheds ?? []) as { user_id: string; start_time: string; end_time: string; tolerance_min: number; valid_from: string; valid_until: string | null }[], u.id, today);
+    const endMin = toMin((uSched?.end_time ?? "18:00:00").slice(0, 5)) + (uSched?.tolerance_min ?? 15);
+    const noRegistroSalida = hasIn && !done && nowMin > endMin;
+    const presenceStatus = resolvePresence({
+      firstIn: hasIn ? "00:00" : null, isOpen: !done, noRegistroSalida,
+      liveStateName: liveState, liveStateColor: liveState ? (stateColor.get(liveState) ?? null) : null,
+      onVacationToday: onVacation.has(u.id),
+    });
+    const status = done ? "Terminó" : presenceStatus.label;
+    const color = presenceStatus.color;
     const soonDays = soonDaysOf.get(u.id);
-    const display = !color && status === "Sin iniciar" && soonDays != null
+    const display = status === WORK_STATUS_LABEL.sin_iniciar && soonDays != null
       ? { label: soonDays === 0 ? "Vacaciones hoy" : `Vacaciones en ${soonDays} día${soonDays === 1 ? "" : "s"}`, color: "var(--purple)" }
       : { label: status, color };
     return { ...u, status, color, display };

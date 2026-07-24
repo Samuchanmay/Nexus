@@ -12,7 +12,7 @@
 //  · Vacaciones/permisos/HO/inhábiles NUNCA generan falta
 // ══════════════════════════════════════════════════════════
 import type { AttendanceRow, Schedule } from "./types";
-import { nowMeridaMinutes, isoWeekday } from "./tz";
+import { nowMeridaMinutes, isoWeekday, todayMerida } from "./tz";
 
 export interface DaySummary {
   date: string;
@@ -23,6 +23,10 @@ export interface DaySummary {
   extraMin: number;            // max(0, total − target)
   metTarget: boolean;          // con tolerancia
   isOpen: boolean;             // aún sin "Fin de jornada"
+  /** Entrada registrada, nunca hubo salida, y ya pasó el horario + tolerancia:
+   * la jornada sigue ABIERTA (no se cierra sola ni se calculan horas finales)
+   * hasta que RH la corrija o la persona registre salida. */
+  noRegistroSalida: boolean;
   movements: AttendanceRow[];
 }
 
@@ -111,7 +115,7 @@ export const fmtTime = (t: string | null) => {
 export function summarizeDay(
   date: string,
   rows: AttendanceRow[],
-  schedule: Pick<Schedule, "target_min" | "tolerance_min">,
+  schedule: Pick<Schedule, "target_min" | "tolerance_min" | "end_time">,
   states: JornadaState[] = [],
 ): DaySummary {
   const day = rows
@@ -128,9 +132,22 @@ export function summarizeDay(
   const cuentaTiempo = new Map(states.map((s) => [s.nombre, s.cuenta_tiempo]));
   const countsAsWorked = (stateName: string) => cuentaTiempo.get(stateName) ?? true;
 
+  // ── ¿Olvidó registrar salida? — entrada sin salida + ya terminó su horario
+  //    + tolerancia vencida. Un día PASADO que sigue abierto siempre cuenta
+  //    como "ya terminó su horario" (el día ya se fue por completo). ──
+  const isToday = date === todayMerida();
+  const scheduledEndMin = toMin(schedule.end_time) + schedule.tolerance_min;
+  const nowMinForCheck = nowMeridaMinutes();
+  const pastScheduledEnd = isToday ? nowMinForCheck > scheduledEndMin : true;
+  const noRegistroSalida = isOpen && !!firstIn && pastScheduledEnd;
+
   let totalMin = 0;
   if (firstIn) {
     const nowMin = nowMeridaMinutes();
+    // Solo extendemos el último tramo abierto hasta "ahora" si de verdad
+    // sigue en curso dentro de su horario de hoy — nunca en un día vencido
+    // o de una fecha pasada, porque ahí "ahora" no significa nada real.
+    const extendOpenSegmentToNow = isOpen && isToday && !pastScheduledEnd;
     for (let i = 0; i < day.length; i++) {
       const m = day[i];
       if (toMin(m.time) < toMin(firstIn)) continue; // defensivo
@@ -138,7 +155,7 @@ export function summarizeDay(
       if (state === null) break; // "Fin de jornada": ya no hay más tramos
       const next = day[i + 1];
       const segStart = toMin(m.time);
-      const segEnd = next ? toMin(next.time) : (isOpen ? nowMin : segStart);
+      const segEnd = next ? toMin(next.time) : (extendOpenSegmentToNow ? nowMin : segStart);
       if (countsAsWorked(state)) totalMin += Math.max(0, segEnd - segStart);
     }
   }
@@ -149,6 +166,7 @@ export function summarizeDay(
     firstIn,
     lastOut: isOpen ? null : lastOut,
     totalMin,
+    noRegistroSalida,
     targetMin: target_min,
     extraMin: Math.max(0, totalMin - target_min),
     metTarget: totalMin >= target_min - tolerance_min,

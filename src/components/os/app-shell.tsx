@@ -5,13 +5,11 @@
  * Cada rol solo ve los ítems de NAV que ya tienen una página real (HREF abajo);
  * lo que aún no existe simplemente no aparece (nada de datos/enlaces inventados).
  */
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { ThemeProvider } from "@/lib/theme";
 import { Shell, type ShellUser } from "./shell";
-import { Icon } from "./icons";
-import { cx } from "./ui";
+import { HeaderActionsProvider, useHeaderActionSlot } from "@/lib/header-actions";
 import { navFor, type Role } from "@/lib/nav";
 export { roleLabel } from "@/lib/nav";
 
@@ -84,37 +82,45 @@ export function AppShell({
     if (href) router.push(href);
   };
 
-  // Barra superior (desktop/tablet): botón con texto. En celular se oculta
-  // porque no cabe bien junto a buscador/tema/campana — ahí usamos el FAB.
-  const fichar = ficharAction ? (
-    <Link
-      href="/fichar"
-      className={cx(
-        "hidden sm:inline-flex items-center gap-1.5 h-8 px-3 rounded-sm text-[13px] font-semibold whitespace-nowrap",
-        "bg-surface-2 text-text-1 border border-border hover:bg-hover transition-colors duration-150"
-      )}
-    >
-      <Icon name="clock" size={15} /> Registrar entrada/salida
-    </Link>
-  ) : null;
-
-  // Celular: el CTA de Registro de Jornada ahora vive como botón central
-  // elevado dentro del propio tab bar (ver MobileBottomNav en shell.tsx),
-  // en vez del FAB flotante independiente que tenía el diseño anterior.
+  // El acceso a Registro de Jornada ya no se duplica en el Header — vive
+  // como acción primaria dentro del propio Dashboard, y en celular además
+  // como botón central elevado del tab bar (ver MobileBottomNav en shell.tsx).
 
   return (
     <ThemeProvider>
-      <Shell
-        role={role}
-        user={user}
-        active={active}
-        onNavigate={go}
-        title={TITLES[active] ?? "Nexus"}
-        actions={<>{fichar}{actions}</>}
-        ficharAction={ficharAction}
-      >
-        {children}
-      </Shell>
+      <HeaderActionsProvider>
+        <AppShellBody
+          role={role} user={user} active={active} onNavigate={go}
+          title={TITLES[active] ?? "Nexus"} actions={actions} ficharAction={ficharAction}
+        >
+          {children}
+        </AppShellBody>
+      </HeaderActionsProvider>
     </ThemeProvider>
+  );
+}
+
+/** Combina la acción contextual que haya registrado la pantalla activa
+    (useHeaderAction, ej. "Exportar CSV" en Asistencia) con cualquier acción
+    explícita que ya venga del layout — sin duplicar botones (punto 11). */
+function AppShellBody({
+  role, user, active, onNavigate, title, actions, ficharAction, children,
+}: {
+  role: Role; user: ShellUser; active: string; onNavigate: (key: string) => void;
+  title: string; actions?: React.ReactNode; ficharAction: boolean; children: React.ReactNode;
+}) {
+  const contextual = useHeaderActionSlot();
+  return (
+    <Shell
+      role={role}
+      user={user}
+      active={active}
+      onNavigate={onNavigate}
+      title={title}
+      actions={<>{contextual}{actions}</>}
+      ficharAction={ficharAction}
+    >
+      {children}
+    </Shell>
   );
 }

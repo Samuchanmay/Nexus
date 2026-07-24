@@ -10,6 +10,7 @@ import { ImageCropper } from "@/components/os/image-cropper";
 import { todayMerida } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
+import { useHeaderAction } from "@/lib/header-actions";
 
 const NIVEL_LABELS: Record<string, string> = {
   licenciatura: "Licenciatura", centro_educativo: "Centro Educativo", posgrado: "Posgrado",
@@ -48,6 +49,11 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  useHeaderAction(
+    <button onClick={() => setOpen(true)} className="btn-primary px-3.5 h-8 text-[13px] flex items-center gap-1.5">
+      <IconUserPlus className="w-3.5 h-3.5" /> Agregar personal
+    </button>
+  );
   const usedLockedColors = [...areas.map((a) => a.color), rhColor];
   const availableColors = PALETTE.filter((c) => !usedLockedColors.some((u) => u?.toUpperCase() === c.toUpperCase()));
   const [form, setForm] = useState({
@@ -315,16 +321,11 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
 
   return (
     <>
-      <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight">Equipo</h1>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            Solo los correos de esta lista pueden entrar a Nexus
-          </p>
-        </div>
-        <button onClick={() => setOpen(true)} className="btn-primary px-5 py-2.5 text-[13.5px] flex items-center gap-2">
-          <IconUserPlus className="w-4 h-4" /> Agregar personal
-        </button>
+      <header className="pt-8 pb-6">
+        <h1 className="text-[28px] font-bold tracking-tight">Equipo</h1>
+        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
+          Solo los correos de esta lista pueden entrar a Nexus
+        </p>
       </header>
 
       <div className="flex items-center gap-2 flex-wrap mb-4">
