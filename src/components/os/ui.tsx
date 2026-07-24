@@ -203,12 +203,17 @@ export function Avatar({ name, color, size = 34, avatarUrl, birthday, status, st
   // donde se use este componente (header, sidebar, notificaciones, etc.).
   const ring = { boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "var(--accent)"}` };
   const content = avatarUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={avatarUrl} alt={name} title={name}
-      className="inline-block rounded-full object-cover"
-      style={{ width: size, height: size, ...ring }}
-    />
+    // Recorte circular en el span envolvente (overflow:hidden), no en el
+    // <img> — border-radius + object-cover directo en el <img> puede dejar
+    // una esquina sin recortar en algunos navegadores si la imagen fuente
+    // no es cuadrada (se ve "cortado"). El ring vive afuera para que este
+    // mismo overflow:hidden no se lo recorte también a él.
+    <span className="relative block rounded-full shrink-0" style={{ width: size, height: size, ...ring }} title={name}>
+      <span className="block w-full h-full rounded-full overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+      </span>
+    </span>
   ) : (
     <span
       className="inline-grid place-items-center rounded-full font-bold text-white select-none"

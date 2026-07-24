@@ -44,7 +44,24 @@ const loadLabel = (n: number) => n === 0 ? "Disponible" : n === 1 ? "Normal" : n
 const loadColor = (n: number) => n === 0 ? "var(--text-3)" : n === 1 ? "var(--ok)" : n === 2 ? "var(--warn)" : "var(--danger)";
 const loadPct = (n: number) => Math.min(100, Math.max(6, (n / 3) * 100));
 
-export default function EquipoClient({ members }: { members: TeamMember[] }) {
+/** Estado de vacación (hoy o por iniciar en los próximos 3 días) a partir de
+    upcomingVacs — misma ventana/criterio que Hoy admin y Asistencia, para
+    que el punto del Avatar coincida en toda la plataforma. Solo Aprobada:
+    una Pendiente todavía puede no pasar. */
+function vacationStatus(vacs: TeamMember["upcomingVacs"], today: string): { today: boolean; soonDays: number | null } {
+  const aprobadas = vacs.filter((v) => v.status === "Aprobada");
+  if (aprobadas.some((v) => v.start_date <= today && v.end_date >= today)) return { today: true, soonDays: null };
+  const soon = aprobadas
+    .map((v) => Math.round((new Date(v.start_date + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getTime()) / 86400000))
+    .filter((d) => d >= 0 && d <= 3)
+    .sort((a, b) => a - b)[0];
+  return { today: false, soonDays: soon ?? null };
+}
+function soonLabel(days: number): string {
+  return days === 0 ? "Vacaciones hoy" : `Vacaciones en ${days} día${days === 1 ? "" : "s"}`;
+}
+
+export default function EquipoClient({ members, today }: { members: TeamMember[]; today: string }) {
   const [sel, setSel] = useState<TeamMember | null>(null);
 
   return (
@@ -57,6 +74,7 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
       {/* Filas horizontales — carga de cada persona de un vistazo, sin tener que abrir tarjeta por tarjeta */}
       <div className="flex flex-col gap-2">
         {members.map((u) => {
+          const vac = vacationStatus(u.upcomingVacs, today);
           return (
             <button key={u.id} onClick={() => setSel(u)}
               className="card card-hover w-full text-left cursor-pointer flex items-center gap-4 px-5 py-3.5 flex-wrap md:flex-nowrap">
@@ -64,8 +82,15 @@ export default function EquipoClient({ members }: { members: TeamMember[] }) {
               <div className="flex items-center gap-3 w-full md:w-[210px] shrink-0">
                 <Avatar name={u.display_name} color={u.nexus_color} size={36} avatarUrl={u.avatar_url}
                   birthday={isBirthdayToday(u.birth_date, todayISO())}
-                  status={u.today.isOpen ? (u.today.stateColor ?? "var(--ok)") : u.today.firstIn ? "var(--text-3)" : null}
-                  statusLabel={u.today.isOpen ? (u.today.stateName ?? "Trabajando") : u.today.firstIn ? "Jornada terminada" : "Sin iniciar"} />
+                  status={
+                    vac.today || vac.soonDays != null ? "var(--purple)"
+                    : u.today.isOpen ? (u.today.stateColor ?? "var(--ok)") : u.today.firstIn ? "var(--text-3)" : null
+                  }
+                  statusLabel={
+                    vac.today ? "Vacaciones"
+                    : vac.soonDays != null ? soonLabel(vac.soonDays)
+                    : u.today.isOpen ? (u.today.stateName ?? "Trabajando") : u.today.firstIn ? "Jornada terminada" : "Sin iniciar"
+                  } />
                 <div className="min-w-0">
                   <p className="text-[14px] font-bold truncate">{u.display_name}</p>
                   <p className="text-[11px] truncate" style={{ color: "var(--text-3)" }}>

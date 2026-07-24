@@ -311,7 +311,7 @@ export default function CalendarioClient({
               return (
                 <div key={c.date} className="rounded-sm p-1.5 min-h-[96px] flex flex-col gap-1"
                   style={{
-                    background: "var(--surface-2)",
+                    background: people.length > 0 ? "var(--purple-tint)" : "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.35,
                   }}>
                   <p className="text-[11.5px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
@@ -393,7 +393,7 @@ export default function CalendarioClient({
               return (
                 <div key={c.date} className="rounded-sm p-2.5 flex flex-col gap-1.5 min-h-[110px]"
                   style={{
-                    background: "var(--surface-2)",
+                    background: people.length > 0 ? "var(--purple-tint)" : "var(--surface-2)",
                   }}>
                   <div className="flex items-center justify-between">
                     <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>

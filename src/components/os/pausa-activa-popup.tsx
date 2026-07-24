@@ -9,8 +9,19 @@ const SEEN_KEY = "nx-assistant-popup-seen";
  * problema de un ícono SVG que se ve descentrado a este tamaño. */
 function emojiFor(msg: AssistantMessage): string {
   if (msg.id === "cumpleanos") return "🎉";
-  if (msg.id.startsWith("pausa-activa-")) return "☕";
+  if (msg.id.startsWith("pausa-activa-")) return "☕\uFE0F";
   return "✨";
+}
+
+/** Etiqueta corta arriba del mensaje — da jerarquía visual (qué tipo de
+ * aviso es, antes de leer el texto completo) en vez de un solo bloque
+ * de texto sin distinción entre "categoría" y "contenido". */
+function eyebrowFor(msg: AssistantMessage): string {
+  // El texto de cumpleaños ya empieza con "¡Feliz cumpleaños!" — repetirlo
+  // aquí sería redundante, así que la etiqueta complementa en vez de repetir.
+  if (msg.id === "cumpleanos") return "Un día especial";
+  if (msg.id.startsWith("pausa-activa-")) return "Pausa activa";
+  return "Aviso";
 }
 
 /**
@@ -46,11 +57,12 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
         style={{ background: "var(--panel)", border: "1px solid var(--border)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto w-14 h-14 rounded-full grid place-items-center mb-4 text-[30px] leading-none nx-msg-icon-bounce"
+        <div className="mx-auto w-14 h-14 rounded-full mb-4 nx-msg-icon-bounce flex items-center justify-center"
           style={{ background: "var(--accent-tint)" }}>
-          <span>{emojiFor(msg)}</span>
+          <span className="block text-[28px] leading-none text-center" style={{ width: "1em" }}>{emojiFor(msg)}</span>
         </div>
-        <p className="text-[15px] font-bold leading-snug mb-5">{msg.text}</p>
+        <p className="text-[11.5px] font-bold mb-1.5" style={{ color: "var(--accent)" }}>{eyebrowFor(msg)}</p>
+        <p className="text-[15px] font-semibold leading-snug mb-5" style={{ color: "var(--text-1)" }}>{msg.text}</p>
         <button className="btn-primary w-full py-2.5" onClick={dismiss}>Entendido</button>
       </div>
     </div>

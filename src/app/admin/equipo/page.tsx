@@ -73,5 +73,5 @@ export default async function Equipo() {
     };
   });
 
-  return <EquipoClient members={members} />;
+  return <EquipoClient members={members} today={today} />;
 }

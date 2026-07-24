@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
-import { todayMerida, nowMeridaMinutes, shortDate } from "@/lib/tz";
+import { todayMerida, nowMeridaMinutes, shortDate, addDays } from "@/lib/tz";
 import { Card, SectionTitle, Badge, StatCard, Avatar, EmptyState } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { contextualMessages } from "@/lib/assistant";
@@ -59,6 +59,7 @@ export default async function AdminDashboard() {
     { data: reqsToday }, { data: vacsCreatedToday },
     { data: activeProjectsList }, { data: pendingRequestsList },
     { data: jornadaStates }, { data: myActionsToday },
+    { data: vacsSoon },
   ] = await Promise.all([
     supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "solicitada"),
     supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente").is("archived_at", null),
@@ -83,6 +84,11 @@ export default async function AdminDashboard() {
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("admin_activity_log").select("id, action, detail, created_at")
       .eq("user_id", me!.id).gte("created_at", utcDayStart).order("created_at", { ascending: false }),
+    // "Próximo a vacaciones" — arranca en los próximos 3 días (mismo umbral
+    // que "Saldo bajo" en Vacaciones admin). Solo Aprobadas: una Pendiente
+    // todavía puede no pasar.
+    supabase.from("vacations").select("user_id, start_date").eq("status", "Aprobada").is("archived_at", null)
+      .gt("start_date", today).lte("start_date", addDays(today, 3)),
   ]);
 
   const states = (jornadaStates ?? []) as JornadaState[];
@@ -141,8 +147,17 @@ export default async function AdminDashboard() {
 
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));
   const onVacation = new Set((vacsToday ?? []).map((v) => v.user_id));
+  const soonDaysOf = new Map((vacsSoon ?? []).map((v) => {
+    const days = Math.round((new Date(v.start_date + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getTime()) / 86400000);
+    return [v.user_id, days];
+  }));
 
-  /* ── Presencia por persona (estado en vivo, Plano Maestro §10) ── */
+  /* ── Presencia por persona (estado en vivo, Plano Maestro §10) ──
+     `status`/`color` alimentan las alertas y los conteos de abajo — no se
+     tocan por "próximo a vacaciones" para no silenciar una alerta real
+     (si a alguien le toca hoy, sigue debiendo iniciar su jornada). El
+     matiz de "próximo" se agrega aparte, solo para el punto+etiqueta que
+     se muestra en el widget "Equipo hoy". */
   const presence = (team ?? []).map((u) => {
     const rows = (teamAtt ?? []).filter((a) => a.user_id === u.id);
     const hasIn = rows.some((r) => r.reason === "Entrada a trabajo");
@@ -153,7 +168,12 @@ export default async function AdminDashboard() {
       : done ? "Terminó"
       : hasIn && liveState ? liveState
       : "Sin iniciar";
-    return { ...u, status, color: stateColor.get(status) ?? null };
+    const color = status === "Vacaciones" ? "var(--purple)" : stateColor.get(status) ?? null;
+    const soonDays = soonDaysOf.get(u.id);
+    const display = !color && status === "Sin iniciar" && soonDays != null
+      ? { label: soonDays === 0 ? "Vacaciones hoy" : `Vacaciones en ${soonDays} día${soonDays === 1 ? "" : "s"}`, color: "var(--purple)" }
+      : { label: status, color };
+    return { ...u, status, color, display };
   });
 
   const pulse = {
@@ -450,12 +470,12 @@ export default async function AdminDashboard() {
             {presence.map((p) => (
               <div key={p.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} birthday={isBirthdayToday(p.birth_date, todayISO())} status={p.color ?? undefined} statusLabel={p.status} />
+                  <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} birthday={isBirthdayToday(p.birth_date, todayISO())} status={p.display.color ?? undefined} statusLabel={p.display.label} />
                   <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
                 </div>
                 <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
-                  {p.color && <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.color }} />}
-                  {p.status}
+                  {p.display.color && <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.display.color }} />}
+                  {p.display.label}
                 </span>
               </div>
             ))}

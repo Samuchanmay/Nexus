@@ -75,15 +75,29 @@ export default async function AsistenciaEquipo() {
   const today = todayMerida();
   const since = addDays(today, -56); // 8 semanas
 
-  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, meRes] = await Promise.all([
-    supabase.from("users").select("id, display_name, full_name, nexus_color, area, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes] = await Promise.all([
+    supabase.from("users").select("id, display_name, full_name, nexus_color, area, title, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
     supabase.from("schedules").select("*"),
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
     supabase.from("app_settings").select("key, value").in("key", ["weekly_report_enabled", "weekly_report_email"]),
+    // Aprobadas, vigentes hoy o por iniciar en los próximos días — misma
+    // fuente que "Vacaciones" en Hoy admin, para que el punto de estado y
+    // la tarjeta de Asistencia coincidan con la realidad (Plano Maestro §10).
+    supabase.from("vacations").select("user_id, start_date, end_date")
+      .eq("status", "Aprobada").is("archived_at", null).gte("end_date", today),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
+  // "Próximo" = arranca en los próximos 3 días (mismo umbral que "Saldo
+  // bajo" en Vacaciones admin) — ventana corta, solo lo inminente.
+  const PROXIMO_DIAS = 3;
+  const daysUntil = (d: string) => Math.round((new Date(d + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getTime()) / 86400000);
+  const vacationOf = new Map((vacs ?? []).map((v) => {
+    const today_ = v.start_date <= today && v.end_date >= today;
+    const until = daysUntil(v.start_date);
+    return [v.user_id, { today: today_, soonDays: !today_ && until >= 0 && until <= PROXIMO_DIAS ? until : null }];
+  }));
   const states = (jornadaStates ?? []) as JornadaState[];
   const settingsMap = new Map((settingsRows ?? []).map((s) => [s.key, s.value as string]));
   const reportSettings = {
@@ -101,7 +115,11 @@ export default async function AsistenciaEquipo() {
     };
     const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15 }, states);
     return {
-      user: { id: u.id, display_name: u.display_name, area: u.area, nexus_color: u.nexus_color, avatar_url: u.avatar_url, birth_date: u.birth_date },
+      user: {
+        id: u.id, display_name: u.display_name, area: u.area, title: u.title,
+        nexus_color: u.nexus_color, avatar_url: u.avatar_url, birth_date: u.birth_date,
+        vacation: vacationOf.get(u.id) ?? { today: false, soonDays: null },
+      },
       schedule,
       day: {
         firstIn: day.firstIn, lastOut: day.lastOut, totalMin: day.totalMin,

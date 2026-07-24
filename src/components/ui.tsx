@@ -133,10 +133,18 @@ export function Avatar({ name, color, size = 34, avatarUrl, birthday, status, st
   const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   const ring = { boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "#8E8E93"}` };
   const content = avatarUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={avatarUrl} alt={name} title={name}
-      className="rounded-full object-cover"
-      style={{ width: size, height: size, ...ring }} />
+    // El recorte circular vive en este span envolvente (overflow:hidden),
+    // no en el <img> — aplicar rounded-full+object-cover directo sobre el
+    // <img> puede dejar una esquina sin recortar del todo en algunos
+    // navegadores cuando la imagen fuente no es cuadrada (se ve "cortado").
+    // El ring (box-shadow) va en el span de afuera para que este mismo
+    // overflow:hidden no se lo recorte a él también.
+    <span className="relative block rounded-full shrink-0" style={{ width: size, height: size, ...ring }}>
+      <span className="block w-full h-full rounded-full overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={avatarUrl} alt={name} title={name} className="w-full h-full object-cover" />
+      </span>
+    </span>
   ) : (
     <div className="rounded-full flex items-center justify-center font-semibold text-white"
       style={{
@@ -428,6 +436,7 @@ const STATUS_STYLES: Record<string, { bg: string; fg: string }> = {
   danger: { bg: "var(--danger-tint)", fg: "var(--danger)" },
   accent: { bg: "var(--accent-tint)", fg: "var(--accent)" },
   muted: { bg: "var(--surface-3)", fg: "var(--text-3)" },
+  purple: { bg: "var(--purple-tint)", fg: "var(--purple)" },
 };
 export function Pill({ tone, children }: { tone: keyof typeof STATUS_STYLES; children: React.ReactNode }) {
   const s = STATUS_STYLES[tone];

@@ -18,7 +18,10 @@ import { logAdminAction } from "@/lib/admin-log";
 import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
 
 export interface PersonDay {
-  user: { id: string; display_name: string; area: string | null; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null };
+  user: {
+    id: string; display_name: string; area: string | null; title?: string | null; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null;
+    vacation?: { today: boolean; soonDays: number | null };
+  };
   schedule: { start_time: string; end_time: string; target_min: number };
   day: {
     firstIn: string | null; lastOut: string | null; totalMin: number;
@@ -55,8 +58,20 @@ function segmentsOf(day: PersonDay["day"], nowMin: number) {
   return segs;
 }
 
-function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
-  if (!day.firstIn) return <Pill tone="muted">Sin iniciar</Pill>;
+type Vacation = { today: boolean; soonDays: number | null } | undefined;
+
+/** Texto de "sale a vacaciones en N días" — singular/plural correcto. */
+function soonLabel(days: number): string {
+  if (days === 0) return "Vacaciones hoy";
+  return `Vacaciones en ${days} día${days === 1 ? "" : "s"}`;
+}
+
+function estadoPill(day: PersonDay["day"], states: JornadaState[], vacation?: Vacation) {
+  if (vacation?.today) return <Pill tone="purple">Vacaciones</Pill>;
+  if (!day.firstIn) {
+    if (vacation?.soonDays != null) return <Pill tone="purple">{soonLabel(vacation.soonDays)}</Pill>;
+    return <Pill tone="muted">Sin iniciar</Pill>;
+  }
   if (day.isOpen) {
     const last = day.movements.at(-1);
     const liveState = last ? stateAfter(last) : null;
@@ -69,9 +84,15 @@ function estadoPill(day: PersonDay["day"], states: JornadaState[]) {
 }
 
 /** Mismo criterio que estadoPill pero como color+etiqueta, para el
-    anillo de estado del Avatar (no solo el Pill de al lado). */
-function estadoStatus(day: PersonDay["day"]): { color: string; label: string } {
-  if (!day.firstIn) return { color: "var(--text-3)", label: "Sin iniciar" };
+    anillo de estado del Avatar (no solo el Pill de al lado). La vacación
+    (hoy o por iniciar pronto) siempre pesa más que "sin iniciar" — no
+    tiene caso alertar por una jornada que no va a pasar. */
+function estadoStatus(day: PersonDay["day"], vacation?: Vacation): { color: string; label: string } {
+  if (vacation?.today) return { color: "var(--purple)", label: "Vacaciones" };
+  if (!day.firstIn) {
+    if (vacation?.soonDays != null) return { color: "var(--purple)", label: soonLabel(vacation.soonDays) };
+    return { color: "var(--text-3)", label: "Sin iniciar" };
+  }
   if (day.isOpen) {
     const last = day.movements.at(-1);
     const liveState = last ? stateAfter(last) : null;
@@ -106,9 +127,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
   }, [weekRows]);
   const dayCsvHref = useMemo(() => {
     const csv = [
-      "Persona,Área,Entrada,Horas laboradas,Objetivo",
+      "Persona,Puesto,Entrada,Horas laboradas,Objetivo",
       ...people.map(({ user: u, day }) =>
-        `"${u.display_name}","${u.area ?? ""}",${fmtTime(day.firstIn)},${day.firstIn ? fmtMin(day.totalMin) : "—"},${fmtMin(day.targetMin)}`),
+        `"${u.display_name}","${u.title ?? u.area ?? ""}",${fmtTime(day.firstIn)},${day.firstIn ? fmtMin(day.totalMin) : "—"},${fmtMin(day.targetMin)}`),
     ].join("\n");
     return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   }, [people]);
@@ -202,13 +223,13 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 <div className="flex items-center gap-3">
                   <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url}
                     birthday={isBirthdayToday(u.birth_date, todayISO())}
-                    status={estadoStatus(day).color} statusLabel={estadoStatus(day).label} />
+                    status={estadoStatus(day, u.vacation).color} statusLabel={estadoStatus(day, u.vacation).label} />
                   <div>
                     <p className="text-[14.5px] font-bold">{u.display_name}</p>
-                    <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{u.area}</p>
+                    <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{u.title ?? u.area}</p>
                   </div>
                 </div>
-                {estadoPill(day, states)}
+                {estadoPill(day, states, u.vacation)}
               </div>
               {(() => {
                 const pct = day.targetMin > 0 ? Math.min(100, Math.round((day.totalMin / day.targetMin) * 100)) : 0;

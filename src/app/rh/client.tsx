@@ -14,7 +14,7 @@ import { VACATION_TONE } from "@/lib/ui-maps";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 
 type Member = {
-  id: string; full_name: string; display_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null; area: string | null;
+  id: string; full_name: string; display_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null; area: string | null; title: string | null;
   vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; vacation_balance_reset: string | null;
 };
 
@@ -286,7 +286,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                 <Avatar name={s.user.display_name} color={s.user.nexus_color} avatarUrl={s.user.avatar_url} size={36} birthday={isBirthdayToday(s.user.birth_date, todayISO())} />
                 <div>
                   <p className="text-[14px] font-bold">{s.user.full_name}</p>
-                  <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{s.user.area}</p>
+                  <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{s.user.title ?? s.user.area}</p>
                 </div>
               </div>
               <div className="flex gap-5 text-center">
