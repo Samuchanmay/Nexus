@@ -14,7 +14,7 @@
 //  · Tono profesional/premium — nunca infantil ni exagerado.
 // ═══════════════════════════════════════════════════════════════
 
-export type ContextRole = "admin" | "empleado";
+export type ContextRole = "admin" | "empleado" | "coordinador";
 
 export interface ContextHeaderInput {
   role: ContextRole;

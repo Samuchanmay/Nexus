@@ -7,13 +7,15 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useToast, Pill, DatePicker } from "@/components/ui";
-import { EmptyState } from "@/components/shared";
+import { Card, SectionTitle, EmptyState } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, RequestType, UserProfile, RequestStatus, ActivityType } from "@/lib/types";
 import { notifyAdmins } from "@/lib/notify";
 import { dmy } from "@/lib/tz";
 import { fmtTime } from "@/lib/hours";
+import { ContextHeader } from "@/components/context-header";
+import type { ContextHeaderInput } from "@/lib/context-header";
 import { IconCamera, IconPen, IconVideo, IconMegaphone, IconClipboard, IconFolder, IconChevronLeft, IconCheck, IconX } from "@/components/icons";
 
 // Descripciones e iconos de los 5 tipos originales; los tipos nuevos que un
@@ -44,8 +46,8 @@ function effectiveStatus(r: ReqWithProject): RequestStatus {
   return (proj?.status as RequestStatus | undefined) ?? "aprobada";
 }
 
-export default function CoordinadorClient({ profile, requests, activityTypes }: {
-  profile: UserProfile; requests: ReqWithProject[]; activityTypes: ActivityType[];
+export default function CoordinadorClient({ profile, requests, activityTypes, contextInput }: {
+  profile: UserProfile; requests: ReqWithProject[]; activityTypes: ActivityType[]; contextInput: ContextHeaderInput;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -135,23 +137,22 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
   if (step === 0) {
     return (
       <>
-        <header className="pt-8 pb-6">
-          <h1 className="text-[27px] font-bold tracking-tight">
-            {(profile.honorific ? profile.honorific + " " : "") + profile.display_name} <span className="wave-emoji">👋</span>
-          </h1>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
+        <header className="pt-2 pb-1">
+          <ContextHeader input={contextInput} />
+          <p className="text-[13px] text-text-3">
             {areaLabel} · Solicita apoyo del equipo de Comunicación
           </p>
         </header>
 
-        <button onClick={() => setStep(1)} className="btn-primary w-full py-4 text-[15px] mb-7">
+        <button onClick={() => setStep(1)} className="btn-primary w-full py-4 text-[15px] my-6">
           + Nueva solicitud
         </button>
 
-        <h2 className="text-[16px] font-bold mb-3">Mis solicitudes</h2>
-        {requests.length === 0 && (
-          <EmptyState icon={<Icon name="inbox" size={22} />} title="Aún no tienes solicitudes" hint="Crea la primera con el botón de arriba." />
-        )}
+        <Card>
+          <SectionTitle hint={`${requests.length} en total`}>Mis solicitudes</SectionTitle>
+          {requests.length === 0 ? (
+            <EmptyState icon="inbox" title="Aún no tienes solicitudes" hint="Crea la primera con el botón de arriba." />
+          ) : (
         <div className="flex flex-col gap-2.5">
           {requests.map((r) => (
             <div key={r.id} className="card px-5 py-4">
@@ -200,6 +201,8 @@ export default function CoordinadorClient({ profile, requests, activityTypes }: 
             </div>
           ))}
         </div>
+          )}
+        </Card>
       </>
     );
   }

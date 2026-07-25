@@ -13,7 +13,7 @@ import { useToast, Sheet } from "@/components/ui";
 import type { ActivityType } from "@/lib/types";
 import type { AssistantMessage } from "@/lib/assistant";
 import { todayMerida, addDays } from "@/lib/tz";
-import { fmtMin } from "@/lib/hours";
+import { fmtMin, fmtTime } from "@/lib/hours";
 import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } from "@/components/os/ui";
 import { DatePicker } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
@@ -46,7 +46,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
   };
   day: {
     totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
-    stateName: string | null; stateColor: string | null;
+    firstIn?: string | null; stateName: string | null; stateColor: string | null;
   };
   week: { monday: string; today: string; datesWithActivity: string[] };
   assignments: Task[];
@@ -352,6 +352,34 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
           </p>
         </div>
       </header>
+
+      {/* ── Mi jornada — misma métrica héroe que el Dashboard admin (FASE A):
+          tiempo trabajado grande, objetivo, barra de progreso, hora de entrada. ── */}
+      <Card>
+        {(() => {
+          const dotColor = !day.hasEntry ? "var(--text-3)" : day.isOpen ? "var(--ok)" : "var(--text-3)";
+          const statusLabel = !day.hasEntry ? "Sin iniciar" : day.isOpen ? "Trabajando" : "Jornada terminada";
+          const pct = day.targetMin > 0 ? Math.min(100, Math.round((day.totalMin / day.targetMin) * 100)) : 0;
+          return (
+            <>
+              <span className="flex items-center gap-1.5 text-[12.5px] font-semibold mb-1.5" style={{ color: "var(--text-2)" }}>
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} /> Mi jornada · {statusLabel}
+              </span>
+              <p className="text-[42px] font-bold tabular-nums leading-none text-text-1 mb-1.5">
+                {day.hasEntry ? fmtMin(day.totalMin) : "—"}
+              </p>
+              <p className="text-[12.5px] mb-3" style={{ color: "var(--text-3)" }}>
+                {day.hasEntry
+                  ? `${pct}% de la jornada · Objetivo ${fmtMin(day.targetMin)}${day.firstIn ? ` · Entrada ${fmtTime(day.firstIn)}` : ""}`
+                  : `Objetivo ${fmtMin(day.targetMin)}`}
+              </p>
+              <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
+              </div>
+            </>
+          );
+        })()}
+      </Card>
 
       {/* ── Pausa activa: pop-up aparte, no se pierde en la lista ── */}
       <PausaActivaPopup messages={assistantMessages} />

@@ -136,7 +136,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
       }}
       day={{
         totalMin: day.totalMin, targetMin: day.targetMin, isOpen: day.isOpen, hasEntry: !!day.firstIn,
-        stateName: live?.nombre ?? null, stateColor: live?.color ?? null,
+        firstIn: day.firstIn ?? null, stateName: live?.nombre ?? null, stateColor: live?.color ?? null,
       }}
       week={{ monday, today, datesWithActivity: weekDates }}
       assignments={tasks}
