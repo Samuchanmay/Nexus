@@ -403,9 +403,11 @@ body{ transition: background .28s ease, color .28s ease; }
 .nx-scroll::-webkit-scrollbar-thumb{ background:var(--border); border-radius:99px; border:3px solid transparent; background-clip:padding-box; }
 .nx-scroll::-webkit-scrollbar-thumb:hover{ background:var(--text-3); }
 @keyframes nx-pop{ from{ opacity:0; transform:translateY(8px) scale(.985);} to{ opacity:1; transform:none; } }
+@keyframes nx-datesheet{ from{ opacity:0; transform:translateY(-8px) scale(.96);} to{ opacity:1; transform:none; } }
 @keyframes nx-fade{ from{opacity:0} to{opacity:1} }
 @keyframes nx-slide{ from{opacity:0; transform:translateX(-6px)} to{opacity:1; transform:none} }
 .nx-pop{ animation:nx-pop .22s cubic-bezier(.34,1.4,.64,1) both; }
+.nx-datesheet-pop{ animation:nx-datesheet .22s cubic-bezier(.34,1.4,.64,1) both; transform-origin: top left; }
 .nx-fade{ animation:nx-fade .2s ease both; }
 
 /* ── Skeleton loading — reemplaza spinners/"Cargando…" ── */

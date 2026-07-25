@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, PersonRow, EmptyState, Field } from "@/components/shared";
-import { Sheet, SelectField, DateField, Pill, useToast } from "@/components/ui";
+import { Sheet, SelectField, DatePicker, Pill, useToast } from "@/components/ui";
 import { IconPlus, IconX } from "@/components/icons";
 import { todayMerida, shortDate } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
@@ -212,10 +212,11 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
           </SelectField>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Desde">
-              <DateField value={addForm.from} onChange={(v) => setAddForm({ ...addForm, from: v })} />
+              <DatePicker value={addForm.from} onChange={(v) => setAddForm({ ...addForm, from: v })} />
             </Field>
             <Field label="Hasta">
-              <DateField value={addForm.to} onChange={(v) => setAddForm({ ...addForm, to: v })} />
+              <DatePicker value={addForm.to} minDate={addForm.from || undefined}
+                onChange={(v) => setAddForm({ ...addForm, to: v })} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">

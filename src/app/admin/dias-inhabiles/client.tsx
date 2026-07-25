@@ -2,7 +2,7 @@
 import type React from "react";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, SlidingSegments, DateField } from "@/components/ui";
+import { useToast, SlidingSegments, DatePicker } from "@/components/ui";
 import { dmy } from "@/lib/tz";
 import { useSupabaseMutation, EmptyState } from "@/components/shared";
 import { IconPlus, IconX, IconCalendar, IconMapPin, IconFolder, IconSun } from "@/components/icons";
@@ -93,7 +93,7 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
 
       <div className="card p-5 mb-6">
         <div className="grid md:grid-cols-[160px_1fr_150px_auto] gap-2.5">
-          <DateField value={form.date}
+          <DatePicker value={form.date}
             onChange={(iso) => setForm({ ...form, date: iso })} />
           <input className="field-input" placeholder="Nombre del día"
             value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
