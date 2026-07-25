@@ -18,15 +18,32 @@ export interface DaySummary {
   date: string;
   firstIn: string | null;      // primera Entrada
   lastOut: string | null;      // última Salida
-  totalMin: number;            // suma de tramos que cuentan como trabajado
+  totalMin: number;            // suma de tramos que cuentan como trabajado, HASTA AHORA si sigue abierta
   targetMin: number;
   extraMin: number;            // max(0, total − target)
   metTarget: boolean;          // con tolerancia
   isOpen: boolean;             // aún sin "Fin de jornada"
-  /** Entrada registrada, nunca hubo salida, y ya pasó el horario + tolerancia:
-   * la jornada sigue ABIERTA (no se cierra sola ni se calculan horas finales)
-   * hasta que RH la corrija o la persona registre salida. */
+  /**
+   * SOLO tiene sentido para días PASADOS (date !== hoy): entrada registrada,
+   * nunca hubo salida, y el día ya terminó por completo. NUNCA es true para
+   * el día de hoy — mientras sea hoy la jornada está simplemente "En curso",
+   * sin importar cuántas horas lleve. Un día pasado en este estado NO se
+   * etiqueta directamente como "No registró salida": queda "Pendiente de
+   * confirmar salida" hasta que la persona indique la hora real o RH/Admin
+   * confirme que de verdad no hay forma de recuperarla (tabla
+   * `pending_exits`, ver lib/pending-exits.ts).
+   */
   noRegistroSalida: boolean;
+  /**
+   * Hora (HH:MM:SS) en la que empezó el tramo ABIERTO actual — el que
+   * sigue sumando en vivo — o null si la jornada está cerrada, si nunca
+   * inició, o si el estado vigente no cuenta como tiempo trabajado (p.ej.
+   * "Comida"). El cronómetro del cliente usa esto + totalMinBeforeOpenSegment
+   * para seguir contando en tiempo real sin volver a pedir datos al server.
+   */
+  openSegmentStartsAt: string | null;
+  /** totalMin SIN el tramo abierto actual — la base sobre la que el cliente suma en vivo. */
+  totalMinBeforeOpenSegment: number;
   movements: AttendanceRow[];
 }
 
@@ -132,22 +149,27 @@ export function summarizeDay(
   const cuentaTiempo = new Map(states.map((s) => [s.nombre, s.cuenta_tiempo]));
   const countsAsWorked = (stateName: string) => cuentaTiempo.get(stateName) ?? true;
 
-  // ── ¿Olvidó registrar salida? — entrada sin salida + ya terminó su horario
-  //    + tolerancia vencida. Un día PASADO que sigue abierto siempre cuenta
-  //    como "ya terminó su horario" (el día ya se fue por completo). ──
+  // ── Estado vs. cronómetro: dos cosas completamente separadas ──
+  // "noRegistroSalida" (a nivel de datos crudos) SOLO describe un día
+  // PASADO que quedó abierto — nunca el día de hoy. Mientras sea hoy, no
+  // importa cuántas horas lleve la persona ni si ya pasó su horario: sigue
+  // "En curso", punto. El corte real entre "pendiente de confirmar" y
+  // "no registró salida" (definitivo) vive en la tabla `pending_exits`,
+  // fuera de esta función pura.
   const isToday = date === todayMerida();
-  const scheduledEndMin = toMin(schedule.end_time) + schedule.tolerance_min;
-  const nowMinForCheck = nowMeridaMinutes();
-  const pastScheduledEnd = isToday ? nowMinForCheck > scheduledEndMin : true;
-  const noRegistroSalida = isOpen && !!firstIn && pastScheduledEnd;
+  const noRegistroSalida = isOpen && !!firstIn && !isToday;
 
   let totalMin = 0;
+  let totalMinBeforeOpenSegment = 0;
+  let openSegmentStartsAt: string | null = null;
   if (firstIn) {
     const nowMin = nowMeridaMinutes();
-    // Solo extendemos el último tramo abierto hasta "ahora" si de verdad
-    // sigue en curso dentro de su horario de hoy — nunca en un día vencido
-    // o de una fecha pasada, porque ahí "ahora" no significa nada real.
-    const extendOpenSegmentToNow = isOpen && isToday && !pastScheduledEnd;
+    // El cronómetro NUNCA se detiene solo porque ya pasó la hora objetivo —
+    // eso es nada más una referencia visual (barra/alerta), no una razón
+    // para congelar el tiempo. El único caso en que NO extendemos el tramo
+    // abierto hasta "ahora" es cuando la fecha ya no es hoy: ahí "ahora" no
+    // representa nada real y ese tramo pasa a resolverse vía pending_exits.
+    const extendOpenSegmentToNow = isOpen && isToday;
     for (let i = 0; i < day.length; i++) {
       const m = day[i];
       if (toMin(m.time) < toMin(firstIn)) continue; // defensivo
@@ -155,8 +177,21 @@ export function summarizeDay(
       if (state === null) break; // "Fin de jornada": ya no hay más tramos
       const next = day[i + 1];
       const segStart = toMin(m.time);
+      const isOpenSegment = !next;
       const segEnd = next ? toMin(next.time) : (extendOpenSegmentToNow ? nowMin : segStart);
-      if (countsAsWorked(state)) totalMin += Math.max(0, segEnd - segStart);
+      const segMin = Math.max(0, segEnd - segStart);
+      if (countsAsWorked(state)) {
+        totalMin += segMin;
+        // El tramo abierto (el último, sin "next") es el que el cliente
+        // sigue sumando en vivo — solo si de verdad cuenta como trabajado
+        // (p.ej. no durante "Comida", ahí el cronómetro se ve pausado con
+        // toda intención, como pidió Samu).
+        if (isOpenSegment && extendOpenSegmentToNow) {
+          openSegmentStartsAt = m.time;
+        } else {
+          totalMinBeforeOpenSegment += segMin;
+        }
+      }
     }
   }
 
@@ -167,6 +202,8 @@ export function summarizeDay(
     lastOut: isOpen ? null : lastOut,
     totalMin,
     noRegistroSalida,
+    openSegmentStartsAt,
+    totalMinBeforeOpenSegment,
     targetMin: target_min,
     extraMin: Math.max(0, totalMin - target_min),
     metTarget: totalMin >= target_min - tolerance_min,

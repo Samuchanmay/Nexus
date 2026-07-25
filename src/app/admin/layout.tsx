@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { AppShell } from "@/components/os/app-shell";
+import { JornadaWatcher } from "@/components/os/jornada-watcher";
 import { roleLabel } from "@/lib/nav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -16,6 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <ToastProvider>
+      <JornadaWatcher userId={profile.id} />
       <AppShell
         role="admin"
         ficharAction

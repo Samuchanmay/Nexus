@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay, fmtMin, fmtTime, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
+import { summarizeDay, fmtTime, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
 import { resolvePresence, WORK_STATUS_LABEL } from "@/lib/status";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
@@ -13,6 +13,7 @@ import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { ContextHeader } from "@/components/context-header";
 import type { ContextHeaderInput } from "@/lib/context-header";
+import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
 
 /* ═══════════════════════════════════════════════════════════════
    Hoy · Centro de Operaciones (admin)
@@ -176,11 +177,10 @@ export default async function AdminDashboard() {
     const done = rows.some((r) => r.reason === "Fin de jornada");
     const last = rows.at(-1);
     const liveState = last ? stateAfter(last) : null;
-    const uSched = scheduleFor((allScheds ?? []) as { user_id: string; start_time: string; end_time: string; tolerance_min: number; valid_from: string; valid_until: string | null }[], u.id, today);
-    const endMin = toMin((uSched?.end_time ?? "18:00:00").slice(0, 5)) + (uSched?.tolerance_min ?? 15);
-    const noRegistroSalida = hasIn && !done && nowMin > endMin;
+    // "Equipo hoy" es SIEMPRE de hoy — nunca puede mostrar "No registró
+    // salida" (eso solo aplica a días pasados sin resolver, vía pending_exits).
     const presenceStatus = resolvePresence({
-      firstIn: hasIn ? "00:00" : null, isOpen: !done, noRegistroSalida,
+      firstIn: hasIn ? "00:00" : null, isOpen: !done, noRegistroSalida: false,
       liveStateName: liveState, liveStateColor: liveState ? (stateColor.get(liveState) ?? null) : null,
       onVacationToday: onVacation.has(u.id),
     });
@@ -369,28 +369,13 @@ export default async function AdminDashboard() {
         {(() => {
           const dotColor = !myDay.firstIn ? "var(--text-3)" : myDay.isOpen ? "var(--ok)" : "var(--text-3)";
           const statusLabel = !myDay.firstIn ? "Sin iniciar" : myDay.isOpen ? "Trabajando" : "Jornada terminada";
-          const pct = myDay.targetMin > 0 ? Math.min(100, Math.round((myDay.totalMin / myDay.targetMin) * 100)) : 0;
           return (
             <>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: "var(--text-2)" }}>
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} /> Mi jornada · {statusLabel}
-                </span>
-                {myDay.extraMin > 0 && (
-                  <span className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>+{fmtMin(myDay.extraMin)} extra</span>
-                )}
-              </div>
-              <p className="text-[42px] font-bold tabular-nums leading-none text-text-1 mb-1.5">
-                {myDay.firstIn ? fmtMin(myDay.totalMin) : "—"}
-              </p>
-              <p className="text-[12.5px] mb-3" style={{ color: "var(--text-3)" }}>
-                {myDay.firstIn
-                  ? `${pct}% de la jornada · Objetivo ${fmtMin(myDay.targetMin)} · Entrada ${fmtTime(myDay.firstIn)}`
-                  : `Objetivo ${fmtMin(myDay.targetMin)}`}
-              </p>
-              <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden mb-4">
-                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
-              </div>
+              <LiveJornadaHero
+                firstIn={myDay.firstIn} totalMin={myDay.totalMin} targetMin={myDay.targetMin}
+                openSegmentStartsAt={myDay.openSegmentStartsAt}
+                statusLabel={statusLabel} dotColor={dotColor} barClassName="mb-4"
+              />
               {/* Botones secundarios — la protagonista es la jornada de arriba, no el CTA (punto 14) */}
               <div className="flex gap-2 mb-5">
                 <Link href="/fichar" className="btn-secondary flex-1 inline-flex items-center justify-center h-9 px-4 text-[13.5px]">

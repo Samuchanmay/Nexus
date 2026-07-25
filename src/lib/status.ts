@@ -16,6 +16,7 @@ export const WORK_STATUS_COLOR: Record<string, string> = {
   pausa: "var(--warn)",
   sin_iniciar: "var(--text-3)",
   no_registro_salida: "var(--danger)",
+  pendiente_confirmar_salida: "var(--warn)",
   fuera_horario: "var(--text-3)",
   jornada_terminada: "var(--text-3)",
 };
@@ -27,6 +28,7 @@ export const WORK_STATUS_LABEL: Record<string, string> = {
   pausa: "Pausa",
   sin_iniciar: "Sin iniciar",
   no_registro_salida: "No registró salida",
+  pendiente_confirmar_salida: "Pendiente de confirmar salida",
   fuera_horario: "Fuera de horario",
   jornada_terminada: "Jornada terminada",
 };
@@ -49,8 +51,18 @@ export interface PresenceInput {
   firstIn: string | null;
   /** true mientras no exista "Fin de jornada" hoy. */
   isOpen: boolean;
-  /** Calculado por summarizeDay(): entrada sin salida + horario terminado + tolerancia vencida. */
+  /**
+   * Definitivo — SOLO true cuando RH/Admin ya confirmó, vía `pending_exits`,
+   * que un día pasado realmente no tiene forma de recuperar la salida.
+   * NUNCA debe ser true para el día de hoy.
+   */
   noRegistroSalida: boolean;
+  /**
+   * Un día pasado quedó abierto (entrada sin salida) pero todavía NO se ha
+   * resuelto ni RH lo ha marcado como definitivamente perdido — está a la
+   * espera de que la persona indique la hora real o RH lo confirme.
+   */
+  pendingExitConfirmation?: boolean;
   /** Nombre del estado vigente ahora mismo (de currentState()); null si la jornada ya cerró o nunca inició. */
   liveStateName?: string | null;
   liveStateColor?: string | null;
@@ -66,8 +78,13 @@ export interface PresenceInput {
 /**
  * Única función de resolución de presencia — Equipo, Asistencia, Dashboard,
  * Reportes y Mi día deben pasar por aquí en vez de inventar su propio texto.
- * Prioridad: Vacaciones > Incidencia > No registró salida > estado en vivo
+ * Prioridad: Vacaciones > Incidencia > No registró salida (definitivo, RH) >
+ * Pendiente de confirmar salida (día pasado sin resolver) > estado en vivo
  * (Trabajando/Comida/...) > Fuera de horario / Sin iniciar > Jornada terminada.
+ *
+ * Mientras sea HOY, `noRegistroSalida` y `pendingExitConfirmation` deben
+ * llegar en false siempre — ese estado no existe para el día en curso, sin
+ * importar cuántas horas lleve la persona.
  */
 export function resolvePresence(input: PresenceInput): PresenceStatus {
   if (input.onVacationToday) {
@@ -78,6 +95,9 @@ export function resolvePresence(input: PresenceInput): PresenceStatus {
   }
   if (input.noRegistroSalida) {
     return { key: "no_registro_salida", label: WORK_STATUS_LABEL.no_registro_salida, color: WORK_STATUS_COLOR.no_registro_salida };
+  }
+  if (input.pendingExitConfirmation) {
+    return { key: "pendiente_confirmar_salida", label: WORK_STATUS_LABEL.pendiente_confirmar_salida, color: WORK_STATUS_COLOR.pendiente_confirmar_salida };
   }
   if (input.isOpen && input.firstIn) {
     const name = input.liveStateName ?? "Trabajando";

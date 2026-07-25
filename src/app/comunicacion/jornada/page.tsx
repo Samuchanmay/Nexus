@@ -5,6 +5,9 @@ import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { Pill } from "@/components/ui";
 import { todayMerida, addDays } from "@/lib/tz";
+import { syncPendingExits, getPendingExitsMap, exitPillFor } from "@/lib/pending-exits";
+import { ResolvePendingExit } from "@/components/os/resolve-pending-exit";
+import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
 
 export default async function Jornada() {
   const supabase = await createClient();
@@ -32,6 +35,13 @@ export default async function Jornada() {
   const totalMin = days.reduce((s, d) => s + d.totalMin, 0);
   const totalExtra = days.reduce((s, d) => s + d.extraMin, 0);
 
+  // Días pasados que quedaron abiertos: nunca se muestran directamente como
+  // "No registró salida" — se dan de alta en pending_exits (si no existían
+  // ya) y se leen desde ahí para saber si siguen 'pendiente' o si RH ya los
+  // marcó como definitivos ('no_registro') o la persona los resolvió.
+  await syncPendingExits(supabase, profile!.id, days);
+  const pendingExitsMap = await getPendingExitsMap(supabase, profile!.id, days.filter((d) => d.noRegistroSalida).map((d) => d.date));
+
   // ── Hoy — indicador grande (Plano de refinamiento Fase 2): el número de
   // hoy es lo primero que se debe leer, no un dato más perdido en la lista.
   const todayIso = todayMerida();
@@ -39,14 +49,12 @@ export default async function Jornada() {
   const todayEntry = days.find((d) => d.date === todayIso);
   const todayTotalMin = todayEntry?.totalMin ?? 0;
   const todayTargetMin = todayEntry?.targetMin ?? todaySchedule.target_min;
-  const todayPct = todayTargetMin > 0 ? Math.min(100, Math.round((todayTotalMin / todayTargetMin) * 100)) : 0;
   const todayPresence = resolvePresence({
     firstIn: todayEntry?.firstIn ?? null, isOpen: todayEntry?.isOpen ?? false,
-    noRegistroSalida: todayEntry?.noRegistroSalida ?? false, liveStateName: null, liveStateColor: null,
+    noRegistroSalida: false, liveStateName: null, liveStateColor: null,
   });
   const todayStatus = todayPresence.label;
   const todayStatusColor = !todayEntry ? "var(--text-3)"
-    : todayEntry.noRegistroSalida ? "var(--danger)"
     : todayEntry.isOpen ? "var(--ok)" : todayEntry.metTarget ? "var(--ok)" : "var(--warn)";
 
   return (
@@ -57,20 +65,11 @@ export default async function Jornada() {
       </header>
 
       <div className="mb-7">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: todayStatusColor }} />
-          <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Hoy · {todayStatus}</p>
-        </div>
-        <p className="text-[40px] font-bold tabular-nums leading-none">{todayEntry?.noRegistroSalida ? "—" : fmtMin(todayTotalMin)}</p>
-        <div className="mt-4">
-          <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${todayPct}%`, background: todayPct >= 100 ? "var(--ok)" : "var(--accent)" }} />
-          </div>
-          <div className="flex items-center justify-between mt-1.5">
-            <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}>Objetivo diario</span>
-            <span className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-3)" }}>{fmtMin(todayTargetMin)}</span>
-          </div>
-        </div>
+        <LiveJornadaHero
+          firstIn={todayEntry?.firstIn ?? null} totalMin={todayTotalMin} targetMin={todayTargetMin}
+          openSegmentStartsAt={todayEntry?.openSegmentStartsAt ?? null}
+          statusLabel={todayStatus} dotColor={todayStatusColor} showEntrada={false}
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-2.5 mb-6">
@@ -116,7 +115,7 @@ export default async function Jornada() {
                 <div className="flex items-center gap-2.5">
                   {isHoliday
                     ? <Pill tone="accent">Inhábil</Pill>
-                    : d.noRegistroSalida ? <Pill tone="danger">No registró salida</Pill>
+                    : d.noRegistroSalida ? <Pill tone={exitPillFor(pendingExitsMap.get(d.date)).tone}>{exitPillFor(pendingExitsMap.get(d.date)).label}</Pill>
                     : d.isOpen ? <Pill tone="ok">Trabajando</Pill>
                     : <Pill tone={d.metTarget ? "ok" : "warn"}>{fmtMin(d.totalMin)}</Pill>}
                 </div>
@@ -133,6 +132,11 @@ export default async function Jornada() {
                   <span style={{ color: "var(--text-2)" }}>Total trabajado</span>
                   <span className="tabular-nums">{fmtMin(d.totalMin)}{d.extraMin > 0 && <span style={{ color: "var(--ok)" }}> · +{fmtMin(d.extraMin)} extra</span>}</span>
                 </div>
+                {d.noRegistroSalida && pendingExitsMap.get(d.date)?.status !== "no_registro" && (
+                  <div className="px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
+                    <ResolvePendingExit userId={profile!.id} date={d.date} />
+                  </div>
+                )}
               </div>
             </details>
           );
