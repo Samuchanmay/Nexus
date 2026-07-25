@@ -169,6 +169,7 @@ export default async function AdminDashboard() {
      (si a alguien le toca hoy, sigue debiendo iniciar su jornada). El
      matiz de "próximo" se agrega aparte, solo para el punto+etiqueta que
      se muestra en el widget "Equipo hoy". */
+  const nowMin = nowMeridaMinutes();
   const presence = (team ?? []).map((u) => {
     const rows = (teamAtt ?? []).filter((a) => a.user_id === u.id);
     const hasIn = rows.some((r) => r.reason === "Entrada a trabajo");
@@ -200,7 +201,6 @@ export default async function AdminDashboard() {
   };
 
   /* ── Alertas inteligentes ── */
-  const nowMin = nowMeridaMinutes();
   const dow = new Date(`${today}T12:00:00`).getDay(); // 0=dom, 6=sáb
   const isWorkday = dow !== 0 && dow !== 6 && !holidayToday;
   const alerts: { icon: string; text: string; tone: "warn" | "danger" | "accent"; href?: string }[] = [];
