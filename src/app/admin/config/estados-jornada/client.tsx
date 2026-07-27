@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
+import { SectionIntro } from "@/components/config-intro";
 import { IconPlus, IconX } from "@/components/icons";
 import { Icon } from "@/components/os/icons";
 
-type EstadoRow = {
+export type EstadoRow = {
   id: string; nombre: string; cuenta_tiempo: boolean; pausa_actividad: boolean;
   requiere_motivo: boolean; color: string; orden: number; activo: boolean;
 };
@@ -16,7 +17,7 @@ const FLAGS: { key: "cuenta_tiempo" | "pausa_actividad" | "requiere_motivo"; lab
   { key: "requiere_motivo", label: "Requiere motivo", hint: "Uso informativo — el check-in ya siempre pide un motivo" },
 ];
 
-export default function EstadosClient({ states }: { states: EstadoRow[] }) {
+export default function EstadosClient({ states, embedded }: { states: EstadoRow[]; embedded?: boolean }) {
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ nombre: "", color: "#8E8E93", orden: (states.at(-1)?.orden ?? 0) + 1 });
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -51,9 +52,23 @@ export default function EstadosClient({ states }: { states: EstadoRow[] }) {
       { ok: "Estado eliminado", err: "No se pudo eliminar — puede que ya tenga fichajes asociados" });
   };
 
+  const activos = states.filter((s) => s.activo).length;
+  const conMotivo = states.filter((s) => s.requiere_motivo).length;
+
   return (
     <>
-      <PageHeader title="Estados de Jornada" subtitle="Define qué pasa cuando alguien ficha cada motivo — sin tocar código" />
+      {!embedded && (
+        <PageHeader title="Estados de Jornada" subtitle="Define qué pasa cuando alguien ficha cada motivo — sin tocar código" />
+      )}
+
+      <SectionIntro
+        stats={[
+          { label: "Estados", value: states.length },
+          { label: "Activos", value: activos, tone: "ok" },
+          { label: "Piden motivo", value: conMotivo },
+        ]}
+        tip="El color de cada estado es solo un acento visual — lo que de verdad cambia el comportamiento son los 3 switches (cuenta tiempo, pausa actividad, requiere motivo)."
+      />
 
       <div className="card p-4 mb-5 text-[12.5px]" style={{ color: "var(--text-2)" }}>
         Los <strong>motivos del check-in</strong> (Comida, Diligencia, Cita médica, Permiso, Pendientes…) están

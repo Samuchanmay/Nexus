@@ -12,6 +12,15 @@ import GpsClient from "./client";
    (soporta múltiples sedes/puntos válidos). */
 export default async function Gps() {
   const supabase = await createClient();
-  const { data } = await supabase.from("gps_zones").select("*").order("nombre");
-  return <GpsClient zones={(data ?? []) as GpsZone[]} />;
+  const [{ data }, { data: devicesData }] = await Promise.all([
+    supabase.from("gps_zones").select("*").order("nombre"),
+    supabase.from("known_devices").select("id, active, last_lat, last_lng, users(display_name)").eq("active", true),
+  ]);
+  const devices = (devicesData ?? []).map((d) => ({
+    id: d.id as string,
+    last_lat: (d.last_lat as number | null) ?? null,
+    last_lng: (d.last_lng as number | null) ?? null,
+    name: (d.users as unknown as { display_name: string } | null)?.display_name ?? "—",
+  }));
+  return <GpsClient zones={(data ?? []) as GpsZone[]} devices={devices} />;
 }

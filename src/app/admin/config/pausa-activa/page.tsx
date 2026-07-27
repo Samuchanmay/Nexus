@@ -13,7 +13,7 @@ export default async function PausaActiva() {
   const [{ data: frases }, { data: settings }] = await Promise.all([
     supabase.from("pausa_activa_frases").select("*").order("orden"),
     supabase.from("app_settings").select("key, value")
-      .in("key", ["pausa_activa_interval_min", "pausa_activa_window_min"]),
+      .in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
   ]);
   const settingsMap = Object.fromEntries((settings ?? []).map((s) => [s.key, s.value]));
   return (
@@ -21,6 +21,7 @@ export default async function PausaActiva() {
       frases={(frases ?? []) as PausaFraseRow[]}
       intervalMin={Number(settingsMap.pausa_activa_interval_min) || 120}
       windowMin={Number(settingsMap.pausa_activa_window_min) || 12}
+      modo={settingsMap.pausa_activa_modo === "aleatorio" ? "aleatorio" : "secuencial"}
     />
   );
 }

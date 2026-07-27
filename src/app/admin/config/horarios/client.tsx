@@ -2,14 +2,16 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, PersonRow, EmptyState, Field } from "@/components/shared";
+import { SectionIntro } from "@/components/config-intro";
 import { Sheet, DatePicker, Pill, useToast, Select, TimePicker } from "@/components/ui";
 import { IconPlus, IconX } from "@/components/icons";
 import { todayMerida, shortDate } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { scheduleFor, fmtTime, fmtMin } from "@/lib/hours";
+import { addDays } from "@/lib/tz";
 import type { Schedule } from "@/lib/types";
 
-type Person = { id: string; display_name: string; full_name?: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null; area: string | null };
+export type Person = { id: string; display_name: string; full_name?: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null; area: string | null };
 
 const DEFAULT_SCHED = { start_time: "09:00:00", end_time: "18:00:00", target_min: 480, tolerance_min: 15 };
 
@@ -24,7 +26,48 @@ const addMinToTime = (start: string, min: number) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
 };
 
-export default function HorariosClient({ team, schedules }: { team: Person[]; schedules: Schedule[] }) {
+/** Lunes a domingo de la semana que contiene `isoToday` (§316) — calculado
+    en mediodía UTC como el resto de lib/tz.ts, para no depender de la
+    zona horaria del navegador. */
+function weekDates(isoToday: string): string[] {
+  const d = new Date(isoToday + "T12:00:00Z");
+  const dow = d.getUTCDay(); // 0=domingo..6=sábado
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  return Array.from({ length: 7 }, (_, i) => addDays(isoToday, mondayOffset + i));
+}
+
+const WEEKDAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
+
+/** Tira de 7 puntos (§316) — resumen visual de la semana sin abrir el
+    Sheet de cada persona: punto vacío = sin horario definido para ese
+    día, punto neutro = horario base, punto acentuado = horario temporal
+    vigente ese día. */
+function WeekStrip({ userId, schedules, today }: { userId: string; schedules: Schedule[]; today: string }) {
+  const dates = weekDates(today);
+  return (
+    <div className="flex items-center gap-1 mt-0.5">
+      {dates.map((date, i) => {
+        const row = scheduleFor(schedules, userId, date);
+        const isOverride = !!row && row.valid_until !== null;
+        const isToday = date === today;
+        return (
+          <span
+            key={date}
+            title={`${WEEKDAY_LABELS[i]} ${shortDate(date)}${row ? ` · ${fmtTime(row.start_time)} · ${fmtMin(row.target_min)}${isOverride ? " (temporal)" : ""}` : " · sin horario"}`}
+            className="w-[7px] h-[7px] rounded-full shrink-0"
+            style={{
+              background: row ? (isOverride ? "var(--accent)" : "var(--text-3)") : "transparent",
+              border: row ? "none" : "1px solid var(--border-2)",
+              boxShadow: isToday ? "0 0 0 2px var(--surface-1), 0 0 0 3px var(--border-2)" : "none",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+export default function HorariosClient({ team, schedules, embedded }: { team: Person[]; schedules: Schedule[]; embedded?: boolean }) {
   const { run, saving } = useSupabaseMutation();
   const toast = useToast();
   const today = todayMerida();
@@ -88,9 +131,25 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
       { ok: "Horario temporal eliminado", err: "No se pudo eliminar" });
   };
 
+  const conTemporal = team.filter((p) => {
+    const row = scheduleFor(schedules, p.id, today);
+    return !!row && row.valid_until !== null;
+  }).length;
+
   return (
     <>
-      <PageHeader title="Horarios" subtitle="Hora de entrada y horas objetivo por persona — crea horarios temporales para cubrir vacaciones u otros periodos" />
+      {!embedded && (
+        <PageHeader title="Horarios" subtitle="Hora de entrada y horas objetivo por persona — crea horarios temporales para cubrir vacaciones u otros periodos" />
+      )}
+
+      <SectionIntro
+        stats={[
+          { label: "Personas", value: team.length },
+          { label: "Con temporal hoy", value: conTemporal, tone: conTemporal > 0 ? "accent" : "default" },
+          { label: "Vigentes", value: overrides.filter((o) => today >= o.valid_from && (!o.valid_until || today <= o.valid_until)).length },
+        ]}
+        tip="Los puntos bajo cada persona son su semana (L-D): vacío = sin horario, gris = horario base, morado = horario temporal ese día."
+      />
 
       <section className="mb-7">
         <h2 className="text-[12px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
@@ -109,6 +168,7 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
                 avatarUrl={p.avatar_url}
                 birthday={isBirthdayToday(p.birth_date, todayISO())}
                 meta={p.area ?? undefined}
+                badges={<WeekStrip userId={p.id} schedules={schedules} today={today} />}
                 right={
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">

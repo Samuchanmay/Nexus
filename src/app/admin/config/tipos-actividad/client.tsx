@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
+import { SectionIntro } from "@/components/config-intro";
 import { Select } from "@/components/ui";
 import {
   IconPlus, IconX, IconTrash, IconCamera, IconPen, IconClipboard, IconVideo, IconMegaphone, IconFolder,
@@ -29,8 +30,8 @@ function slugify(label: string) {
   return base || "tipo";
 }
 
-export default function TiposClient({ types, templates }: {
-  types: ActivityType[]; templates: ChecklistTemplateRow[];
+export default function TiposClient({ types, templates, embedded }: {
+  types: ActivityType[]; templates: ChecklistTemplateRow[]; embedded?: boolean;
 }) {
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ label: "", minDays: 3, icon: "generic", subtypes: "" });
@@ -67,6 +68,34 @@ export default function TiposClient({ types, templates }: {
     setConfirmKey(null);
     run(() => createClient().from("activity_types").delete().eq("key", row.key),
       { ok: "Tipo eliminado", err: "No se pudo eliminar — puede que ya tenga solicitudes o actividades asociadas" });
+  };
+
+  /** Duplicar (§320) — clona nombre/config/checklist de un tipo existente
+      como punto de partida rápido para uno nuevo (ej. "Cobertura" →
+      "Cobertura (copia)" para ajustar solo lo que cambia). */
+  const duplicate = async (row: ActivityType) => {
+    const baseLabel = `${row.label} (copia)`;
+    let label = baseLabel, n = 2;
+    while (types.some((t) => t.label.toLowerCase() === label.toLowerCase())) { label = `${baseLabel} ${n}`; n += 1; }
+    const key = slugify(label);
+    const orden = (types.at(-1)?.orden ?? 0) + 1;
+    const tpl = templateByType[row.key];
+    await run(async () => {
+      const supabase = createClient();
+      const { error } = await supabase.from("activity_types").insert({
+        key, label, min_hours: row.min_hours, icon: row.icon, subtypes: row.subtypes, orden, activo: true,
+      });
+      if (error) return { error: { message: "No se pudo duplicar" } };
+      if (tpl && tpl.checklist_items.length > 0) {
+        const { data: newTpl, error: tplErr } = await supabase.from("checklist_templates").insert({ type: key }).select("id").single();
+        if (!tplErr && newTpl) {
+          const items = [...tpl.checklist_items].sort((a, b) => a.position - b.position)
+            .map((it) => ({ template_id: newTpl.id, position: it.position, label: it.label }));
+          await supabase.from("checklist_items").insert(items);
+        }
+      }
+      return { error: null };
+    }, { ok: `"${label}" creado a partir de "${row.label}"` });
   };
 
   const add = async () => {
@@ -124,9 +153,23 @@ export default function TiposClient({ types, templates }: {
     }, {});
   };
 
+  const activos = types.filter((t) => t.activo).length;
+  const conChecklist = types.filter((t) => (templateByType[t.key]?.checklist_items.length ?? 0) > 0).length;
+
   return (
     <>
-      <PageHeader title="Tipos de Actividad" subtitle="Agrega tipos nuevos y define su checklist — sin tocar código" />
+      {!embedded && (
+        <PageHeader title="Tipos de Actividad" subtitle="Agrega tipos nuevos y define su checklist — sin tocar código" />
+      )}
+
+      <SectionIntro
+        stats={[
+          { label: "Tipos", value: types.length },
+          { label: "Activos", value: activos, tone: "ok" },
+          { label: "Con checklist", value: conChecklist },
+        ]}
+        tip={'¿Vas a crear un tipo parecido a otro que ya existe? Usa "Duplicar" en vez de empezar de cero — copia su checklist completo.'}
+      />
 
       <div className="card p-4 mb-5 text-[12.5px]" style={{ color: "var(--text-2)" }}>
         Cada tipo (Cobertura, Diseño, Lona…) controla qué aparece en el asistente de{" "}
@@ -155,6 +198,11 @@ export default function TiposClient({ types, templates }: {
                 <div className="flex items-center gap-2">
                   <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
                     label={row.activo ? "Activo" : "Inactivo"} />
+                  <button onClick={() => duplicate(row)} disabled={saving}
+                    className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-full shrink-0"
+                    style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                    Duplicar
+                  </button>
                   {confirmKey === row.key ? (
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
@@ -205,6 +253,23 @@ export default function TiposClient({ types, templates }: {
                     className="field-input text-[13px] py-2" placeholder="Ej. Fotografía, Video" />
                 </label>
               </div>
+
+              {items.length > 0 && !isOpen && (
+                <div className="flex items-center gap-1 flex-wrap mb-2.5">
+                  {items.slice(0, 4).map((it, i) => (
+                    <span key={it.id} className="flex items-center gap-1">
+                      <span className="text-[11px] font-semibold px-2 py-1 rounded-full truncate max-w-[140px]"
+                        style={{ background: "var(--surface-2)", color: "var(--text-2)" }} title={it.label}>
+                        {it.label}
+                      </span>
+                      {i < Math.min(items.length, 4) - 1 && <span style={{ color: "var(--text-3)" }}>→</span>}
+                    </span>
+                  ))}
+                  {items.length > 4 && (
+                    <span className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>+{items.length - 4} más</span>
+                  )}
+                </div>
+              )}
 
               <button onClick={() => setOpenType(isOpen ? null : row.key)}
                 className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>

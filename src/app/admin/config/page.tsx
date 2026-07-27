@@ -1,126 +1,96 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Icon } from "@/components/os/icons";
+import type { JornadaState } from "@/lib/hours";
+import type { ActivityType, Department, GpsZone, Schedule } from "@/lib/types";
+import type { DeviceRow } from "./dispositivos/client";
+import type { Person } from "./horarios/client";
+import type { DeviceGeoRow } from "./gps/client";
+import type { ChecklistTemplateRow } from "./tipos-actividad/page";
+import type { PausaFraseRow } from "./pausa-activa/page";
+import ConfigHub from "./hub-client";
 
 /* ═══════════════════════════════════════════════════════════════
-   Centro de Configuración — Plano Maestro §13 + rediseño §12
-   (brief de rediseño: "Configuración regrupada por categoría").
+   Centro de Configuración — hub tipo Ajustes de Apple (FASE E §314).
 
-   Antes: dos grupos por implementación ("Solo aquí" vs "Accesos
-   rápidos") — útil para mí al construirlo, confuso para quien lo usa.
-   Ahora: agrupado por lo que la persona está tratando de hacer
-   (Jornada, Actividades y equipo, Sistema), sin duplicar lo que ya
-   vive a un clic en el menú lateral.
-   ═══════════════════════════════════════════════════════════════ */
-
-type LinkCard = { href: string; title: string; desc: string; icon: string };
-
-const CATEGORIES: { title: string; items: LinkCard[] }[] = [
-  {
-    title: "Jornada y asistencia",
-    items: [
-      { href: "/admin/config/estados-jornada", title: "Estados de jornada", icon: "toggle",
-        desc: "Qué cuenta como tiempo trabajado y qué pausa la actividad en curso." },
-      { href: "/admin/config/dispositivos", title: "Dispositivos", icon: "device",
-        desc: "Teléfonos vinculados a cada persona en /fichar — desactiva los perdidos o reasignados." },
-      { href: "/admin/config/horarios", title: "Horarios", icon: "clock",
-        desc: "Hora de entrada y horas objetivo por persona — crea horarios temporales para vacaciones." },
-      { href: "/admin/dias-inhabiles", title: "Días inhábiles", icon: "calendar",
-        desc: "Fechas que no cuentan como jornada laboral." },
-      { href: "/admin/config/gps", title: "Zona GPS", icon: "pin",
-        desc: "Coordenadas y radio permitido para fichar — cámbialas sin tocar código ni redesplegar." },
-    ],
-  },
-  {
-    title: "Actividades y equipo",
-    items: [
-      { href: "/admin/config/tipos-actividad", title: "Tipos de actividad", icon: "tag",
-        desc: "Agrega tipos nuevos (ej. Podcast) y sus checklists, sin tocar código." },
-      { href: "/admin/config/pausa-activa", title: "Pausa activa", icon: "food",
-        desc: "Frases y ritmo del aviso de pausa activa que muestra el Asistente." },
-      { href: "/admin/empleados", title: "Equipo", icon: "users",
-        desc: "Invitar, dar de baja, cambiar rol o coordinación/departamento." },
-      { href: "/admin/config/colores", title: "Colores de equipo", icon: "palette",
-        desc: "El color fijo de cada coordinación/departamento y de RH — ninguno se repite." },
-      { href: "/admin/reportes", title: "Reportes", icon: "chart",
-        desc: "Solicitudes y actividades agregadas por tipo, coordinación y tiempo." },
-    ],
-  },
-  {
-    title: "Sistema",
-    items: [
-      { href: "/admin/dev-mode", title: "Modo desarrollador", icon: "layers",
-        desc: "Mapa de todas las pantallas de Emet, agrupadas por rol — para probar y encontrar errores." },
-    ],
-  },
-];
-
-function Card({ it }: { it: LinkCard }) {
-  return (
-    <Link href={it.href} className="card card-hover p-4 flex items-start gap-3">
-      <div className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0"
-        style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
-        <Icon name={it.icon} size={18} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[14px] font-bold">{it.title}</p>
-        <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>{it.desc}</p>
-      </div>
-    </Link>
-  );
-}
-
+   Antes: cada categoría era un <Link> que navegaba a una ruta propia.
+   Ahora: un solo Server Component pesca TODO en paralelo (igual que
+   antes lo hacía cada page.tsx por separado) y se lo pasa a ConfigHub,
+   que decide qué sección mostrar en el panel derecho por estado de
+   cliente — sin navegación real. Las 7 rutas independientes
+   (/admin/config/estados-jornada, etc.) se conservan intactas para
+   quien llegue por un link directo o el mapa de dev-mode; renderizan
+   el mismo *Client con embedded=false (su propio PageHeader). */
 export default async function Config() {
   const supabase = await createClient();
-  const [{ count: users }, { count: coordinaciones }] = await Promise.all([
+
+  const [
+    { count: usersCount },
+    { count: coordinacionesCount },
+    { data: estadosData },
+    { data: devicesData },
+    { data: horariosTeam },
+    { data: horariosScheds },
+    { data: gpsZonesData },
+    { data: tiposData },
+    { data: templatesData },
+    { data: pausaFrasesData },
+    { data: pausaSettingsData },
+    { data: coloresAreasData },
+    { data: rhColorRow },
+  ] = await Promise.all([
     supabase.from("users").select("id", { count: "exact", head: true }).eq("active", true),
     supabase.from("departments").select("id", { count: "exact", head: true }).eq("activo", true),
+    supabase.from("jornada_states").select("*").order("orden"),
+    supabase.from("known_devices")
+      .select("id, device_id, active, first_seen_at, last_seen_at, user_agent, last_lat, last_lng, users(display_name)")
+      .order("last_seen_at", { ascending: false }),
+    supabase.from("users").select("id, display_name, full_name, nexus_color, avatar_url, birth_date, area")
+      .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
+    supabase.from("schedules").select("*").order("valid_from", { ascending: false }),
+    supabase.from("gps_zones").select("*").order("nombre"),
+    supabase.from("activity_types").select("*").order("orden"),
+    supabase.from("checklist_templates").select("id, type, checklist_items(id, position, label)"),
+    supabase.from("pausa_activa_frases").select("*").order("orden"),
+    supabase.from("app_settings").select("key, value")
+      .in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
+    supabase.from("departments").select("*").order("tipo").order("nombre"),
+    supabase.from("app_settings").select("value").eq("key", "rh_color").maybeSingle(),
   ]);
 
+  const devices: DeviceRow[] = (devicesData ?? []).map((d) => ({
+    id: d.id as string,
+    device_id: d.device_id as string,
+    active: d.active as boolean,
+    first_seen_at: d.first_seen_at as string,
+    last_seen_at: d.last_seen_at as string,
+    user_agent: (d.user_agent as string | null) ?? null,
+    last_lat: (d.last_lat as number | null) ?? null,
+    last_lng: (d.last_lng as number | null) ?? null,
+    name: (d.users as unknown as { display_name: string } | null)?.display_name ?? "—",
+  }));
+
+  const gpsDevices: DeviceGeoRow[] = devices
+    .filter((d) => d.active)
+    .map((d) => ({ id: d.id, last_lat: d.last_lat, last_lng: d.last_lng, name: d.name }));
+
+  const pausaSettingsMap = Object.fromEntries((pausaSettingsData ?? []).map((s) => [s.key, s.value]));
+
   return (
-    <>
-      <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Configuración</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          Lo que solo se administra desde aquí, agrupado por lo que estás haciendo.
-        </p>
-      </header>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{users ?? 0}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Colaboradores activos</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{coordinaciones ?? 0}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Coordinaciones/deptos.</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: "var(--ok)" }}>
-            <Icon name="check" size={12} /> Activo
-          </p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Login con Google</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: "var(--ok)" }}>
-            <Icon name="check" size={12} /> Activo
-          </p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Correo (Resend)</p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-7">
-        {CATEGORIES.map((cat) => (
-          <section key={cat.title}>
-            <h2 className="text-[12px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
-              {cat.title}
-            </h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {cat.items.map((it) => <Card key={it.href} it={it} />)}
-            </div>
-          </section>
-        ))}
-      </div>
-    </>
+    <ConfigHub
+      topStats={{ users: usersCount ?? 0, coordinaciones: coordinacionesCount ?? 0 }}
+      estados={(estadosData ?? []) as (JornadaState & { id: string })[]}
+      devices={devices}
+      horariosTeam={(horariosTeam ?? []) as Person[]}
+      horariosScheds={(horariosScheds ?? []) as Schedule[]}
+      gpsZones={(gpsZonesData ?? []) as GpsZone[]}
+      gpsDevices={gpsDevices}
+      tipos={(tiposData ?? []) as ActivityType[]}
+      templates={(templatesData ?? []) as unknown as ChecklistTemplateRow[]}
+      pausaFrases={(pausaFrasesData ?? []) as PausaFraseRow[]}
+      pausaIntervalMin={Number(pausaSettingsMap.pausa_activa_interval_min) || 120}
+      pausaWindowMin={Number(pausaSettingsMap.pausa_activa_window_min) || 12}
+      pausaModo={pausaSettingsMap.pausa_activa_modo === "aleatorio" ? "aleatorio" : "secuencial"}
+      coloresAreas={(coloresAreasData ?? []) as Department[]}
+      rhColor={rhColorRow?.value ?? null}
+    />
   );
 }

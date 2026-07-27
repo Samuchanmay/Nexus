@@ -146,7 +146,7 @@ export default async function AdminDashboard() {
     .filter((t): t is AssistantTask => t !== null && !["completada", "cancelada"].includes(t.status));
   const [{ data: pausaFrases }, { data: pausaSettings }] = await Promise.all([
     supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
-    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min"]),
+    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
   ]);
   const pausaSettingsMap = new Map((pausaSettings ?? []).map((s) => [s.key, s.value]));
   const assistantMessages = contextualMessages({
@@ -155,6 +155,7 @@ export default async function AdminDashboard() {
     pausaActivaFrases: (pausaFrases ?? []).map((f) => f.texto as string),
     pausaActivaIntervalMin: Number(pausaSettingsMap.get("pausa_activa_interval_min")) || undefined,
     pausaActivaWindowMin: Number(pausaSettingsMap.get("pausa_activa_window_min")) || undefined,
+    pausaActivaModo: (pausaSettingsMap.get("pausa_activa_modo") as "secuencial" | "aleatorio" | undefined) ?? undefined,
   });
 
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));

@@ -72,10 +72,11 @@ export function contextualMessages(params: {
   pausaActivaFrases?: string[];   // frases configurables (Configuración → Pausa activa)
   pausaActivaIntervalMin?: number; // minutos de trabajo continuo entre avisos
   pausaActivaWindowMin?: number;   // minutos que dura visible cada aviso
+  pausaActivaModo?: "secuencial" | "aleatorio"; // orden de rotación de las frases (§321)
 }): AssistantMessage[] {
   const {
     today, nowMin, tasks, birthDate, working, workStartTime,
-    pausaActivaFrases, pausaActivaIntervalMin, pausaActivaWindowMin,
+    pausaActivaFrases, pausaActivaIntervalMin, pausaActivaWindowMin, pausaActivaModo,
   } = params;
   const frases = pausaActivaFrases && pausaActivaFrases.length > 0 ? pausaActivaFrases : PAUSA_ACTIVA_FRASES_DEFAULT;
   const intervalMin = pausaActivaIntervalMin && pausaActivaIntervalMin > 0 ? pausaActivaIntervalMin : PAUSA_ACTIVA_INTERVAL_MIN_DEFAULT;
@@ -104,12 +105,19 @@ export function contextualMessages(params: {
       const cycle = Math.floor(elapsed / intervalMin);
       const intoCycle = elapsed % intervalMin;
       if (intoCycle <= windowMin) {
+        // Secuencial (default): recorre la lista en orden, ciclo tras ciclo.
+        // Aleatorio: mismo cálculo determinista (sin Math.random, para no
+        // romper hidratación SSR) pero con un hash multiplicativo del ciclo
+        // — se siente "revuelto" sin dejar de ser reproducible.
+        const idx = pausaActivaModo === "aleatorio"
+          ? ((cycle * 2654435761) >>> 0) % frases.length
+          : (cycle - 1) % frases.length;
         msgs.push({
           id: `pausa-activa-${cycle}`,
           tone: "info",
           icon: "food",
           animated: true,
-          text: frases[(cycle - 1) % frases.length],
+          text: frases[idx],
           elapsedMin: elapsed,
         });
       }

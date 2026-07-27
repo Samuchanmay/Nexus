@@ -100,6 +100,12 @@ Deno.serve(async (req) => {
     // persona con su mismo teléfono). Primer uso de un device_id ⇒ se
     // vincula automáticamente a quien está fichando.
     const deviceId = typeof device_id === "string" ? device_id.trim().slice(0, 120) : "";
+    // Contexto del dispositivo (Configuración → Dispositivos): navegador/OS
+    // vienen del header User-Agent (no depende de que el cliente lo mande a
+    // propósito) y la última ubicación es la MISMA lat/lng que ya se valida
+    // arriba contra la Zona GPS — no se pide de nuevo ni se guarda nada que
+    // el cliente no hubiera mandado ya para poder fichar.
+    const userAgent = req.headers.get("user-agent")?.slice(0, 300) ?? null;
     if (deviceId) {
       const { data: known } = await admin
         .from("known_devices").select("user_id, active").eq("device_id", deviceId).maybeSingle();
@@ -110,9 +116,13 @@ Deno.serve(async (req) => {
         if (known.user_id !== profile.id) {
           return Response.json({ ok: false, error: "Este dispositivo ya está vinculado a otra persona" }, { status: 403, headers: cors });
         }
-        await admin.from("known_devices").update({ last_seen_at: new Date().toISOString() }).eq("device_id", deviceId);
+        await admin.from("known_devices").update({
+          last_seen_at: new Date().toISOString(), user_agent: userAgent, last_lat: lat, last_lng: lng,
+        }).eq("device_id", deviceId);
       } else {
-        await admin.from("known_devices").insert({ device_id: deviceId, user_id: profile.id });
+        await admin.from("known_devices").insert({
+          device_id: deviceId, user_id: profile.id, user_agent: userAgent, last_lat: lat, last_lng: lng,
+        });
       }
     }
 

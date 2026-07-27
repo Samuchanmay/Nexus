@@ -4,12 +4,38 @@ import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
 import { IconPlus, IconX } from "@/components/icons";
 import { Icon } from "@/components/os/icons";
+import { SectionIntro } from "@/components/config-intro";
 import type { GpsZone } from "@/lib/types";
 
-export default function GpsClient({ zones }: { zones: GpsZone[] }) {
+export type DeviceGeoRow = { id: string; last_lat: number | null; last_lng: number | null; name: string };
+
+/** Distancia entre dos coordenadas en metros (fórmula de Haversine) —
+    misma lógica que valida el geofence en la Edge Function `fichar`,
+    reimplementada acá solo para mostrar el contador dentro/fuera; no
+    reemplaza la validación real del check-in. */
+function haversineM(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** bbox holgado (3x el radio, mínimo 150m) para que el pin no quede pegado al borde del iframe. */
+function bboxFor(lat: number, lng: number, radioM: number) {
+  const latDelta = Math.max(radioM * 3, 150) / 111320;
+  const lngDelta = Math.max(radioM * 3, 150) / (111320 * Math.cos((lat * Math.PI) / 180));
+  return { latMin: lat - latDelta, latMax: lat + latDelta, lngMin: lng - lngDelta, lngMax: lng + lngDelta };
+}
+
+export default function GpsClient({ zones, devices, embedded }: { zones: GpsZone[]; devices: DeviceGeoRow[]; embedded?: boolean }) {
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ nombre: "", lat: "", lng: "", radio_m: "50" });
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [mapOpen, setMapOpen] = useState<string | null>(null);
+
+  const locatedDevices = devices.filter((d) => d.last_lat != null && d.last_lng != null);
 
   const toggleActivo = (z: GpsZone) =>
     run(() => createClient().from("gps_zones").update({ activo: !z.activo }).eq("id", z.id),
@@ -39,9 +65,22 @@ export default function GpsClient({ zones }: { zones: GpsZone[] }) {
     if (ok) setForm({ nombre: "", lat: "", lng: "", radio_m: "50" });
   };
 
+  const zonasActivas = zones.filter((z) => z.activo).length;
+
   return (
     <>
-      <PageHeader title="Zona GPS" subtitle="Coordenadas y radio permitido para fichar en /fichar — se aplica sin tocar código ni redesplegar" />
+      {!embedded && (
+        <PageHeader title="Zona GPS" subtitle="Coordenadas y radio permitido para fichar en /fichar — se aplica sin tocar código ni redesplegar" />
+      )}
+
+      <SectionIntro
+        stats={[
+          { label: "Zonas", value: zones.length },
+          { label: "Activas", value: zonasActivas, tone: "ok" },
+          { label: "Con ubicación hoy", value: locatedDevices.length },
+        ]}
+        tip="El contador dentro/fuera de cada zona usa la última ubicación conocida de cada dispositivo (capturada en su fichaje más reciente) — no es una posición en vivo."
+      />
 
       <div className="card p-4 mb-5 text-[12.5px]" style={{ color: "var(--text-2)" }}>
         Alguien puede fichar si está dentro del radio de <strong>cualquiera</strong> de las zonas activas.
@@ -108,6 +147,43 @@ export default function GpsClient({ zones }: { zones: GpsZone[] }) {
                   onBlur={(e) => { const v = parseInt(e.target.value, 10); if (!Number.isNaN(v) && v !== z.radio_m) updateField(z, { radio_m: v }); }} />
               </label>
             </div>
+
+            {(() => {
+              const withDistance = locatedDevices.map((d) => ({
+                ...d,
+                distance: haversineM(z.lat, z.lng, d.last_lat as number, d.last_lng as number),
+              }));
+              const dentro = withDistance.filter((d) => d.distance <= z.radio_m);
+              const fuera = withDistance.filter((d) => d.distance > z.radio_m);
+              const isMapOpen = mapOpen === z.id;
+              return (
+                <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border-2)" }}>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-4">
+                      <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--ok)" }}>
+                        <Icon name="check" size={12} /> {dentro.length} dentro
+                      </span>
+                      <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
+                        <Icon name="signal" size={12} /> {fuera.length} fuera
+                      </span>
+                    </div>
+                    <button onClick={() => setMapOpen(isMapOpen ? null : z.id)}
+                      className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+                      {isMapOpen ? "Ocultar mapa" : "Ver mapa"}
+                    </button>
+                  </div>
+                  {isMapOpen && (() => {
+                    const { latMin, latMax, lngMin, lngMax } = bboxFor(z.lat, z.lng, z.radio_m);
+                    const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lngMin}%2C${latMin}%2C${lngMax}%2C${latMax}&layer=mapnik&marker=${z.lat}%2C${z.lng}`;
+                    return (
+                      <div className="mt-3 rounded-lg overflow-hidden" style={{ border: "1px solid var(--border-2)" }}>
+                        <iframe title={`Mapa de ${z.nombre}`} src={src} className="w-full" style={{ height: 220, border: 0 }} loading="lazy" />
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
           </div>
         ))}
       </div>

@@ -34,7 +34,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("activity_types").select("*").eq("activo", true).order("orden"),
     supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
-    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min"]),
+    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
     // Vacaciones propias — para el Context Header (hoy / próximas / regreso reciente).
     supabase.from("vacations").select("start_date, end_date").eq("user_id", profile.id).eq("status", "Aprobada").is("archived_at", null),
     supabase.from("holidays").select("date").eq("date", today).maybeSingle(),
@@ -125,6 +125,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
     pausaActivaFrases: (pausaFrases ?? []).map((f) => f.texto as string),
     pausaActivaIntervalMin: Number(pausaSettingsMap.get("pausa_activa_interval_min")) || undefined,
     pausaActivaWindowMin: Number(pausaSettingsMap.get("pausa_activa_window_min")) || undefined,
+    pausaActivaModo: (pausaSettingsMap.get("pausa_activa_modo") as "secuencial" | "aleatorio" | undefined) ?? undefined,
   });
 
   return (
