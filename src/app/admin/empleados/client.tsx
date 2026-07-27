@@ -3,8 +3,8 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
-import { useToast, Sheet, Avatar, SelectField, DatePicker } from "@/components/ui";
-import { IconUserPlus, IconCamera, IconChevronLeft, IconClipboard } from "@/components/icons";
+import { useToast, Sheet, Avatar, SelectField, DatePicker, Menu, MenuItem } from "@/components/ui";
+import { IconUserPlus, IconCamera, IconChevronLeft, IconClipboard, IconPen, IconCalendar, IconX } from "@/components/icons";
 import { Switch } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
 import { todayMerida } from "@/lib/tz";
@@ -44,16 +44,21 @@ function AreaSelect({ role, areas, value, onChange }: {
   );
 }
 
-export default function EmpleadosClient({ users, areas, rhColor }: { users: UserProfile[]; areas: Department[]; rhColor: string | null }) {
+export default function EmpleadosClient({ users, areas, rhColor, vacationTodayIds, permisoTodayIds }: {
+  users: UserProfile[]; areas: Department[]; rhColor: string | null;
+  vacationTodayIds: string[]; permisoTodayIds: string[];
+}) {
   const toast = useToast();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   useHeaderAction(
     <button onClick={() => setOpen(true)} className="btn-primary px-3.5 h-8 text-[13px] flex items-center gap-1.5">
-      <IconUserPlus className="w-3.5 h-3.5" /> Agregar personal
+      <IconUserPlus className="w-3.5 h-3.5" /> Nuevo colaborador
     </button>
   );
+  const vacationTodaySet = new Set(vacationTodayIds);
+  const permisoTodaySet = new Set(permisoTodayIds);
   const usedLockedColors = [...areas.map((a) => a.color), rhColor];
   const availableColors = PALETTE.filter((c) => !usedLockedColors.some((u) => u?.toUpperCase() === c.toUpperCase()));
   const [form, setForm] = useState({
@@ -144,6 +149,32 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     router.refresh();
   };
 
+  // Desactivar SIEMPRE pide confirmación antes de guardar (nunca al primer
+  // click sobre el switch) — reactivar puede ser inmediato, no hay riesgo.
+  const [confirmUser, setConfirmUser] = useState<UserProfile | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const requestToggle = (u: UserProfile) => {
+    if (u.active) { setConfirmUser(u); return; }
+    toggleActive(u);
+  };
+  const confirmDeactivate = async () => {
+    if (!confirmUser) return;
+    setConfirmBusy(true);
+    await toggleActive(confirmUser);
+    setConfirmBusy(false);
+    setConfirmUser(null);
+  };
+
+  /** Punto de estado junto al avatar — independiente del switch, prioridad:
+      baja > vacaciones > permiso > invitación pendiente (nunca inició sesión) > activo. */
+  const rowStatus = (u: UserProfile): { color: string; label: string } => {
+    if (!u.active) return { color: "var(--danger)", label: "Baja" };
+    if (vacationTodaySet.has(u.id)) return { color: "var(--purple)", label: "Vacaciones" };
+    if (permisoTodaySet.has(u.id)) return { color: "var(--warn)", label: "Permiso" };
+    if (!u.auth_id) return { color: "#AEAEB2", label: "Invitación pendiente" };
+    return { color: "var(--ok)", label: "Activo" };
+  };
+
   const openEdit = (u: UserProfile) => {
     setEditing(u);
     setEditForm({
@@ -228,6 +259,13 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     { key: "rh", label: "RH", list: users.filter((u) => u.role === "rh") },
   ];
 
+  // Barra sutil de categoría en el borde izquierdo de cada tarjeta (punto 17)
+  // — un color por grupo, no por persona, para identificar de un vistazo.
+  const CATEGORY_STRIPE: Record<GroupKey, string> = {
+    admin: "var(--purple)", equipo: "var(--accent)", coordinador: "var(--ok)",
+    departamento: "var(--warn)", rh: rhColor ?? "#8E8E93",
+  };
+
   const q = search.trim().toLowerCase();
   const matches = (u: UserProfile) => {
     if (!q) return true;
@@ -236,29 +274,35 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
       .some((v) => (v ?? "").toLowerCase().includes(q));
   };
 
-  const ROLE_CHIPS: { key: typeof roleFilter; label: string }[] = [
-    { key: "todos", label: "Todos" },
-    { key: "admin", label: "Administrador" },
-    { key: "equipo", label: "Equipo" },
-    { key: "coordinador", label: "Coordinadores" },
-    { key: "departamento", label: "Departamentos" },
-    { key: "rh", label: "RH" },
+  const ROLE_CHIPS: { key: typeof roleFilter; label: string; count: number }[] = [
+    { key: "todos", label: "Todos", count: users.length },
+    { key: "admin", label: "Administrador", count: administradores.length },
+    { key: "equipo", label: "Equipo", count: equipo.length },
+    { key: "coordinador", label: "Coordinadores", count: coordinadores.length },
+    { key: "departamento", label: "Departamentos", count: users.filter((u) => u.role === "departamento").length },
+    { key: "rh", label: "RH", count: users.filter((u) => u.role === "rh").length },
   ];
 
-  const Row = ({ u }: { u: UserProfile }) => {
+  const Row = ({ u, groupKey }: { u: UserProfile; groupKey: GroupKey }) => {
     const dept = areaName(u) ?? u.area;
+    const status = rowStatus(u);
     return (
       <div
         role="button" tabIndex={0}
         onClick={() => openEdit(u)}
         onKeyDown={(e) => { if (e.key === "Enter") openEdit(u); }}
-        className="group card px-4 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors"
-        style={!u.active ? { opacity: 0.55 } : undefined}>
+        className="group card pl-3.5 pr-4 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:bg-hover hover:border-[var(--border-2)]"
+        style={{
+          opacity: !u.active ? 0.6 : undefined,
+          borderLeft: `3px solid ${CATEGORY_STRIPE[groupKey]}`,
+        }}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar name={u.display_name} color={u.nexus_color} size={32} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
+          <Avatar name={u.display_name} color={u.nexus_color} size={34} avatarUrl={u.avatar_url}
+            birthday={isBirthdayToday(u.birth_date, todayISO())}
+            status={status.color} statusLabel={status.label} />
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <p className="text-[13.5px] font-bold truncate">{u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}</p>
+            <p className="text-[13.5px] font-bold truncate">{u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}</p>
+            <div className="flex items-center gap-1.5 flex-wrap mt-[3px]">
               {u.title && (
                 <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
                   style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{u.title}</span>
@@ -267,27 +311,55 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
                 <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
                   style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>{dept}</span>
               )}
+              {!u.onboarded && (
+                <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                  style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>Perfil incompleto</span>
+              )}
             </div>
-            <p className="text-[11.5px] truncate" style={{ color: "var(--text-3)" }}>
-              {u.email}
-              {!u.onboarded && " · Pendiente de completar perfil"}
-            </p>
+            <p className="text-[11.5px] truncate mt-[3px]" style={{ color: "var(--text-3)" }}>{u.email}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); copyEmail(u.email); }}
-            title="Copiar correo" aria-label="Copiar correo"
-            className="h-7 w-7 rounded-full grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ color: "var(--text-3)" }}>
-            <IconClipboard className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Acciones rápidas — solo visibles al hover, nunca permanentes (punto 16) */}
+          <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); openEdit(u); }}
+              title="Editar" aria-label="Editar"
+              className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+              style={{ color: "var(--text-3)" }}>
+              <IconPen className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); router.push("/admin/vacaciones"); }}
+              title="Vacaciones" aria-label="Vacaciones"
+              className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+              style={{ color: "var(--text-3)" }}>
+              <IconCalendar className="w-3.5 h-3.5" />
+            </button>
+            <span onClick={(e) => e.stopPropagation()}>
+              <Menu
+                align="right"
+                trigger={({ onClick }) => (
+                  <button onClick={onClick} title="Más acciones" aria-label="Más acciones"
+                    className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+                    style={{ color: "var(--text-3)" }}>
+                    <span className="text-[15px] leading-none font-bold">⋯</span>
+                  </button>
+                )}>
+                <MenuItem icon={<IconClipboard className="w-4 h-4" />} onClick={() => copyEmail(u.email)}>
+                  Copiar correo
+                </MenuItem>
+                <MenuItem
+                  icon={<IconX className="w-4 h-4" />}
+                  danger={u.active}
+                  onClick={() => requestToggle(u)}>
+                  {u.active ? "Desactivar cuenta" : "Reactivar cuenta"}
+                </MenuItem>
+              </Menu>
+            </span>
+          </div>
           <span onClick={(e) => e.stopPropagation()}>
-            <Switch tone="status" checked={u.active} onChange={() => toggleActive(u)}
-              label={u.active ? "Activo" : "Inactivo"} />
-          </span>
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-3)" }}>
-            <IconChevronLeft className="w-3.5 h-3.5 rotate-180" />
+            <Switch tone="status" checked={u.active} onChange={() => requestToggle(u)} />
           </span>
         </div>
       </div>
@@ -302,19 +374,29 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
     return (
       <div className="flex flex-col gap-2.5">
         <button onClick={() => toggleGroup(g.label)}
-          className="flex items-center gap-1.5 text-left w-fit">
-          <span className="transition-transform" style={{ color: "var(--text-3)", transform: isCollapsed ? "rotate(90deg)" : "rotate(-90deg)" }}>
-            <IconChevronLeft className="w-3 h-3" />
+          className="flex items-center gap-2 text-left w-fit">
+          <span className="transition-transform duration-200" style={{ color: "var(--text-3)", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>
+            <IconChevronLeft className="w-3 h-3 -rotate-90" />
           </span>
-          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
-            {g.label} · {filtered.length}
-          </p>
+          <div>
+            <p className="text-[12.5px] font-bold leading-tight">{g.label}</p>
+            <p className="text-[10.5px] font-semibold leading-tight" style={{ color: "var(--text-3)" }}>
+              {filtered.length} colaborador{filtered.length === 1 ? "" : "es"}
+            </p>
+          </div>
         </button>
-        {!isCollapsed && (
-          filtered.length === 0 ? (
-            <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
-          ) : filtered.map((u) => <Row key={u.id} u={u} />)
-        )}
+        {/* Grid-rows 0fr/1fr: acordeón CSS-only, sin medir alturas — fade + slide suaves (punto 14) */}
+        <div className="grid transition-[grid-template-rows] duration-300 ease-out"
+          style={{ gridTemplateRows: isCollapsed ? "0fr" : "1fr" }}>
+          <div className="overflow-hidden">
+            <div className="flex flex-col gap-2.5 transition-opacity duration-200"
+              style={{ opacity: isCollapsed ? 0 : 1 }}>
+              {filtered.length === 0 ? (
+                <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
+              ) : filtered.map((u) => <Row key={u.id} u={u} groupKey={g.key} />)}
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -324,7 +406,12 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
       <header className="pt-8 pb-6">
         <h1 className="text-[28px] font-bold tracking-tight">Equipo</h1>
         <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          Solo los correos de esta lista pueden entrar a Nexus
+          {users.length} colaborador{users.length === 1 ? "" : "es"}
+          {" "}&bull;{" "}
+          {users.filter((u) => u.active).length} activo{users.filter((u) => u.active).length === 1 ? "" : "s"}
+          {users.some((u) => !u.onboarded) && (
+            <> {" "}&bull;{" "} {users.filter((u) => !u.onboarded).length} perfil{users.filter((u) => !u.onboarded).length === 1 ? "" : "es"} incompleto{users.filter((u) => !u.onboarded).length === 1 ? "" : "s"}</>
+          )}
         </p>
       </header>
 
@@ -338,7 +425,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
               style={roleFilter === c.key
                 ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
                 : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-              {c.label}
+              {c.label} ({c.count})
             </button>
           ))}
         </div>
@@ -348,7 +435,7 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
         {groups.map((g) => <Group key={g.label} g={g} />)}
       </div>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="Agregar personal">
+      <Sheet open={open} onClose={() => setOpen(false)} title="Nuevo colaborador">
         <div className="flex flex-col gap-3">
           <SelectField label="¿A quién agregas?" value={form.role}
             onChange={(v) => setForm({ ...form, role: v, area_id: "" })}>
@@ -627,6 +714,32 @@ export default function EmpleadosClient({ users, areas, rhColor }: { users: User
           </div>
         )}
       </Sheet>
+
+      {/* Confirmar antes de desactivar (punto 5) — nunca se desactiva de golpe
+          desde el switch de la lista. Se desmonta por completo cuando
+          confirmUser es null: nada de overlays fantasma (punto 1). */}
+      {confirmUser && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center px-4"
+          style={{ background: "rgba(0,0,0,.38)", backdropFilter: "blur(14px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget && !confirmBusy) setConfirmUser(null); }}>
+          <div className="w-full max-w-[380px] p-5"
+            style={{ background: "var(--surface)", borderRadius: 20, border: "0.5px solid var(--border-2)", boxShadow: "0 8px 60px rgba(0,0,0,0.22)" }}>
+            <p className="text-[15px] font-bold">¿Desactivar a {confirmUser.full_name}?</p>
+            <p className="text-[12.5px] mt-1.5" style={{ color: "var(--text-2)" }}>
+              Perderá acceso a Nexus de inmediato. Su historial se conserva y puedes reactivarla cuando quieras.
+            </p>
+            <div className="flex gap-2.5 mt-4">
+              <button className="btn-secondary flex-1 py-2.5 text-[13.5px]" disabled={confirmBusy}
+                onClick={() => setConfirmUser(null)}>Cancelar</button>
+              <button className="flex-1 py-2.5 text-[13.5px] rounded-full font-semibold text-white disabled:opacity-60"
+                style={{ background: "var(--danger)" }} disabled={confirmBusy}
+                onClick={confirmDeactivate}>
+                {confirmBusy ? "Desactivando…" : "Desactivar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cropFile && (
         <ImageCropper

@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { IconCheck, IconMoon, IconSun, IconAlert, IconX } from "./icons";
+import { useMountOnOpen } from "@/lib/use-mount-on-open";
 
 /* ── Fechas: un solo componente en toda la app (Date Sheet) ──
    Popover en escritorio, bottom sheet en móvil, portado a document.body
@@ -280,6 +281,12 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
   const [dragY, setDragY] = useState(0);
   const dragging = useRef(false);
   const startY = useRef(0);
+  // Se desmonta por completo ~460ms después de cerrar (dura lo mismo que la
+  // transición de salida) — nunca se queda flotando en el DOM alternando
+  // solo pointer-events, que era lo que podía dejar la app bloqueada tras
+  // cerrar el detalle de un colaborador (mismo estándar que Drawer/Spotlight/
+  // Menu/DateSheet, que ya se desmontan al cerrar).
+  const { mounted, visible } = useMountOnOpen(open, 460);
 
   useEffect(() => {
     if (!open) return;
@@ -305,12 +312,14 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
     setDragY(0);
   };
 
+  if (!mounted) return null;
+
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center"
       style={{
-        background: open ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
-        backdropFilter: open ? "blur(14px)" : "blur(0px)",
-        pointerEvents: open ? "all" : "none",
+        background: visible ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
+        backdropFilter: visible ? "blur(14px)" : "blur(0px)",
+        pointerEvents: visible ? "all" : "none",
         transition: "background .35s var(--ease), backdrop-filter .35s var(--ease)",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -320,7 +329,7 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
           borderRadius: "26px 26px 0 0",
           borderTop: "0.5px solid var(--border-2)",
           boxShadow: "0 -8px 60px rgba(0,0,0,0.18)",
-          transform: open ? `translateY(${dragY}px)` : "translateY(100%)",
+          transform: visible ? `translateY(${dragY}px)` : "translateY(100%)",
           transition: dragY ? "none" : "transform .46s var(--spring)",
         }}>
         <div

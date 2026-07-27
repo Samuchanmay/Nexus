@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { IconButton, cx, Skel } from "./ui";
 import { Icon } from "./icons";
+import { useMountOnOpen } from "@/lib/use-mount-on-open";
 
 export type NotificationRow = {
   id: string;
@@ -67,12 +68,16 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread" | string>("all");
-  const [mounted, setMounted] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  // Igual que Sheet: el panel se desmonta por completo al cerrar (no se queda
+  // en el DOM alternando pointer-events) para que nunca pueda bloquear clics
+  // reales de la app una vez cerrado.
+  const { mounted: panelMounted, visible } = useMountOnOpen(open, 460);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { setHydrated(true); }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -184,16 +189,16 @@ export function NotificationBell({ userId }: { userId: string }) {
 
       {/* Móvil: bottom sheet de pantalla completa. Escritorio: dropdown convencional anclado bajo la campana.
           Portal a document.body: escapa del backdrop-blur del header (que crea containing block y atrapaba el fixed). */}
-      {mounted && createPortal(
+      {hydrated && panelMounted && createPortal(
         <div
           className={isDesktop ? "fixed inset-0 z-[500]" : "fixed inset-0 z-[500] flex items-end justify-center"}
           style={
             isDesktop
-              ? { background: "transparent", pointerEvents: open ? "all" : "none" }
+              ? { background: "transparent", pointerEvents: visible ? "all" : "none" }
               : {
-                  background: open ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
-                  backdropFilter: open ? "blur(14px)" : "blur(0px)",
-                  pointerEvents: open ? "all" : "none",
+                  background: visible ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
+                  backdropFilter: visible ? "blur(14px)" : "blur(0px)",
+                  pointerEvents: visible ? "all" : "none",
                   transition: "background .35s var(--ease), backdrop-filter .35s var(--ease)",
                 }
           }
@@ -212,9 +217,9 @@ export function NotificationBell({ userId }: { userId: string }) {
                   border: "0.5px solid var(--border-2)",
                   boxShadow: "0 16px 50px rgba(0,0,0,0.22)",
                   transformOrigin: "top right",
-                  transform: open ? "scale(1) translateY(0)" : "scale(0.96) translateY(-6px)",
-                  opacity: open ? 1 : 0,
-                  pointerEvents: open ? "all" : "none",
+                  transform: visible ? "scale(1) translateY(0)" : "scale(0.96) translateY(-6px)",
+                  opacity: visible ? 1 : 0,
+                  pointerEvents: visible ? "all" : "none",
                   transition: "transform .28s var(--spring), opacity .2s var(--ease)",
                 }
               : {
@@ -222,7 +227,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                   borderRadius: "26px 26px 0 0",
                   borderTop: "0.5px solid var(--border-2)",
                   boxShadow: "0 -8px 60px rgba(0,0,0,0.18)",
-                  transform: open ? "translateY(0)" : "translateY(100%)",
+                  transform: visible ? "translateY(0)" : "translateY(100%)",
                   transition: "transform .46s var(--spring)",
                 }
           }>

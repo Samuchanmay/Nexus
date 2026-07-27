@@ -83,14 +83,15 @@ export function Shell({
           >
             <Icon name="search" size={16} />
           </button>
+          {/* Solo el ícono — el buscador con texto/campo real vive en cada
+              pantalla (ej. Equipo); duplicar la función aquí solo confunde. */}
           <button
             onClick={() => setSpot(true)}
-            className="hidden sm:flex items-center gap-1.5 h-8 pl-2.5 pr-2 rounded-sm bg-surface-2 border border-border text-text-3 hover:bg-hover transition-colors"
+            aria-label="Buscar"
+            title="Buscar (⌘K)"
+            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full text-text-3 hover:bg-hover transition-colors"
           >
-            <span className="flex items-center justify-center shrink-0 w-[13px] h-[13px]">
-              <Icon name="search" size={13} />
-            </span>
-            <span className="text-[12px] leading-none shrink-0">Buscar</span>
+            <Icon name="search" size={15} />
           </button>
           {actions}
           <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Cambiar tema" onClick={toggle} />
