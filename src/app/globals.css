@@ -431,6 +431,16 @@ body{ transition: background .28s ease, color .28s ease; }
    el ícono tiene un pequeño "wiggle" de vida propia, igual de espíritu al
    wave-emoji del saludo, para que no se sientan como una fila más de lista. */
 .nx-msg-icon-bounce{ display:inline-flex; transform-origin:50% 80%; animation:nx-icon-bounce 1.8s ease-in-out infinite; }
+
+/* ── Pausa activa (rediseño) — ilustración propia sin emoji: taza respirando
+   muy lento (scale 1→1.03) + vapor que sube en dos hilos desfasados. Nada
+   de rebote — son animaciones "vivas" pero discretas, nunca distractoras. */
+@keyframes nx-breathe-soft{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.03); } }
+.nx-breathe-soft{ animation: nx-breathe-soft 3.2s ease-in-out infinite; }
+@keyframes nx-steam{ 0%,100%{ opacity:.35; transform:translateY(0); } 50%{ opacity:.75; transform:translateY(-2px); } }
+.nx-steam-1{ animation: nx-steam 2.6s ease-in-out infinite; }
+.nx-steam-2{ animation: nx-steam 2.6s ease-in-out infinite .55s; }
+
 @keyframes nx-icon-bounce{
   0%, 100% { transform: rotate(0deg) scale(1); }
   15% { transform: rotate(-12deg) scale(1.08); }

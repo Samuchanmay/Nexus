@@ -12,9 +12,23 @@
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
-import { buildContextMessage, type ContextHeaderInput } from "@/lib/context-header";
+import { buildContextMessage, blockKeyOf, type ContextHeaderInput } from "@/lib/context-header";
 
-const STORAGE_KEY = "nexus.context-header.last";
+const STORAGE_KEY = "nexus.context-header.cache";
+
+/** Huella de las señales que SÍ deben forzar un mensaje nuevo aunque
+    sigamos en el mismo bloque horario — un evento importante (cumpleaños,
+    entrar/salir de vacaciones, feriado) manda sobre la persistencia normal. */
+function eventFingerprint(input: ContextHeaderInput): string {
+  return [
+    input.isBirthdayToday ? "1" : "0",
+    input.vacation.today ? "1" : "0",
+    input.vacation.returnedRecently ? "1" : "0",
+    input.vacation.soonDays != null && input.vacation.soonDays <= 3 ? "1" : "0",
+    input.isHoliday ? "1" : "0",
+    input.othersBirthdayToday.join(","),
+  ].join("|");
+}
 
 /** Animaciones por emoji — agrupadas por "personalidad" de movimiento.
     Todas lentas (duración 1–1.6s), con pausas largas entre repeticiones
@@ -71,21 +85,33 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
   const [message, setMessage] = useState<ReturnType<typeof buildContextMessage> | null>(null);
 
   useEffect(() => {
-    let avoid: { greetingKey?: string; subtitleKey?: string } = {};
+    const blockKey = blockKeyOf(input);
+    const fingerprint = eventFingerprint(input);
+    type Cached = { blockKey: string; fingerprint: string; message: ReturnType<typeof buildContextMessage> };
+    let cached: Cached | null = null;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) avoid = JSON.parse(raw);
+      if (raw) cached = JSON.parse(raw) as Cached;
     } catch { /* localStorage no disponible — se ignora, no es crítico */ }
-    const next = buildContextMessage(input, avoid);
+
+    // El mensaje SOLO se recalcula cuando cambia el bloque horario, el día,
+    // o un evento importante (cumpleaños/vacaciones/feriado) — nunca por un
+    // simple refresh dentro del mismo bloque. Si nada de eso cambió, se
+    // reutiliza exactamente el mismo mensaje guardado.
+    if (cached && cached.blockKey === blockKey && cached.fingerprint === fingerprint) {
+      setMessage(cached.message);
+      return;
+    }
+    const next = buildContextMessage(input, cached
+      ? { greetingKey: cached.message.greetingKey, subtitleKey: cached.message.subtitleKey }
+      : undefined);
     setMessage(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ greetingKey: next.greetingKey, subtitleKey: next.subtitleKey }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ blockKey, fingerprint, message: next } satisfies Cached));
     } catch { /* idem */ }
-    // Solo se recalcula si cambian las señales de contexto reales — no en
-    // cada render — así el mensaje se siente estable durante la sesión.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    input.role, input.name, input.hour, input.dow, input.isBirthdayToday,
+    input.role, input.name, input.hour, input.dow, input.todayISO, input.isBirthdayToday,
     input.vacation.today, input.vacation.soonDays, input.vacation.returnedRecently,
     input.pendingCount, input.teamAllIn, input.allDone, input.isHoliday,
     input.othersBirthdayToday.join(","),
@@ -99,8 +125,11 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
     return (
       <header className="pt-1">
         <p className="text-[12px] font-semibold text-text-3">&nbsp;</p>
-        <h1 className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1" style={{ lineHeight: 1.35 }}>
-          Hola, {input.name} 👋
+        <h1
+          className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1 inline-flex flex-nowrap items-center gap-2.5"
+          style={{ lineHeight: 1.25, overflow: "visible" }}
+        >
+          <span>Hola, {input.name}</span> <AnimatedEmoji emoji="👋" size={22} />
         </h1>
         <p className="text-[13px] mt-0.5 text-text-3">&nbsp;</p>
       </header>
@@ -118,9 +147,14 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
+          {/* Único emoji Unicode nativo de toda la app — vive solo aquí, junto
+              al saludo. Nunca se repite en el subtítulo (línea de abajo).
+              inline-flex + flex-nowrap + overflow:visible: el emoji jamás
+              se corta ni baja a su propia línea, sin importar el largo del
+              saludo generado. */}
           <h1
-            className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1 flex items-center gap-2"
-            style={{ lineHeight: 1.35 }}
+            className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1 inline-flex flex-nowrap items-center gap-2.5"
+            style={{ lineHeight: 1.25, overflow: "visible" }}
           >
             <span>{message.greetingText}</span> <AnimatedEmoji emoji={message.greetingEmoji} size={22} />
           </h1>
@@ -133,9 +167,9 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: "easeOut", delay: 0.05 }}
-          className="text-[13px] mt-0.5 text-text-3 flex items-center gap-1.5"
+          className="text-[13px] mt-0.5 text-text-3"
         >
-          <AnimatedEmoji emoji={message.subtitleEmoji} size={14} /> {message.subtitleText}
+          {message.subtitleText}
         </motion.p>
       </AnimatePresence>
     </header>

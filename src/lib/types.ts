@@ -12,6 +12,8 @@ export interface UserProfile {
   requester_kind: "coordinador" | "departamento" | null;
   title: string | null;
   honorific: string | null;
+  phone: string | null;
+  extension: string | null;
   nexus_clave: string | null;
   nexus_color: string | null;
   specialties: string[];

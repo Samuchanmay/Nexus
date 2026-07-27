@@ -27,6 +27,7 @@ export default async function Coordinador() {
     name: (profile!.display_name as string).split(" ")[0],
     hour: Number(hourStr),
     dow,
+    todayISO: todayISO(),
     isBirthdayToday: isBirthdayToday(profile!.birth_date ?? null, todayISO()),
     vacation: { today: false, soonDays: null, returnedRecently: false },
     pendingCount,

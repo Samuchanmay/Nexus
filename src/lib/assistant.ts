@@ -16,6 +16,9 @@ export interface AssistantMessage {
   text: string;
   /** true para mensajes que deben resaltar con animación (pausa activa, cumpleaños). */
   animated?: boolean;
+  /** Minutos de trabajo continuo acumulados — solo en pausa activa, para
+      destacar el tiempo (ej. "2 h 00 min") en el popup rediseñado. */
+  elapsedMin?: number;
 }
 
 export interface AssistantTask {
@@ -107,6 +110,7 @@ export function contextualMessages(params: {
           icon: "food",
           animated: true,
           text: frases[(cycle - 1) % frases.length],
+          elapsedMin: elapsed,
         });
       }
     }

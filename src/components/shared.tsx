@@ -71,24 +71,50 @@ export function StatCard({ label, value, hint, tone = "default", onClick }: {
   );
 }
 
-/* ── C7 · Fila-empleado (avatar + nombre + meta + extras) ── */
-export function PersonRow({ name, color, avatarUrl, birthday, meta, right, onClick, active }: {
+/* ── C7 · Fila-persona (avatar + nombre + meta + extras) ──
+   Componente único reutilizado por Horarios y Equipo — antes cada pantalla
+   tenía su propia fila con hover/estructura ligeramente distinta; se
+   consolida aquí para que cualquier mejora (hover, punto de estado, acciones
+   al pasar el mouse) se propague a toda la app en vez de vivir duplicada.
+   El hover usa clases CSS (no mutar el DOM a mano en onMouseEnter/onMouseLeave)
+   — mutar style.background imperativamente podía quedar desincronizado del
+   estado real de React entre renders y es una fuente típica de comportamiento
+   errático en tarjetas con re-render frecuente. */
+export function PersonRow({
+  name, color, avatarUrl, birthday, meta, right, onClick, active,
+  status, statusLabel, badges, hoverActions, dense, size = 34, dim,
+}: {
   name: string; color?: string | null; avatarUrl?: string | null; birthday?: boolean; meta?: React.ReactNode;
   right?: React.ReactNode; onClick?: () => void; active?: boolean;
+  /** Punto de color junto al avatar (independiente del switch) + su tooltip. */
+  status?: string | null; statusLabel?: string;
+  /** Fila de badges/pills debajo del nombre (cargo, departamento, etc). */
+  badges?: React.ReactNode;
+  /** Acciones que solo se revelan al pasar el mouse (nunca permanentes). */
+  hoverActions?: React.ReactNode;
+  /** Menor padding vertical — para listas largas y densas como Equipo. */
+  dense?: boolean;
+  size?: number;
+  /** Atenúa toda la fila (ej. cuenta desactivada) sin usar otro componente. */
+  dim?: boolean;
 }) {
   return (
     <div
-      className={`flex items-center gap-3 px-3.5 py-3 rounded-sm transition-colors ${onClick ? "cursor-pointer" : ""}`}
-      style={active ? { background: "var(--accent-tint)" } : undefined}
+      className={`group flex items-center gap-3 ${dense ? "px-3.5 py-2" : "px-3.5 py-3"} rounded-sm transition-colors duration-200 ${onClick ? "cursor-pointer hover:bg-hover" : ""}`}
+      style={{ ...(active ? { background: "var(--accent-tint)" } : {}), ...(dim ? { opacity: 0.6 } : {}) }}
       onClick={onClick}
-      onMouseEnter={onClick ? (e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "var(--surface-2)"; } : undefined}
-      onMouseLeave={onClick ? (e) => { if (!active) (e.currentTarget as HTMLElement).style.background = ""; } : undefined}
     >
-      <Avatar name={name} color={color} avatarUrl={avatarUrl} birthday={birthday} size={34} />
+      <Avatar name={name} color={color} avatarUrl={avatarUrl} birthday={birthday} size={size} status={status} statusLabel={statusLabel} />
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-semibold truncate">{name}</p>
+        {badges}
         {meta && <div className="text-[12px] truncate" style={{ color: "var(--text-2)" }}>{meta}</div>}
       </div>
+      {hoverActions && (
+        <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          {hoverActions}
+        </div>
+      )}
       {right}
     </div>
   );

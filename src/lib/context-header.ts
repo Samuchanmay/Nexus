@@ -21,6 +21,9 @@ export interface ContextHeaderInput {
   name: string;
   hour: number; // 0-23, hora local Mérida
   dow: number;  // 0=domingo … 6=sábado
+  /** Fecha (aaaa-mm-dd, Mérida) — junto con el bloque horario decide cuándo
+      el mensaje debe recalcularse (ver blockKeyOf en este mismo archivo). */
+  todayISO: string;
   isBirthdayToday: boolean;
   /** Estado de vacaciones — Nexus solo administra vacaciones de admin/empleado. */
   vacation: { today: boolean; soonDays: number | null; returnedRecently: boolean };
@@ -118,10 +121,31 @@ const GREETING_FRIDAY: Entry[] = [
   { key: "g-friday-3", emoji: "✌️", text: "Último día de la semana, {name}" },
 ];
 
+/** Bloque horario — 5 franjas (spec: 6-9:59 / 10-12:59 / 13-15:59 / 16-18:59 /
+    19-23:59, con 0-5:59 cayendo en la última franja). Es la unidad mínima de
+    cambio del mensaje: dentro del mismo bloque el mensaje NUNCA cambia, sin
+    importar cuántas veces se refresque la página (ver ContextHeader). */
+export type ContextBlock = "buenos_dias" | "inicio_jornada" | "medio_dia" | "ultimo_esfuerzo" | "fin_jornada";
+
+export function blockOf(hour: number): ContextBlock {
+  if (hour >= 6 && hour < 10) return "buenos_dias";
+  if (hour >= 10 && hour < 13) return "inicio_jornada";
+  if (hour >= 13 && hour < 16) return "medio_dia";
+  if (hour >= 16 && hour < 19) return "ultimo_esfuerzo";
+  return "fin_jornada"; // 19-23:59 y 0-5:59
+}
+
+/** Clave de caché del mensaje: cambia únicamente cuando cambia el día o el
+    bloque horario — nunca por sí sola en cada render/refresh. */
+export function blockKeyOf(input: Pick<ContextHeaderInput, "todayISO" | "hour">): string {
+  return `${input.todayISO}:${blockOf(input.hour)}`;
+}
+
 function greetingTier(hour: number): Entry[] {
-  if (hour < 12) return GREETING_MANANA;
-  if (hour < 15) return GREETING_MEDIODIA;
-  if (hour < 19) return GREETING_TARDE;
+  const block = blockOf(hour);
+  if (block === "buenos_dias") return GREETING_MANANA;
+  if (block === "inicio_jornada" || block === "medio_dia") return GREETING_MEDIODIA;
+  if (block === "ultimo_esfuerzo") return GREETING_TARDE;
   return GREETING_NOCHE;
 }
 

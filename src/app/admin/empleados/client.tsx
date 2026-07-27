@@ -4,13 +4,23 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
 import { useToast, Sheet, Avatar, SelectField, DatePicker, Menu, MenuItem } from "@/components/ui";
-import { IconUserPlus, IconCamera, IconChevronLeft, IconClipboard, IconPen, IconCalendar, IconX } from "@/components/icons";
-import { Switch } from "@/components/shared";
+import {
+  IconUserPlus, IconCamera, IconChevronLeft, IconClipboard, IconPen, IconCalendar, IconX,
+  IconMail, IconPhone, IconBuilding,
+} from "@/components/icons";
+import { Switch, PersonRow } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
-import { todayMerida } from "@/lib/tz";
+import { todayMerida, dmy } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { useHeaderAction } from "@/lib/header-actions";
+import { KIND_LABELS } from "@/lib/ui-maps";
+
+/** Los roles "Equipo" (empleado) y Administrador son los que realmente
+    administramos día a día (asistencia, vacaciones, incidencias) — reciben
+    la ficha completa. Coordinador/Departamento/RH son Directorio Institucional:
+    solo lookup de contacto, sin cargar datos que nunca se usan aquí. */
+const isFullDrawerRole = (role: string) => role === "empleado" || role === "admin";
 
 const NIVEL_LABELS: Record<string, string> = {
   licenciatura: "Licenciatura", centro_educativo: "Centro Educativo", posgrado: "Posgrado",
@@ -71,6 +81,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
   const [editForm, setEditForm] = useState({
     role: "empleado", area_id: "", nivel: "licenciatura", balance: "0", daysPerYear: "0",
     fullName: "", displayName: "", title: "", honorific: "", hireDate: "", birthDate: "",
+    phone: "", extension: "",
   });
   const [editSaving, setEditSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -175,15 +186,41 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
     return { color: "var(--ok)", label: "Activo" };
   };
 
+  // Detalle completo (vacaciones + incidencias) SOLO se consulta cuando se abre
+  // a alguien de Equipo/Administrador — el Directorio Institucional nunca lo
+  // necesita, así que nunca se pide (punto "Optimiza las consultas").
+  const [fullDetail, setFullDetail] = useState<{
+    vacations: { id: string; start_date: string; end_date: string; days: number; status: string }[];
+    incidents: { id: string; kind: string; start_date: string; end_date: string; status: string }[];
+  } | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
   const openEdit = (u: UserProfile) => {
     setEditing(u);
+    setFullDetail(null);
     setEditForm({
       role: u.role, area_id: u.area_id ?? "", nivel: u.nivel ?? "licenciatura",
       balance: String(u.vacation_balance ?? 0), daysPerYear: String(u.vacation_days_per_year ?? 0),
       fullName: u.full_name ?? "", displayName: u.display_name ?? "", title: u.title ?? "",
-      honorific: u.honorific ?? "",
+      honorific: u.honorific ?? "", phone: u.phone ?? "", extension: u.extension ?? "",
       hireDate: u.hire_date ?? "", birthDate: u.birth_date ?? "",
     });
+    if (isFullDrawerRole(u.role)) {
+      setLoadingDetail(true);
+      const supabase = createClient();
+      Promise.all([
+        supabase.from("vacations").select("id,start_date,end_date,days,status")
+          .eq("user_id", u.id).is("archived_at", null).order("start_date", { ascending: false }).limit(8),
+        supabase.from("incidents").select("id,kind,start_date,end_date,status")
+          .eq("user_id", u.id).order("start_date", { ascending: false }).limit(8),
+      ]).then(([v, i]) => {
+        setFullDetail({
+          vacations: (v.data ?? []) as NonNullable<typeof fullDetail>["vacations"],
+          incidents: (i.data ?? []) as NonNullable<typeof fullDetail>["incidents"],
+        });
+        setLoadingDetail(false);
+      });
+    }
   };
 
   const saveEdit = async () => {
@@ -203,6 +240,8 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
       display_name: editForm.displayName.trim() || editing.display_name,
       title: editForm.title.trim() || null,
       honorific: editForm.honorific.trim() || null,
+      phone: editForm.phone.trim() || null,
+      extension: editForm.extension.trim() || null,
       hire_date: editForm.hireDate || null,
       birth_date: editForm.birthDate || null,
     }).eq("id", editing.id);
@@ -259,13 +298,6 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
     { key: "rh", label: "RH", list: users.filter((u) => u.role === "rh") },
   ];
 
-  // Barra sutil de categoría en el borde izquierdo de cada tarjeta (punto 17)
-  // — un color por grupo, no por persona, para identificar de un vistazo.
-  const CATEGORY_STRIPE: Record<GroupKey, string> = {
-    admin: "var(--purple)", equipo: "var(--accent)", coordinador: "var(--ok)",
-    departamento: "var(--warn)", rh: rhColor ?? "#8E8E93",
-  };
-
   const q = search.trim().toLowerCase();
   const matches = (u: UserProfile) => {
     if (!q) return true;
@@ -283,86 +315,86 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
     { key: "rh", label: "RH", count: users.filter((u) => u.role === "rh").length },
   ];
 
-  const Row = ({ u, groupKey }: { u: UserProfile; groupKey: GroupKey }) => {
+  // Fila de Equipo — usa el PersonRow compartido (mismo componente que
+  // Horarios) en vez de un <div role="button"> a medida: ese envoltorio con
+  // rol de botón conteniendo OTROS controles interactivos (switch, menú,
+  // botones de acción) es un patrón de ARIA inválido — "interactivo dentro de
+  // interactivo" — y es la causa más probable del bloqueo/comportamiento
+  // errático reportado al pasar el mouse o intentar salir del detalle.
+  // PersonRow es un <div onClick> sencillo: sin tabIndex ni rol falso.
+  const Row = ({ u }: { u: UserProfile }) => {
     const dept = areaName(u) ?? u.area;
     const status = rowStatus(u);
     return (
-      <div
-        role="button" tabIndex={0}
+      <PersonRow
+        name={u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
+        color={u.nexus_color}
+        avatarUrl={u.avatar_url}
+        birthday={isBirthdayToday(u.birth_date, todayISO())}
+        status={status.color}
+        statusLabel={status.label}
         onClick={() => openEdit(u)}
-        onKeyDown={(e) => { if (e.key === "Enter") openEdit(u); }}
-        className="group card pl-3.5 pr-4 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:bg-hover hover:border-[var(--border-2)]"
-        style={{
-          opacity: !u.active ? 0.6 : undefined,
-          borderLeft: `3px solid ${CATEGORY_STRIPE[groupKey]}`,
-        }}>
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Avatar name={u.display_name} color={u.nexus_color} size={34} avatarUrl={u.avatar_url}
-            birthday={isBirthdayToday(u.birth_date, todayISO())}
-            status={status.color} statusLabel={status.label} />
-          <div className="min-w-0">
-            <p className="text-[13.5px] font-bold truncate">{u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}</p>
-            <div className="flex items-center gap-1.5 flex-wrap mt-[3px]">
-              {u.title && (
-                <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
-                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{u.title}</span>
-              )}
-              {dept && (
-                <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
-                  style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>{dept}</span>
-              )}
-              {!u.onboarded && (
-                <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
-                  style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>Perfil incompleto</span>
-              )}
-            </div>
-            <p className="text-[11.5px] truncate mt-[3px]" style={{ color: "var(--text-3)" }}>{u.email}</p>
+        dense
+        dim={!u.active}
+        badges={
+          <div className="flex items-center gap-1.5 flex-wrap mt-[3px]">
+            {u.title && (
+              <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{u.title}</span>
+            )}
+            {dept && (
+              <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>{dept}</span>
+            )}
+            {!u.onboarded && (
+              <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>Perfil incompleto</span>
+            )}
           </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Acciones rápidas — solo visibles al hover, nunca permanentes (punto 16) */}
-          <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        }
+        hoverActions={
+          <>
             <button
-              onClick={(e) => { e.stopPropagation(); openEdit(u); }}
+              onClick={() => openEdit(u)}
               title="Editar" aria-label="Editar"
               className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
               style={{ color: "var(--text-3)" }}>
               <IconPen className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); router.push("/admin/vacaciones"); }}
+              onClick={() => router.push("/admin/vacaciones")}
               title="Vacaciones" aria-label="Vacaciones"
               className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
               style={{ color: "var(--text-3)" }}>
               <IconCalendar className="w-3.5 h-3.5" />
             </button>
-            <span onClick={(e) => e.stopPropagation()}>
-              <Menu
-                align="right"
-                trigger={({ onClick }) => (
-                  <button onClick={onClick} title="Más acciones" aria-label="Más acciones"
-                    className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
-                    style={{ color: "var(--text-3)" }}>
-                    <span className="text-[15px] leading-none font-bold">⋯</span>
-                  </button>
-                )}>
-                <MenuItem icon={<IconClipboard className="w-4 h-4" />} onClick={() => copyEmail(u.email)}>
-                  Copiar correo
-                </MenuItem>
-                <MenuItem
-                  icon={<IconX className="w-4 h-4" />}
-                  danger={u.active}
-                  onClick={() => requestToggle(u)}>
-                  {u.active ? "Desactivar cuenta" : "Reactivar cuenta"}
-                </MenuItem>
-              </Menu>
-            </span>
-          </div>
+            <Menu
+              align="right"
+              trigger={({ onClick }) => (
+                <button onClick={onClick} title="Más acciones" aria-label="Más acciones"
+                  className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+                  style={{ color: "var(--text-3)" }}>
+                  <span className="text-[15px] leading-none font-bold">⋯</span>
+                </button>
+              )}>
+              <MenuItem icon={<IconClipboard className="w-4 h-4" />} onClick={() => copyEmail(u.email)}>
+                Copiar correo
+              </MenuItem>
+              <MenuItem
+                icon={<IconX className="w-4 h-4" />}
+                danger={u.active}
+                onClick={() => requestToggle(u)}>
+                {u.active ? "Desactivar cuenta" : "Reactivar cuenta"}
+              </MenuItem>
+            </Menu>
+          </>
+        }
+        right={
           <span onClick={(e) => e.stopPropagation()}>
             <Switch tone="status" checked={u.active} onChange={() => requestToggle(u)} />
           </span>
-        </div>
-      </div>
+        }
+      />
     );
   };
 
@@ -393,7 +425,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
               style={{ opacity: isCollapsed ? 0 : 1 }}>
               {filtered.length === 0 ? (
                 <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
-              ) : filtered.map((u) => <Row key={u.id} u={u} groupKey={g.key} />)}
+              ) : filtered.map((u) => <Row key={u.id} u={u} />)}
             </div>
           </div>
         </div>
@@ -615,7 +647,8 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
       </Sheet>
 
       <Sheet open={!!editing} onClose={() => setEditing(null)}
-        title={editing ? `Editar · ${editing.full_name}` : "Editar"}>
+        title={editing ? (editing.honorific ? `${editing.honorific} ${editing.full_name}` : editing.full_name) : "Editar"}
+        subtitle={editing ? (isFullDrawerRole(editing.role) ? "Equipo" : "Directorio institucional") : undefined}>
         {editing && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col items-center gap-2 mb-1">
@@ -634,83 +667,254 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                 {avatarUploading ? "Subiendo…" : "Foto de perfil"}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
-                <input className="field-input" value={editForm.fullName}
-                  onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
-                <input className="field-input" value={editForm.displayName}
-                  onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
-                <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
-                  value={editForm.honorific} onChange={(e) => setEditForm({ ...editForm, honorific: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
-                <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
-                  value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
-                <DatePicker value={editForm.hireDate} onChange={(v) => setEditForm({ ...editForm, hireDate: v })} />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de cumpleaños</label>
-                <DatePicker value={editForm.birthDate} onChange={(v) => setEditForm({ ...editForm, birthDate: v })} />
-              </div>
-            </div>
-            <SelectField label="Rol" value={editForm.role}
-              onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}>
-              <option value="coordinador">Coordinador</option>
-              <option value="departamento">Departamento</option>
-              <option value="empleado">Empleado</option>
-              <option value="rh">RH (solo lectura)</option>
-              <option value="admin">Administrador</option>
-            </SelectField>
-            {AREA_TIPO[editForm.role] && (
-              <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
-                onChange={(v) => setEditForm({ ...editForm, area_id: v })} />
+
+            {!isFullDrawerRole(editing.role) ? (
+              /* ── Directorio Institucional — solo lookup, sin asistencia/vacaciones/
+                 incidencias/horarios/carga: esos datos nunca se usan aquí. ── */
+              <>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
+                    <IconBuilding className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Departamento</p>
+                      <p className="text-[13px] font-semibold truncate">{(editing.area_id ? areas.find((a) => a.id === editing.area_id)?.nombre : editing.area) ?? "—"}</p>
+                    </div>
+                  </div>
+                  <a href={`mailto:${editing.email}`} className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm hover:bg-hover transition-colors" style={{ background: "var(--surface-2)" }}>
+                    <IconMail className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Correo</p>
+                      <p className="text-[13px] font-semibold truncate">{editing.email}</p>
+                    </div>
+                  </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
+                      <IconPhone className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Teléfono</p>
+                        <p className="text-[13px] font-semibold truncate">{editing.phone ?? "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
+                      <IconClipboard className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Extensión</p>
+                        <p className="text-[13px] font-semibold truncate">{editing.extension ?? "—"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* La administración (rol/área/nombramiento/contacto) queda un nivel
+                    abajo — el directorio prioriza la consulta rápida, no la edición. */}
+                <details className="group/fold">
+                  <summary className="text-[12px] font-semibold cursor-pointer list-none flex items-center gap-1.5" style={{ color: "var(--text-2)" }}>
+                    <IconChevronLeft className="w-3 h-3 -rotate-90 transition-transform group-open/fold:rotate-90" />
+                    Editar información
+                  </summary>
+                  <div className="flex flex-col gap-2.5 mt-3">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
+                        <input className="field-input" value={editForm.fullName}
+                          onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
+                        <input className="field-input" value={editForm.displayName}
+                          onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
+                        <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
+                          value={editForm.honorific} onChange={(e) => setEditForm({ ...editForm, honorific: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                        <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
+                          value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Teléfono</label>
+                        <input className="field-input" value={editForm.phone}
+                          onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Extensión</label>
+                        <input className="field-input" value={editForm.extension}
+                          onChange={(e) => setEditForm({ ...editForm, extension: e.target.value })} />
+                      </div>
+                    </div>
+                    <SelectField label="Rol" value={editForm.role}
+                      onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}>
+                      <option value="coordinador">Coordinador</option>
+                      <option value="departamento">Departamento</option>
+                      <option value="empleado">Empleado</option>
+                      <option value="rh">RH (solo lectura)</option>
+                      <option value="admin">Administrador</option>
+                    </SelectField>
+                    {AREA_TIPO[editForm.role] && (
+                      <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
+                        onChange={(v) => setEditForm({ ...editForm, area_id: v })} />
+                    )}
+                    {editForm.role === "coordinador" && (
+                      <SelectField label="Nivel educativo" value={editForm.nivel}
+                        onChange={(v) => setEditForm({ ...editForm, nivel: v })}>
+                        {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+                      </SelectField>
+                    )}
+                    <div>
+                      <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
+                      <DatePicker value={editForm.hireDate} onChange={(v) => setEditForm({ ...editForm, hireDate: v })} />
+                    </div>
+                  </div>
+                </details>
+
+                <div className="flex gap-2.5 mt-1">
+                  <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEditing(null)}>Cancelar</button>
+                  <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={editSaving} onClick={saveEdit}>
+                    {editSaving ? "Guardando…" : "Guardar cambios"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* ── Ficha completa — Equipo y Administradores, a quienes sí
+                 administramos día a día. ── */
+              <>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
+                    <input className="field-input" value={editForm.fullName}
+                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
+                    <input className="field-input" value={editForm.displayName}
+                      onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
+                    <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
+                      value={editForm.honorific} onChange={(e) => setEditForm({ ...editForm, honorific: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                    <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
+                      value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo</label>
+                    <p className="field-input flex items-center" style={{ color: "var(--text-3)" }}>{editing.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Teléfono</label>
+                    <input className="field-input" value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
+                    <DatePicker value={editForm.hireDate} onChange={(v) => setEditForm({ ...editForm, hireDate: v })} />
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de cumpleaños</label>
+                    <DatePicker value={editForm.birthDate} onChange={(v) => setEditForm({ ...editForm, birthDate: v })} />
+                  </div>
+                </div>
+                <SelectField label="Rol" value={editForm.role}
+                  onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}>
+                  <option value="coordinador">Coordinador</option>
+                  <option value="departamento">Departamento</option>
+                  <option value="empleado">Empleado</option>
+                  <option value="rh">RH (solo lectura)</option>
+                  <option value="admin">Administrador</option>
+                </SelectField>
+                {AREA_TIPO[editForm.role] && (
+                  <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
+                    onChange={(v) => setEditForm({ ...editForm, area_id: v })} />
+                )}
+                {editForm.role === "coordinador" && (
+                  <SelectField label="Nivel educativo" value={editForm.nivel}
+                    onChange={(v) => setEditForm({ ...editForm, nivel: v })}>
+                    {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+                  </SelectField>
+                )}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                      Saldo actual (días)
+                    </label>
+                    <input type="number" className="field-input" value={editForm.balance}
+                      onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                      Días asignados/año
+                    </label>
+                    <input type="number" className="field-input" value={editForm.daysPerYear}
+                      onChange={(e) => setEditForm({ ...editForm, daysPerYear: e.target.value })} />
+                  </div>
+                </div>
+                <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                  Ajusta el saldo aquí solo para correcciones manuales — la aprobación de solicitudes ya lo descuenta automáticamente.
+                </p>
+
+                {/* Vacaciones + Incidencias — solo se consultan para Equipo/Admin,
+                    cargadas de forma perezosa al abrir esta ficha (ver openEdit). */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Vacaciones recientes</p>
+                    {loadingDetail ? (
+                      <div className="h-16 rounded-sm animate-pulse" style={{ background: "var(--surface-2)" }} />
+                    ) : !fullDetail || fullDetail.vacations.length === 0 ? (
+                      <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {fullDetail.vacations.slice(0, 4).map((v) => (
+                          <div key={v.id} className="text-[11.5px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
+                            <span className="font-semibold">{dmy(v.start_date)}–{dmy(v.end_date)}</span>
+                            <span style={{ color: "var(--text-3)" }}> · {v.days}d · {v.status}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Incidencias recientes</p>
+                    {loadingDetail ? (
+                      <div className="h-16 rounded-sm animate-pulse" style={{ background: "var(--surface-2)" }} />
+                    ) : !fullDetail || fullDetail.incidents.length === 0 ? (
+                      <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {fullDetail.incidents.slice(0, 4).map((i) => (
+                          <div key={i.id} className="text-[11.5px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
+                            <span className="font-semibold">{dmy(i.start_date)}–{dmy(i.end_date)}</span>
+                            <span style={{ color: "var(--text-3)" }}> · {KIND_LABELS[i.kind as keyof typeof KIND_LABELS] ?? i.kind}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 mt-1">
+                  <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEditing(null)}>Cancelar</button>
+                  <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={editSaving} onClick={saveEdit}>
+                    {editSaving ? "Guardando…" : "Guardar cambios"}
+                  </button>
+                </div>
+              </>
             )}
-            {editForm.role === "coordinador" && (
-              <SelectField label="Nivel educativo" value={editForm.nivel}
-                onChange={(v) => setEditForm({ ...editForm, nivel: v })}>
-                {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-              </SelectField>
-            )}
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-                  Saldo actual (días)
-                </label>
-                <input type="number" className="field-input" value={editForm.balance}
-                  onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-                  Días asignados/año
-                </label>
-                <input type="number" className="field-input" value={editForm.daysPerYear}
-                  onChange={(e) => setEditForm({ ...editForm, daysPerYear: e.target.value })} />
-              </div>
-            </div>
-            <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
-              Ajusta el saldo aquí solo para correcciones manuales — la aprobación de solicitudes ya lo descuenta automáticamente.
-            </p>
-            <div className="flex gap-2.5 mt-1">
-              <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEditing(null)}>Cancelar</button>
-              <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={editSaving} onClick={saveEdit}>
-                {editSaving ? "Guardando…" : "Guardar cambios"}
-              </button>
-            </div>
           </div>
         )}
       </Sheet>

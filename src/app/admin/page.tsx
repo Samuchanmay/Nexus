@@ -296,6 +296,7 @@ export default async function AdminDashboard() {
     role: "admin",
     name: firstName,
     hour, dow,
+    todayISO: todayISO(),
     isBirthdayToday: myBirthdayToday,
     vacation: { today: onVacation.has(me!.id), soonDays: soonDaysOf.get(me!.id) ?? null, returnedRecently },
     pendingCount: roleContextPendingCount,

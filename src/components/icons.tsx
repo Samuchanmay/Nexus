@@ -60,3 +60,10 @@ export const IconClipboard = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className}><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg>);
 export const IconSettings = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.23.5.7.85 1.25 1H21a2 2 0 010 4h-.09c-.55.15-1.02.5-1.25 1z" /></svg>);
+export const IconMail = ({ className = "w-[18px] h-[18px]" }: P) => (
+  <svg {...base} className={className}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>);
+export const IconPhone = ({ className = "w-[18px] h-[18px]" }: P) => (
+  <svg {...base} className={className}><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z" /></svg>);
+export const IconBuilding = ({ className = "w-[18px] h-[18px]" }: P) => (
+  <svg {...base} className={className}><rect x="4" y="3" width="10" height="18" rx="1" /><path d="M14 8h6v13h-6M8 7v.01M8 11v.01M8 15v.01M11 7v.01M11 11v.01M11 15v.01" /></svg>);
+
