@@ -86,7 +86,6 @@ export function AppShell({
   // atrapado sin poder salir de una pantalla, sin importar la causa exacta
   // del estancamiento. En consola queda "[nav-guard]" con cada intento que
   // requirió el respaldo, para tener evidencia real si vuelve a pasar.
-<<<<<<< HEAD
   // pendingNav rastrea una navegación en curso: evita que varios clics
   // seguidos (mientras el usuario espera, sin saber si su clic "hizo algo")
   // apilen temporizadores/recargas encimadas. Un segundo clic al MISMO
@@ -94,8 +93,6 @@ export function AppShell({
   // clic a OTRO destino cancela el intento anterior y arranca uno nuevo.
   const pendingNav = useRef<{ key: string; fallback: ReturnType<typeof setTimeout>; poll: ReturnType<typeof setInterval>; pollStop: ReturnType<typeof setTimeout> } | null>(null);
 
-=======
->>>>>>> c870172471d766b44ba0692ab6ef464883a489d2
   const go = (key: string) => {
     const href = map[key];
     if (!href) return;
@@ -103,7 +100,6 @@ export function AppShell({
     const fromPath = window.location.pathname;
     if (fromPath === href) return;
 
-<<<<<<< HEAD
     if (pendingNav.current) {
       if (pendingNav.current.key === key) return; // ya en curso hacia el mismo lugar
       clearTimeout(pendingNav.current.fallback);
@@ -128,26 +124,14 @@ export function AppShell({
       clearPending();
       window.location.assign(href);
     }, 350);
-=======
-    let settled = false;
-    const fallback = setTimeout(() => {
-      if (settled) return;
-      console.warn(`[nav-guard] router.push("${href}") no completó la transición en 700ms desde ${fromPath}. Forzando navegación completa.`);
-      window.location.assign(href);
-    }, 700);
->>>>>>> c870172471d766b44ba0692ab6ef464883a489d2
 
     try {
       router.push(href);
     } catch (err) {
       console.error(`[nav-guard] router.push lanzó una excepción, forzando navegación completa:`, err);
-<<<<<<< HEAD
       settled = true;
       clearTimeout(fallback);
       clearPending();
-=======
-      clearTimeout(fallback);
->>>>>>> c870172471d766b44ba0692ab6ef464883a489d2
       window.location.assign(href);
       return;
     }
@@ -157,18 +141,12 @@ export function AppShell({
         settled = true;
         clearTimeout(fallback);
         clearInterval(poll);
-<<<<<<< HEAD
         clearPending();
       }
     }, 30);
     const pollStop = setTimeout(() => clearInterval(poll), 350);
 
     pendingNav.current = { key, fallback, poll, pollStop };
-=======
-      }
-    }, 50);
-    setTimeout(() => clearInterval(poll), 700);
->>>>>>> c870172471d766b44ba0692ab6ef464883a489d2
   };
 
   // El acceso a Registro de Jornada ya no se duplica en el Header — vive
