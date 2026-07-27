@@ -6,7 +6,7 @@
  * lo que aún no existe simplemente no aparece (nada de datos/enlaces inventados).
  */
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { ThemeProvider } from "@/lib/theme";
 import { Shell, type ShellUser } from "./shell";
 import { HeaderActionsProvider, useHeaderActionSlot } from "@/lib/header-actions";
@@ -77,19 +77,76 @@ export function AppShell({
     return best;
   }, [items, map, pathname]);
 
+  // Red de seguridad general de navegación — reconstruida desde cero.
+  // No dependemos de adivinar en qué página específica se atora la
+  // transición cliente de Next.js (router.push): cualquier destino que no
+  // complete su cambio de URL en 700ms se resuelve con una navegación
+  // completa (window.location.assign), que SIEMPRE funciona porque reinicia
+  // el runtime de JS por completo. El usuario nunca vuelve a quedar
+  // atrapado sin poder salir de una pantalla, sin importar la causa exacta
+  // del estancamiento. En consola queda "[nav-guard]" con cada intento que
+  // requirió el respaldo, para tener evidencia real si vuelve a pasar.
+  // pendingNav rastrea una navegación en curso: evita que varios clics
+  // seguidos (mientras el usuario espera, sin saber si su clic "hizo algo")
+  // apilen temporizadores/recargas encimadas. Un segundo clic al MISMO
+  // destino mientras ya está en curso simplemente no hace nada nuevo; un
+  // clic a OTRO destino cancela el intento anterior y arranca uno nuevo.
+  const pendingNav = useRef<{ key: string; fallback: ReturnType<typeof setTimeout>; poll: ReturnType<typeof setInterval>; pollStop: ReturnType<typeof setTimeout> } | null>(null);
+
   const go = (key: string) => {
     const href = map[key];
     if (!href) return;
 
-    // The Team-management route can enter the workload route directly, but
-    // its client-side transition is dropped in the deployed app. Keep the
-    // normal router behavior everywhere else and use a full navigation only
-    // for that affected destination.
-    if (key === "equipo") {
+    const fromPath = window.location.pathname;
+    if (fromPath === href) return;
+
+    if (pendingNav.current) {
+      if (pendingNav.current.key === key) return; // ya en curso hacia el mismo lugar
+      clearTimeout(pendingNav.current.fallback);
+      clearInterval(pendingNav.current.poll);
+      clearTimeout(pendingNav.current.pollStop);
+      pendingNav.current = null;
+    }
+
+    // Feedback inmediato: el cursor cambia en el acto, sin esperar a nada,
+    // para que un clic nunca se sienta como que "no pasó nada".
+    document.body.style.cursor = "wait";
+    const clearPending = () => {
+      document.body.style.cursor = "";
+      pendingNav.current = null;
+    };
+
+    let settled = false;
+    const fallback = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      console.warn(`[nav-guard] router.push("${href}") no completó la transición en 350ms desde ${fromPath}. Forzando navegación completa.`);
+      clearPending();
+      window.location.assign(href);
+    }, 350);
+
+    try {
+      router.push(href);
+    } catch (err) {
+      console.error(`[nav-guard] router.push lanzó una excepción, forzando navegación completa:`, err);
+      settled = true;
+      clearTimeout(fallback);
+      clearPending();
       window.location.assign(href);
       return;
     }
-    router.push(href);
+
+    const poll = setInterval(() => {
+      if (window.location.pathname === href) {
+        settled = true;
+        clearTimeout(fallback);
+        clearInterval(poll);
+        clearPending();
+      }
+    }, 30);
+    const pollStop = setTimeout(() => clearInterval(poll), 350);
+
+    pendingNav.current = { key, fallback, poll, pollStop };
   };
 
   // El acceso a Registro de Jornada ya no se duplica en el Header — vive
