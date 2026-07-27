@@ -1,14 +1,14 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
 import { useToast, Sheet, Avatar, DatePicker, Menu, MenuItem, Select, TimePicker } from "@/components/ui";
 import {
   IconUserPlus, IconCamera, IconChevronLeft, IconClipboard, IconPen, IconCalendar, IconX,
-  IconMail, IconPhone, IconBuilding,
+  IconMail, IconPhone, IconBuilding, IconAlert,
 } from "@/components/icons";
-import { Switch, PersonRow, Field } from "@/components/shared";
+import { Switch, Field } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
 import { todayMerida, dmy } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
@@ -25,6 +25,11 @@ const isFullDrawerRole = (role: string) => role === "empleado" || role === "admi
 const NIVEL_LABELS: Record<string, string> = {
   licenciatura: "Licenciatura", centro_educativo: "Centro Educativo", posgrado: "Posgrado",
 };
+
+// Cuántas tarjetas se renderizan por grupo antes de pedir "Mostrar más" —
+// evita pintar cientos/miles de tarjetas de golpe sin sumar una librería de
+// virtualización nueva al proyecto.
+const PAGE_SIZE = 60;
 
 const SPECIALTIES = ["video", "fotografia", "diseno", "difusion", "redaccion"];
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -95,6 +100,11 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
   const [roleFilter, setRoleFilter] = useState<"todos" | "admin" | "equipo" | "coordinador" | "departamento" | "rh">("todos");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggleGroup = (label: string) => setCollapsed((c) => ({ ...c, [label]: !c[label] }));
+  // Cuántas tarjetas se muestran por grupo ("Mostrar más" en vez de cargar
+  // miles de una vez) — vive aquí y no dentro de Group porque Group se
+  // redefine en cada render de este componente.
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
+  useEffect(() => { setVisibleCounts({}); }, [search]);
   const copyEmail = (email: string) => {
     navigator.clipboard?.writeText(email);
     toast("Correo copiado");
@@ -302,10 +312,17 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
   ];
 
   const q = search.trim().toLowerCase();
+  // Búsqueda inteligente: nombre, correo, puesto, departamento Y el rol
+  // (para que "RH", "Coordinador", etc. encuentren gente aunque esa palabra
+  // no esté literalmente en su cargo/depto). Ver también Group() más abajo:
+  // mientras hay texto de búsqueda, el filtro de rol activo se ignora — antes
+  // buscar "Jorge" con el chip "Coordinadores" activo no encontraba a Jorge
+  // si Jorge era Equipo, porque el grupo completo ya se descartaba ANTES de
+  // aplicar la búsqueda.
   const matches = (u: UserProfile) => {
     if (!q) return true;
     const dept = areaName(u) ?? u.area ?? "";
-    return [u.full_name, u.display_name, u.email, u.title, dept]
+    return [u.full_name, u.display_name, u.email, u.title, dept, ROLE_LABELS[u.role]]
       .some((v) => (v ?? "").toLowerCase().includes(q));
   };
 
@@ -318,107 +335,153 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
     { key: "rh", label: "RH", count: users.filter((u) => u.role === "rh").length },
   ];
 
-  // Fila de Equipo — usa el PersonRow compartido (mismo componente que
-  // Horarios) en vez de un <div role="button"> a medida: ese envoltorio con
-  // rol de botón conteniendo OTROS controles interactivos (switch, menú,
-  // botones de acción) es un patrón de ARIA inválido — "interactivo dentro de
-  // interactivo" — y es la causa más probable del bloqueo/comportamiento
-  // errático reportado al pasar el mouse o intentar salir del detalle.
-  // PersonRow es un <div onClick> sencillo: sin tabIndex ni rol falso.
+  // Tarjeta de Equipo — vuelve al lenguaje de tarjeta individual (borde muy
+  // sutil, fondo apenas distinto al canvas, padding generoso, hover ligero)
+  // que se había perdido al migrar a PersonRow (fila plana). Sigue siendo un
+  // <button> simple con SOLO controles secundarios anidados (switch, menú) —
+  // el bug de bloqueo NO era este patrón: era el backdrop "fixed inset-0" a
+  // pantalla completa del Menu compartido (components/ui.tsx), que quedaba
+  // montado e invisible-pero-clickeable si el usuario abría "Más acciones" y
+  // luego movía el mouse fuera de la fila sin elegir nada — ver el fix en
+  // Menu (ya no usa un backdrop propio, cierra con un listener del documento).
   const Row = ({ u }: { u: UserProfile }) => {
     const dept = areaName(u) ?? u.area;
     const status = rowStatus(u);
+    // <div> con onClick, NO <button> — la tarjeta contiene otros controles
+    // interactivos (Editar/Copiar correo/Menu/Switch). Un <button> no puede
+    // contener <button>s: el navegador cierra el externo apenas encuentra el
+    // primero anidado, así que el árbol real del DOM queda roto respecto al
+    // JSX y el resto de los controles terminan como hermanos sueltos fuera
+    // de la tarjeta — la causa más probable de "a veces no responde" incluso
+    // antes de este fix. Mismo criterio ya aplicado en PersonRow
+    // (components/shared.tsx).
     return (
-      <PersonRow
-        name={u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
-        color={u.nexus_color}
-        avatarUrl={u.avatar_url}
-        birthday={isBirthdayToday(u.birth_date, todayISO())}
-        status={status.color}
-        statusLabel={status.label}
+      <div
         onClick={() => openEdit(u)}
-        dense
-        dim={!u.active}
-        badges={
-          <div className="flex items-center gap-1.5 flex-wrap mt-[3px]">
-            {u.title && (
-              <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
-                style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>{u.title}</span>
-            )}
-            {dept && (
-              <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
-                style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>{dept}</span>
-            )}
-            {!u.onboarded && (
-              <span className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
-                style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>Perfil incompleto</span>
-            )}
-          </div>
-        }
-        hoverActions={
-          <>
-            <button
-              onClick={() => openEdit(u)}
-              title="Editar" aria-label="Editar"
-              className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
-              style={{ color: "var(--text-3)" }}>
-              <IconPen className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => router.push("/admin/vacaciones")}
-              title="Vacaciones" aria-label="Vacaciones"
-              className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
-              style={{ color: "var(--text-3)" }}>
-              <IconCalendar className="w-3.5 h-3.5" />
-            </button>
-            <Menu
-              align="right"
-              trigger={({ onClick }) => (
-                <button onClick={onClick} title="Más acciones" aria-label="Más acciones"
-                  className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
-                  style={{ color: "var(--text-3)" }}>
-                  <span className="text-[15px] leading-none font-bold">⋯</span>
-                </button>
-              )}>
-              <MenuItem icon={<IconClipboard className="w-4 h-4" />} onClick={() => copyEmail(u.email)}>
-                Copiar correo
-              </MenuItem>
-              <MenuItem
-                icon={<IconX className="w-4 h-4" />}
-                danger={u.active}
-                onClick={() => requestToggle(u)}>
-                {u.active ? "Desactivar cuenta" : "Reactivar cuenta"}
-              </MenuItem>
-            </Menu>
-          </>
-        }
-        right={
-          <span onClick={(e) => e.stopPropagation()}>
-            <Switch tone="status" checked={u.active} onChange={() => requestToggle(u)} />
-          </span>
-        }
-      />
+        className="group relative w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-m border border-border transition-all duration-200 cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_2px_10px_rgba(0,0,0,0.06)] hover:-translate-y-px"
+        style={{ background: "var(--surface)", opacity: u.active ? 1 : 0.55 }}
+      >
+        {/* Avatar 44px + punto de estado (activo/vacaciones/baja/…) + badge
+            separado de "perfil incompleto" (esquina opuesta, nunca compiten). */}
+        <span className="relative shrink-0">
+          <Avatar
+            name={u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
+            color={u.nexus_color} avatarUrl={u.avatar_url} size={44}
+            birthday={isBirthdayToday(u.birth_date, todayISO())}
+            status={status.color} statusLabel={status.label}
+          />
+          {!u.onboarded && (
+            <span
+              className="absolute -top-0.5 -right-0.5 w-[15px] h-[15px] rounded-full grid place-items-center"
+              style={{ background: "var(--warn)", boxShadow: "0 0 0 2px var(--surface)" }}
+              title="Perfil incompleto — aún no ha iniciado sesión"
+            >
+              <IconAlert className="w-[9px] h-[9px] text-white" />
+            </span>
+          )}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold truncate">
+            {u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
+          </p>
+          {(u.title || dept) && (
+            <div className="flex items-center gap-1.5 mt-[3px]">
+              {u.title && (
+                <span
+                  className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0 truncate max-w-[170px]"
+                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+                  title={u.title}
+                >{u.title}</span>
+              )}
+              {dept && (
+                <span
+                  className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0 truncate max-w-[140px]"
+                  style={{ background: "var(--surface-2)", color: "var(--text-3)" }}
+                  title={dept}
+                >{dept}</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Acciones al hover — invisibles Y no-clickeables cuando no se está
+            encima (pointer-events-none): así nunca queda un contenedor
+            fantasma capturando el siguiente clic (ver nota de causa raíz
+            arriba y en components/shared.tsx PersonRow). */}
+        <div
+          className="hidden sm:flex items-center gap-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => openEdit(u)}
+            title="Ver perfil" aria-label="Ver perfil"
+            className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+            style={{ color: "var(--text-3)" }}>
+            <IconPen className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => copyEmail(u.email)}
+            title="Copiar correo" aria-label="Copiar correo"
+            className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+            style={{ color: "var(--text-3)" }}>
+            <IconClipboard className="w-3.5 h-3.5" />
+          </button>
+          <Menu
+            align="right"
+            trigger={({ onClick }) => (
+              <button onClick={onClick} title="Más acciones" aria-label="Más acciones"
+                className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+                style={{ color: "var(--text-3)" }}>
+                <span className="text-[15px] leading-none font-bold">⋯</span>
+              </button>
+            )}>
+            <MenuItem icon={<IconCalendar className="w-4 h-4" />} onClick={() => router.push("/admin/vacaciones")}>
+              Vacaciones
+            </MenuItem>
+            <MenuItem
+              icon={<IconX className="w-4 h-4" />}
+              danger={u.active}
+              onClick={() => requestToggle(u)}>
+              {u.active ? "Desactivar cuenta" : "Reactivar cuenta"}
+            </MenuItem>
+          </Menu>
+        </div>
+
+        <span onClick={(e) => e.stopPropagation()} className="shrink-0">
+          <Switch tone="status" checked={u.active} onChange={() => requestToggle(u)} />
+        </span>
+      </div>
     );
   };
 
   const Group = ({ g }: { g: { key: GroupKey; label: string; list: UserProfile[] } }) => {
-    if (roleFilter !== "todos" && g.key !== roleFilter) return null;
+    // Mientras hay búsqueda activa, el filtro de rol se ignora (ver nota en
+    // matches() más arriba) — así "Jorge" aparece sin importar qué chip esté
+    // seleccionado.
+    if (!q && roleFilter !== "todos" && g.key !== roleFilter) return null;
     const filtered = g.list.filter(matches);
     if (q && filtered.length === 0) return null;
     const isCollapsed = !q && !!collapsed[g.label];
+    // Paginación simple ("Mostrar más") en vez de virtualización con
+    // dependencias nuevas: con cientos/miles de colaboradores, solo se
+    // renderizan 60 tarjetas a la vez por grupo — el resto se revela bajo
+    // demanda. El contador vive en el padre (visibleCounts), no aquí adentro:
+    // Group se redefine en cada render de EmpleadosClient, así que un
+    // useState local perdería su valor en cada tecleo de búsqueda.
+    const shown = visibleCounts[g.label] ?? PAGE_SIZE;
+    const toShow = filtered.slice(0, shown);
+    const hasMore = filtered.length > shown;
     return (
       <div className="flex flex-col gap-2.5">
         <button onClick={() => toggleGroup(g.label)}
-          className="flex items-center gap-2 text-left w-fit">
-          <span className="transition-transform duration-200" style={{ color: "var(--text-3)", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>
+          className="flex items-center gap-2 text-left w-full px-1 py-1.5 rounded-sm transition-colors hover:bg-hover">
+          <span className="transition-transform duration-200 shrink-0" style={{ color: "var(--text-3)", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>
             <IconChevronLeft className="w-3 h-3 -rotate-90" />
           </span>
-          <div>
-            <p className="text-[12.5px] font-bold leading-tight">{g.label}</p>
-            <p className="text-[10.5px] font-semibold leading-tight" style={{ color: "var(--text-3)" }}>
-              {filtered.length} colaborador{filtered.length === 1 ? "" : "es"}
-            </p>
-          </div>
+          <p className="text-[12.5px] font-bold leading-tight">
+            {g.label} <span style={{ color: "var(--text-3)", fontWeight: 600 }}>· {filtered.length}</span>
+          </p>
         </button>
         {/* Grid-rows 0fr/1fr: acordeón CSS-only, sin medir alturas — fade + slide suaves (punto 14) */}
         <div className="grid transition-[grid-template-rows] duration-300 ease-out"
@@ -428,7 +491,15 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
               style={{ opacity: isCollapsed ? 0 : 1 }}>
               {filtered.length === 0 ? (
                 <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
-              ) : filtered.map((u) => <Row key={u.id} u={u} />)}
+              ) : toShow.map((u) => <Row key={u.id} u={u} />)}
+              {hasMore && (
+                <button
+                  onClick={() => setVisibleCounts((v) => ({ ...v, [g.label]: shown + PAGE_SIZE }))}
+                  className="btn-tertiary h-8 px-3 text-[12.5px] w-fit"
+                >
+                  Mostrar más ({filtered.length - shown} restantes)
+                </button>
+              )}
             </div>
           </div>
         </div>

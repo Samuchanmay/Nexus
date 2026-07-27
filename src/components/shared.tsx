@@ -111,7 +111,10 @@ export function PersonRow({
         {meta && <div className="text-[12px] truncate" style={{ color: "var(--text-2)" }}>{meta}</div>}
       </div>
       {hoverActions && (
-        <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        // pointer-events-none mientras está invisible: nunca debe quedar un
+        // contenedor "fantasma" clickeable encima de la fila cuando el mouse
+        // ya no está encima (ver nota de causa raíz en components/ui.tsx Menu).
+        <div className="hidden sm:flex items-center gap-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity" onClick={(e) => e.stopPropagation()}>
           {hoverActions}
         </div>
       )}

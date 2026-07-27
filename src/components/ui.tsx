@@ -200,22 +200,46 @@ export function Menu({ trigger, align = "right", width = 210, children }: {
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Cierre por click-fuera/ESC vía listener del documento — NUNCA un backdrop
+  // "fixed inset-0" propio. Ese backdrop es exactamente la causa raíz del
+  // bloqueo intermitente reportado en Equipo: el trigger de este menú vive
+  // dentro de un contenedor que solo se revela con opacity en :hover (nunca
+  // se desmonta), así que si el usuario abre el menú y luego mueve el mouse
+  // fuera de la fila SIN elegir una opción, el menú se queda "open" — y ese
+  // backdrop de página completa quedaba ahí, invisible pero perfectamente
+  // clickeable, comiéndose el siguiente clic en cualquier parte de la
+  // pantalla (tarjetas, sidebar, lo que sea) sin dar ninguna señal visual.
+  // Con un listener de documento no existe ningún nodo fantasma: se agrega
+  // solo mientras open=true y se limpia siempre al cerrar/desmontar.
+  useEffect(() => {
+    if (!open) return;
+    const onDocPointer = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDocPointer);
+    window.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDocPointer);
+      window.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block" ref={wrapRef}>
       {trigger({ onClick: () => setOpen((v) => !v), open })}
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className={`absolute ${align === "right" ? "right-0" : "left-0"} top-full mt-1.5 z-50 nx-pop`}
-            style={{ width }}
-            onClick={() => setOpen(false)}
-          >
-            <div className="rounded-lg overflow-hidden shadow-nx" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
-              {children}
-            </div>
+        <div
+          className={`absolute ${align === "right" ? "right-0" : "left-0"} top-full mt-1.5 z-50 nx-pop`}
+          style={{ width }}
+          onClick={() => setOpen(false)}
+        >
+          <div className="rounded-lg overflow-hidden shadow-nx" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
+            {children}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
