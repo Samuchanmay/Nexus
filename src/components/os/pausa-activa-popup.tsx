@@ -77,6 +77,11 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
       style={{
         background: visible ? "rgba(0,0,0,.5)" : "rgba(0,0,0,0)",
         backdropFilter: visible ? "blur(4px)" : "blur(0px)",
+        // Mismo patrón de causa raíz que overlay.tsx/date-sheet.tsx — sin
+        // esto, los ~220ms de salida dejaban un overlay de página completa
+        // invisible pero clickeable (este popup puede aparecer en CUALQUIER
+        // pantalla, incluida Equipo, por el heartbeat de pausa activa).
+        pointerEvents: visible ? "all" : "none",
         transition: "background .22s ease-out, backdrop-filter .22s ease-out",
       }}
       onClick={dismiss}

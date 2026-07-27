@@ -235,6 +235,14 @@ function DateSheetShell({
       style={{
         background: visible ? "rgba(0,0,0,.35)" : "rgba(0,0,0,0)",
         backdropFilter: visible ? "blur(6px)" : "blur(0px)",
+        // Misma causa raíz que overlay.tsx::CenteredOverlay — ver esa nota.
+        // DateSheetShell es el DatePicker/DateRangeField de escritorio, el
+        // control más usado dentro del Drawer de Equipo (fecha de ingreso +
+        // nacimiento): sin este pointerEvents, cada vez que se cerraba el
+        // calendario quedaban ~180ms de un overlay invisible pero clickeable
+        // encima de TODO, comiéndose el siguiente clic (ej. el botón
+        // Guardar del Drawer, justo después de elegir una fecha).
+        pointerEvents: visible ? "all" : "none",
         transition: "background .18s ease-out, backdrop-filter .18s ease-out",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}

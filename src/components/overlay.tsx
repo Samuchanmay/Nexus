@@ -45,6 +45,18 @@ export function CenteredOverlay({
       style={{
         background: visible ? "rgba(0,0,0,.35)" : "rgba(0,0,0,0)",
         backdropFilter: visible ? "blur(6px)" : "blur(0px)",
+        // CAUSA RAÍZ del bloqueo intermitente en Equipo (y cualquier pantalla
+        // con Select/TimePicker/DatePicker dentro de un Drawer): sin esto,
+        // durante los ~180ms de la animación de salida el backdrop de
+        // página completa (z-900) seguía montado Y CLICKEABLE aunque ya
+        // fuera invisible (visible=false solo cambiaba el fondo/blur, nunca
+        // pointer-events) — el siguiente clic del usuario en CUALQUIER
+        // parte de la pantalla lo absorbía este overlay fantasma en vez de
+        // llegar al botón real. Mismo patrón ya corregido en Sheet/
+        // Notificaciones; a este componente (usado por Select y TimePicker,
+        // dos de los controles más usados en el Drawer de Equipo) nunca se
+        // le había aplicado.
+        pointerEvents: visible ? "all" : "none",
         transition: "background .18s ease-out, backdrop-filter .18s ease-out",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
