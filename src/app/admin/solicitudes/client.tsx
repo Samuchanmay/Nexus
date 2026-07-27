@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, Sheet, Pill, Avatar, SlidingSegments, DatePicker } from "@/components/ui";
+import { useToast, Sheet, Pill, Avatar, SlidingSegments, DatePicker, Select } from "@/components/ui";
 import { EmptyState } from "@/components/shared";
 import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
@@ -125,7 +125,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
       const { data: gcalData, error: gcalError } = await supabase.functions.invoke("gcal-create-event", {
         body: {
           title: `${typeLabel[sel.type] ?? sel.type} — ${sel.title}`,
-          details: `Proyecto Nexus · ${sel.notes ?? ""}`,
+          details: `Proyecto Emet · ${sel.notes ?? ""}`,
           location: sel.event_location ?? "",
           start,
           end,
@@ -271,9 +271,11 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Prioridad</label>
-                <select className="field-input" value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
-                  {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
-                </select>
+                <Select
+                  value={priority} onChange={(v) => setPriority(v as Priority)}
+                  title="Prioridad" searchable={false}
+                  options={PRIORITIES.map((p) => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) }))}
+                />
               </div>
               <div>
                 <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de entrega</label>

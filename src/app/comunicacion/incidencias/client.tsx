@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Incident } from "@/lib/types";
-import { useToast, Sheet, Pill, DatePicker } from "@/components/ui";
+import { useToast, Sheet, Pill, DatePicker, Select } from "@/components/ui";
 import { IconPlus, IconAlert } from "@/components/icons";
 
-import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
+import { KIND_LABELS, KIND_ICON, KIND_DESC, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { dmy } from "@/lib/tz";
 
 export default function IncidenciasClient({ userId, incidents }: { userId: string; incidents: Incident[] }) {
@@ -76,10 +76,14 @@ export default function IncidenciasClient({ userId, incidents }: { userId: strin
         <div className="flex flex-col gap-3">
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Tipo</label>
-            <select className="field-input" value={form.kind}
-              onChange={(e) => setForm({ ...form, kind: e.target.value })}>
-              {Object.entries(KIND_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            <Select
+              value={form.kind} onChange={(v) => setForm({ ...form, kind: v })}
+              title="Tipo de incidencia" searchable={false}
+              options={(Object.keys(KIND_LABELS) as (keyof typeof KIND_LABELS)[]).map((k) => {
+                const KindIcon = KIND_ICON[k];
+                return { value: k, label: KIND_LABELS[k], sublabel: KIND_DESC[k], icon: <KindIcon className="w-4 h-4" /> };
+              })}
+            />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div>

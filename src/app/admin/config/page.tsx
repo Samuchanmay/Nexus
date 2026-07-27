@@ -50,7 +50,7 @@ const CATEGORIES: { title: string; items: LinkCard[] }[] = [
     title: "Sistema",
     items: [
       { href: "/admin/dev-mode", title: "Modo desarrollador", icon: "layers",
-        desc: "Mapa de todas las pantallas de Nexus, agrupadas por rol — para probar y encontrar errores." },
+        desc: "Mapa de todas las pantallas de Emet, agrupadas por rol — para probar y encontrar errores." },
     ],
   },
 ];

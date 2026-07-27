@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, Pill, DatePicker } from "@/components/ui";
+import { useToast, Pill, DatePicker, TimePicker } from "@/components/ui";
 import { Card, SectionTitle, EmptyState } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
@@ -284,8 +284,8 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
             </div>
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Hora</label>
-              <input type="time" className="field-input" value={form.time}
-                onChange={(e) => setForm({ ...form, time: e.target.value })} />
+              <TimePicker value={form.time}
+                onChange={(v) => setForm({ ...form, time: v })} />
             </div>
           </div>
           {tooSoon && (

@@ -3,12 +3,12 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
-import { useToast, Sheet, Avatar, SelectField, DatePicker, Menu, MenuItem } from "@/components/ui";
+import { useToast, Sheet, Avatar, DatePicker, Menu, MenuItem, Select, TimePicker } from "@/components/ui";
 import {
   IconUserPlus, IconCamera, IconChevronLeft, IconClipboard, IconPen, IconCalendar, IconX,
   IconMail, IconPhone, IconBuilding,
 } from "@/components/icons";
-import { Switch, PersonRow } from "@/components/shared";
+import { Switch, PersonRow, Field } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
 import { todayMerida, dmy } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
@@ -47,10 +47,13 @@ function AreaSelect({ role, areas, value, onChange }: {
   const options = areas.filter((a) => a.tipo === tipo);
   const label = tipo === "coordinacion" ? "Coordinación" : "Departamento";
   return (
-    <SelectField label={label} value={value} onChange={onChange}>
-      <option value="">— que la persona la elija al entrar —</option>
-      {options.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-    </SelectField>
+    <Field label={label}>
+      <Select
+        value={value} onChange={onChange} title={label}
+        placeholder="— que la persona la elija al entrar —"
+        options={options.map((a) => ({ value: a.id, label: a.nombre }))}
+      />
+    </Field>
   );
 }
 
@@ -469,14 +472,19 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Nuevo colaborador">
         <div className="flex flex-col gap-3">
-          <SelectField label="¿A quién agregas?" value={form.role}
-            onChange={(v) => setForm({ ...form, role: v, area_id: "" })}>
-            <option value="empleado">Equipo (empleado)</option>
-            <option value="rh">RH (solo lectura)</option>
-            <option value="coordinador">Coordinador</option>
-            <option value="departamento">Departamento</option>
-            <option value="admin">Administrador</option>
-          </SelectField>
+          <Field label="¿A quién agregas?">
+            <Select
+              value={form.role} onChange={(v) => setForm({ ...form, role: v, area_id: "" })}
+              title="¿A quién agregas?" searchable={false}
+              options={[
+                { value: "empleado", label: "Equipo (empleado)" },
+                { value: "rh", label: "RH (solo lectura)" },
+                { value: "coordinador", label: "Coordinador" },
+                { value: "departamento", label: "Departamento" },
+                { value: "admin", label: "Administrador" },
+              ]}
+            />
+          </Field>
 
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo Google *</label>
@@ -544,10 +552,13 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
             ) : null}
 
           {form.role === "coordinador" && (
-            <SelectField label="Nivel educativo" value={form.nivel}
-              onChange={(v) => setForm({ ...form, nivel: v })}>
-              {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-            </SelectField>
+            <Field label="Nivel educativo">
+              <Select
+                value={form.nivel} onChange={(v) => setForm({ ...form, nivel: v })}
+                title="Nivel educativo" searchable={false}
+                options={Object.entries(NIVEL_LABELS).map(([v, label]) => ({ value: v, label }))}
+              />
+            </Field>
           )}
 
           {isEquipo && (
@@ -569,13 +580,13 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
                   <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Entrada</label>
-                  <input type="time" className="field-input" value={form.start}
-                    onChange={(e) => setForm({ ...form, start: e.target.value })} />
+                  <TimePicker value={form.start}
+                    onChange={(v) => setForm({ ...form, start: v })} />
                 </div>
                 <div>
                   <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Salida</label>
-                  <input type="time" className="field-input" value={form.end}
-                    onChange={(e) => setForm({ ...form, end: e.target.value })} />
+                  <TimePicker value={form.end}
+                    onChange={(v) => setForm({ ...form, end: v })} />
                 </div>
                 <div>
                   <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Objetivo (horas)</label>
@@ -749,23 +760,31 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                           onChange={(e) => setEditForm({ ...editForm, extension: e.target.value })} />
                       </div>
                     </div>
-                    <SelectField label="Rol" value={editForm.role}
-                      onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}>
-                      <option value="coordinador">Coordinador</option>
-                      <option value="departamento">Departamento</option>
-                      <option value="empleado">Empleado</option>
-                      <option value="rh">RH (solo lectura)</option>
-                      <option value="admin">Administrador</option>
-                    </SelectField>
+                    <Field label="Rol">
+                      <Select
+                        value={editForm.role} onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}
+                        title="Rol" searchable={false}
+                        options={[
+                          { value: "coordinador", label: "Coordinador" },
+                          { value: "departamento", label: "Departamento" },
+                          { value: "empleado", label: "Empleado" },
+                          { value: "rh", label: "RH (solo lectura)" },
+                          { value: "admin", label: "Administrador" },
+                        ]}
+                      />
+                    </Field>
                     {AREA_TIPO[editForm.role] && (
                       <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
                         onChange={(v) => setEditForm({ ...editForm, area_id: v })} />
                     )}
                     {editForm.role === "coordinador" && (
-                      <SelectField label="Nivel educativo" value={editForm.nivel}
-                        onChange={(v) => setEditForm({ ...editForm, nivel: v })}>
-                        {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-                      </SelectField>
+                      <Field label="Nivel educativo">
+                        <Select
+                          value={editForm.nivel} onChange={(v) => setEditForm({ ...editForm, nivel: v })}
+                          title="Nivel educativo" searchable={false}
+                          options={Object.entries(NIVEL_LABELS).map(([v, label]) => ({ value: v, label }))}
+                        />
+                      </Field>
                     )}
                     <div>
                       <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
@@ -830,23 +849,31 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                     <DatePicker value={editForm.birthDate} onChange={(v) => setEditForm({ ...editForm, birthDate: v })} />
                   </div>
                 </div>
-                <SelectField label="Rol" value={editForm.role}
-                  onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}>
-                  <option value="coordinador">Coordinador</option>
-                  <option value="departamento">Departamento</option>
-                  <option value="empleado">Empleado</option>
-                  <option value="rh">RH (solo lectura)</option>
-                  <option value="admin">Administrador</option>
-                </SelectField>
+                <Field label="Rol">
+                  <Select
+                    value={editForm.role} onChange={(v) => setEditForm({ ...editForm, role: v, area_id: "" })}
+                    title="Rol" searchable={false}
+                    options={[
+                      { value: "coordinador", label: "Coordinador" },
+                      { value: "departamento", label: "Departamento" },
+                      { value: "empleado", label: "Empleado" },
+                      { value: "rh", label: "RH (solo lectura)" },
+                      { value: "admin", label: "Administrador" },
+                    ]}
+                  />
+                </Field>
                 {AREA_TIPO[editForm.role] && (
                   <AreaSelect role={editForm.role} areas={areas} value={editForm.area_id}
                     onChange={(v) => setEditForm({ ...editForm, area_id: v })} />
                 )}
                 {editForm.role === "coordinador" && (
-                  <SelectField label="Nivel educativo" value={editForm.nivel}
-                    onChange={(v) => setEditForm({ ...editForm, nivel: v })}>
-                    {Object.entries(NIVEL_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-                  </SelectField>
+                  <Field label="Nivel educativo">
+                    <Select
+                      value={editForm.nivel} onChange={(v) => setEditForm({ ...editForm, nivel: v })}
+                      title="Nivel educativo" searchable={false}
+                      options={Object.entries(NIVEL_LABELS).map(([v, label]) => ({ value: v, label }))}
+                    />
+                  </Field>
                 )}
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
@@ -930,7 +957,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
             style={{ background: "var(--surface)", borderRadius: 20, border: "0.5px solid var(--border-2)", boxShadow: "0 8px 60px rgba(0,0,0,0.22)" }}>
             <p className="text-[15px] font-bold">¿Desactivar a {confirmUser.full_name}?</p>
             <p className="text-[12.5px] mt-1.5" style={{ color: "var(--text-2)" }}>
-              Perderá acceso a Nexus de inmediato. Su historial se conserva y puedes reactivarla cuando quieras.
+              Perderá acceso a Emet de inmediato. Su historial se conserva y puedes reactivarla cuando quieras.
             </p>
             <div className="flex gap-2.5 mt-4">
               <button className="btn-secondary flex-1 py-2.5 text-[13.5px]" disabled={confirmBusy}

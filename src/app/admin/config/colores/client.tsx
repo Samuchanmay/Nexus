@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader } from "@/components/shared";
+import { Select } from "@/components/ui";
 import { IconPlus } from "@/components/icons";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
 import type { Department } from "@/lib/types";
@@ -114,11 +115,15 @@ export default function ColoresClient({ areas, rhColor }: { areas: Department[];
         <div className="grid md:grid-cols-[1fr_180px_auto] gap-2.5">
           <input className="field-input" placeholder="Nombre"
             value={addForm.nombre} onChange={(e) => setAddForm({ ...addForm, nombre: e.target.value })} />
-          <select className="field-input" value={addForm.tipo}
-            onChange={(e) => setAddForm({ ...addForm, tipo: e.target.value as "coordinacion" | "departamento" })}>
-            <option value="coordinacion">Coordinación</option>
-            <option value="departamento">Departamento</option>
-          </select>
+          <Select
+            value={addForm.tipo}
+            onChange={(v) => setAddForm({ ...addForm, tipo: v as "coordinacion" | "departamento" })}
+            title="Tipo de grupo" searchable={false}
+            options={[
+              { value: "coordinacion", label: "Coordinación" },
+              { value: "departamento", label: "Departamento" },
+            ]}
+          />
           <button className="btn-primary px-5 py-3 text-[13.5px] flex items-center gap-1.5 justify-center" disabled={saving} onClick={addArea}>
             <IconPlus className="w-4 h-4" /> Agregar
           </button>

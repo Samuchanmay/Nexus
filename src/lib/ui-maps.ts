@@ -37,6 +37,23 @@ export const KIND_LABELS: Record<Incident["kind"], string> = {
   comision: "Comisión", falta_justificada: "Falta justificada", cambio_jornada: "Cambio de jornada",
 };
 
+/** Ícono + descripción corta por tipo de incidencia — usado por el Select
+ * premium (icono SVG + nombre + descripción) al registrar una incidencia,
+ * en vez de una lista de texto plano. */
+import { IconClipboard, IconAlert, IconHome, IconMapPin, IconX, IconClock } from "@/components/icons";
+export const KIND_ICON: Record<Incident["kind"], typeof IconClipboard> = {
+  permiso: IconClipboard, incapacidad: IconAlert, home_office: IconHome,
+  comision: IconMapPin, falta_justificada: IconX, cambio_jornada: IconClock,
+};
+export const KIND_DESC: Record<Incident["kind"], string> = {
+  permiso: "Ausencia autorizada por horas o por día",
+  incapacidad: "Incapacidad médica con soporte",
+  home_office: "Trabajo remoto autorizado",
+  comision: "Actividad fuera de oficina",
+  falta_justificada: "Falta con justificación válida",
+  cambio_jornada: "Ajuste temporal de horario",
+};
+
 /** Días inhábiles (holidays.kind) — mapa único de etiqueta/tono/color usado
  * en Días inhábiles (admin) y en los calendarios (admin/comunicacion), para
  * que un feriado se lea igual en toda la app sin importar dónde se muestre. */
@@ -51,7 +68,7 @@ export const HOLIDAY_KIND_STYLE: Record<HolidayKind, { bg: string; fg: string }>
   nacional: { bg: "var(--accent-tint)", fg: "var(--accent)" },
   estatal: { bg: "var(--warn-tint)", fg: "var(--warn)" },
   empresa: { bg: "var(--ok-tint)", fg: "var(--ok)" },
-  puente: { bg: "var(--surface-3)", fg: "var(--text-3)" },
+  puente: { bg: "var(--purple-tint)", fg: "var(--purple)" },
 };
 export function holidayStyle(kind?: string | null) {
   return HOLIDAY_KIND_STYLE[(kind as HolidayKind) ?? "empresa"] ?? HOLIDAY_KIND_STYLE.empresa;

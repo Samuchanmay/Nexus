@@ -85,7 +85,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
     setSaving(false);
     setOpen(false);
     setStart(""); setEnd("");
-    toast(emailOk ? "Solicitud enviada — Samuel recibió un correo" : "Solicitud enviada — el correo automático no pudo enviarse, pero Samuel ya la ve en Nexus");
+    toast(emailOk ? "Solicitud enviada — Samuel recibió un correo" : "Solicitud enviada — el correo automático no pudo enviarse, pero Samuel ya la ve en Emet");
     router.refresh();
   };
 

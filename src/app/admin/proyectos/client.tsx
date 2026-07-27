@@ -2,8 +2,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, Pill, Sheet, useToast, SelectField, CheckBox, DatePicker, Menu, MenuItem } from "@/components/ui";
-import { EmptyState } from "@/components/shared";
+import { Avatar, Pill, Sheet, useToast, CheckBox, DatePicker, Menu, MenuItem, Select } from "@/components/ui";
+import { EmptyState, Field } from "@/components/shared";
 import { Icon } from "@/components/os/icons";
 import { IconDownload } from "@/components/icons";
 import { logAdminAction } from "@/lib/admin-log";
@@ -290,12 +290,11 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
         {open === p.id ? (
           <div className="flex items-center gap-2 mt-2">
-            <SelectField className="flex-1" value={picked} onChange={setPicked}>
-              <option value="">— elige una actividad —</option>
-              {otherOptions.map((o) => (
-                <option key={o.id} value={o.id}>{titleOf(o)}</option>
-              ))}
-            </SelectField>
+            <Select
+              className="field-input flex-1 flex items-center justify-between gap-2 text-left"
+              value={picked} onChange={setPicked} title="Elegir actividad" placeholder="— elige una actividad —"
+              options={otherOptions.map((o) => ({ value: o.id, label: titleOf(o) }))}
+            />
             <button className="btn-secondary text-[12px] px-2.5 py-1.5" disabled={saving} onClick={() => addDependency(p.id)}>
               Agregar
             </button>
@@ -461,12 +460,20 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <SelectField label="Tipo" value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v }))}>
-              {types.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-            </SelectField>
-            <SelectField label="Prioridad" value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v as Priority }))}>
-              {PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
-            </SelectField>
+            <Field label="Tipo">
+              <Select
+                value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v }))}
+                title="Tipo" searchable={false}
+                options={types.map((t) => ({ value: t.key, label: t.label }))}
+              />
+            </Field>
+            <Field label="Prioridad">
+              <Select
+                value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v as Priority }))}
+                title="Prioridad" searchable={false}
+                options={PRIORITIES.map((p) => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) }))}
+              />
+            </Field>
           </div>
 
           <div>

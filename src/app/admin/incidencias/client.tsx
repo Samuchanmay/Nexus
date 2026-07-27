@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Incident } from "@/lib/types";
-import { useToast, Pill, Sheet, DatePicker } from "@/components/ui";
+import { useToast, Pill, Sheet, DatePicker, Select } from "@/components/ui";
 import { useSupabaseMutation, EmptyState } from "@/components/shared";
 import { IconPlus } from "@/components/icons";
-import { KIND_LABELS, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
+import { KIND_LABELS, KIND_ICON, KIND_DESC, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
 import { notifyUser } from "@/lib/notify";
 import { dmy } from "@/lib/tz";
@@ -130,16 +130,22 @@ export default function IncAdminClient({ incidents, team, adminId }: {
         <div className="flex flex-col gap-3">
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Persona</label>
-            <select className="field-input" value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })}>
-              <option value="">— elige a la persona —</option>
-              {team.map((t) => <option key={t.id} value={t.id}>{t.display_name}</option>)}
-            </select>
+            <Select
+              value={form.userId} onChange={(v) => setForm({ ...form, userId: v })}
+              title="Seleccionar empleado" placeholder="— elige a la persona —"
+              options={team.map((t) => ({ value: t.id, label: t.display_name }))}
+            />
           </div>
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Tipo</label>
-            <select className="field-input" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
-              {Object.entries(KIND_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            <Select
+              value={form.kind} onChange={(v) => setForm({ ...form, kind: v })}
+              title="Tipo de incidencia" searchable={false}
+              options={(Object.keys(KIND_LABELS) as (keyof typeof KIND_LABELS)[]).map((k) => {
+                const KindIcon = KIND_ICON[k];
+                return { value: k, label: KIND_LABELS[k], sublabel: KIND_DESC[k], icon: <KindIcon className="w-4 h-4" /> };
+              })}
+            />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div>

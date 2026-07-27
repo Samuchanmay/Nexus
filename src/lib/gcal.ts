@@ -15,7 +15,7 @@ export function vacationCalendarUrl(v: Pick<Vacation, "start_date" | "end_date" 
   const compact = (d: string) => d.replaceAll("-", "");
   const endStr = addDays(v.end_date, 1).replaceAll("-", ""); // fin exclusivo, sin efectos de zona
   const title = encodeURIComponent(`🌴 Vacaciones — ${v.users?.display_name ?? ""}`);
-  const details = encodeURIComponent(`${v.days} días hábiles aprobados en Nexus.`);
+  const details = encodeURIComponent(`${v.days} días hábiles aprobados en Emet.`);
   return `${BASE}&text=${title}&dates=${compact(v.start_date)}/${endStr}&details=${details}`;
 }
 
@@ -28,7 +28,7 @@ export function requestCalendarUrl(
   const t = (r.event_time ?? "09:00:00").replaceAll(":", "").slice(0, 6);
   const endT = String(Number(t.slice(0, 2)) + 1).padStart(2, "0") + t.slice(2);
   const title = encodeURIComponent(`${typeLabel[r.type] ?? r.type} — ${r.title}`);
-  const details = encodeURIComponent(`Proyecto Nexus · ${r.notes ?? ""}`);
+  const details = encodeURIComponent(`Proyecto Emet · ${r.notes ?? ""}`);
   const loc = encodeURIComponent(r.event_location ?? "");
   return `${BASE}&text=${title}&dates=${d}T${t}/${d}T${endT}&details=${details}&location=${loc}`;
 }

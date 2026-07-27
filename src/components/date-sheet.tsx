@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { IconCalendar } from "./icons";
+import { useMountOnOpen } from "@/lib/use-mount-on-open";
 import { MONTHS, DOW, buildMonthGrid, monthBounds, shiftMonth } from "@/lib/calendar-grid";
 
 function cx(...a: (string | false | null | undefined)[]) {
@@ -161,41 +162,27 @@ function DateSheetShell({
   open: boolean; anchorRef: RefObject<HTMLElement | null>; onClose: () => void;
   title: string; children: React.ReactNode; footer: Footer;
 }) {
-  const mounted = useMounted();
   const isMobile = useIsMobile();
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [dragY, setDragY] = useState(0);
   const dragging = useRef(false);
   const startY = useRef(0);
 
-  useEffect(() => {
-    if (!open) return;
-    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [open, onClose]);
+  // Ambos hooks se llaman siempre, sin condicionar por isMobile (Rules of
+  // Hooks) — isMobile puede cambiar entre renders (resize cruzando el
+  // breakpoint), así que el orden de hooks debe ser idéntico siempre.
+  const mounted = useMounted();
+  const { mounted: showDesktopShell, visible } = useMountOnOpen(open && !isMobile, 180);
 
   useEffect(() => { if (!open) setDragY(0); }, [open]);
 
-  useEffect(() => {
-    if (!open || isMobile) return;
-    const update = () => {
-      const r = anchorRef.current?.getBoundingClientRect();
-      if (!r) return;
-      const width = 304;
-      let left = r.left;
-      if (left + width > window.innerWidth - 12) left = Math.max(12, window.innerWidth - width - 12);
-      setPos({ top: r.bottom + 6, left });
-    };
-    update();
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-    return () => { window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
-  }, [open, isMobile, anchorRef]);
-
-  if (!mounted || !open) return null;
+  // anchorRef ya no se usa para posicionar (Sistema global de overlays: los
+  // popovers de selección SIEMPRE abren centrados en pantalla, nunca debajo
+  // del input ni pegados a un borde) — se conserva en la firma solo para no
+  // romper las llamadas existentes (DatePicker/DateRangeField).
+  void anchorRef;
 
   if (isMobile) {
+    if (!mounted || !open) return null;
     const onTouchStart = (e: React.TouchEvent) => { dragging.current = true; startY.current = e.touches[0].clientY; };
     const onTouchMove = (e: React.TouchEvent) => {
       if (!dragging.current) return;
@@ -208,7 +195,7 @@ function DateSheetShell({
       setDragY(0);
     };
     return createPortal(
-      <div className="fixed inset-0 z-[999] flex items-end justify-center"
+      <div className="fixed inset-0 z-[900] flex items-end justify-center"
         style={{ background: "rgba(0,0,0,.4)", backdropFilter: "blur(12px)" }}
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div className="w-full max-w-[520px] flex flex-col"
@@ -237,16 +224,39 @@ function DateSheetShell({
     );
   }
 
+  // Escritorio — Popover centrado (Sistema global de overlays): blur +
+  // overlay oscuro ligero, escala 96%→100% + opacity 0→100%, 180ms, sin
+  // rebote. Mismo mecanismo que CenteredOverlay (components/overlay.tsx).
+  if (!showDesktopShell) return null;
+
   return createPortal(
-    <>
-      <div className="fixed inset-0 z-[998]" onClick={onClose} />
-      <div className="fixed z-[999] nx-datesheet-pop" style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999, width: 304 }}>
-        <div className="rounded-lg overflow-hidden shadow-nx" style={{ border: "1px solid var(--border)", background: "var(--panel)" }}>
-          <div className="p-3.5 pb-2.5">{children}</div>
-          <FooterRow footer={footer} />
+    <div
+      className="fixed inset-0 z-[900] flex items-center justify-center px-4"
+      style={{
+        background: visible ? "rgba(0,0,0,.35)" : "rgba(0,0,0,0)",
+        backdropFilter: visible ? "blur(6px)" : "blur(0px)",
+        transition: "background .18s ease-out, backdrop-filter .18s ease-out",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full rounded-lg overflow-hidden shadow-nx"
+        style={{
+          maxWidth: 320,
+          border: "1px solid var(--border)", background: "var(--panel)",
+          opacity: visible ? 1 : 0,
+          transform: visible ? "scale(1)" : "scale(.96)",
+          transition: "opacity .18s ease-out, transform .18s ease-out",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-3.5 pb-2.5">
+          <p className="text-[13.5px] font-bold mb-2 px-0.5">{title}</p>
+          {children}
         </div>
+        <FooterRow footer={footer} />
       </div>
-    </>,
+    </div>,
     document.body
   );
 }

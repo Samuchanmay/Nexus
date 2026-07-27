@@ -174,7 +174,7 @@ const SUB_BIRTHDAY_OTHER: Entry[] = [
   { key: "s-bday-other-3", emoji: "🥳", text: "Hoy es un día especial para {who}." },
 ];
 const SUB_VACATION_TODAY: Entry[] = [
-  { key: "s-vac-today-1", emoji: "🏖️", text: "Nexus se encarga del resto." },
+  { key: "s-vac-today-1", emoji: "🏖️", text: "Emet se encarga del resto." },
   { key: "s-vac-today-2", emoji: "🌴", text: "Nada urgente te espera hoy." },
   { key: "s-vac-today-3", emoji: "😎", text: "Aprovecha el día sin pendientes." },
   { key: "s-vac-today-4", emoji: "☀️", text: "Desconecta con tranquilidad." },

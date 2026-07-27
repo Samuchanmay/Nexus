@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { resolvePendingExit, requestRhValidation } from "@/lib/pending-exits";
 import { Field, Input, Button } from "@/components/os/ui";
-import { useToast } from "@/components/ui";
+import { useToast, TimePicker } from "@/components/ui";
 
 export function ResolvePendingExit({ userId, date }: { userId: string; date: string }) {
   const router = useRouter();
@@ -66,7 +66,7 @@ export function ResolvePendingExit({ userId, date }: { userId: string; date: str
       </p>
       <div className="grid grid-cols-2 gap-2">
         <Field label="Hora de salida">
-          <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
+          <TimePicker value={hora} onChange={setHora} />
         </Field>
         <Field label="Motivo (opcional)">
           <Input placeholder="Olvidé registrar" value={motivo} onChange={(e) => setMotivo(e.target.value)} />

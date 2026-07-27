@@ -41,7 +41,7 @@ function LoginInner() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={dark ? "/logo-cert-dark.png" : "/logo-cert-light.png"} alt="CERT"
           className="w-16 h-16 mx-auto mb-5 object-contain" />
-        <h1 className="text-[28px] font-bold tracking-tight mb-1">Nexus</h1>
+        <h1 className="text-[28px] font-bold tracking-tight mb-1">Emet</h1>
         <p className="text-[13.5px] mb-8" style={{ color: "var(--text-2)" }}>
           Sistema operativo · CERT Comunicación
         </p>

@@ -2,10 +2,10 @@
 import type React from "react";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, SlidingSegments, DatePicker } from "@/components/ui";
+import { useToast, SlidingSegments, DatePicker, Sheet, Select } from "@/components/ui";
 import { dmy } from "@/lib/tz";
-import { useSupabaseMutation, EmptyState } from "@/components/shared";
-import { IconPlus, IconX, IconCalendar, IconMapPin, IconFolder, IconSun } from "@/components/icons";
+import { useSupabaseMutation, EmptyState, Field } from "@/components/shared";
+import { IconPlus, IconCalendar, IconMapPin, IconFolder, IconSun, IconDownload, IconTrash } from "@/components/icons";
 import { mexicanHolidays } from "@/lib/holidays";
 import { MONTHS, DOW, shiftMonth, monthBounds, buildMonthGrid } from "@/lib/calendar-grid";
 import { todayMerida } from "@/lib/tz";
@@ -16,19 +16,63 @@ const KIND_ICON: Record<HolidayKind, React.ComponentType<{ className?: string }>
   nacional: IconCalendar, estatal: IconMapPin, empresa: IconFolder, puente: IconSun,
 };
 
-export default function DiasClient({ holidays }: { holidays: { id: string; date: string; name: string; kind: string }[] }) {
+type Holiday = { id: string; date: string; name: string; kind: string; notes: string | null };
+type HolidayForm = { date: string; name: string; kind: string; notes: string };
+const EMPTY_FORM: HolidayForm = { date: "", name: "", kind: "empresa", notes: "" };
+
+/**
+ * Días inhábiles — rediseño completo. Esta pantalla NO es un Excel: su
+ * único trabajo es dejar ver de un vistazo qué días no cuentan como
+ * laborables y administrarlos rápido. Un solo calendario grande es la
+ * vista principal; la vista Año queda como opción secundaria para
+ * planeación de temporada. La vieja vista "Lista" (con eliminar en línea)
+ * se retira — administrar un día ahora se hace abriendo su celda en el
+ * calendario, que abre el mismo Drawer de alta en modo edición (con botón
+ * Eliminar) — así no hace falta una pantalla de lista aparte para el CRUD.
+ */
+export default function DiasClient({ holidays }: { holidays: Holiday[] }) {
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
-  const [form, setForm] = useState({ date: "", name: "", kind: "empresa" });
-  const [genYear, setGenYear] = useState(String(new Date().getFullYear()));
   const { run: runGen, saving: generating } = useSupabaseMutation();
-  const [view, setView] = usePersistedView<"Año" | "Mes" | "Lista">(
-    "dias-inhabiles.view", ["Año", "Mes", "Lista"], "Año"
-  );
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const today = todayMerida();
+  const currentYear = Number(today.slice(0, 4));
+
+  const [view, setView] = usePersistedView<"Mes" | "Año">("dias-inhabiles.view", ["Mes", "Año"], "Mes");
   const [ym, setYm] = useState(today.slice(0, 7));
-  const [yearView, setYearView] = useState(Number(today.slice(0, 4)));
+  const [yearView, setYearView] = useState(currentYear);
+  const [genYear, setGenYear] = useState(String(currentYear));
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editing, setEditing] = useState<Holiday | null>(null);
+  const [form, setForm] = useState<HolidayForm>(EMPTY_FORM);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setConfirmDelete(false); setDrawerOpen(true); };
+  const openEdit = (h: Holiday) => {
+    setEditing(h); setForm({ date: h.date, name: h.name, kind: h.kind, notes: h.notes ?? "" });
+    setConfirmDelete(false); setDrawerOpen(true);
+  };
+
+  const save = async () => {
+    if (!form.date || !form.name.trim()) { toast("Fecha y nombre son obligatorios", "warn"); return; }
+    const payload = { date: form.date, name: form.name.trim(), kind: form.kind, notes: form.notes.trim() || null };
+    const ok = await run(async () => {
+      const sb = createClient();
+      const { error } = editing
+        ? await sb.from("holidays").update(payload).eq("id", editing.id)
+        : await sb.from("holidays").insert(payload);
+      if (error) return { error: { message: error.code === "23505" ? "Esa fecha ya está registrada" : "No se pudo guardar" } };
+      return { error: null };
+    }, { ok: editing ? "Día inhábil actualizado" : "Día inhábil agregado" });
+    if (ok) setDrawerOpen(false);
+  };
+
+  const remove = async () => {
+    if (!editing) return;
+    const ok = await run(() => createClient().from("holidays").delete().eq("id", editing.id),
+      { ok: "Día eliminado", err: "No se pudo eliminar" });
+    if (ok) setDrawerOpen(false);
+  };
 
   const generar = () => runGen(async () => {
     const year = parseInt(genYear);
@@ -38,43 +82,36 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
       .upsert(rows, { onConflict: "date", ignoreDuplicates: true });
     if (error) return { error: { message: "No se pudieron generar" } };
     return { error: null };
-  }, { ok: `Feriados oficiales de ${genYear} generados` });
-
-  const add = async () => {
-    if (!form.date || !form.name.trim()) { toast("Fecha y nombre son obligatorios", "warn"); return; }
-    const ok = await run(async () => {
-      const { error } = await createClient().from("holidays").insert(form);
-      if (error) return { error: { message: error.code === "23505" ? "Esa fecha ya está registrada" : "No se pudo guardar" } };
-      return { error: null };
-    }, { ok: "Día inhábil agregado" });
-    if (ok) setForm({ date: "", name: "", kind: "empresa" });
-  };
-
-  const remove = async (id: string) => {
-    const ok = await run(() => createClient().from("holidays").delete().eq("id", id),
-      { ok: "Día eliminado", err: "No se pudo eliminar" });
-    if (ok) setConfirmId(null);
-  };
+  }, { ok: `Feriados oficiales de ${genYear} importados` });
 
   const { year, month, daysInMonth, first, last } = monthBounds(ym);
   const holidayOf = useMemo(() => new Map(holidays.map((h) => [h.date, h])), [holidays]);
   const monthCells = useMemo(() => buildMonthGrid(first, last, daysInMonth), [first, last, daysInMonth]);
 
-  /** 12 mini-meses del año seleccionado, cada uno con su propia rejilla —
-      para la vista Año (calendario anual en vez de una lista plana). */
   const yearMonths = useMemo(() => Array.from({ length: 12 }, (_, i) => {
     const ymI = `${yearView}-${String(i + 1).padStart(2, "0")}`;
     const b = monthBounds(ymI);
     return { ...b, cells: buildMonthGrid(b.first, b.last, b.daysInMonth) };
   }), [yearView]);
+
+  /** Resumen del año que se está viendo (Mes usa el año de `ym`; Año usa `yearView`). */
+  const summaryYear = view === "Mes" ? Number(ym.slice(0, 4)) : yearView;
   const kindCounts = useMemo(() => {
     const c: Record<string, number> = { nacional: 0, estatal: 0, empresa: 0, puente: 0 };
-    for (const h of holidays) if (h.date.slice(0, 4) === String(yearView)) c[h.kind] = (c[h.kind] ?? 0) + 1;
+    for (const h of holidays) if (h.date.slice(0, 4) === String(summaryYear)) c[h.kind] = (c[h.kind] ?? 0) + 1;
     return c;
-  }, [holidays, yearView]);
+  }, [holidays, summaryYear]);
+
+  const yearOptions = useMemo(() => {
+    const years = new Set<number>();
+    for (let y = currentYear - 1; y <= currentYear + 2; y++) years.add(y);
+    for (const h of holidays) years.add(Number(h.date.slice(0, 4)));
+    return Array.from(years).sort((a, b) => a - b).map((y) => ({ value: String(y), label: String(y) }));
+  }, [holidays, currentYear]);
 
   return (
     <>
+      {/* ── Header: título + descripción, selector de año, importar feriados ── */}
       <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-[28px] font-bold tracking-tight">Días inhábiles</h1>
@@ -83,97 +120,96 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <input type="number" className="field-input w-[100px]" value={genYear}
-            onChange={(e) => setGenYear(e.target.value)} />
-          <button className="btn-secondary px-4 py-2.5 text-[13px]" disabled={generating} onClick={generar}>
-            {generating ? "Generando…" : `Generar feriados oficiales de ${genYear}`}
+          <Select
+            value={genYear} onChange={setGenYear} title="Año" searchable={false}
+            className="field-input w-[100px] flex items-center justify-between gap-2 text-left"
+            options={yearOptions}
+          />
+          <button className="btn-secondary px-4 py-2.5 text-[13px] flex items-center gap-1.5" disabled={generating} onClick={generar}>
+            <IconDownload className="w-3.5 h-3.5" /> {generating ? "Importando…" : "Importar feriados oficiales"}
+          </button>
+          <button className="btn-primary px-4 py-2.5 text-[13px] flex items-center gap-1.5" onClick={openAdd}>
+            <IconPlus className="w-4 h-4" /> Agregar día inhábil
           </button>
         </div>
       </header>
 
-      <div className="card p-5 mb-6">
-        <div className="grid md:grid-cols-[160px_1fr_150px_auto] gap-2.5">
-          <DatePicker value={form.date}
-            onChange={(iso) => setForm({ ...form, date: iso })} />
-          <input className="field-input" placeholder="Nombre del día"
-            value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <select className="field-input" value={form.kind}
-            onChange={(e) => setForm({ ...form, kind: e.target.value })}>
-            <option value="nacional">Nacional</option>
-            <option value="estatal">Estatal</option>
-            <option value="empresa">Empresa</option>
-            <option value="puente">Puente</option>
-          </select>
-          <button className="btn-primary px-5 py-3 text-[13.5px] flex items-center gap-1.5" disabled={saving} onClick={add}>
-            <IconPlus className="w-4 h-4" /> Agregar
-          </button>
-        </div>
+      {/* ── Resumen: 4 tarjetas pequeñas ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
+        {(Object.keys(HOLIDAY_KIND_LABEL) as HolidayKind[]).map((k) => {
+          const KIcon = KIND_ICON[k];
+          const st = holidayStyle(k);
+          return (
+            <div key={k} className="card p-3.5 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: st.bg, color: st.fg }}>
+                <KIcon className="w-4 h-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[18px] font-bold tabular-nums leading-none">{kindCounts[k] ?? 0}</p>
+                <p className="text-[11.5px] font-semibold truncate" style={{ color: "var(--text-2)" }}>{HOLIDAY_KIND_LABEL[k]}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="mb-4">
-        <SlidingSegments options={["Año", "Mes", "Lista"]} value={view} onChange={(v) => setView(v as typeof view)} />
+        <SlidingSegments options={["Mes", "Año"]} value={view} onChange={(v) => setView(v as typeof view)} />
       </div>
 
-      {view === "Lista" && (
-        <div className="flex flex-col gap-2">
-          {holidays.length === 0 && (
-            <EmptyState icon={<IconPlus className="w-[22px] h-[22px]" />} title="Sin días inhábiles registrados" hint="Agrégalos arriba — feriados, puentes u otros días que no cuenten como laborables." />
-          )}
-          {holidays.map((h) => (
-            <div key={h.id} className="card px-5 py-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <p className="text-[13.5px] font-bold tabular-nums w-[100px]">{dmy(h.date)}</p>
-                <p className="text-[13.5px]">{h.name}</p>
-              </div>
-              {confirmId === h.id ? (
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
-                  <button disabled={saving} onClick={() => remove(h.id)}
-                    className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                    Sí, eliminar
-                  </button>
-                  <button onClick={() => setConfirmId(null)}
-                    className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
-                    No
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5">
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold"
-                    style={{ background: holidayStyle(h.kind).bg, color: holidayStyle(h.kind).fg }}>
-                    {(() => { const KIcon = KIND_ICON[(h.kind as HolidayKind)] ?? IconCalendar; return <KIcon className="w-3 h-3" />; })()}
-                    {HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind}
-                  </span>
-                  <button onClick={() => setConfirmId(h.id)} aria-label="Eliminar"
-                    className="w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
-                    <IconX className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
+      {/* ── Calendario principal: un único calendario grande ── */}
+      {view === "Mes" && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[16px] font-bold capitalize">{MONTHS[month - 1]} {year}</h2>
+            <div className="flex items-center gap-2">
+              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, -1))}>← Mes anterior</button>
+              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(today.slice(0, 7))}>Hoy</button>
+              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, 1))}>Mes siguiente →</button>
+              <Select
+                value={String(year)} onChange={(v) => setYm(`${v}-${String(month).padStart(2, "0")}`)}
+                title="Cambiar año" searchable={false}
+                className="field-input w-[90px] flex items-center justify-between gap-2 text-left py-1.5 text-[13px]"
+                options={yearOptions}
+              />
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1.5 mb-2">
+            {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
+          </div>
+          <div className="grid grid-cols-7 gap-1.5">
+            {monthCells.map((c) => {
+              const h = holidayOf.get(c.date);
+              const style = h ? holidayStyle(h.kind) : null;
+              return (
+                <button
+                  key={c.date} type="button" disabled={!c.inMonth}
+                  onClick={() => { if (h) openEdit(h); }}
+                  title={h ? `${dmy(c.date)} · ${h.name} (${HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind})` : dmy(c.date)}
+                  className="rounded-sm p-1.5 min-h-[56px] flex flex-col items-center justify-start gap-1 transition-colors"
+                  style={{
+                    background: "var(--surface-2)",
+                    opacity: c.inMonth ? 1 : 0.3,
+                    outline: c.date === today ? "2px solid var(--accent)" : undefined,
+                    outlineOffset: "-2px",
+                    cursor: h ? "pointer" : "default",
+                  }}>
+                  <p className="text-[12px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
+                  {h && (
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: style!.fg }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
+      {/* ── Vista Año: secundaria, solo para planeación de temporada ── */}
       {view === "Año" && (
         <div className="flex flex-col gap-4">
           <div className="card p-4 flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Categorías</span>
-              {(Object.keys(HOLIDAY_KIND_LABEL) as HolidayKind[]).map((k) => {
-                const KIcon = KIND_ICON[k];
-                const st = holidayStyle(k);
-                return (
-                  <span key={k} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold"
-                    style={{ background: st.bg, color: st.fg }}>
-                    <KIcon className="w-3 h-3" /> {HOLIDAY_KIND_LABEL[k]} · {kindCounts[k] ?? 0}
-                  </span>
-                );
-              })}
-            </div>
+            <span className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Vista anual</span>
             <div className="flex items-center gap-2">
               <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYearView((y) => y - 1)}>←</button>
               <span className="text-[15px] font-bold tabular-nums w-[52px] text-center">{yearView}</span>
@@ -195,18 +231,23 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
                     const h = holidayOf.get(c.date);
                     const st = h ? holidayStyle(h.kind) : null;
                     return (
-                      <div key={c.date}
+                      <button
+                        key={c.date} type="button" disabled={!h}
+                        onClick={() => { if (h) openEdit(h); }}
                         title={h ? `${dmy(c.date)} · ${h.name} (${HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind})` : dmy(c.date)}
-                        className="aspect-square rounded-[3px] flex items-center justify-center text-[8.5px] font-semibold tabular-nums"
+                        className="relative aspect-square rounded-[3px] flex items-center justify-center text-[8.5px] font-semibold tabular-nums"
                         style={{
-                          background: st ? st.bg : "transparent",
-                          color: st ? st.fg : "var(--text-3)",
                           opacity: c.inMonth ? 1 : 0.25,
+                          color: "var(--text-3)",
                           outline: c.date === today ? "1.5px solid var(--accent)" : undefined,
                           outlineOffset: "-1.5px",
+                          cursor: h ? "pointer" : "default",
                         }}>
                         {c.day}
-                      </div>
+                        {h && (
+                          <span className="absolute bottom-[1px] w-[3px] h-[3px] rounded-full" style={{ background: st!.fg }} />
+                        )}
+                      </button>
                     );
                   })}
                 </div>
@@ -216,43 +257,65 @@ export default function DiasClient({ holidays }: { holidays: { id: string; date:
         </div>
       )}
 
-      {view === "Mes" && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[16px] font-bold capitalize">{MONTHS[month - 1]} {year}</h2>
-            <div className="flex items-center gap-2">
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, -1))}>←</button>
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(today.slice(0, 7))}>Hoy</button>
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, 1))}>→</button>
-            </div>
-          </div>
-          <div className="grid grid-cols-7 gap-1.5 mb-2">
-            {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
-          </div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {monthCells.map((c) => {
-              const h = holidayOf.get(c.date);
-              const style = h ? holidayStyle(h.kind) : null;
-              const KIcon = h ? (KIND_ICON[(h.kind as HolidayKind)] ?? IconCalendar) : null;
-              return (
-                <div key={c.date} className="rounded-sm p-1.5 min-h-[64px] flex flex-col gap-1"
-                  style={{
-                    background: style ? style.bg : "var(--surface-2)",
-                    opacity: c.inMonth ? 1 : 0.35,
-                    outline: c.date === today ? "2px solid var(--accent)" : undefined,
-                    outlineOffset: "-2px",
-                  }}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
-                    {KIcon && <span style={{ color: style!.fg }}><KIcon className="w-2.5 h-2.5" /></span>}
-                  </div>
-                  {h && <p className="text-[9.5px] font-semibold truncate" style={{ color: style!.fg }} title={h.name}>{h.name}</p>}
-                </div>
-              );
-            })}
-          </div>
+      {holidays.length === 0 && (
+        <div className="mt-4">
+          <EmptyState icon={<IconPlus className="w-[22px] h-[22px]" />} title="Sin días inhábiles registrados"
+            hint="Agrega el primero con el botón de arriba, o importa los feriados oficiales del año." />
         </div>
       )}
+
+      {/* ── Drawer: alta / edición de un día inhábil ── */}
+      <Sheet
+        open={drawerOpen} onClose={() => setDrawerOpen(false)}
+        title={editing ? "Editar día inhábil" : "Agregar día inhábil"}
+        subtitle={editing ? editing.name : "Feriado, puente u otro día que no cuenta como laborable"}
+      >
+        <div className="flex flex-col gap-3 pb-2">
+          <Field label="Fecha">
+            <DatePicker value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} />
+          </Field>
+          <Field label="Tipo">
+            <Select
+              value={form.kind} onChange={(v) => setForm({ ...form, kind: v })}
+              title="Tipo de día" searchable={false}
+              options={(Object.keys(HOLIDAY_KIND_LABEL) as HolidayKind[]).map((k) => {
+                const KIcon = KIND_ICON[k];
+                return { value: k, label: HOLIDAY_KIND_LABEL[k], icon: <KIcon className="w-4 h-4" /> };
+              })}
+            />
+          </Field>
+          <Field label="Nombre">
+            <input className="field-input" placeholder="Ej. Día de la Independencia"
+              value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
+          <Field label="Notas (opcional)">
+            <textarea className="field-input min-h-[80px] resize-none" placeholder="Contexto adicional…"
+              value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </Field>
+
+          {editing && confirmDelete ? (
+            <div className="flex items-center gap-2 rounded-sm px-3.5 py-2.5" style={{ background: "var(--danger-tint)" }}>
+              <span className="text-[12.5px] font-semibold flex-1" style={{ color: "var(--danger)" }}>¿Eliminar este día inhábil?</span>
+              <button className="text-[12px] font-semibold px-2.5 py-1 rounded-full" disabled={saving}
+                style={{ background: "var(--danger)", color: "#fff" }} onClick={remove}>Sí, eliminar</button>
+              <button className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: "var(--surface-2)", color: "var(--text-2)" }} onClick={() => setConfirmDelete(false)}>No</button>
+            </div>
+          ) : (
+            <div className="flex gap-2.5 mt-1">
+              {editing && (
+                <button className="btn-secondary px-3.5 py-3 text-[14px] flex items-center gap-1.5" onClick={() => setConfirmDelete(true)}>
+                  <IconTrash className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setDrawerOpen(false)}>Cancelar</button>
+              <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={saving} onClick={save}>
+                {saving ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
+          )}
+        </div>
+      </Sheet>
     </>
   );
 }

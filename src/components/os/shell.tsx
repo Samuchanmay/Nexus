@@ -273,7 +273,7 @@ function Sidebar({ items, active, onGo, className, theme }: {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={theme === "dark" ? "/logo-cert-dark.png" : "/logo-cert-light.png"} alt="CERT" className="h-7 w-7 object-contain shrink-0" />
         <div className="leading-tight">
-          <p className="text-[15px] font-bold text-text-1">Nexus</p>
+          <p className="text-[15px] font-bold text-text-1">Emet</p>
           <p className="text-[11px] text-text-3 -mt-0.5">CERT · Comunicación</p>
         </div>
       </div>

@@ -2,7 +2,7 @@
 // RH · Solo lectura. RH ve horas laboradas y vacaciones aprobadas.
 // NUNCA ve retardos ni faltas — no existen en Nexus.
 import { useMemo, useState } from "react";
-import { SlidingSegments, Avatar, Pill, SelectField } from "@/components/ui";
+import { SlidingSegments, Avatar, Pill, Select } from "@/components/ui";
 import { summarizeDay, fmtMin, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule, Vacation } from "@/lib/types";
@@ -383,10 +383,14 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       <div className="card p-4 mb-8 flex flex-col gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex-1 min-w-[200px]">
-            <SelectField value={reportUserId} onChange={setReportUserId}>
-              <option value="">Seleccionar empleado…</option>
-              {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-            </SelectField>
+            <Select
+              value={reportUserId} onChange={setReportUserId}
+              title="Seleccionar empleado" placeholder="Seleccionar empleado…"
+              options={team.map((m) => ({
+                value: m.id, label: m.full_name, sublabel: m.area ?? undefined,
+                avatar: { name: m.full_name, color: m.nexus_color, avatarUrl: m.avatar_url },
+              }))}
+            />
           </div>
           <button
             className="btn-primary px-5 py-2.5 text-[13px]" disabled={!reportUserId}
@@ -413,10 +417,12 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       {/* Historial de movimientos */}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h2 className="text-[16px] font-bold">Historial de movimientos</h2>
-        <SelectField value={historyYear} onChange={setHistoryYear} className="w-[120px]">
-          <option value="Todos">Todos</option>
-          {historyYears.map((y) => <option key={y} value={y}>{y}</option>)}
-        </SelectField>
+        <Select
+          value={historyYear} onChange={setHistoryYear}
+          className="field-input w-[120px] flex items-center justify-between gap-2 text-left"
+          title="Año" searchable={false}
+          options={[{ value: "Todos", label: "Todos" }, ...historyYears.map((y) => ({ value: y, label: y }))]}
+        />
       </div>
       {historyByMonth.length === 0 ? (
         <EmptyState icon={<Icon name="clock" size={22} />} title="Sin movimientos registrados" hint="El historial de ajustes de saldo aparecerá aquí." />

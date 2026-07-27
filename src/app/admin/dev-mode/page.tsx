@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/os/icons";
 
 /* ═══════════════════════════════════════════════════════════════
-   Modo desarrollador — mapa de TODAS las pantallas de Nexus.
+   Modo desarrollador — mapa de TODAS las pantallas de Emet.
 
    No es impersonación real: cada layout (empleado/coordinador/rh)
    ya deja pasar al admin (ver el `.includes(profile.role)` de cada
@@ -77,7 +77,7 @@ export default function DevMode() {
       <header className="pt-8 pb-6">
         <h1 className="text-[28px] font-bold tracking-tight">Modo desarrollador</h1>
         <p className="text-[13.5px] mt-1 max-w-[640px]" style={{ color: "var(--text-2)" }}>
-          Enlaces directos a cada pantalla de Nexus, agrupados por rol, para probar flujos y encontrar errores.
+          Enlaces directos a cada pantalla de Emet, agrupados por rol, para probar flujos y encontrar errores.
           Como admin ya tienes acceso a todas — esto solo te evita adivinar la URL.
         </p>
       </header>

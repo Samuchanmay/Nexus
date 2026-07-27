@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
+import { Select } from "@/components/ui";
 import {
   IconPlus, IconX, IconTrash, IconCamera, IconPen, IconClipboard, IconVideo, IconMegaphone, IconFolder,
 } from "@/components/icons";
@@ -181,10 +182,11 @@ export default function TiposClient({ types, templates }: {
               <div className="grid sm:grid-cols-3 gap-2.5 mb-3">
                 <label className="block">
                   <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Icono</span>
-                  <select defaultValue={row.icon} onChange={(e) => update(row, { icon: e.target.value })}
-                    className="field-input text-[13px] py-2">
-                    {ICONS.map((i) => <option key={i.key} value={i.key}>{i.label}</option>)}
-                  </select>
+                  <Select
+                    value={row.icon} onChange={(v) => update(row, { icon: v })}
+                    title="Ícono" searchable={false} className="field-input text-[13px] py-2 w-full flex items-center justify-between gap-2 text-left"
+                    options={ICONS.map((i) => ({ value: i.key, label: i.label, icon: <i.Icon className="w-4 h-4" /> }))}
+                  />
                 </label>
                 <label className="block">
                   <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
@@ -255,9 +257,11 @@ export default function TiposClient({ types, templates }: {
         <div className="grid md:grid-cols-2 gap-2.5 mb-2.5">
           <input className="field-input" placeholder="Nombre (ej. Podcast)"
             value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
-          <select value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="field-input">
-            {ICONS.map((i) => <option key={i.key} value={i.key}>{i.label}</option>)}
-          </select>
+          <Select
+            value={form.icon} onChange={(v) => setForm({ ...form, icon: v })}
+            title="Ícono" searchable={false}
+            options={ICONS.map((i) => ({ value: i.key, label: i.label, icon: <i.Icon className="w-4 h-4" /> }))}
+          />
         </div>
         <div className="grid md:grid-cols-2 gap-2.5 mb-3">
           <label className="block">

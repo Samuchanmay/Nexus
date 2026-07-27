@@ -8,6 +8,11 @@ import { useMountOnOpen } from "@/lib/use-mount-on-open";
    para nunca quedar detrás de un Card/Sheet/Modal. Ver components/date-sheet.tsx. */
 export { DateField, DatePicker, DateRangeField, DateRangeCalendar } from "./date-sheet";
 
+/* ── Selección premium: un solo componente para todo (empleado, horario,
+   departamento, tipo, filtros…) y su variante de hora. Ver components/select.tsx. */
+export { Select, TimePicker } from "./select";
+export type { SelectOption } from "./select";
+
 /* ── Toast ──
    Tono-consciente: éxito (default) hace un slide limpio con check;
    error hace un pequeño "shake" con ícono de alerta — para que el
@@ -226,29 +231,6 @@ export function MenuItem({ icon, children, onClick, danger, href, download }: {
     return <a href={href} download={download} onClick={onClick} className={cls} style={style}>{icon}{children}</a>;
   }
   return <button type="button" onClick={onClick} className={cls} style={style}>{icon}{children}</button>;
-}
-
-/* ── SelectField: select nativo con chevron propio (look Apple, sin la flecha fea del navegador) ── */
-export function SelectField({ value, onChange, children, label, className }: {
-  value: string; onChange: (v: string) => void; children: React.ReactNode; label?: string; className?: string;
-}) {
-  return (
-    <div className={className}>
-      {label && <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>{label}</label>}
-      <div className="relative">
-        <select
-          className="field-input appearance-none pr-9 cursor-pointer w-full"
-          value={value} onChange={(e) => onChange(e.target.value)}
-        >
-          {children}
-        </select>
-        <svg viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
-          style={{ color: "var(--text-3)" }}>
-          <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-    </div>
-  );
 }
 
 /* ── Checkbox: cuadro propio (look Apple, sin el checkbox nativo del navegador) ── */

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader, PersonRow, EmptyState, Field } from "@/components/shared";
-import { Sheet, SelectField, DatePicker, Pill, useToast } from "@/components/ui";
+import { Sheet, DatePicker, Pill, useToast, Select, TimePicker } from "@/components/ui";
 import { IconPlus, IconX } from "@/components/icons";
 import { todayMerida, shortDate } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
@@ -193,8 +193,8 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
         subtitle="Horario permanente — aplica todos los días salvo que tenga un horario temporal vigente">
         <div className="grid grid-cols-2 gap-3 mb-5">
           <Field label="Hora de entrada">
-            <input type="time" className="field-input" value={editForm.start}
-              onChange={(e) => setEditForm({ ...editForm, start: e.target.value })} />
+            <TimePicker value={editForm.start}
+              onChange={(v) => setEditForm({ ...editForm, start: v })} />
           </Field>
           <Field label="Horas objetivo por día">
             <input type="number" step="0.5" min="1" max="12" className="field-input" value={editForm.hours}
@@ -207,9 +207,16 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Horario temporal"
         subtitle="Para cubrir vacaciones u otros periodos con horas distintas">
         <div className="flex flex-col gap-3.5 mb-5">
-          <SelectField label="Persona" value={addForm.personId} onChange={(v) => setAddForm({ ...addForm, personId: v })}>
-            {team.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
-          </SelectField>
+          <Field label="Persona">
+            <Select
+              value={addForm.personId} onChange={(v) => setAddForm({ ...addForm, personId: v })}
+              title="Seleccionar empleado"
+              options={team.map((p) => ({
+                value: p.id, label: p.display_name, sublabel: p.area ?? undefined,
+                avatar: { name: p.display_name, color: p.nexus_color, avatarUrl: p.avatar_url },
+              }))}
+            />
+          </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Desde">
               <DatePicker value={addForm.from} onChange={(v) => setAddForm({ ...addForm, from: v })} />
@@ -221,8 +228,8 @@ export default function HorariosClient({ team, schedules }: { team: Person[]; sc
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Hora de entrada">
-              <input type="time" className="field-input" value={addForm.start}
-                onChange={(e) => setAddForm({ ...addForm, start: e.target.value })} />
+              <TimePicker value={addForm.start}
+                onChange={(v) => setAddForm({ ...addForm, start: v })} />
             </Field>
             <Field label="Horas objetivo">
               <input type="number" step="0.5" min="1" max="12" className="field-input" value={addForm.hours}

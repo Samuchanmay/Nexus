@@ -29,7 +29,7 @@ export default function AvisoPrivacidad() {
           <img src={dark ? "/logo-cert-dark.png" : "/logo-cert-light.png"} alt="CERT"
             className="h-9 w-9 object-contain shrink-0" />
           <div>
-            <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Nexus · CERT Comunicación</p>
+            <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Emet · CERT Comunicación</p>
           </div>
         </div>
 
@@ -70,7 +70,7 @@ export default function AvisoPrivacidad() {
 
             <section id="datos">
               <h2 className="text-[16px] font-bold mb-2">2. Datos personales que recabamos</h2>
-              <p>Para operar el sistema Nexus, recabamos y tratamos los siguientes datos de nuestro personal:</p>
+              <p>Para operar el sistema Emet, recabamos y tratamos los siguientes datos de nuestro personal:</p>
               <ul className="list-disc pl-5 mt-2 flex flex-col gap-1.5">
                 <li><strong>Identificación:</strong> nombre completo, fecha de nacimiento, fotografía de perfil.</li>
                 <li><strong>Contacto:</strong> correo electrónico y la cuenta de Google con la que inicias sesión.</li>
@@ -82,9 +82,9 @@ export default function AvisoPrivacidad() {
                   <strong>Derivados de tu cuenta de Google:</strong> nombre, correo y foto de perfil pública; y,
                   solo si tú lo autorizas expresamente al conectar tu cuenta, permiso limitado para crear o
                   editar eventos en un calendario de Google Calendar designado por la institución, para guardar
-                  o compartir archivos generados por Nexus en tu Google Drive (acceso restringido únicamente a
+                  o compartir archivos generados por Emet en tu Google Drive (acceso restringido únicamente a
                   los archivos que la propia app crea — nunca a tus demás archivos), y para enviar un correo en
-                  tu nombre únicamente cuando tú generas esa acción desde Nexus.
+                  tu nombre únicamente cuando tú generas esa acción desde Emet.
                 </li>
               </ul>
               <p className="mt-3">
@@ -96,9 +96,9 @@ export default function AvisoPrivacidad() {
 
             <section id="finalidades">
               <h2 className="text-[16px] font-bold mb-2">3. Para qué usamos tus datos</h2>
-              <p className="font-semibold mt-1">Finalidades necesarias (no requieren tu consentimiento adicional, por ser indispensables para tu relación laboral y para operar Nexus):</p>
+              <p className="font-semibold mt-1">Finalidades necesarias (no requieren tu consentimiento adicional, por ser indispensables para tu relación laboral y para operar Emet):</p>
               <ul className="list-disc pl-5 mt-2 flex flex-col gap-1">
-                <li>Administrar tu perfil y cuenta dentro de Nexus.</li>
+                <li>Administrar tu perfil y cuenta dentro de Emet.</li>
                 <li>Registrar y controlar asistencia, jornada laboral y actividades.</li>
                 <li>Gestionar solicitudes, aprobaciones y saldos de vacaciones.</li>
                 <li>Enviarte notificaciones operativas dentro de la plataforma (aprobaciones, recordatorios, cambios de estado).</li>
@@ -108,8 +108,8 @@ export default function AvisoPrivacidad() {
               <p className="font-semibold mt-4">Finalidades adicionales (requieren tu consentimiento expreso, que otorgas al conectar tu cuenta de Google y que puedes revocar cuando quieras):</p>
               <ul className="list-disc pl-5 mt-2 flex flex-col gap-1">
                 <li>Crear eventos en Google Calendar vinculados a vacaciones o actividades aprobadas.</li>
-                <li>Guardar o compartir en Google Drive las evidencias o archivos generados por Nexus.</li>
-                <li>Enviar, a través de tu cuenta de Google, correos de notificación que tú mismo generas desde Nexus.</li>
+                <li>Guardar o compartir en Google Drive las evidencias o archivos generados por Emet.</li>
+                <li>Enviar, a través de tu cuenta de Google, correos de notificación que tú mismo generas desde Emet.</li>
               </ul>
             </section>
 
@@ -127,7 +127,7 @@ export default function AvisoPrivacidad() {
               <h2 className="text-[16px] font-bold mb-2">5. Con quién compartimos tus datos</h2>
               <p>
                 No vendemos, rentamos ni compartimos tus datos con terceros para fines de mercadotecnia. Para
-                operar Nexus contratamos a los siguientes encargados, que solo tratan datos por nuestra
+                operar Emet contratamos a los siguientes encargados, que solo tratan datos por nuestra
                 instrucción y no pueden usarlos para fines propios:
               </p>
               <ul className="list-disc pl-5 mt-2 flex flex-col gap-1.5">
@@ -167,7 +167,7 @@ export default function AvisoPrivacidad() {
               <h2 className="text-[16px] font-bold mb-2">7. Medidas de seguridad</h2>
               <p>
                 Empleamos medidas administrativas, técnicas y físicas razonables para proteger tus datos:
-                acceso restringido por rol dentro de Nexus, cifrado en tránsito (HTTPS), políticas de acceso a
+                acceso restringido por rol dentro de Emet, cifrado en tránsito (HTTPS), políticas de acceso a
                 nivel de base de datos (Row Level Security) y autenticación mediante tu cuenta institucional de
                 Google.
               </p>
@@ -185,7 +185,7 @@ export default function AvisoPrivacidad() {
             <section id="cookies">
               <h2 className="text-[16px] font-bold mb-2">9. Uso de cookies</h2>
               <p>
-                Nexus utiliza únicamente cookies estrictamente necesarias para mantener tu sesión iniciada
+                Emet utiliza únicamente cookies estrictamente necesarias para mantener tu sesión iniciada
                 (autenticación). No utilizamos cookies de publicidad ni de rastreo de terceros.
               </p>
             </section>
@@ -212,7 +212,7 @@ export default function AvisoPrivacidad() {
         </div>
 
         <p className="text-center text-[11.5px] mt-6" style={{ color: "var(--text-3)" }}>
-          Nexus · CERT Comunicación
+          Emet · CERT Comunicación
         </p>
       </div>
     </main>

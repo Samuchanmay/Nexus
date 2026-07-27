@@ -23,6 +23,7 @@ import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida } from "@/lib/tz";
 import { getOldestPendingExit, resolvePendingExit, requestRhValidation, type PendingExit } from "@/lib/pending-exits";
 import { Field, Input, Button } from "./ui";
+import { TimePicker } from "@/components/ui";
 import { Icon } from "./icons";
 
 const HEARTBEAT_MS = 3 * 60 * 1000;
@@ -184,7 +185,7 @@ export function JornadaWatcher({ userId }: { userId: string }) {
             </p>
             <div className="grid grid-cols-2 gap-2 mb-3">
               <Field label="Hora de salida">
-                <Input type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
+                <TimePicker value={hora} onChange={setHora} />
               </Field>
               <Field label="Motivo (opcional)">
                 <Input placeholder="Olvidé registrar" value={motivo} onChange={(e) => setMotivo(e.target.value)} />

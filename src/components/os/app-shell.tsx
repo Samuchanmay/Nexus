@@ -91,7 +91,7 @@ export function AppShell({
       <HeaderActionsProvider>
         <AppShellBody
           role={role} user={user} active={active} onNavigate={go}
-          title={TITLES[active] ?? "Nexus"} actions={actions} ficharAction={ficharAction}
+          title={TITLES[active] ?? "Emet"} actions={actions} ficharAction={ficharAction}
         >
           {children}
         </AppShellBody>

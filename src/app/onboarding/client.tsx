@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
 import { IconGrid, IconCheck } from "@/components/icons";
+import { Select } from "@/components/ui";
 
 const HONORIFICS = ["Dr.", "Dra.", "Mtro.", "Mtra.", "Lic.", "Ing.", "Otro"];
 
@@ -56,7 +57,7 @@ export default function OnboardingClient({
           style={{ background: "linear-gradient(150deg,#7B7AFF,#5856D6)", boxShadow: "0 8px 24px rgba(88,86,214,.35)" }}>
           <IconGrid className="w-7 h-7" />
         </div>
-        <h1 className="text-[24px] font-bold tracking-tight text-center mb-1">¡Bienvenido a Nexus!</h1>
+        <h1 className="text-[24px] font-bold tracking-tight text-center mb-1">¡Bienvenido a Emet!</h1>
         <p className="text-[13.5px] text-center mb-7" style={{ color: "var(--text-2)" }}>
           Antes de entrar, completa tu perfil
         </p>
@@ -103,10 +104,12 @@ export default function OnboardingClient({
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
                 Selecciona {areaTipoLabel}
               </label>
-              <select className="field-input" value={areaId} onChange={(e) => setAreaId(e.target.value)}>
-                <option value="" disabled>Elige una opción…</option>
-                {areas.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-              </select>
+              <Select
+                value={areaId} onChange={setAreaId}
+                title={`Selecciona ${areaTipoLabel}`}
+                placeholder="Elige una opción…"
+                options={areas.map((a) => ({ value: a.id, label: a.nombre }))}
+              />
             </div>
           )}
 
@@ -120,7 +123,7 @@ export default function OnboardingClient({
           <button onClick={save} disabled={!canSave || saving}
             className="btn-primary w-full py-3.5 text-[14.5px] flex items-center justify-center gap-2.5 mt-1">
             <IconCheck className="w-[16px] h-[16px]" />
-            {saving ? "Guardando…" : "Entrar a Nexus"}
+            {saving ? "Guardando…" : "Entrar a Emet"}
           </button>
         </div>
       </div>

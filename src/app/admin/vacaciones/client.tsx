@@ -2,10 +2,10 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Vacation } from "@/lib/types";
-import { useToast, Pill, Avatar, Sheet, SelectField, DateRangeCalendar, DateRangeField } from "@/components/ui";
+import { useToast, Pill, Avatar, Sheet, DateRangeCalendar, DateRangeField, Select } from "@/components/ui";
 import { IconDownload } from "@/components/icons";
 import { Icon } from "@/components/os/icons";
-import { useSupabaseMutation } from "@/components/shared";
+import { useSupabaseMutation, Field } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
 import { seniorityLabel, addDays, shortDate, dmy, nextAnniversary, todayMerida } from "@/lib/tz";
@@ -188,7 +188,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           const { data: gcalData, error: gcalError } = await supabase.functions.invoke("gcal-create-event", {
             body: {
               title: `🌴 Vacaciones — ${target.users?.display_name ?? ""}`,
-              details: `${target.days} días hábiles aprobados en Nexus.`,
+              details: `${target.days} días hábiles aprobados en Emet.`,
               start: target.start_date,
               end: addDays(target.end_date, 1),
               allDay: true,
@@ -485,10 +485,15 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>— salta el flujo de solicitud, queda Aprobada de inmediato.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <SelectField value={regUserId} onChange={setRegUserId} label="Empleado">
-            <option value="">Seleccionar…</option>
-            {team.map((t) => <option key={t.id} value={t.id}>{t.display_name} · {t.vacation_balance} días</option>)}
-          </SelectField>
+          <Field label="Empleado">
+            <Select
+              value={regUserId} onChange={setRegUserId} title="Seleccionar empleado"
+              options={team.map((t) => ({
+                value: t.id, label: t.display_name, sublabel: `${t.vacation_balance} días disponibles`,
+                avatar: { name: t.display_name, color: t.nexus_color, avatarUrl: t.avatar_url },
+              }))}
+            />
+          </Field>
           <div className="sm:col-span-2">
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rango de vacaciones</label>
             <DateRangeField start={regStart} end={regEnd} onSelect={(s, e) => { setRegStart(s); setRegEnd(e); }} />

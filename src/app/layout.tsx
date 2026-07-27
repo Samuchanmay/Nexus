@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nexus · CERT Comunicación",
+  title: "Emet · CERT Comunicación",
   description: "Sistema operativo del Departamento de Comunicación · Hecho con ❤️ por Samu Chan",
 };
 export const viewport: Viewport = {
