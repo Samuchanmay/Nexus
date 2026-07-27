@@ -543,16 +543,16 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Nuevo colaborador">
         <div className="flex flex-col gap-3">
-          <Field label="¿A quién agregas?">
+          <Field label="Selecciona el tipo de usuario">
             <Select
               value={form.role} onChange={(v) => setForm({ ...form, role: v, area_id: "" })}
-              title="¿A quién agregas?" searchable={false}
+              title="Selecciona el tipo de usuario" searchable={false}
               options={[
-                { value: "empleado", label: "Equipo (empleado)" },
-                { value: "rh", label: "RH (solo lectura)" },
-                { value: "coordinador", label: "Coordinador" },
-                { value: "departamento", label: "Departamento" },
-                { value: "admin", label: "Administrador" },
+                { value: "empleado", label: "Empleado", sublabel: "Acceso a su espacio personal." },
+                { value: "coordinador", label: "Coordinador", sublabel: "Gestiona colaboradores y solicitudes." },
+                { value: "admin", label: "Administrador", sublabel: "Control completo del Workspace." },
+                { value: "rh", label: "RH", sublabel: "Solo lectura — consulta información sin permisos de modificación." },
+                { value: "departamento", label: "Departamento", sublabel: "Acceso únicamente al módulo correspondiente." },
               ]}
             />
           </Field>
