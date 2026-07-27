@@ -77,19 +77,46 @@ export function AppShell({
     return best;
   }, [items, map, pathname]);
 
+  // Red de seguridad general de navegación — reconstruida desde cero.
+  // No dependemos de adivinar en qué página específica se atora la
+  // transición cliente de Next.js (router.push): cualquier destino que no
+  // complete su cambio de URL en 700ms se resuelve con una navegación
+  // completa (window.location.assign), que SIEMPRE funciona porque reinicia
+  // el runtime de JS por completo. El usuario nunca vuelve a quedar
+  // atrapado sin poder salir de una pantalla, sin importar la causa exacta
+  // del estancamiento. En consola queda "[nav-guard]" con cada intento que
+  // requirió el respaldo, para tener evidencia real si vuelve a pasar.
   const go = (key: string) => {
     const href = map[key];
     if (!href) return;
 
-    // The Team-management route can enter the workload route directly, but
-    // its client-side transition is dropped in the deployed app. Keep the
-    // normal router behavior everywhere else and use a full navigation only
-    // for that affected destination.
-    if (key === "equipo") {
+    const fromPath = window.location.pathname;
+    if (fromPath === href) return;
+
+    let settled = false;
+    const fallback = setTimeout(() => {
+      if (settled) return;
+      console.warn(`[nav-guard] router.push("${href}") no completó la transición en 700ms desde ${fromPath}. Forzando navegación completa.`);
+      window.location.assign(href);
+    }, 700);
+
+    try {
+      router.push(href);
+    } catch (err) {
+      console.error(`[nav-guard] router.push lanzó una excepción, forzando navegación completa:`, err);
+      clearTimeout(fallback);
       window.location.assign(href);
       return;
     }
-    router.push(href);
+
+    const poll = setInterval(() => {
+      if (window.location.pathname === href) {
+        settled = true;
+        clearTimeout(fallback);
+        clearInterval(poll);
+      }
+    }, 50);
+    setTimeout(() => clearInterval(poll), 700);
   };
 
   // El acceso a Registro de Jornada ya no se duplica en el Header — vive
