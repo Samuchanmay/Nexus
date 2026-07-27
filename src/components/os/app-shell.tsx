@@ -79,7 +79,17 @@ export function AppShell({
 
   const go = (key: string) => {
     const href = map[key];
-    if (href) router.push(href);
+    if (!href) return;
+
+    // The Team-management route can enter the workload route directly, but
+    // its client-side transition is dropped in the deployed app. Keep the
+    // normal router behavior everywhere else and use a full navigation only
+    // for that affected destination.
+    if (key === "equipo") {
+      window.location.assign(href);
+      return;
+    }
+    router.push(href);
   };
 
   // El acceso a Registro de Jornada ya no se duplica en el Header — vive

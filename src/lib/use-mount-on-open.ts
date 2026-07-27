@@ -27,5 +27,9 @@ export function useMountOnOpen(open: boolean, exitMs: number) {
     return () => clearTimeout(t);
   }, [open, exitMs]);
 
-  return { mounted, visible };
+  // `useEffect` runs after the render that receives open=false. Deriving the
+  // public visibility from open makes an exiting overlay non-interactive in
+  // that very render, while `mounted` still keeps it around for its exit
+  // animation.
+  return { mounted, visible: open && visible };
 }
