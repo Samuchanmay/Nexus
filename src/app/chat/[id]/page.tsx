@@ -4,6 +4,12 @@ import type { EnlaceConversation, EnlaceMessage } from "@/lib/types";
 import type { ParticipantLite } from "../client";
 import EnlaceConversationClient from "./client";
 
+// Nunca cachear esta ruta: se navega aquí justo después de crear la
+// conversación (RPC nx_enlace_get_or_create_direct/create_group), y el
+// Router Cache / Data Cache de Next no debe servir una respuesta previa
+// (p.ej. un intento anterior fallido) para el mismo id.
+export const dynamic = "force-dynamic";
+
 export default async function EnlaceConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -17,7 +23,7 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
     .from("conversations")
     .select("id, type, name, avatar_url, created_by, last_message_at, last_message_preview, last_message_sender_id, created_at")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (!conversation) notFound();
 

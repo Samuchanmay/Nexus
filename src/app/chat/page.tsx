@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+
+// Nunca cachear esta ruta: la lista de conversaciones y su visibilidad
+// (RLS) dependen 100% de la sesión de quien pide la página.
+export const dynamic = "force-dynamic";
 import type { EnlaceConversation } from "@/lib/types";
 import EnlaceListClient, { type ParticipantLite } from "./client";
 

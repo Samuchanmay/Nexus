@@ -97,9 +97,20 @@ export default function EnlaceConversationClient({
 
   let lastDay = "";
 
+  // Estructura propia de Chat (permiso explícito del usuario para romper
+  // aquí — solo aquí — el molde de página normal de Nexus): en vez de ser
+  // una página más que se desplaza completa dentro de <main>, esta vista
+  // reserva su propia altura fija bajo el header fijo del Shell y solo dentro
+  // de la franja de mensajes hay scroll — encabezado y compositor quedan
+  // fijos en su sitio, como en WhatsApp. min-h-0 en el flex-1 es necesario:
+  // sin eso un hijo flex nunca se encoge para permitir su propio scroll interno.
+  // El cálculo reserva más espacio en móvil (tab bar inferior fija de Shell)
+  // que en escritorio.
   return (
-    <div className="max-w-[720px] mx-auto flex flex-col" style={{ minHeight: "calc(100vh - 200px)" }}>
-      <div className="flex items-center gap-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "var(--bg)" }}>
+    <div
+      className="max-w-[880px] mx-auto w-full flex flex-col h-[calc(100dvh-12rem)] md:h-[calc(100dvh-8.5rem)] min-h-[420px]"
+    >
+      <div className="flex items-center gap-3 pb-3 shrink-0" style={{ background: "var(--bg)" }}>
         <IconButton icon="chevron" label="Volver" onClick={() => router.push("/chat")} style={{ transform: "scaleX(-1)" }} />
         <Avatar name={title} avatarUrl={other?.avatar_url ?? conversation.avatar_url} color={other?.nexus_color ?? "#5856D6"} size={38} />
         <div className="min-w-0">
@@ -110,9 +121,11 @@ export default function EnlaceConversationClient({
 
       {/* Fondo propio tipo WhatsApp (--wa-chat-bg) — deliberadamente distinto
           del --bg del resto de Nexus, para que el área de mensajes se sienta
-          como "el chat" y no como una lista más de la app. Radio de esquina
-          para que no toque los bordes de la columna en escritorio. */}
-      <div className="flex-1 flex flex-col gap-1 px-3 py-3 rounded-[14px]" style={{ background: "var(--wa-chat-bg)" }}>
+          como "el chat" y no como una lista más de la app. Única franja con
+          scroll propio (min-h-0 + overflow-y-auto) para que header y
+          compositor queden fijos como en WhatsApp, sin que la página entera
+          se desplace. */}
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-3 rounded-[14px]" style={{ background: "var(--wa-chat-bg)" }}>
         {messages.length === 0 && (
           <p className="text-center text-[13px] py-10" style={{ color: "var(--text-2)" }}>
             Todavía no hay mensajes. Escribe el primero.
@@ -162,7 +175,7 @@ export default function EnlaceConversationClient({
         <div ref={bottomRef} />
       </div>
 
-      <div className="sticky bottom-0 pt-2 pb-4" style={{ background: "var(--bg)" }}>
+      <div className="pt-2 pb-1 shrink-0" style={{ background: "var(--bg)" }}>
         <div className="flex items-end gap-2 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
           <textarea
             value={draft}
