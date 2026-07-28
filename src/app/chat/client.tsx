@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { PageHeader, PersonRow, EmptyState } from "@/components/shared";
+import { PersonRow, EmptyState } from "@/components/shared";
 import { useToast, Sheet, CheckBox } from "@/components/ui";
 import { Button, Input } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
@@ -31,18 +31,32 @@ function conversationDisplay(c: EnlaceConversation, myId: string, participants: 
   return { name: other?.display_name ?? "Conversación", avatarUrl: other?.avatar_url ?? null, color: other?.nexus_color ?? "#0066FF" };
 }
 
-export default function EnlaceListClient({
-  myId, initialConversations, participantsByConv,
+// ChatShell — panel de lista (izquierda) + conversación abierta (derecha),
+// visibles al mismo tiempo en escritorio (como WhatsApp Web). En celular
+// solo se ve un panel a la vez: la lista en /chat, la conversación en
+// /chat/[id] — igual que hoy, sin romper esa navegación.
+//
+// Vive en el layout (no en page.tsx) para que NO se vuelva a montar ni
+// recargar al abrir/cerrar una conversación: la lista, su suscripción de
+// tiempo real y el estado de scroll quedan intactos.
+export default function ChatShell({
+  myId, initialConversations, participantsByConv, children,
 }: {
   myId: string;
   initialConversations: EnlaceConversation[];
   participantsByConv: Record<string, ParticipantLite[]>;
+  children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const toast = useToast();
   const [conversations, setConversations] = useState(initialConversations);
   const [participants, setParticipants] = useState(participantsByConv);
   const [newOpen, setNewOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const atRoot = pathname === "/chat";
+  const selectedId = !atRoot ? pathname.split("/")[2] : undefined;
 
   // Realtime: RLS ya limita qué conversaciones puede ver este usuario, así
   // que no hace falta un filtro adicional aquí — cualquier INSERT/UPDATE
@@ -94,41 +108,79 @@ export default function EnlaceListClient({
     return () => { active = false; };
   }, [conversations, participants]);
 
-  return (
-    <div className="max-w-[720px] mx-auto pb-16">
-      <PageHeader title="Chat" subtitle="Mensajes con tu equipo">
-        <Button variant="primary" icon="plus" onClick={() => setNewOpen(true)}>Nuevo</Button>
-      </PageHeader>
+  const filtered = useMemo(() => {
+    if (!search.trim()) return conversations;
+    const q = search.toLowerCase();
+    return conversations.filter((c) => {
+      const { name } = conversationDisplay(c, myId, participants[c.id] ?? []);
+      return name.toLowerCase().includes(q);
+    });
+  }, [conversations, participants, myId, search]);
 
-      {conversations.length === 0 ? (
-        <EmptyState
-          icon={<Icon name="message" size={22} />}
-          title="Sin conversaciones todavía"
-          hint="Escribe a un compañero o crea un grupo para empezar."
-          action={<Button variant="primary" onClick={() => setNewOpen(true)}>Escribir a alguien</Button>}
-        />
-      ) : (
-        <div className="rounded-md overflow-hidden border border-border divide-y divide-border">
-          {conversations.map((c) => {
-            const { name, avatarUrl, color } = conversationDisplay(c, myId, participants[c.id] ?? []);
-            const mine = c.last_message_sender_id === myId;
-            const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
-            return (
-              <PersonRow
-                key={c.id}
-                name={name}
-                avatarUrl={avatarUrl}
-                color={color}
-                meta={preview}
-                onClick={() => router.push(`/chat/${c.id}`)}
-                right={c.last_message_at ? (
-                  <span className="text-[11px] shrink-0" style={{ color: "var(--text-3)" }}>{timeAgo(c.last_message_at)}</span>
-                ) : undefined}
-              />
-            );
-          })}
+  return (
+    // Altura fija reservada bajo el header del Shell (y la tab bar inferior
+    // en celular) — la única franja de la app donde el layout normal de
+    // Nexus se rompe a propósito: aquí ambos paneles (o el único visible en
+    // celular) ocupan toda esa altura, sin que la página entera se desplace.
+    <div className="flex h-[calc(100dvh-12rem)] md:h-[calc(100dvh-8.5rem)] min-h-[420px] -mx-4 md:mx-0">
+      {/* Panel izquierdo — lista de conversaciones */}
+      <div className={`w-full md:w-[340px] shrink-0 md:border-r md:border-border flex-col ${atRoot ? "flex" : "hidden md:flex"}`}>
+        <div className="flex items-center justify-between gap-2 px-4 md:px-0 md:pr-4 pb-3 shrink-0">
+          <div>
+            <p className="text-[20px] font-bold tracking-tight">Chat</p>
+            <p className="text-[12px]" style={{ color: "var(--text-2)" }}>Mensajes con tu equipo</p>
+          </div>
+          <Button variant="primary" icon="plus" size="sm" onClick={() => setNewOpen(true)}>Nuevo</Button>
         </div>
-      )}
+
+        <div className="px-4 md:px-0 md:pr-4 pb-3 shrink-0">
+          <Input icon="search" placeholder="Buscar en chats..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-0 md:pr-2">
+          {conversations.length === 0 ? (
+            <div className="px-2 md:px-0">
+              <EmptyState
+                icon={<Icon name="message" size={22} />}
+                title="Sin conversaciones todavía"
+                hint="Escribe a un compañero o crea un grupo para empezar."
+                action={<Button variant="primary" onClick={() => setNewOpen(true)}>Escribir a alguien</Button>}
+              />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
+              Nadie coincide con &ldquo;{search}&rdquo;
+            </p>
+          ) : (
+            <div className="space-y-0.5">
+              {filtered.map((c) => {
+                const { name, avatarUrl, color } = conversationDisplay(c, myId, participants[c.id] ?? []);
+                const mine = c.last_message_sender_id === myId;
+                const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
+                return (
+                  <PersonRow
+                    key={c.id}
+                    name={name}
+                    avatarUrl={avatarUrl}
+                    color={color}
+                    meta={preview}
+                    active={c.id === selectedId}
+                    onClick={() => router.push(`/chat/${c.id}`)}
+                    right={c.last_message_at ? (
+                      <span className="text-[11px] shrink-0" style={{ color: "var(--text-3)" }}>{timeAgo(c.last_message_at)}</span>
+                    ) : undefined}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Panel derecho — conversación abierta (o estado vacío en /chat) */}
+      <div className={`flex-1 min-w-0 flex-col md:pl-4 ${atRoot ? "hidden md:flex" : "flex"}`}>
+        {children}
+      </div>
 
       <NewConversationSheet
         open={newOpen}

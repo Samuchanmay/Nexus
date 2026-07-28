@@ -98,20 +98,17 @@ export default function EnlaceConversationClient({
   let lastDay = "";
 
   // Estructura propia de Chat (permiso explícito del usuario para romper
-  // aquí — solo aquí — el molde de página normal de Nexus): en vez de ser
-  // una página más que se desplaza completa dentro de <main>, esta vista
-  // reserva su propia altura fija bajo el header fijo del Shell y solo dentro
-  // de la franja de mensajes hay scroll — encabezado y compositor quedan
-  // fijos en su sitio, como en WhatsApp. min-h-0 en el flex-1 es necesario:
-  // sin eso un hijo flex nunca se encoge para permitir su propio scroll interno.
-  // El cálculo reserva más espacio en móvil (tab bar inferior fija de Shell)
-  // que en escritorio.
+  // aquí — solo aquí — el molde de página normal de Nexus): esta vista ya
+  // vive dentro del panel derecho de ChatShell (chat/client.tsx), que es
+  // quien reserva la altura fija bajo el header del Shell — aquí solo se
+  // llena ese panel (h-full) y solo la franja de mensajes tiene scroll
+  // propio (min-h-0 + overflow-y-auto), con encabezado y compositor fijos
+  // en su sitio, como en WhatsApp. La flecha de volver solo aparece en
+  // celular: en escritorio la lista ya está siempre visible al lado.
   return (
-    <div
-      className="max-w-[880px] mx-auto w-full flex flex-col h-[calc(100dvh-12rem)] md:h-[calc(100dvh-8.5rem)] min-h-[420px]"
-    >
+    <div className="w-full h-full flex flex-col">
       <div className="flex items-center gap-3 pb-3 shrink-0" style={{ background: "var(--bg)" }}>
-        <IconButton icon="chevron" label="Volver" onClick={() => router.push("/chat")} style={{ transform: "scaleX(-1)" }} />
+        <IconButton icon="chevron" label="Volver" onClick={() => router.push("/chat")} style={{ transform: "scaleX(-1)" }} className="md:hidden" />
         <Avatar name={title} avatarUrl={other?.avatar_url ?? conversation.avatar_url} color={other?.nexus_color ?? "#5856D6"} size={38} />
         <div className="min-w-0">
           <p className="text-[15px] font-bold truncate">{title}</p>
