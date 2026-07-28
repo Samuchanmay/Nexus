@@ -150,3 +150,42 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
   solicitada: "Solicitada", aprobada: "Aprobada", en_progreso: "En progreso",
   en_revision: "En revisión", completada: "Completada", pausada: "Pausada", cancelada: "Cancelada",
 };
+
+// ── Enlace (mensajería interna, FASE W6 ronda 1) ──
+// Adaptado de EQUIPO-ARCHITECTURE.md — ver comentario de la migración
+// 0011_enlace_mvp.sql para el detalle de qué se dejó fuera de esta ronda.
+export type EnlaceConversationType = "direct" | "group";
+
+export interface EnlaceConversation {
+  id: string;
+  type: EnlaceConversationType;
+  name: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  last_message_sender_id: string | null;
+  created_at: string;
+}
+
+export interface EnlaceParticipant {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  role: "admin" | "member";
+  joined_at: string;
+  users?: { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null } | null;
+}
+
+export type EnlaceMessageType = "text" | "system";
+
+export interface EnlaceMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  type: EnlaceMessageType;
+  content: string | null;
+  reply_to_id: string | null;
+  edited: boolean;
+  created_at: string;
+}

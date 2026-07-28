@@ -15,6 +15,7 @@ export const NAV: NavItem[] = [
   { key: "solicitudes", label: "Solicitudes", icon: "inbox", roles: ["admin", "coordinador", "departamento"], section: "trabajo" },
   { key: "calendario", label: "Calendario", icon: "calendar", roles: "all", section: "trabajo" },
   { key: "biblioteca", label: "Biblioteca", icon: "book", roles: "all", section: "trabajo" },
+  { key: "enlace", label: "Enlace", icon: "message", roles: "all", section: "trabajo" },
 
   { key: "jornada", label: "Mi día", icon: "clock", roles: ["admin", "empleado"], section: "personal" },
   { key: "vacaciones", label: "Vacaciones", icon: "plane", roles: "all", section: "personal" },

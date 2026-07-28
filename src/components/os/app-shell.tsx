@@ -25,6 +25,7 @@ const HREF: Record<Role, Record<string, string>> = {
     incidencias: "/admin/incidencias",
     equipo: "/admin/equipo",
     empleados: "/admin/empleados",
+    enlace: "/enlace",
     "dias-inhabiles": "/admin/dias-inhabiles",
     config: "/admin/config",
     biblioteca: "/admin/biblioteca",
@@ -35,19 +36,20 @@ const HREF: Record<Role, Record<string, string>> = {
     actividades: "/comunicacion/actividades",
     calendario: "/comunicacion/calendario",
     biblioteca: "/comunicacion/biblioteca",
+    enlace: "/enlace",
     jornada: "/comunicacion/jornada",
     vacaciones: "/comunicacion/vacaciones",
     incidencias: "/comunicacion/incidencias",
   },
-  coordinador: { hoy: "/coordinador" },
-  departamento: { hoy: "/coordinador" },
-  rh: { hoy: "/rh" },
+  coordinador: { hoy: "/coordinador", enlace: "/enlace" },
+  departamento: { hoy: "/coordinador", enlace: "/enlace" },
+  rh: { hoy: "/rh", enlace: "/enlace" },
 };
 
 const TITLES: Record<string, string> = {
   hoy: "Hoy", actividades: "Actividades", solicitudes: "Solicitudes", calendario: "Calendario",
   biblioteca: "Biblioteca", asistencia: "Asistencia", jornada: "Mi día", vacaciones: "Vacaciones",
-  incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Equipo",
+  incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Equipo", enlace: "Enlace",
   "dias-inhabiles": "Días inhábiles", reportes: "Reportes", config: "Configuración",
 };
 
