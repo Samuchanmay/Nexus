@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthedUser } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { AppShell } from "@/components/os/app-shell";
 import { roleLabel } from "@/lib/nav";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 // como WhatsApp Web — en vez de recargarse cada vez que abres un chat.
 export default async function ChatLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getAuthedUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase
     .from("users").select("*").eq("auth_id", user.id).single();

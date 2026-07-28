@@ -52,6 +52,9 @@ const P: Record<string, React.ReactNode> = {
   palette: <><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1 0 1.5-.6 1.5-1.4 0-.4-.15-.7-.4-1-.25-.3-.4-.6-.4-1 0-.8.65-1.4 1.4-1.4H16a4.5 4.5 0 0 0 4.5-4.5C20.5 6.6 16.7 3.5 12 3.5Z" /><circle cx="7.3" cy="10" r="1.1" fill="currentColor" stroke="none" /><circle cx="9.5" cy="7" r="1.1" fill="currentColor" stroke="none" /><circle cx="14.5" cy="7" r="1.1" fill="currentColor" stroke="none" /><circle cx="16.7" cy="10.3" r="1.1" fill="currentColor" stroke="none" /></>,
   message: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8Z" /></>,
   send: <path d="M4 12 20 4l-6 16-2.5-6.5L4 12Z" />,
+  paperclip: <path d="M8 12.5 15.5 5a3.5 3.5 0 0 1 5 5L11 19.5a5.5 5.5 0 0 1-7.8-7.8L12 3" />,
+  download: <><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5" /><path d="M4.5 18.5v1a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1" /></>,
+  info: <><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 8v.01" /></>,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {

@@ -166,6 +166,9 @@ export interface EnlaceConversation {
   last_message_preview: string | null;
   last_message_sender_id: string | null;
   created_at: string;
+  pinned_message_id: string | null;
+  pinned_by: string | null;
+  pinned_at: string | null;
 }
 
 export interface EnlaceParticipant {
@@ -174,10 +177,11 @@ export interface EnlaceParticipant {
   user_id: string;
   role: "admin" | "member";
   joined_at: string;
+  muted: boolean;
   users?: { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null } | null;
 }
 
-export type EnlaceMessageType = "text" | "system";
+export type EnlaceMessageType = "text" | "image" | "file";
 
 export interface EnlaceMessage {
   id: string;
@@ -187,5 +191,16 @@ export interface EnlaceMessage {
   content: string | null;
   reply_to_id: string | null;
   edited: boolean;
+  created_at: string;
+}
+
+// Un adjunto por mensaje (MVP — no multi-adjunto por mensaje todavía).
+export interface EnlaceAttachment {
+  id: string;
+  message_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
   created_at: string;
 }
