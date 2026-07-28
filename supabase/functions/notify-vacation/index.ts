@@ -26,6 +26,19 @@ function shortDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/** S-12 — full_name/area vienen de la BD (las captura un admin en
+    empleados/client.tsx) y se inyectaban directo en el HTML del correo sin
+    escapar. Si algún día un campo tuviera algo tipo "<script>", el cliente
+    de correo del destinatario lo interpretaría. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function isoWeekday(iso: string): number {
   return new Date(iso + "T12:00:00Z").getUTCDay();
 }
@@ -94,13 +107,34 @@ function encodeHeaderWord(text: string): string {
 
 Deno.serve(async (req) => {
   const cors = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "https://nexus-samu09.vercel.app",
     "Access-Control-Allow-Headers": "authorization, content-type",
   };
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
     const { vacation_id } = await req.json();
+
+    // S-02 — antes esta función no validaba en absoluto quién la llama:
+    // cualquiera con la URL podía mandar cualquier vacation_id y disparar
+    // el correo oficial de autorización (sale del Gmail real del admin) sin
+    // haber iniciado sesión. Ahora se exige JWT y que quien llama sea el
+    // dueño de la solicitud o un administrador — mismo patrón que fichar.
+    const anon = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    );
+    const { data: { user: caller } } = await anon.auth.getUser();
+    if (!caller) {
+      return Response.json({ ok: false, error: "No autenticado" }, { status: 401, headers: cors });
+    }
+    const { data: callerProfile } = await anon
+      .from("users").select("id, role").eq("auth_id", caller.id).single();
+    if (!callerProfile) {
+      return Response.json({ ok: false, error: "Cuenta no autorizada" }, { status: 403, headers: cors });
+    }
+
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -108,9 +142,13 @@ Deno.serve(async (req) => {
 
     const { data: vac } = await admin
       .from("vacations")
-      .select("id, start_date, end_date, days, users(full_name, display_name, email, area, vacation_balance)")
+      .select("id, user_id, start_date, end_date, days, users(full_name, display_name, email, area, vacation_balance)")
       .eq("id", vacation_id).single();
     if (!vac) return Response.json({ ok: false, error: "Solicitud no encontrada" }, { status: 404, headers: cors });
+
+    if (callerProfile.role !== "admin" && vac.user_id !== callerProfile.id) {
+      return Response.json({ ok: false, error: "No autorizado" }, { status: 403, headers: cors });
+    }
 
     const u = (vac as unknown as {
       users: { full_name: string; display_name: string; email: string; area: string | null; vacation_balance: number };
@@ -208,8 +246,8 @@ Deno.serve(async (req) => {
 
         <p style="margin-top:24px">
           Atentamente,<br/>
-          ${u.full_name}<br/>
-          Área de ${area}<br/>
+          ${escapeHtml(u.full_name)}<br/>
+          Área de ${escapeHtml(area)}<br/>
           CERT Comunicación<br/>
           ${longDate(todayIso)}
         </p>

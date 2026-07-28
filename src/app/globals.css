@@ -32,6 +32,28 @@
   --shadow-1: 0 1px 2px rgba(0,0,0,0.025), 0 1px 1px rgba(0,0,0,0.02);
   --shadow-2: 0 4px 16px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
   --shadow-3: 0 16px 48px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.05);
+
+  /* Escala tipográfica canónica (AUDITORIA-DISENO.md M-01, ronda 4) — se
+     encontraron 14+ tamaños fraccionarios sueltos por toda la app (10px,
+     10.5px, 11.5px... hasta 42px) sin una escala que los explique, ajustados
+     "a ojo" pantalla por pantalla. Esta escala no inventa números nuevos:
+     toma los tamaños que YA existen y les da nombre, para que el próximo
+     componente nuevo tenga de dónde tomar en vez de escribir otro más.
+     Retrofit de lo existente a estos tokens queda para FASE W2/W3 — esta
+     ronda solo pone la base. */
+  --fs-2xs: 9.5px;
+  --fs-xs: 10.5px;
+  --fs-sm: 11.5px;
+  --fs-tag: 12.5px;
+  --fs-base: 13.5px;
+  --fs-md: 14px;
+  --fs-lg: 15px;
+  --fs-xl: 16px;
+  --fs-title: 19px;
+  --fs-2xl: 21px;
+  --fs-3xl: 24px;
+  --fs-display: 28px;
+  --fs-hero: 42px;
 }
 [data-theme="dark"] {
   color-scheme: dark;
@@ -115,6 +137,11 @@ body {
 /* Antes 1.4× — el salto de color entre sidebar y contenido se notaba
    demasiado (auditoría punto 12); mucho más sutil ahora, tipo Arc. */
 [data-theme="dark"][data-mesh].mesh::before { opacity: 1.05; }
+/* Los mismos valores rgba se afinaron a ojo sobre fondo oscuro (por eso el
+   boost de arriba) — sobre #FBFBFD casi blanco, ese mismo tinte se ve
+   lavado/sucio en vez de brillar (queja de diseño, ronda 4). Nunca se había
+   definido nada específico para claro; ahora sí, mucho más tenue. */
+[data-theme="light"][data-mesh].mesh::before { opacity: 0.45; }
 
 /* ── Saludo animado (emoji 👋 en encabezados de Hoy/Mi Día) ── */
 .wave-emoji { display: inline-block; transform-origin: 70% 70%; animation: nx-wave 1.6s ease-in-out 1; }

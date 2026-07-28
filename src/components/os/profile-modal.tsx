@@ -6,6 +6,8 @@ import { Icon } from "./icons";
 import { useToast, DateField } from "@/components/ui";
 import { ImageCropper } from "./image-cropper";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
+import { dmy } from "@/lib/tz";
+import { useMountOnOpen } from "@/lib/use-mount-on-open";
 
 type ProfileData = {
   email: string;
@@ -54,6 +56,16 @@ export function ProfileModal({
   const [cropFile, setCropFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+  // DIAGNOSTICO-OVERLAY-BUG §3c/§4 — ProfileModal se montaba/desmontaba de
+  // golpe (sin useMountOnOpen ni pointerEvents guard) y podía dejar un
+  // CenteredOverlay huérfano (el DateField de abajo) si se cerraba mientras
+  // ese picker seguía abierto. Se le da el mismo estándar que Sheet.
+  const { mounted, visible } = useMountOnOpen(true, 200);
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -81,11 +93,13 @@ export function ProfileModal({
     if (!data) return;
     setSaving(true);
     const supabase = createClient();
+    // hire_date NO se manda — es dato de RH, protegido en la BD desde antes
+    // de esta ronda (trigger trg_users_protect_self_update); el campo aquí
+    // ahora es solo-lectura, así que ya no tiene sentido incluirlo.
     const { error } = await supabase
       .from("users")
       .update({
         birth_date: data.birth_date || null,
-        hire_date: data.hire_date || null,
         rfc: data.rfc?.trim() || null,
         curp: data.curp?.trim() || null,
       })
@@ -123,8 +137,12 @@ export function ProfileModal({
     setUploading(false);
   };
 
+  if (!mounted) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 nx-fade" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 nx-fade"
+      style={{ pointerEvents: visible ? "all" : "none", opacity: visible ? 1 : 0, transition: "opacity .2s ease" }}
+      onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
         className="relative w-full max-w-[420px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
@@ -189,11 +207,11 @@ export function ProfileModal({
                   />
                 </InfoRow>
                 <InfoRow icon="calendar" label="Fecha de ingreso" color={color}>
-                  <DateField
-                    value={data.hire_date ?? ""}
-                    onChange={(v) => set("hire_date", v)}
-                    className="w-full bg-transparent text-[13.5px] text-text-1 focus:outline-none"
-                  />
+                  {/* Solo-lectura — es dato de RH, no algo que cada quien deba
+                      poder cambiarse a sí mismo (la BD ya lo bloqueaba; antes
+                      esta pantalla dejaba "editarlo" pero el guardado fallaba
+                      en silencio). Cámbialo desde Equipo si hace falta. */}
+                  <p className="text-[13.5px] text-text-1">{data.hire_date ? dmy(data.hire_date) : "Sin registrar"}</p>
                 </InfoRow>
                 <InfoRow icon="idcard" label="RFC" color={color}>
                   <input

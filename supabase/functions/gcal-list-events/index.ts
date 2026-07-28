@@ -8,7 +8,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const cors = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "https://nexus-samu09.vercel.app",
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
 

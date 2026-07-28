@@ -7,6 +7,7 @@ import { Avatar, IconButton, Kbd, cx } from "./ui";
 import { NotificationBell } from "./notifications";
 import { ProfileModal } from "./profile-modal";
 import { useTheme } from "@/lib/theme";
+import { useMountOnOpen } from "@/lib/use-mount-on-open";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { navFor, SECTIONS, type NavItem, type Role } from "@/lib/nav";
 import { createClient } from "@/lib/supabase/client";
@@ -105,21 +106,20 @@ export function Shell({
           </button>
         </header>
 
-        {avatarMenu && (
-          <UserMenu
-            hasJornada={items.some((i) => i.key === "jornada")}
-            hasVacaciones={items.some((i) => i.key === "vacaciones")}
-            hasConfig={hasConfig}
-            theme={theme}
-            onProfile={() => { setAvatarMenu(false); setProfileOpen(true); }}
-            onJornada={() => { setAvatarMenu(false); go("jornada"); }}
-            onVacaciones={() => { setAvatarMenu(false); go("vacaciones"); }}
-            onConfig={() => { setAvatarMenu(false); go("config"); }}
-            onToggleTheme={() => { setAvatarMenu(false); toggle(); }}
-            onSignOut={() => { setAvatarMenu(false); signOut(); }}
-            onClose={() => setAvatarMenu(false)}
-          />
-        )}
+        <UserMenu
+          open={avatarMenu}
+          hasJornada={items.some((i) => i.key === "jornada")}
+          hasVacaciones={items.some((i) => i.key === "vacaciones")}
+          hasConfig={hasConfig}
+          theme={theme}
+          onProfile={() => { setAvatarMenu(false); setProfileOpen(true); }}
+          onJornada={() => { setAvatarMenu(false); go("jornada"); }}
+          onVacaciones={() => { setAvatarMenu(false); go("vacaciones"); }}
+          onConfig={() => { setAvatarMenu(false); go("config"); }}
+          onToggleTheme={() => { setAvatarMenu(false); toggle(); }}
+          onSignOut={() => { setAvatarMenu(false); signOut(); }}
+          onClose={() => setAvatarMenu(false)}
+        />
 
         <main className="flex-1 nx-scroll overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 flex flex-col">
           <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
@@ -133,7 +133,7 @@ export function Shell({
 
       <MobileBottomNav items={items} active={active} onGo={go} ficharAction={ficharAction} />
 
-      {spot && <Spotlight items={items} onGo={go} onClose={() => setSpot(false)} />}
+      <Spotlight open={spot} items={items} onGo={go} onClose={() => setSpot(false)} />
       {profileOpen && (
         <ProfileModal
           userId={user.id}
@@ -211,21 +211,32 @@ function MobileBottomNav({ items, active, onGo, ficharAction }: {
    accesos directos personales, tema y cerrar sesión. Sustituye por completo
    al perfil inferior del Sidebar — ya no hay dos lugares para lo mismo. */
 function UserMenu({
-  hasJornada, hasVacaciones, hasConfig, theme,
+  open, hasJornada, hasVacaciones, hasConfig, theme,
   onProfile, onJornada, onVacaciones, onConfig, onToggleTheme, onSignOut, onClose,
 }: {
+  open: boolean;
   hasJornada: boolean; hasVacaciones: boolean; hasConfig: boolean; theme: "light" | "dark";
   onProfile: () => void; onJornada: () => void; onVacaciones: () => void;
   onConfig: () => void; onToggleTheme: () => void; onSignOut: () => void; onClose: () => void;
 }) {
+  // DIAGNOSTICO-OVERLAY-BUG §3c — antes se montaba/desmontaba de golpe con
+  // `{avatarMenu && <UserMenu/>}`, sin useMountOnOpen ni pointerEvents guard,
+  // a diferencia de todos los demás overlays del sistema.
+  const { mounted, visible } = useMountOnOpen(open, 200);
+
   useEffect(() => {
+    if (!open) return;
     const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
-  }, [onClose]);
+  }, [open, onClose]);
+
+  if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 nx-fade" onClick={onClose}>
+    <div className="fixed inset-0 z-50 nx-fade"
+      style={{ pointerEvents: visible ? "all" : "none", opacity: visible ? 1 : 0, transition: "opacity .2s ease" }}
+      onClick={onClose}>
       <div className="absolute inset-0 bg-black/30" />
       <div
         className="absolute top-[60px] right-3 w-[230px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
@@ -311,12 +322,14 @@ function Sidebar({ items, active, onGo, className, theme }: {
 }
 
 /* ───────────────────────── Spotlight (⌘K) ───────────────────────── */
-function Spotlight({ items, onGo, onClose }: {
-  items: NavItem[]; onGo: (k: string) => void; onClose: () => void;
+function Spotlight({ open, items, onGo, onClose }: {
+  open: boolean; items: NavItem[]; onGo: (k: string) => void; onClose: () => void;
 }) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Mismo guard que UserMenu (§3c del diagnóstico).
+  const { mounted, visible } = useMountOnOpen(open, 200);
 
   const results = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -324,10 +337,11 @@ function Spotlight({ items, onGo, onClose }: {
     return items.filter((i) => i.label.toLowerCase().includes(t));
   }, [q, items]);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
   useEffect(() => { setSel(0); }, [q]);
 
   useEffect(() => {
+    if (!open) return;
     const h = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       else if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, results.length - 1)); }
@@ -336,10 +350,14 @@ function Spotlight({ items, onGo, onClose }: {
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [results, sel, onGo, onClose]);
+  }, [open, results, sel, onGo, onClose]);
+
+  if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[14vh] px-4 nx-fade" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[14vh] px-4 nx-fade"
+      style={{ pointerEvents: visible ? "all" : "none", opacity: visible ? 1 : 0, transition: "opacity .2s ease" }}
+      onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
         className="relative w-full max-w-[560px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"

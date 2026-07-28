@@ -89,7 +89,7 @@ function printByEmployeeReport(
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Actividades por empleado — ${today}</title>
     <style>
-      *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
+      *{box-sizing:border-box}body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
       .wrap{max-width:900px;margin:0 auto}
       .header{background:linear-gradient(135deg,#1E293B,#334155);border-radius:16px;padding:28px 32px;margin-bottom:20px;color:#fff}
       .header h1{margin:0 0 4px;font-size:22px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13px}

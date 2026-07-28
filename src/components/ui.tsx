@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { IconCheck, IconMoon, IconSun, IconAlert, IconX } from "./icons";
 import { useMountOnOpen } from "@/lib/use-mount-on-open";
 
@@ -293,6 +294,25 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
   // cerrar el detalle de un colaborador (mismo estándar que Drawer/Spotlight/
   // Menu/DateSheet, que ya se desmontan al cerrar).
   const { mounted, visible } = useMountOnOpen(open, 460);
+  // DIAGNOSTICO-OVERLAY-BUG §2 — el Sheet renderizaba inline (sin portal),
+  // a diferencia de TODOS los demás overlays (CenteredOverlay, DateSheet,
+  // NotificationBell). Cualquier ancestro con backdrop-filter/transform
+  // (el header, una card en hover) crea un containing block que atrapa su
+  // `position: fixed`, y durante los 460ms de salida el backdrop-filter en
+  // transición competía por stacking context con el contenido de atrás —
+  // eso perdía clics y bloqueaba la UI. Portar a document.body lo resuelve
+  // igual que en el resto del sistema.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
+  // Scroll lock mientras está abierto (§5 del diagnóstico) — en iOS Safari
+  // el overflow-y-auto del contenido detrás podía interactuar mal con un
+  // `fixed` encima, dejando el backdrop sin cubrir toda la pantalla.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -318,9 +338,9 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
     setDragY(0);
   };
 
-  if (!mounted) return null;
+  if (!hydrated || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[500] flex items-end justify-center"
       style={{
         background: visible ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
@@ -350,7 +370,8 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
         </div>
         <div className="px-5 pt-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

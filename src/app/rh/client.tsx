@@ -40,7 +40,7 @@ function printIndividualReport(m: Member, vacs: Vacation[]) {
     `<tr><td>${dmy(v.start_date)} &rarr; ${dmy(v.end_date)}</td><td>${v.days} d&iacute;as</td><td>${v.status}</td></tr>`).join("");
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte — ${m.full_name}</title>
     <style>
-      body{font-family:-apple-system,Arial,sans-serif;color:#1D1D1F;margin:32px;}
+      body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;color:#1D1D1F;margin:32px;}
       h1{font-size:20px;margin:0 0 4px}
       p.sub{color:#6E6E73;margin:0 0 24px;font-size:13px}
       .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:28px}
@@ -122,7 +122,7 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
 
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Vacaciones CERT ${fechaLarga}</title>
     <style>
-      *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
+      *{box-sizing:border-box}body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
       .wrap{max-width:860px;margin:0 auto}
       .header{background:linear-gradient(135deg,#1E293B,#334155);border-radius:16px;padding:28px 32px;margin-bottom:20px;color:#fff}
       .header h1{margin:0 0 4px;font-size:22px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13px}

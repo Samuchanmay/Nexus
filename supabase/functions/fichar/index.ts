@@ -38,7 +38,7 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
 
 Deno.serve(async (req) => {
   const cors = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "https://nexus-samu09.vercel.app",
     "Access-Control-Allow-Headers": "authorization, content-type",
   };
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
