@@ -9,6 +9,7 @@ import { useSupabaseMutation, Field } from "@/components/shared";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
 import { seniorityLabel, addDays, shortDate, dmy, nextAnniversary, todayMerida } from "@/lib/tz";
+import { MONTHS, DOW, monthBounds, buildMonthGrid } from "@/lib/calendar-grid";
 import { businessDaysBetween } from "@/lib/hours";
 import { logAdminAction } from "@/lib/admin-log";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
@@ -53,6 +54,11 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [authEmail, setAuthEmail] = useState(authorizationEmail);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // FASE P — "Cobertura del equipo": antes la única vista de ocupación
+  // cubría 60 días, insuficiente para planear temporada (ej. diciembre)
+  // con meses de anticipación. Colapsada por default: es una vista densa
+  // de apoyo, no algo que se consulte en cada visita a la página.
+  const [coverageOpen, setCoverageOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const holidaySet = useMemo(() => new Set(holidays), [holidays]);
 
@@ -342,6 +348,29 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     return "var(--accent)";
   };
 
+  // ── Cobertura del equipo (vista anual) — mismo cálculo de disponibilidad
+  //    que el heatmap de 60 días, pero extendido a 12 meses hacia adelante,
+  //    para detectar temporadas apretadas (diciembre, Semana Santa) con
+  //    meses de anticipación en vez de solo verlas venir a 2 meses. ──
+  const coverageByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const v of approvedUpcoming) {
+      let d = v.start_date < todayIso ? todayIso : v.start_date;
+      const yearEnd = addDays(todayIso, 364);
+      const end = v.end_date > yearEnd ? yearEnd : v.end_date;
+      while (d <= end) { map.set(d, (map.get(d) ?? 0) + 1); d = addDays(d, 1); }
+    }
+    return map;
+  }, [approvedUpcoming, todayIso]);
+
+  const coverageMonths = useMemo(() => Array.from({ length: 12 }, (_, i) => {
+    const base = new Date(`${todayIso.slice(0, 7)}-01T12:00:00Z`);
+    base.setUTCMonth(base.getUTCMonth() + i);
+    const ymI = `${base.getUTCFullYear()}-${String(base.getUTCMonth() + 1).padStart(2, "0")}`;
+    const b = monthBounds(ymI);
+    return { ...b, cells: buildMonthGrid(b.first, b.last, b.daysInMonth) };
+  }), [todayIso]);
+
   // ── Próximamente — quiénes salen pronto (no han empezado aún) ──
   const proximamente = useMemo(
     () => approvedUpcoming
@@ -607,6 +636,57 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
               <p className="text-[10.5px]" style={{ color: "var(--text-3)" }}>+{TIMELINE_WINDOW} días</p>
             </div>
           </>
+        )}
+      </div>
+
+      {/* Cobertura del equipo — vista anual, colapsada por default (FASE P). */}
+      <div className="card mb-7 overflow-hidden">
+        <button className="w-full flex items-center justify-between gap-3 px-4 py-3" onClick={() => setCoverageOpen((o) => !o)}>
+          <div className="text-left">
+            <p className="text-[13.5px] font-bold">Cobertura del equipo</p>
+            <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>Vista anual — para detectar temporadas apretadas con meses de anticipación</p>
+          </div>
+          <span className="shrink-0 transition-transform" style={{ color: "var(--text-3)", transform: coverageOpen ? "rotate(180deg)" : "none" }}>
+            <Icon name="chevronDown" size={15} />
+          </span>
+        </button>
+        {coverageOpen && (
+          <div className="px-4 pb-4">
+            <div className="flex items-center gap-4 mb-3 flex-wrap text-[10.5px]" style={{ color: "var(--text-3)" }}>
+              <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--surface-2)" }} /> Todo el equipo disponible</span>
+              <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--accent)" }} /> Alguien fuera</span>
+              <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--warn)" }} /> Cobertura ajustada</span>
+              <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--danger)" }} /> Cobertura crítica</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {coverageMonths.map((m) => (
+                <div key={`${m.year}-${m.month}`} className="rounded-sm p-3" style={{ background: "var(--surface-2)" }}>
+                  <p className="text-[12px] font-bold capitalize mb-2">{MONTHS[m.month - 1]} {m.year}</p>
+                  <div className="grid grid-cols-7 gap-[3px] mb-1">
+                    {DOW.map((d) => <p key={d} className="text-center text-[8px] font-bold" style={{ color: "var(--text-3)" }}>{d[0]}</p>)}
+                  </div>
+                  <div className="grid grid-cols-7 gap-[3px]">
+                    {m.cells.map((c) => {
+                      const count = coverageByDate.get(c.date) ?? 0;
+                      const past = c.date < todayIso;
+                      return (
+                        <div key={c.date}
+                          title={past ? undefined : `${dmy(c.date)} · ${count} fuera de ${team.length}`}
+                          className="aspect-square rounded-[3px] flex items-center justify-center text-[7.5px] font-semibold tabular-nums"
+                          style={{
+                            opacity: c.inMonth ? (past ? 0.25 : 1) : 0.15,
+                            background: past ? "transparent" : occupancyColor(count),
+                            color: count > 0 && !past ? "#fff" : "var(--text-3)",
+                          }}>
+                          {c.day}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

@@ -51,6 +51,23 @@ const TITLES: Record<string, string> = {
   "dias-inhabiles": "Días inhábiles", reportes: "Reportes", config: "Configuración",
 };
 
+// FASE W1 — antes, cualquier sub-página de Configuración (Colores,
+// Horarios, Pausa activa, etc.) colapsaba al mismo título genérico
+// "Configuración" en la barra superior fija, aunque el propio contenido de
+// la página ya mostrara su título específico (PageHeader propio) — dos
+// títulos distintos apilados en la misma pantalla. Un mapa por ruta exacta,
+// consultado antes que TITLES[active], resuelve esto sin tocar la
+// navegación ni el resto del header.
+const SUBTITLES: Record<string, string> = {
+  "/admin/config/colores": "Colores de equipo",
+  "/admin/config/dispositivos": "Dispositivos",
+  "/admin/config/estados-jornada": "Estados de jornada",
+  "/admin/config/gps": "Zona GPS",
+  "/admin/config/horarios": "Horarios",
+  "/admin/config/pausa-activa": "Pausa activa",
+  "/admin/config/tipos-actividad": "Tipos de actividad",
+};
+
 export function AppShell({
   role, user, children, actions, ficharAction = false,
 }: {
@@ -158,7 +175,7 @@ export function AppShell({
       <HeaderActionsProvider>
         <AppShellBody
           role={role} user={user} active={active} onNavigate={go}
-          title={TITLES[active] ?? "Emet"} actions={actions} ficharAction={ficharAction}
+          title={SUBTITLES[pathname] ?? TITLES[active] ?? "Emet"} actions={actions} ficharAction={ficharAction}
         >
           {children}
         </AppShellBody>
