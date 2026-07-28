@@ -71,7 +71,7 @@ export function Select({
 
       <CenteredOverlay open={open} onClose={() => setOpen(false)} ariaLabel={title} width={380}>
         <div className="px-4 pt-4 pb-2 shrink-0">
-          <p className="text-[15px] font-bold mb-3">{title}</p>
+          <p className="text-[length:var(--fs-lg)] font-bold mb-3">{title}</p>
           {searchable && (
             <div className="relative">
               <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-3)]" />
@@ -101,7 +101,7 @@ export function Select({
                   </span>
                 )}
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13.5px] font-semibold truncate">{o.label}</span>
+                  <span className="block text-[length:var(--fs-base)] font-semibold truncate">{o.label}</span>
                   {o.sublabel && <span className="block text-[12px] truncate" style={{ color: "var(--text-2)" }}>{o.sublabel}</span>}
                 </span>
                 {o.value === value && <IconCheck className="w-4 h-4 shrink-0 text-[var(--accent)]" />}
@@ -224,7 +224,7 @@ export function TimePicker({
 
       <CenteredOverlay open={open} onClose={() => setOpen(false)} ariaLabel={title} width={320}>
         <div className="px-4 pt-4 pb-2 shrink-0">
-          <p className="text-[15px] font-bold mb-3">{title}</p>
+          <p className="text-[length:var(--fs-lg)] font-bold mb-3">{title}</p>
           <div className="relative">
             <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-3)]" />
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}

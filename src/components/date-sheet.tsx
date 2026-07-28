@@ -74,16 +74,16 @@ function CalendarGrid({
     <div>
       <div className="flex items-center justify-between px-1 pb-3">
         <button type="button" onClick={() => onYm(shiftMonth(ym, -1))}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[16px] font-bold transition-colors hover:bg-hover"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[length:var(--fs-xl)] font-bold transition-colors hover:bg-hover"
           style={{ color: "var(--text-2)" }} aria-label="Mes anterior">‹</button>
-        <p className="text-[14px] font-bold capitalize tracking-tight px-4">{MONTHS[month - 1]} {year}</p>
+        <p className="text-[length:var(--fs-md)] font-bold capitalize tracking-tight px-4">{MONTHS[month - 1]} {year}</p>
         <button type="button" onClick={() => onYm(shiftMonth(ym, 1))}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[16px] font-bold transition-colors hover:bg-hover"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[length:var(--fs-xl)] font-bold transition-colors hover:bg-hover"
           style={{ color: "var(--text-2)" }} aria-label="Mes siguiente">›</button>
       </div>
       <div className="grid grid-cols-7 text-center mb-1.5">
         {DOW.map((d) => (
-          <span key={d} className="text-[10.5px] font-bold py-1" style={{ color: "var(--text-3)" }}>{d}</span>
+          <span key={d} className="text-[length:var(--fs-xs)] font-bold py-1" style={{ color: "var(--text-3)" }}>{d}</span>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-y-1">
@@ -119,7 +119,7 @@ function CalendarGrid({
                 type="button" disabled={blocked} data-date={c.date}
                 onClick={() => onPick(c.date)}
                 className={cx(
-                  "relative z-10 w-full h-full rounded-full text-[12.5px] flex items-center justify-center transition-colors",
+                  "relative z-10 w-full h-full rounded-full text-[length:var(--fs-tag)] flex items-center justify-center transition-colors",
                   !selected && !blocked && "hover:bg-[var(--hover)]"
                 )}
                 style={{
@@ -148,11 +148,11 @@ type Footer = { onCancel: () => void; onToday?: () => void; onApply: () => void;
 function FooterRow({ footer }: { footer: Footer }) {
   return (
     <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 border-t border-border">
-      <button type="button" onClick={footer.onCancel} className="btn-tertiary h-8 px-2.5 text-[12.5px]">Cancelar</button>
+      <button type="button" onClick={footer.onCancel} className="btn-tertiary h-8 px-2.5 text-[length:var(--fs-tag)]">Cancelar</button>
       {footer.onToday && (
-        <button type="button" onClick={footer.onToday} className="btn-tertiary h-8 px-2.5 text-[12.5px]">Hoy</button>
+        <button type="button" onClick={footer.onToday} className="btn-tertiary h-8 px-2.5 text-[length:var(--fs-tag)]">Hoy</button>
       )}
-      <button type="button" onClick={footer.onApply} className="btn-primary h-8 px-4 text-[12.5px]">
+      <button type="button" onClick={footer.onApply} className="btn-primary h-8 px-4 text-[length:var(--fs-tag)]">
         {footer.applyLabel ?? "Aplicar"}
       </button>
     </div>
@@ -279,7 +279,7 @@ function DateSheetShell({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-3.5 pb-2.5">
-          <p className="text-[13.5px] font-bold mb-2 px-0.5">{title}</p>
+          <p className="text-[length:var(--fs-base)] font-bold mb-2 px-0.5">{title}</p>
           {children}
         </div>
         <FooterRow footer={footer} />
@@ -496,7 +496,7 @@ export function DateRangeCalendar({
     <div className="rounded-md overflow-hidden p-3.5" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
       <CalendarGrid ym={ym} onYm={setYm} range={{ start, end }} isBlocked={isBlocked} onPick={click} />
       {legend && (
-        <div className="flex flex-wrap items-center gap-3 pt-3 text-[10.5px]" style={{ color: "var(--text-3)" }}>
+        <div className="flex flex-wrap items-center gap-3 pt-3 text-[length:var(--fs-xs)]" style={{ color: "var(--text-3)" }}>
           <span className="flex items-center gap-1.5">
             <i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--accent)" }} /> Seleccionado
           </span>
