@@ -162,13 +162,18 @@ Deno.serve(async (req) => {
     const date = dateFmt.format(now);           // YYYY-MM-DD en Mérida
     const time = timeFmt.format(now);           // HH:MM:SS en Mérida
 
+    // Todos los movimientos de HOY — una sola consulta para el enfriamiento
+    // (B6) Y para validar la transición de estado (nuevo, ver abajo).
+    const { data: todayRowsRaw } = await supabase
+      .from("attendance").select("type, reason, time")
+      .eq("user_id", profile.id).eq("date", date)
+      .order("time", { ascending: true });
+    const todayRows = todayRowsRaw ?? [];
+
     // B6: enfriamiento — mismo motivo hoy dentro de COOLDOWN_MIN ⇒ rechazar (doble toque real)
-    const { data: recent } = await supabase
-      .from("attendance").select("time").eq("user_id", profile.id)
-      .eq("date", date).eq("reason", reason)
-      .order("time", { ascending: false }).limit(1);
-    if (recent?.length) {
-      const [h1, m1] = recent[0].time.split(":").map(Number);
+    const recent = [...todayRows].reverse().find((r) => r.reason === reason);
+    if (recent) {
+      const [h1, m1] = recent.time.split(":").map(Number);
       const [h2, m2] = time.split(":").map(Number);
       if (Math.abs(h2 * 60 + m2 - (h1 * 60 + m1)) < COOLDOWN_MIN) {
         return Response.json(
@@ -176,6 +181,48 @@ Deno.serve(async (req) => {
           { status: 409, headers: cors },
         );
       }
+    }
+
+    // Validación de la máquina de estados — misma lógica que
+    // src/lib/jornada-flow.ts, duplicada aquí a propósito: las Edge
+    // Functions corren en un runtime aislado (Deno) y no pueden importar
+    // código de la app Next.js. Esta es la garantía real (la que no se
+    // puede saltar): el cliente ya oculta las tarjetas que no aplican,
+    // pero solo esta validación evita que una petición directa a la
+    // función, o una entrada de la cola offline con el estado ya
+    // desactualizado, deje datos inconsistentes (dos jornadas abiertas,
+    // un regreso sin salida, un límite diario saltado, etc.).
+    const { data: statesActivos } = await supabase
+      .from("jornada_states").select("nombre, motivo_salida, motivo_regreso, limite_salida").eq("activo", true);
+    const states = statesActivos ?? [];
+
+    const yaInicio = todayRows.some((r) => r.type === "Entrada" && r.reason === "Entrada a trabajo");
+    const finRow = todayRows.find((r) => r.type === "Salida" && r.reason === "Fin de jornada");
+    const last = todayRows.at(-1);
+    const estadoTemporal = last && last.type === "Salida"
+      ? states.find((s) => s.motivo_salida === last.reason) : undefined;
+
+    let motivoValido = false;
+    let motivoError = "Este movimiento no corresponde a tu estado actual — actualiza la pantalla e intenta de nuevo";
+    if (!yaInicio) {
+      motivoValido = reason === "Entrada a trabajo";
+    } else if (finRow) {
+      motivoValido = false;
+      motivoError = "Tu jornada de hoy ya está finalizada";
+    } else if (estadoTemporal?.motivo_regreso) {
+      motivoValido = reason === estadoTemporal.motivo_regreso;
+    } else if (reason === "Fin de jornada") {
+      motivoValido = true;
+    } else {
+      const def = states.find((s) => s.motivo_salida === reason);
+      if (def) {
+        const usos = todayRows.filter((r) => r.type === "Salida" && r.reason === reason).length;
+        motivoValido = def.limite_salida === null || usos < def.limite_salida;
+        if (!motivoValido) motivoError = "Ya alcanzaste el límite de este movimiento por hoy";
+      }
+    }
+    if (!motivoValido) {
+      return Response.json({ ok: false, error: motivoError }, { status: 409, headers: cors });
     }
 
     // INSERT con fecha/hora explícitas — el UNIQUE constraint frena duplicados exactos
