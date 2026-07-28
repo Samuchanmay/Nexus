@@ -137,15 +137,42 @@ body {
 /* Antes 1.4× — el salto de color entre sidebar y contenido se notaba
    demasiado (auditoría punto 12); mucho más sutil ahora, tipo Arc. */
 [data-theme="dark"][data-mesh].mesh::before { opacity: 1.05; }
-/* Ronda 4: se agregó opacity:0.45 aquí asumiendo que "se ve sucio en modo
-   claro" quería decir "demasiado intenso" — equivocado. La regla base
-   .mesh::before (arriba) nunca tuvo opacity propia (implícito 1), así que
-   claro SIEMPRE se vio al 100% antes de esa ronda. Bajarlo a 0.45 lo dejó
-   casi invisible (queja real del usuario, ronda 5). Se revierte a 1 —
-   vuelve a verse como antes de la ronda 4 — mientras se decide un
-   tratamiento mejor para el look "lavado" sobre #FBFBFD (no es cuestión de
-   opacidad sino de cómo esos mismos rgba se leen sobre casi-blanco). */
-[data-theme="light"][data-mesh].mesh::before { opacity: 1; }
+/* Ronda 5, elegido entre 3 opciones mostradas al usuario (A: igual que
+   antes / B: mismo blend, más alpha / C: mix-blend-mode:multiply — ganó
+   esta). El problema real nunca fue la opacidad (rondas 4-5 lo probaron:
+   0.45 lo dejó casi invisible) sino que "normal" blend sobre #FBFBFD
+   casi-blanco diluye el tinte a pastel lavado. "multiply" oscurece por
+   donde pasa en vez de aclarar, así que el mismo rgba se lee más profundo
+   y saturado — alpha subido ~2.5× porque multiply por sí solo, con el
+   alpha original, quedaba casi imperceptible sobre un fondo tan claro.
+   Reemplaza tanto el .mesh::before de admin/empleado/rh/coordinador como
+   la regla genérica de opacity — cada mesh define su propio degradado de
+   claro completo (blend + colores), en vez de solo un multiplicador. */
+[data-theme="light"][data-mesh="admin"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 65% 50% at 6% 4%, rgba(0,102,255,0.20) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 92% 6%, rgba(88,86,214,0.17) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 50% at 6% 92%, rgba(139,92,246,0.14) 0%, transparent 52%);
+}
+[data-theme="light"][data-mesh="empleado"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 70% 55% at 6% 4%, rgba(31,175,82,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 42% at 92% 8%, rgba(0,102,255,0.15) 0%, transparent 50%);
+}
+[data-theme="light"][data-mesh="rh"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 65% 50% at 6% 4%, rgba(88,86,214,0.21) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 50% at 6% 90%, rgba(139,92,246,0.15) 0%, transparent 52%);
+}
+[data-theme="light"][data-mesh="coordinador"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 70% 55% at 8% 4%, rgba(0,102,255,0.24) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 92% 8%, rgba(77,143,255,0.19) 0%, transparent 52%);
+}
 
 /* ── Saludo animado (emoji 👋 en encabezados de Hoy/Mi Día) ── */
 .wave-emoji { display: inline-block; transform-origin: 70% 70%; animation: nx-wave 1.6s ease-in-out 1; }
