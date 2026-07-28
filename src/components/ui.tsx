@@ -220,16 +220,30 @@ export function Menu({ trigger, align = "right", width = 210, children }: {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     };
     const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    // Cierre defensivo si el mouse sale del propio Menu (trigger + panel).
+    // Cubre el caso de un Menu anidado dentro de una fila cuyas acciones
+    // solo se revelan en :hover (Equipo, Proyectos): si el usuario abre el
+    // menú y se va sin elegir nada, la fila vuelve a pointer-events:none y
+    // el menú se queda "open" pero invisible — este listener lo cierra apenas
+    // el cursor abandona su propio recuadro, sin depender de la fila.
+    const onLeave = () => setOpen(false);
+    const wrap = wrapRef.current;
+    wrap?.addEventListener("mouseleave", onLeave);
     document.addEventListener("mousedown", onDocPointer);
     window.addEventListener("keydown", onEsc);
     return () => {
       document.removeEventListener("mousedown", onDocPointer);
       window.removeEventListener("keydown", onEsc);
+      wrap?.removeEventListener("mouseleave", onLeave);
     };
   }, [open]);
 
   return (
-    <div className="relative inline-block" ref={wrapRef}>
+    // stopPropagation aquí: el trigger y el panel del menú viven a veces
+    // dentro de una fila con su propio onClick (abrir ficha) — sin esto,
+    // elegir una opción del menú (o solo abrirlo) también dispararía el
+    // clic de la fila por debajo.
+    <div className="relative inline-block" ref={wrapRef} onClick={(e) => e.stopPropagation()}>
       {trigger({ onClick: () => setOpen((v) => !v), open })}
       {open && (
         <div

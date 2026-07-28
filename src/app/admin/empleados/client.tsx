@@ -422,7 +422,6 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
             arriba y en components/shared.tsx PersonRow). */}
         <div
           className="hidden sm:flex items-center gap-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity shrink-0"
-          onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={() => openEdit(u)}
@@ -432,7 +431,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
             <IconPen className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => copyEmail(u.email)}
+            onClick={(e) => { e.stopPropagation(); copyEmail(u.email); }}
             title="Copiar correo" aria-label="Copiar correo"
             className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
             style={{ color: "var(--text-3)" }}>
