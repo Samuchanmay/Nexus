@@ -55,6 +55,9 @@ const QUICK_LINKS: { title: string; items: QuickLink[] }[] = [
 
 export default function ConfigHub(props: {
   topStats: { users: number; coordinaciones: number };
+  isProdMode: boolean;
+  isEmailConfigured: boolean;
+  adminId?: string;
   estados: (JornadaState & { id: string })[];
   devices: DeviceRow[];
   horariosTeam: Person[];
@@ -70,16 +73,16 @@ export default function ConfigHub(props: {
   coloresAreas: Department[];
   rhColor: string | null;
 }) {
-  const { topStats } = props;
+  const { topStats, isProdMode, isEmailConfigured } = props;
   const [selected, setSelected] = useState<SectionId | null>("estados-jornada");
   const active = SECTIONS.find((s) => s.id === selected);
 
   const renderSection = () => {
     switch (selected) {
-      case "estados-jornada": return <EstadosClient states={props.estados} embedded />;
-      case "dispositivos": return <DispositivosClient devices={props.devices} embedded />;
-      case "horarios": return <HorariosClient team={props.horariosTeam} schedules={props.horariosScheds} embedded />;
-      case "gps": return <GpsClient zones={props.gpsZones} devices={props.gpsDevices} embedded />;
+      case "estados-jornada": return <EstadosClient states={props.estados} adminId={props.adminId} embedded />;
+      case "dispositivos": return <DispositivosClient devices={props.devices} adminId={props.adminId} embedded />;
+      case "horarios": return <HorariosClient team={props.horariosTeam} schedules={props.horariosScheds} adminId={props.adminId} embedded />;
+      case "gps": return <GpsClient zones={props.gpsZones} devices={props.gpsDevices} adminId={props.adminId} embedded />;
       case "tipos-actividad": return <TiposClient types={props.tipos} templates={props.templates} embedded />;
       case "pausa-activa": return (
         <PausaActivaClient frases={props.pausaFrases} intervalMin={props.pausaIntervalMin}
@@ -109,14 +112,14 @@ export default function ConfigHub(props: {
           <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Coordinaciones/deptos.</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: "var(--ok)" }}>
-            <Icon name="check" size={12} /> Activo
+          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: isProdMode ? "var(--ok)" : "var(--warn)" }}>
+            <Icon name={isProdMode ? "check" : "alert"} size={12} /> {isProdMode ? "Producción" : "Modo demo"}
           </p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Login con Google</p>
+          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Conexión con Supabase</p>
         </div>
         <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: "var(--ok)" }}>
-            <Icon name="check" size={12} /> Activo
+          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: isEmailConfigured ? "var(--ok)" : "var(--warn)" }}>
+            <Icon name={isEmailConfigured ? "check" : "alert"} size={12} /> {isEmailConfigured ? "Activo" : "Sin configurar"}
           </p>
           <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Correo (Resend)</p>
         </div>

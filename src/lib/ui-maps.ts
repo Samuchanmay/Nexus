@@ -73,3 +73,22 @@ export const HOLIDAY_KIND_STYLE: Record<HolidayKind, { bg: string; fg: string }>
 export function holidayStyle(kind?: string | null) {
   return HOLIDAY_KIND_STYLE[(kind as HolidayKind) ?? "empresa"] ?? HOLIDAY_KIND_STYLE.empresa;
 }
+
+/** Eventos institucionales (institutional_events.kind) — FASE U. Mismo
+ * patrón que HolidayKind: un solo mapa de etiqueta/color para que un
+ * evento se lea igual en Calendario general sin importar la granularidad
+ * (Mes/Semana/Día). Paleta separada de "Actividad Emet" (warn) y "Evento
+ * Google Calendar" (accent) para no confundir tres cosas distintas. */
+export type InstitutionalKind = "academico" | "evento" | "administrativo" | "aviso";
+export const INSTITUTIONAL_KIND_LABEL: Record<InstitutionalKind, string> = {
+  academico: "Académico", evento: "Evento", administrativo: "Administrativo", aviso: "Aviso",
+};
+export const INSTITUTIONAL_KIND_STYLE: Record<InstitutionalKind, { bg: string; fg: string }> = {
+  academico: { bg: "var(--purple-tint)", fg: "var(--purple)" },
+  evento: { bg: "var(--ok-tint)", fg: "var(--ok)" },
+  administrativo: { bg: "var(--danger-tint)", fg: "var(--danger)" },
+  aviso: { bg: "var(--warn-tint)", fg: "var(--warn)" },
+};
+export function institutionalStyle(kind?: string | null) {
+  return INSTITUTIONAL_KIND_STYLE[(kind as InstitutionalKind) ?? "evento"] ?? INSTITUTIONAL_KIND_STYLE.evento;
+}

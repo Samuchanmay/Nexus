@@ -3,10 +3,14 @@ import DispositivosClient from "./client";
 
 export default async function Dispositivos() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("known_devices")
-    .select("id, device_id, active, first_seen_at, last_seen_at, user_agent, last_lat, last_lng, users(display_name)")
-    .order("last_seen_at", { ascending: false });
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data }, { data: meRow }] = await Promise.all([
+    supabase
+      .from("known_devices")
+      .select("id, device_id, active, first_seen_at, last_seen_at, user_agent, last_lat, last_lng, users(display_name)")
+      .order("last_seen_at", { ascending: false }),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+  ]);
 
   const rows = (data ?? []).map((d) => ({
     id: d.id as string,
@@ -20,5 +24,5 @@ export default async function Dispositivos() {
     name: (d.users as unknown as { display_name: string } | null)?.display_name ?? "—",
   }));
 
-  return <DispositivosClient devices={rows} />;
+  return <DispositivosClient devices={rows} adminId={meRow?.id ?? ""} />;
 }

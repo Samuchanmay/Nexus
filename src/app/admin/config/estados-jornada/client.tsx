@@ -5,6 +5,7 @@ import { useSupabaseMutation, PageHeader, Switch } from "@/components/shared";
 import { SectionIntro } from "@/components/config-intro";
 import { IconPlus, IconX } from "@/components/icons";
 import { Icon } from "@/components/os/icons";
+import { logAdminAction } from "@/lib/admin-log";
 
 export type EstadoRow = {
   id: string; nombre: string; cuenta_tiempo: boolean; pausa_actividad: boolean;
@@ -17,7 +18,7 @@ const FLAGS: { key: "cuenta_tiempo" | "pausa_actividad" | "requiere_motivo"; lab
   { key: "requiere_motivo", label: "Requiere motivo", hint: "Uso informativo — el check-in ya siempre pide un motivo" },
 ];
 
-export default function EstadosClient({ states, embedded }: { states: EstadoRow[]; embedded?: boolean }) {
+export default function EstadosClient({ states, adminId, embedded }: { states: EstadoRow[]; adminId?: string; embedded?: boolean }) {
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ nombre: "", color: "#8E8E93", orden: (states.at(-1)?.orden ?? 0) + 1 });
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -26,9 +27,11 @@ export default function EstadosClient({ states, embedded }: { states: EstadoRow[
     run(() => createClient().from("jornada_states").update({ [key]: !row[key] }).eq("id", row.id),
       { ok: "Actualizado", err: "No se pudo actualizar" });
 
-  const toggleActivo = (row: EstadoRow) =>
-    run(() => createClient().from("jornada_states").update({ activo: !row.activo }).eq("id", row.id),
+  const toggleActivo = async (row: EstadoRow) => {
+    const ok = await run(() => createClient().from("jornada_states").update({ activo: !row.activo }).eq("id", row.id),
       { ok: row.activo ? "Estado desactivado" : "Estado activado", err: "No se pudo actualizar" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, row.activo ? "Desactivó estado de jornada" : "Activó estado de jornada", row.nombre);
+  };
 
   const setColor = (row: EstadoRow, color: string) =>
     run(() => createClient().from("jornada_states").update({ color }).eq("id", row.id), {});
@@ -43,13 +46,17 @@ export default function EstadosClient({ states, embedded }: { states: EstadoRow[
       if (error) return { error: { message: error.code === "23505" ? "Ya existe un estado con ese nombre" : "No se pudo guardar" } };
       return { error: null };
     }, { ok: "Estado creado" });
-    if (ok) setForm({ nombre: "", color: "#8E8E93", orden: form.orden + 1 });
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, "Creó estado de jornada", form.nombre.trim());
+      setForm({ nombre: "", color: "#8E8E93", orden: form.orden + 1 });
+    }
   };
 
-  const remove = (row: EstadoRow) => {
+  const remove = async (row: EstadoRow) => {
     setConfirmId(null);
-    run(() => createClient().from("jornada_states").delete().eq("id", row.id),
+    const ok = await run(() => createClient().from("jornada_states").delete().eq("id", row.id),
       { ok: "Estado eliminado", err: "No se pudo eliminar — puede que ya tenga fichajes asociados" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, "Eliminó estado de jornada", row.nombre);
   };
 
   const activos = states.filter((s) => s.activo).length;

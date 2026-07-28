@@ -2,13 +2,17 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Avatar, SlidingSegments } from "@/components/ui";
+import { Avatar, SlidingSegments, Sheet, DateRangeField, Select, useToast } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { dmy, addDays } from "@/lib/tz";
-import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
+import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind, INSTITUTIONAL_KIND_LABEL, institutionalStyle, type InstitutionalKind } from "@/lib/ui-maps";
 import { usePersistedView } from "@/lib/persisted-view";
+import { useSupabaseMutation, Field } from "@/components/shared";
+import { IconTrash } from "@/components/icons";
+import { createClient } from "@/lib/supabase/client";
+import { logAdminAction } from "@/lib/admin-log";
 
 const HOLIDAY_KIND_ICON: Record<HolidayKind, string> = {
   nacional: "calendar", estatal: "pin", empresa: "building", puente: "sun",
@@ -44,11 +48,12 @@ export type ProjectDeadline = {
 };
 
 export type GcalEvent = { id: string; title: string; start: string; end: string; allDay: boolean };
+export type InstitutionalEvent = { id: string; title: string; kind: string; start_date: string; end_date: string; notes: string | null };
 
 export default function CalendarioClient({
   ym, year, month, daysInMonth, today, prevHref, nextHref,
   team, attendance, vacations, holidays, deadlines, efemerides, gcalEvents, gcalError,
-  initialFocusDate,
+  initialFocusDate, institutionalEvents, adminId,
 }: {
   ym: string; year: number; month: number; daysInMonth: number; today: string;
   prevHref: string; nextHref: string;
@@ -57,6 +62,8 @@ export default function CalendarioClient({
   deadlines: ProjectDeadline[]; efemerides?: string[]; gcalEvents?: GcalEvent[];
   gcalError?: string | null;
   initialFocusDate?: string;
+  institutionalEvents?: InstitutionalEvent[];
+  adminId?: string;
 }) {
   const router = useRouter();
   const [view, setView] = usePersistedView<"Asistencia" | "Equipo">(
@@ -71,6 +78,62 @@ export default function CalendarioClient({
     "calendario.admin.granularity", ["Día", "Semana", "Mes"], "Mes"
   );
   const [focusDate, setFocusDate] = useState(initialFocusDate ?? today);
+
+  // ── Calendarios institucionales (FASE U) — CRUD directo desde el mismo
+  //    Calendario general, mismo patrón de Sheet que Días inhábiles. ──
+  const toast = useToast();
+  const { run: runSaveEvent, saving: savingEvent } = useSupabaseMutation();
+  const { run: runDeleteEvent, saving: deletingEvent } = useSupabaseMutation();
+  const [eventSheetOpen, setEventSheetOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<InstitutionalEvent | null>(null);
+  const [eventForm, setEventForm] = useState<{ title: string; kind: InstitutionalKind; start: string | null; end: string | null; notes: string }>(
+    { title: "", kind: "evento", start: null, end: null, notes: "" }
+  );
+  const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false);
+
+  const openAddEvent = () => {
+    setEditingEvent(null);
+    setEventForm({ title: "", kind: "evento", start: focusDate, end: focusDate, notes: "" });
+    setConfirmDeleteEvent(false);
+    setEventSheetOpen(true);
+  };
+  const openEditEvent = (ev: InstitutionalEvent) => {
+    setEditingEvent(ev);
+    setEventForm({ title: ev.title, kind: (ev.kind as InstitutionalKind) ?? "evento", start: ev.start_date, end: ev.end_date, notes: ev.notes ?? "" });
+    setConfirmDeleteEvent(false);
+    setEventSheetOpen(true);
+  };
+  const saveEvent = async () => {
+    if (!eventForm.title.trim() || !eventForm.start || !eventForm.end) { toast("Título y rango de fechas son obligatorios", "warn"); return; }
+    const payload = {
+      title: eventForm.title.trim(), kind: eventForm.kind,
+      start_date: eventForm.start, end_date: eventForm.end,
+      notes: eventForm.notes.trim() || null,
+    };
+    const ok = await runSaveEvent(async () => {
+      const sb = createClient();
+      const { error } = editingEvent
+        ? await sb.from("institutional_events").update(payload).eq("id", editingEvent.id)
+        : await sb.from("institutional_events").insert(payload);
+      if (error) return { error: { message: "No se pudo guardar el evento institucional" } };
+      return { error: null };
+    }, { ok: editingEvent ? "Evento institucional actualizado" : "Evento institucional agregado" });
+    if (ok) {
+      setEventSheetOpen(false);
+      if (adminId) logAdminAction(createClient(), adminId, editingEvent ? "Editó evento institucional" : "Agregó evento institucional", eventForm.title.trim());
+      router.refresh();
+    }
+  };
+  const deleteEvent = async () => {
+    if (!editingEvent) return;
+    const ok = await runDeleteEvent(() => createClient().from("institutional_events").delete().eq("id", editingEvent.id),
+      { ok: "Evento institucional eliminado", err: "No se pudo eliminar" });
+    if (ok) {
+      setEventSheetOpen(false);
+      if (adminId) logAdminAction(createClient(), adminId, "Eliminó evento institucional", editingEvent.title);
+      router.refresh();
+    }
+  };
 
   const first = `${ym}-01`;
   const last = `${ym}-${String(daysInMonth).padStart(2, "0")}`;
@@ -168,6 +231,24 @@ export default function CalendarioClient({
     return m;
   }, [monthCells, team, vacations]);
 
+  // Eventos institucionales (FASE U) — expandidos día por día dentro del
+  // mes visible, mismo criterio que vacationsByDate.
+  const instByDate = useMemo(() => {
+    const m = new Map<string, InstitutionalEvent[]>();
+    for (const ev of institutionalEvents ?? []) {
+      const start = ev.start_date < first ? first : ev.start_date;
+      const end = ev.end_date > last ? last : ev.end_date;
+      let d = start;
+      while (d <= end) {
+        const list = m.get(d) ?? [];
+        list.push(ev);
+        m.set(d, list);
+        d = addDays(d, 1);
+      }
+    }
+    return m;
+  }, [institutionalEvents, first, last]);
+
   // Eventos ya agendados en Google Calendar ("Eventos CERT") — incluye los
   // creados directamente en Google, no solo los que nacieron en Nexus.
   // Para eventos de todo el día, "end" viene exclusivo (estándar de Google
@@ -221,6 +302,9 @@ export default function CalendarioClient({
               <button onClick={() => shiftFocus(1)} className="btn-secondary px-3.5 py-2 text-[13px]">→</button>
             </>
           )}
+          <button onClick={openAddEvent} className="btn-primary px-4 py-2 text-[13px] flex items-center gap-1.5">
+            <Icon name="plus" size={14} /> Evento institucional
+          </button>
         </div>
       </header>
 
@@ -320,6 +404,7 @@ export default function CalendarioClient({
               const acts = deadlinesByDate.get(c.date) ?? [];
               const gevs = gcalByDate.get(c.date) ?? [];
               const people = vacationsByDate.get(c.date) ?? [];
+              const insts = instByDate.get(c.date) ?? [];
               return (
                 <div key={c.date} className="rounded-sm p-1.5 min-h-[96px] flex flex-col gap-1"
                   style={{
@@ -363,6 +448,18 @@ export default function CalendarioClient({
                     <p className="text-[9px] font-semibold" style={{ color: "var(--accent)" }}>+{gevs.length - 2} evento{gevs.length - 2 > 1 ? "s" : ""}</p>
                   )}
 
+                  {insts.slice(0, 2).map((ev) => (
+                    <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
+                      className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px] text-left"
+                      style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
+                      title={`${ev.title} · ${INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}`}>
+                      {ev.title}
+                    </button>
+                  ))}
+                  {insts.length > 2 && (
+                    <p className="text-[9px] font-semibold" style={{ color: "var(--purple)" }}>+{insts.length - 2} institucional{insts.length - 2 > 1 ? "es" : ""}</p>
+                  )}
+
                   {people.length > 0 && (
                     <div className="flex -space-x-1.5 mt-auto pt-1 flex-wrap gap-y-1">
                       {people.slice(0, 4).map((u) => (
@@ -387,6 +484,9 @@ export default function CalendarioClient({
               <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--accent-tint)" }} /> Evento (Google Calendar)
             </span>
             <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--ok-tint)" }} /> Evento institucional
+            </span>
+            <span className="flex items-center gap-1.5">
               <span className="inline-block w-3.5 h-3 rounded-full" style={{ background: "var(--purple)" }} /> Vacaciones
             </span>
             <span className="flex items-center gap-1.5">
@@ -404,7 +504,8 @@ export default function CalendarioClient({
               const acts = deadlinesByDate.get(c.date) ?? [];
               const gevs = gcalByDate.get(c.date) ?? [];
               const people = vacationsByDate.get(c.date) ?? [];
-              const empty = acts.length === 0 && gevs.length === 0 && people.length === 0 && !holidayOf.get(c.date);
+              const insts = instByDate.get(c.date) ?? [];
+              const empty = acts.length === 0 && gevs.length === 0 && insts.length === 0 && people.length === 0 && !holidayOf.get(c.date);
               return (
                 <div key={c.date} className="rounded-sm p-2.5 flex flex-col gap-1.5 min-h-[110px]"
                   style={{
@@ -444,6 +545,15 @@ export default function CalendarioClient({
                     </p>
                   ))}
 
+                  {insts.map((ev) => (
+                    <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
+                      className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px] text-left"
+                      style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
+                      title={INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}>
+                      {ev.title}
+                    </button>
+                  ))}
+
                   {people.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
                       {people.map((u) => (
@@ -467,8 +577,9 @@ export default function CalendarioClient({
         const acts = deadlinesByDate.get(focusDate) ?? [];
         const gevs = gcalByDate.get(focusDate) ?? [];
         const people = vacationsByDate.get(focusDate) ?? [];
+        const insts = instByDate.get(focusDate) ?? [];
         const holiday = holidayOf.get(focusDate);
-        const empty = acts.length === 0 && gevs.length === 0 && people.length === 0 && !holiday;
+        const empty = acts.length === 0 && gevs.length === 0 && insts.length === 0 && people.length === 0 && !holiday;
         return (
           <div className="card p-5 flex flex-col gap-3">
             {holiday && (() => {
@@ -498,6 +609,17 @@ export default function CalendarioClient({
                 <Icon name="calendar" size={16} style={{ color: "var(--accent)" }} />
                 <p className="text-[13.5px] font-bold" style={{ color: "var(--accent)" }}>{ev.title}</p>
               </div>
+            ))}
+            {insts.map((ev) => (
+              <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
+                className="flex items-center gap-3 px-3.5 py-3 rounded-sm text-left w-full"
+                style={{ background: institutionalStyle(ev.kind).bg }}>
+                <Icon name="calendar" size={16} style={{ color: institutionalStyle(ev.kind).fg }} />
+                <div className="min-w-0">
+                  <p className="text-[13.5px] font-bold truncate" style={{ color: institutionalStyle(ev.kind).fg }}>{ev.title}</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-2)" }}>{INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}</p>
+                </div>
+              </button>
             ))}
             {people.length > 0 && (
               <div className="px-3.5 py-3 rounded-sm" style={{ background: "var(--purple-tint)" }}>
@@ -540,6 +662,58 @@ export default function CalendarioClient({
           </div>
         </div>
       )}
+
+      {/* Drawer: alta / edición de un evento institucional (FASE U). */}
+      <Sheet
+        open={eventSheetOpen} onClose={() => setEventSheetOpen(false)}
+        title={editingEvent ? "Editar evento institucional" : "Agregar evento institucional"}
+        subtitle="Académico, evento, administrativo o aviso — visible para todo el equipo en este mismo calendario"
+      >
+        <div className="flex flex-col gap-3 pb-2">
+          <Field label="Título">
+            <input className="field-input" placeholder="Ej. Inicio de semestre"
+              value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} />
+          </Field>
+          <Field label="Tipo">
+            <Select
+              value={eventForm.kind} onChange={(v) => setEventForm({ ...eventForm, kind: v as InstitutionalKind })}
+              title="Tipo de evento" searchable={false}
+              options={(Object.keys(INSTITUTIONAL_KIND_LABEL) as InstitutionalKind[]).map((k) => ({ value: k, label: INSTITUTIONAL_KIND_LABEL[k] }))}
+            />
+          </Field>
+          <div>
+            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rango de fechas</label>
+            <DateRangeField start={eventForm.start} end={eventForm.end}
+              onSelect={(s, e) => setEventForm({ ...eventForm, start: s, end: e ?? s })} />
+          </div>
+          <Field label="Notas (opcional)">
+            <textarea className="field-input min-h-[80px] resize-none" placeholder="Contexto adicional…"
+              value={eventForm.notes} onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })} />
+          </Field>
+
+          {editingEvent && confirmDeleteEvent ? (
+            <div className="flex items-center gap-2 rounded-sm px-3.5 py-2.5" style={{ background: "var(--danger-tint)" }}>
+              <span className="text-[12.5px] font-semibold flex-1" style={{ color: "var(--danger)" }}>¿Eliminar este evento institucional?</span>
+              <button className="text-[12px] font-semibold px-2.5 py-1 rounded-full" disabled={deletingEvent}
+                style={{ background: "var(--danger)", color: "#fff" }} onClick={deleteEvent}>Sí, eliminar</button>
+              <button className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: "var(--surface-2)", color: "var(--text-2)" }} onClick={() => setConfirmDeleteEvent(false)}>No</button>
+            </div>
+          ) : (
+            <div className="flex gap-2.5 mt-1">
+              {editingEvent && (
+                <button className="btn-secondary px-3.5 py-3 text-[14px]" onClick={() => setConfirmDeleteEvent(true)}>
+                  <IconTrash className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEventSheetOpen(false)}>Cancelar</button>
+              <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={savingEvent} onClick={saveEvent}>
+                {savingEvent ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
+          )}
+        </div>
+      </Sheet>
     </>
   );
 }

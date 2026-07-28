@@ -9,6 +9,10 @@ import type { JornadaState } from "@/lib/hours";
    los oficiales del checador); estos estados solo definen su efecto. */
 export default async function EstadosJornada() {
   const supabase = await createClient();
-  const { data } = await supabase.from("jornada_states").select("*").order("orden");
-  return <EstadosClient states={(data ?? []) as (JornadaState & { id: string })[]} />;
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data }, { data: meRow }] = await Promise.all([
+    supabase.from("jornada_states").select("*").order("orden"),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+  ]);
+  return <EstadosClient states={(data ?? []) as (JornadaState & { id: string })[]} adminId={meRow?.id ?? ""} />;
 }

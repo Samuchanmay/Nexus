@@ -10,6 +10,7 @@ import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { scheduleFor, fmtTime, fmtMin } from "@/lib/hours";
 import { addDays } from "@/lib/tz";
 import type { Schedule } from "@/lib/types";
+import { logAdminAction } from "@/lib/admin-log";
 
 export type Person = { id: string; display_name: string; full_name?: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null; area: string | null };
 
@@ -67,7 +68,7 @@ function WeekStrip({ userId, schedules, today }: { userId: string; schedules: Sc
   );
 }
 
-export default function HorariosClient({ team, schedules, embedded }: { team: Person[]; schedules: Schedule[]; embedded?: boolean }) {
+export default function HorariosClient({ team, schedules, adminId, embedded }: { team: Person[]; schedules: Schedule[]; adminId?: string; embedded?: boolean }) {
   const { run, saving } = useSupabaseMutation();
   const toast = useToast();
   const today = todayMerida();
@@ -107,7 +108,10 @@ export default function HorariosClient({ team, schedules, embedded }: { team: Pe
             valid_from: today, valid_until: null,
           });
     }, { ok: "Horario actualizado", err: "No se pudo guardar" });
-    if (ok) setEditing(null);
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, "Editó horario", personName(editing.id));
+      setEditing(null);
+    }
   };
 
   const saveAdd = async () => {
@@ -122,13 +126,18 @@ export default function HorariosClient({ team, schedules, embedded }: { team: Pe
       user_id: addForm.personId, start_time, end_time, target_min, tolerance_min: 15,
       valid_from: addForm.from, valid_until: addForm.to,
     }), { ok: "Horario temporal creado", err: "No se pudo crear" });
-    if (ok) setAddOpen(false);
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, "Creó horario temporal", personName(addForm.personId));
+      setAddOpen(false);
+    }
   };
 
-  const removeOverride = (id: string) => {
+  const removeOverride = async (id: string) => {
     setConfirmId(null);
-    run(() => createClient().from("schedules").delete().eq("id", id),
+    const target = schedules.find((s) => s.id === id);
+    const ok = await run(() => createClient().from("schedules").delete().eq("id", id),
       { ok: "Horario temporal eliminado", err: "No se pudo eliminar" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, "Eliminó horario temporal", target ? personName(target.user_id) : undefined);
   };
 
   const conTemporal = team.filter((p) => {

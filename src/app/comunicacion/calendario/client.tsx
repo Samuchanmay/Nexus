@@ -6,7 +6,7 @@ import { SlidingSegments } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
 import { dmy, addDays } from "@/lib/tz";
-import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
+import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind, INSTITUTIONAL_KIND_LABEL, institutionalStyle, type InstitutionalKind } from "@/lib/ui-maps";
 import { usePersistedView } from "@/lib/persisted-view";
 
 const HOLIDAY_KIND_ICON: Record<HolidayKind, string> = {
@@ -38,6 +38,7 @@ export type VacationRange = { start_date: string; end_date: string };
 export type Deadline = { id: string; deadline: string | null; status: string; requests: { title: string; type: string } | null };
 export type GcalEvent = { id: string; title: string; start: string; end: string; allDay: boolean };
 export type NextActivity = { deadline: string; status: string; requests: { title: string } | null } | null;
+export type InstitutionalEvent = { id: string; title: string; kind: string; start_date: string; end_date: string; notes: string | null };
 
 /* ═══════════════════════════════════════════════════════════════
    Calendario personal — mismas tres vistas Día/Semana/Mes que
@@ -50,12 +51,14 @@ export type NextActivity = { deadline: string; status: string; requests: { title
 export default function CalendarioClient({
   ym, year, month, daysInMonth, today, prevHref, nextHref,
   vacations, holidays, deadlines, gcalEvents, gcalError, nextActivity, initialFocusDate,
+  institutionalEvents,
 }: {
   ym: string; year: number; month: number; daysInMonth: number; today: string;
   prevHref: string; nextHref: string;
   vacations: VacationRange[]; holidays: { date: string; name: string; kind: string }[];
   deadlines: Deadline[]; gcalEvents?: GcalEvent[]; gcalError?: string | null;
   nextActivity?: NextActivity; initialFocusDate?: string;
+  institutionalEvents?: InstitutionalEvent[];
 }) {
   const router = useRouter();
   const [granularity, setGranularity] = usePersistedView<"Día" | "Semana" | "Mes">(
@@ -108,6 +111,24 @@ export default function CalendarioClient({
     }
     return m;
   }, [deadlines, first, last]);
+
+  // Eventos institucionales (FASE U) — misma capa que ve el admin, en
+  // solo-lectura aquí (RLS ya bloquea escritura para roles no-admin).
+  const instByDate = useMemo(() => {
+    const m = new Map<string, InstitutionalEvent[]>();
+    for (const ev of institutionalEvents ?? []) {
+      const start = ev.start_date < first ? first : ev.start_date;
+      const end = ev.end_date > last ? last : ev.end_date;
+      let d = start;
+      while (d <= end) {
+        const list = m.get(d) ?? [];
+        list.push(ev);
+        m.set(d, list);
+        d = addDays(d, 1);
+      }
+    }
+    return m;
+  }, [institutionalEvents, first, last]);
 
   // Eventos ya agendados en Google Calendar ("Eventos CERT") — incluye los
   // creados directamente en Google, no solo los que nacieron en Nexus.
@@ -199,6 +220,7 @@ export default function CalendarioClient({
             {monthCells.map((c) => {
               const acts = deadlinesByDate.get(c.date) ?? [];
               const gevs = gcalByDate.get(c.date) ?? [];
+              const insts = instByDate.get(c.date) ?? [];
               const vac = onVacation(c.date);
               return (
                 <div key={c.date} className="rounded-sm p-1.5 min-h-[80px] flex flex-col gap-1"
@@ -243,6 +265,19 @@ export default function CalendarioClient({
                       +{gevs.length - 2} evento{gevs.length - 2 > 1 ? "s" : ""}
                     </p>
                   )}
+
+                  {insts.slice(0, 2).map((ev) => (
+                    <p key={ev.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                      style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
+                      title={`${ev.title} · ${INSTITUTIONAL_KIND_LABEL[ev.kind as InstitutionalKind] ?? ev.kind}`}>
+                      {ev.title}
+                    </p>
+                  ))}
+                  {insts.length > 2 && (
+                    <p className="text-[9px] font-semibold" style={{ color: "var(--ok)" }}>
+                      +{insts.length - 2} institucional{insts.length - 2 > 1 ? "es" : ""}
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -257,6 +292,9 @@ export default function CalendarioClient({
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3.5 h-3 rounded-full" style={{ background: "var(--purple)" }} /> Vacaciones
             </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--ok-tint)" }} /> Evento institucional
+            </span>
           </div>
           </div>
         </div>
@@ -268,8 +306,9 @@ export default function CalendarioClient({
             {weekCells.map((c) => {
               const acts = deadlinesByDate.get(c.date) ?? [];
               const gevs = gcalByDate.get(c.date) ?? [];
+              const insts = instByDate.get(c.date) ?? [];
               const vac = onVacation(c.date);
-              const empty = acts.length === 0 && gevs.length === 0 && !vac && !holidayOf.get(c.date);
+              const empty = acts.length === 0 && gevs.length === 0 && insts.length === 0 && !vac && !holidayOf.get(c.date);
               return (
                 <div key={c.date} className="rounded-sm p-2.5 flex flex-col gap-1.5 min-h-[110px]"
                   style={{
@@ -308,6 +347,14 @@ export default function CalendarioClient({
                     </p>
                   ))}
 
+                  {insts.map((ev) => (
+                    <p key={ev.id} className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px]"
+                      style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
+                      title={INSTITUTIONAL_KIND_LABEL[ev.kind as InstitutionalKind] ?? ev.kind}>
+                      {ev.title}
+                    </p>
+                  ))}
+
                   {empty && <p className="text-[10px] mt-auto" style={{ color: "var(--text-3)" }}>Sin eventos</p>}
                 </div>
               );
@@ -319,9 +366,10 @@ export default function CalendarioClient({
       {granularity === "Día" && (() => {
         const acts = deadlinesByDate.get(focusDate) ?? [];
         const gevs = gcalByDate.get(focusDate) ?? [];
+        const insts = instByDate.get(focusDate) ?? [];
         const vac = onVacation(focusDate);
         const holiday = holidayOf.get(focusDate);
-        const empty = acts.length === 0 && gevs.length === 0 && !vac && !holiday;
+        const empty = acts.length === 0 && gevs.length === 0 && insts.length === 0 && !vac && !holiday;
         return (
           <div className="card p-5 flex flex-col gap-3">
             {holiday && (() => {
@@ -350,6 +398,14 @@ export default function CalendarioClient({
               <div key={ev.id} className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: "var(--accent-tint)" }}>
                 <Icon name="calendar" size={16} style={{ color: "var(--accent)" }} />
                 <p className="text-[13.5px] font-bold" style={{ color: "var(--accent)" }}>{ev.title}</p>
+              </div>
+            ))}
+            {insts.map((ev) => (
+              <div key={ev.id} className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: institutionalStyle(ev.kind).bg }}>
+                <Icon name="calendar" size={16} style={{ color: institutionalStyle(ev.kind).fg }} />
+                <p className="text-[13.5px] font-bold" style={{ color: institutionalStyle(ev.kind).fg }}>
+                  {ev.title} · {INSTITUTIONAL_KIND_LABEL[ev.kind as InstitutionalKind] ?? ev.kind}
+                </p>
               </div>
             ))}
             {empty && (

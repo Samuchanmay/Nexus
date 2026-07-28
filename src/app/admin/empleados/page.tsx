@@ -6,7 +6,8 @@ import { todayMerida } from "@/lib/tz";
 export default async function Empleados() {
   const supabase = await createClient();
   const today = todayMerida();
-  const [{ data }, { data: areas }, { data: rhColorRow }, { data: vacs }, { data: incs }] = await Promise.all([
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data }, { data: areas }, { data: rhColorRow }, { data: vacs }, { data: incs }, { data: meRow }] = await Promise.all([
     supabase.from("users").select("*").order("created_at"),
     supabase.from("departments").select("*").eq("activo", true).order("tipo").order("nombre"),
     supabase.from("app_settings").select("value").eq("key", "rh_color").maybeSingle(),
@@ -16,6 +17,7 @@ export default async function Empleados() {
     // Incidencias (permiso/incapacidad/etc.) ya autorizadas y vigentes HOY.
     supabase.from("incidents").select("user_id").eq("status", "Autorizado")
       .lte("start_date", today).gte("end_date", today),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
   return (
     <EmpleadosClient
@@ -24,6 +26,7 @@ export default async function Empleados() {
       rhColor={rhColorRow?.value ?? null}
       vacationTodayIds={(vacs ?? []).map((v) => v.user_id as string)}
       permisoTodayIds={(incs ?? []).map((i) => i.user_id as string)}
+      adminId={meRow?.id ?? ""}
     />
   );
 }

@@ -21,6 +21,7 @@ import ConfigHub from "./hub-client";
    el mismo *Client con embedded=false (su propio PageHeader). */
 export default async function Config() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const [
     { count: usersCount },
@@ -36,6 +37,7 @@ export default async function Config() {
     { data: pausaSettingsData },
     { data: coloresAreasData },
     { data: rhColorRow },
+    { data: meRow },
   ] = await Promise.all([
     supabase.from("users").select("id", { count: "exact", head: true }).eq("active", true),
     supabase.from("departments").select("id", { count: "exact", head: true }).eq("activo", true),
@@ -54,6 +56,7 @@ export default async function Config() {
       .in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
     supabase.from("departments").select("*").order("tipo").order("nombre"),
     supabase.from("app_settings").select("value").eq("key", "rh_color").maybeSingle(),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
 
   const devices: DeviceRow[] = (devicesData ?? []).map((d) => ({
@@ -74,9 +77,20 @@ export default async function Config() {
 
   const pausaSettingsMap = Object.fromEntries((pausaSettingsData ?? []).map((s) => [s.key, s.value]));
 
+  // Antes estas dos tarjetas decían "Activo" siempre, sin importar el estado
+  // real (texto de relleno, nunca conectado a nada) — ahora reflejan algo
+  // verificable de verdad: si las credenciales de Supabase están puestas
+  // (mismo gate real que usa middleware.ts para decidir "modo demo" vs
+  // producción) y si hay una API key de Resend configurada para correo.
+  const isProdMode = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isEmailConfigured = !!process.env.RESEND_API_KEY;
+
   return (
     <ConfigHub
       topStats={{ users: usersCount ?? 0, coordinaciones: coordinacionesCount ?? 0 }}
+      isProdMode={isProdMode}
+      isEmailConfigured={isEmailConfigured}
+      adminId={meRow?.id ?? ""}
       estados={(estadosData ?? []) as (JornadaState & { id: string })[]}
       devices={devices}
       horariosTeam={(horariosTeam ?? []) as Person[]}

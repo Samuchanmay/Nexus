@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { todayMerida } from "@/lib/tz";
 import { shiftMonth, monthBounds } from "@/lib/calendar-grid";
-import CalendarioClient, { type Deadline, type VacationRange, type NextActivity } from "./client";
+import CalendarioClient, { type Deadline, type VacationRange, type NextActivity, type InstitutionalEvent } from "./client";
 
 /* ═══════════════════════════════════════════════════════════════
    Calendario personal (empleado/coordinador/departamento/rh) — mismas
@@ -26,7 +26,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
   const { data: profile } = await supabase
     .from("users").select("id, display_name").eq("auth_id", user!.id).single();
 
-  const [{ data: vacs }, { data: hols }, { data: assignments }, { data: allAssignments }, { data: activitySetting }] = await Promise.all([
+  const [{ data: vacs }, { data: hols }, { data: assignments }, { data: allAssignments }, { data: activitySetting }, { data: instEvents }] = await Promise.all([
     supabase.from("vacations").select("start_date, end_date")
       .eq("user_id", profile!.id).eq("status", "Aprobada").is("archived_at", null)
       .lte("start_date", last).gte("end_date", first),
@@ -40,6 +40,11 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
       .select("projects(deadline, status, requests(title))")
       .eq("user_id", profile!.id),
     supabase.from("app_settings").select("value").eq("key", "gcal_activity_calendar_id").maybeSingle(),
+    // FASE U — Calendarios institucionales, fusionados en esta misma vista
+    // como una capa más (solo lectura para el colaborador; RLS ya bloquea
+    // escritura para roles distintos de admin).
+    supabase.from("institutional_events").select("id, title, kind, start_date, end_date, notes")
+      .lte("start_date", last).gte("end_date", first).order("start_date"),
   ]);
 
   // Eventos ya agendados en "Eventos CERT" (Google Calendar) — misma fuente
@@ -87,6 +92,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
       gcalError={gcalError}
       nextActivity={nextActivity}
       initialFocusDate={initialFocusDate}
+      institutionalEvents={(instEvents ?? []) as InstitutionalEvent[]}
     />
   );
 }

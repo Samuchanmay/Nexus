@@ -15,6 +15,7 @@ import { PALETTE, nextAvailableColor } from "@/lib/colors";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { useHeaderAction } from "@/lib/header-actions";
 import { KIND_LABELS } from "@/lib/ui-maps";
+import { logAdminAction } from "@/lib/admin-log";
 
 /** Los roles "Equipo" (empleado) y Administrador son los que realmente
     administramos día a día (asistencia, vacaciones, incidencias) — reciben
@@ -62,9 +63,9 @@ function AreaSelect({ role, areas, value, onChange }: {
   );
 }
 
-export default function EmpleadosClient({ users, areas, rhColor, vacationTodayIds, permisoTodayIds }: {
+export default function EmpleadosClient({ users, areas, rhColor, vacationTodayIds, permisoTodayIds, adminId }: {
   users: UserProfile[]; areas: Department[]; rhColor: string | null;
-  vacationTodayIds: string[]; permisoTodayIds: string[];
+  vacationTodayIds: string[]; permisoTodayIds: string[]; adminId?: string;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -159,6 +160,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
       });
     }
     setSaving(false); setOpen(false);
+    if (adminId) logAdminAction(supabase, adminId, "Dio de alta a una persona", form.full_name.trim());
     toast("Persona agregada a la whitelist");
     router.refresh();
   };
@@ -169,6 +171,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
       .update({ active: !u.active, termination_date: u.active ? todayMerida() : null })
       .eq("id", u.id);
     if (error) { toast("No se pudo actualizar", "danger"); return; }
+    if (adminId) logAdminAction(supabase, adminId, u.active ? "Dio de baja a una persona" : "Reactivó a una persona", u.full_name ?? u.display_name ?? undefined);
     toast(u.active ? "Cuenta desactivada — su historial se conserva" : "Cuenta reactivada");
     router.refresh();
   };
@@ -260,6 +263,11 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
     }).eq("id", editing.id);
     setEditSaving(false);
     if (error) { toast("No se pudo actualizar", "danger"); return; }
+    if (adminId) {
+      const roleChanged = editForm.role !== editing.role;
+      logAdminAction(supabase, adminId, roleChanged ? "Cambió el rol de una persona" : "Editó el perfil de una persona",
+        `${editing.full_name ?? editing.display_name ?? ""}${roleChanged ? ` → ${ROLE_LABELS[editForm.role] ?? editForm.role}` : ""}`.trim());
+    }
     toast("Perfil actualizado");
     setEditing(null);
     router.refresh();

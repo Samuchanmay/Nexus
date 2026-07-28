@@ -6,6 +6,7 @@ import { IconPlus, IconX } from "@/components/icons";
 import { Icon } from "@/components/os/icons";
 import { SectionIntro } from "@/components/config-intro";
 import type { GpsZone } from "@/lib/types";
+import { logAdminAction } from "@/lib/admin-log";
 
 export type DeviceGeoRow = { id: string; last_lat: number | null; last_lng: number | null; name: string };
 
@@ -29,7 +30,7 @@ function bboxFor(lat: number, lng: number, radioM: number) {
   return { latMin: lat - latDelta, latMax: lat + latDelta, lngMin: lng - lngDelta, lngMax: lng + lngDelta };
 }
 
-export default function GpsClient({ zones, devices, embedded }: { zones: GpsZone[]; devices: DeviceGeoRow[]; embedded?: boolean }) {
+export default function GpsClient({ zones, devices, adminId, embedded }: { zones: GpsZone[]; devices: DeviceGeoRow[]; adminId?: string; embedded?: boolean }) {
   const { run, saving } = useSupabaseMutation();
   const [form, setForm] = useState({ nombre: "", lat: "", lng: "", radio_m: "50" });
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -37,18 +38,23 @@ export default function GpsClient({ zones, devices, embedded }: { zones: GpsZone
 
   const locatedDevices = devices.filter((d) => d.last_lat != null && d.last_lng != null);
 
-  const toggleActivo = (z: GpsZone) =>
-    run(() => createClient().from("gps_zones").update({ activo: !z.activo }).eq("id", z.id),
+  const toggleActivo = async (z: GpsZone) => {
+    const ok = await run(() => createClient().from("gps_zones").update({ activo: !z.activo }).eq("id", z.id),
       { ok: z.activo ? "Zona desactivada" : "Zona activada", err: "No se pudo actualizar" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, z.activo ? "Desactivó zona GPS" : "Activó zona GPS", z.nombre);
+  };
 
-  const updateField = (z: GpsZone, patch: Partial<GpsZone>) =>
-    run(() => createClient().from("gps_zones").update(patch).eq("id", z.id),
+  const updateField = async (z: GpsZone, patch: Partial<GpsZone>) => {
+    const ok = await run(() => createClient().from("gps_zones").update(patch).eq("id", z.id),
       { err: "No se pudo actualizar" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, "Editó zona GPS", z.nombre);
+  };
 
-  const remove = (z: GpsZone) => {
+  const remove = async (z: GpsZone) => {
     setConfirmId(null);
-    run(() => createClient().from("gps_zones").delete().eq("id", z.id),
+    const ok = await run(() => createClient().from("gps_zones").delete().eq("id", z.id),
       { ok: "Zona eliminada", err: "No se pudo eliminar" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, "Eliminó zona GPS", z.nombre);
   };
 
   const add = async () => {
@@ -62,7 +68,10 @@ export default function GpsClient({ zones, devices, embedded }: { zones: GpsZone
       });
       return { error: error ? { message: "No se pudo guardar la zona" } : null };
     }, { ok: "Zona creada" });
-    if (ok) setForm({ nombre: "", lat: "", lng: "", radio_m: "50" });
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, "Creó zona GPS", form.nombre.trim());
+      setForm({ nombre: "", lat: "", lng: "", radio_m: "50" });
+    }
   };
 
   const zonasActivas = zones.filter((z) => z.activo).length;

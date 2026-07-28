@@ -12,9 +12,11 @@ import GpsClient from "./client";
    (soporta múltiples sedes/puntos válidos). */
 export default async function Gps() {
   const supabase = await createClient();
-  const [{ data }, { data: devicesData }] = await Promise.all([
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data }, { data: devicesData }, { data: meRow }] = await Promise.all([
     supabase.from("gps_zones").select("*").order("nombre"),
     supabase.from("known_devices").select("id, active, last_lat, last_lng, users(display_name)").eq("active", true),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
   const devices = (devicesData ?? []).map((d) => ({
     id: d.id as string,
@@ -22,5 +24,5 @@ export default async function Gps() {
     last_lng: (d.last_lng as number | null) ?? null,
     name: (d.users as unknown as { display_name: string } | null)?.display_name ?? "—",
   }));
-  return <GpsClient zones={(data ?? []) as GpsZone[]} devices={devices} />;
+  return <GpsClient zones={(data ?? []) as GpsZone[]} devices={devices} adminId={meRow?.id ?? ""} />;
 }

@@ -11,6 +11,7 @@ import { MONTHS, DOW, shiftMonth, monthBounds, buildMonthGrid } from "@/lib/cale
 import { todayMerida } from "@/lib/tz";
 import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
 import { usePersistedView } from "@/lib/persisted-view";
+import { logAdminAction } from "@/lib/admin-log";
 
 const KIND_ICON: Record<HolidayKind, React.ComponentType<{ className?: string }>> = {
   nacional: IconCalendar, estatal: IconMapPin, empresa: IconFolder, puente: IconSun,
@@ -30,7 +31,7 @@ const EMPTY_FORM: HolidayForm = { date: "", name: "", kind: "empresa", notes: ""
  * calendario, que abre el mismo Drawer de alta en modo edición (con botón
  * Eliminar) — así no hace falta una pantalla de lista aparte para el CRUD.
  */
-export default function DiasClient({ holidays }: { holidays: Holiday[] }) {
+export default function DiasClient({ holidays, adminId }: { holidays: Holiday[]; adminId?: string }) {
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
   const { run: runGen, saving: generating } = useSupabaseMutation();
@@ -64,14 +65,20 @@ export default function DiasClient({ holidays }: { holidays: Holiday[] }) {
       if (error) return { error: { message: error.code === "23505" ? "Esa fecha ya está registrada" : "No se pudo guardar" } };
       return { error: null };
     }, { ok: editing ? "Día inhábil actualizado" : "Día inhábil agregado" });
-    if (ok) setDrawerOpen(false);
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, editing ? "Editó día inhábil" : "Agregó día inhábil", form.name.trim());
+      setDrawerOpen(false);
+    }
   };
 
   const remove = async () => {
     if (!editing) return;
     const ok = await run(() => createClient().from("holidays").delete().eq("id", editing.id),
       { ok: "Día eliminado", err: "No se pudo eliminar" });
-    if (ok) setDrawerOpen(false);
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, "Eliminó día inhábil", editing.name);
+      setDrawerOpen(false);
+    }
   };
 
   const generar = () => runGen(async () => {
@@ -81,6 +88,7 @@ export default function DiasClient({ holidays }: { holidays: Holiday[] }) {
     const { error } = await createClient().from("holidays")
       .upsert(rows, { onConflict: "date", ignoreDuplicates: true });
     if (error) return { error: { message: "No se pudieron generar" } };
+    if (adminId) logAdminAction(createClient(), adminId, "Importó feriados oficiales", genYear);
     return { error: null };
   }, { ok: `Feriados oficiales de ${genYear} importados` });
 

@@ -5,6 +5,7 @@ import { useSupabaseMutation, PageHeader, Switch, EmptyState } from "@/component
 import { Icon } from "@/components/os/icons";
 import { IconTrash } from "@/components/icons";
 import { SectionIntro } from "@/components/config-intro";
+import { logAdminAction } from "@/lib/admin-log";
 
 export interface DeviceRow {
   id: string; device_id: string; active: boolean;
@@ -38,18 +39,21 @@ function parseUA(ua: string | null): { browser: string; os: string } {
 
 const hoursSince = (iso: string) => (Date.now() - new Date(iso).getTime()) / 36e5;
 
-export default function DispositivosClient({ devices, embedded }: { devices: DeviceRow[]; embedded?: boolean }) {
+export default function DispositivosClient({ devices, adminId, embedded }: { devices: DeviceRow[]; adminId?: string; embedded?: boolean }) {
   const { run, saving } = useSupabaseMutation();
   const [revokeId, setRevokeId] = useState<string | null>(null);
 
-  const toggle = (d: DeviceRow) =>
-    run(() => createClient().from("known_devices").update({ active: !d.active }).eq("id", d.id),
+  const toggle = async (d: DeviceRow) => {
+    const ok = await run(() => createClient().from("known_devices").update({ active: !d.active }).eq("id", d.id),
       { ok: d.active ? "Dispositivo desactivado" : "Dispositivo reactivado" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, d.active ? "Desactivó dispositivo" : "Reactivó dispositivo", d.name);
+  };
 
-  const revoke = (d: DeviceRow) => {
+  const revoke = async (d: DeviceRow) => {
     setRevokeId(null);
-    run(() => createClient().from("known_devices").delete().eq("id", d.id),
+    const ok = await run(() => createClient().from("known_devices").delete().eq("id", d.id),
       { ok: "Acceso revocado — deberá volver a vincularse en su próximo fichaje", err: "No se pudo revocar" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, "Revocó acceso de dispositivo", d.name);
   };
 
   const activos = devices.filter((d) => d.active).length;
