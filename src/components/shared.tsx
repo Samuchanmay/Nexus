@@ -17,20 +17,26 @@ import { Avatar, useToast } from "./ui";
  * tone="neutral" (default): gris cuando está apagado — para ajustes binarios normales.
  * tone="status": rojo cuando está apagado — para activar/desactivar cuentas, estados, tipos, etc.
  */
-export function Switch({ checked, onChange, disabled, label, tone = "neutral" }: {
-  checked: boolean; onChange: () => void; disabled?: boolean; label?: string; tone?: "neutral" | "status";
+export function Switch({ checked, onChange, disabled, label, tone = "neutral", size = "md" }: {
+  checked: boolean; onChange: () => void; disabled?: boolean; label?: string; tone?: "neutral" | "status"; size?: "sm" | "md";
 }) {
   const offColor = tone === "status" ? "var(--danger)" : "var(--surface-3)";
+  // size="sm" — variante ligera para listas densas (p.ej. roster de Equipo,
+  // 20+ filas en pantalla): pista y perilla más chicas para que el control
+  // no compita visualmente con el resto de la fila.
+  const track = size === "sm" ? "w-7 h-4" : "w-9 h-5";
+  const thumb = size === "sm" ? "w-3 h-3" : "w-4 h-4";
+  const thumbOn = size === "sm" ? "14px" : "18px";
   return (
     <button
       type="button" role="switch" aria-checked={checked} disabled={disabled}
       onClick={onChange}
       className="inline-flex items-center gap-2 disabled:opacity-50"
     >
-      <span className="relative inline-block w-9 h-5 rounded-full shrink-0 transition-colors"
+      <span className={`relative inline-block ${track} rounded-full shrink-0 transition-colors`}
         style={{ background: checked ? "var(--ok)" : offColor, border: "1px solid var(--border)" }}>
-        <span className="absolute top-[1px] w-4 h-4 rounded-full bg-white transition-all shadow-sm"
-          style={{ left: checked ? "18px" : "1px" }} />
+        <span className={`absolute top-[1px] ${thumb} rounded-full bg-white transition-all shadow-sm`}
+          style={{ left: checked ? thumbOn : "1px" }} />
       </span>
       {label && <span className="text-[12.5px] font-semibold" style={{ color: tone === "status" ? (checked ? "var(--ok)" : "var(--danger)") : "var(--text-1)" }}>{label}</span>}
     </button>

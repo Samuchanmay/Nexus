@@ -59,7 +59,7 @@ export default async function AdminDashboard() {
     { count: pendingReqs }, { count: pendingVacs }, { count: pendingIncs },
     { count: activeProjects }, { data: myAtt }, { data: myScheds },
     { data: team }, { data: teamAtt }, { data: allScheds },
-    { data: vacsToday }, { data: urgentReqs }, { data: holidayToday },
+    { data: vacsToday }, { data: urgentReqs }, { data: holidayToday }, { data: incsToday },
     { data: reqsToday }, { data: vacsCreatedToday },
     { data: activeProjectsList }, { data: pendingRequestsList },
     { data: jornadaStates }, { data: myActionsToday },
@@ -77,6 +77,11 @@ export default async function AdminDashboard() {
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", today).gte("end_date", today),
     supabase.from("requests").select("id, title, priority").eq("status", "solicitada").in("priority", ["alta", "urgente"]),
     supabase.from("holidays").select("date, name").eq("date", today).maybeSingle(),
+    // Incidencias autorizadas vigentes hoy (permiso/incapacidad/etc.) — antes
+    // esta pantalla solo sabía de vacaciones, así que alguien con permiso
+    // aprobado y sin fichar se veía igual que alguien que simplemente no
+    // había llegado ("Sin iniciar"). FASE S.
+    supabase.from("incidents").select("user_id").eq("status", "Autorizado").lte("start_date", today).gte("end_date", today),
     supabase.from("requests").select("id, title, created_at, requester:requester_id(display_name)").gte("created_at", utcDayStart).order("created_at", { ascending: false }).limit(8),
     supabase.from("vacations").select("id, start_date, end_date, created_at, users:user_id(display_name)").gte("created_at", utcDayStart).order("created_at", { ascending: false }).limit(8),
     supabase.from("projects").select(`
@@ -160,6 +165,7 @@ export default async function AdminDashboard() {
 
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));
   const onVacation = new Set((vacsToday ?? []).map((v) => v.user_id));
+  const onIncident = new Set((incsToday ?? []).map((i) => i.user_id));
   const soonDaysOf = new Map((vacsSoon ?? []).map((v) => {
     const days = Math.round((new Date(v.start_date + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getTime()) / 86400000);
     return [v.user_id, days];
@@ -184,6 +190,7 @@ export default async function AdminDashboard() {
       firstIn: hasIn ? "00:00" : null, isOpen: !done, noRegistroSalida: false,
       liveStateName: liveState, liveStateColor: liveState ? (stateColor.get(liveState) ?? null) : null,
       onVacationToday: onVacation.has(u.id),
+      onApprovedIncidentToday: onIncident.has(u.id),
     });
     const status = done ? "Terminó" : presenceStatus.label;
     const color = presenceStatus.color;
@@ -196,7 +203,7 @@ export default async function AdminDashboard() {
 
   const pulse = {
     presentes: presence.filter((p) => p.status === TRABAJANDO).length,
-    fuera: presence.filter((p) => !["Vacaciones", "Terminó", "Sin iniciar", TRABAJANDO].includes(p.status)).length,
+    fuera: presence.filter((p) => !["Vacaciones", "Incidencia", "Terminó", "Sin iniciar", TRABAJANDO].includes(p.status)).length,
     completaron: presence.filter((p) => p.status === "Terminó").length,
     vacaciones: presence.filter((p) => p.status === "Vacaciones").length,
   };
@@ -369,8 +376,16 @@ export default async function AdminDashboard() {
           no dos tarjetas independientes que compiten entre sí (punto 9). */}
       <Card>
         {(() => {
-          const dotColor = !myDay.firstIn ? "var(--text-3)" : myDay.isOpen ? "var(--ok)" : "var(--text-3)";
-          const statusLabel = !myDay.firstIn ? "Sin iniciar" : myDay.isOpen ? "Trabajando" : "Jornada terminada";
+          // Antes esta tarjeta calculaba su propio texto ad hoc y podía decir
+          // "Sin iniciar" aunque el propio admin estuviera de vacaciones o con
+          // una incidencia aprobada hoy — ahora pasa por el mismo resolvePresence
+          // que Equipo/Asistencia/Reportes, así nunca dice cosas distintas (FASE S).
+          const myPresence = resolvePresence({
+            firstIn: myDay.firstIn, isOpen: myDay.isOpen, noRegistroSalida: false,
+            onVacationToday: onVacation.has(me!.id), onApprovedIncidentToday: onIncident.has(me!.id),
+          });
+          const dotColor = myPresence.key === "trabajando" ? "var(--ok)" : myPresence.color;
+          const statusLabel = myPresence.label;
           return (
             <>
               <LiveJornadaHero

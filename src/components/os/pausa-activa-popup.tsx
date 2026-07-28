@@ -4,6 +4,11 @@ import type { AssistantMessage } from "@/lib/assistant";
 import { useMountOnOpen } from "@/lib/use-mount-on-open";
 
 const SEEN_KEY = "nx-assistant-popup-seen";
+// "Ahora no" en Pausa activa no descarta el aviso hasta el siguiente ciclo
+// completo (podría ser 60-90 min) — snooze corto: vuelve a insistir en
+// SNOOZE_MIN minutos, sin esperar todo el intervalo configurado.
+const SNOOZE_KEY = "nx-pausa-activa-snooze-until";
+const SNOOZE_MIN = 10;
 
 /** Ilustración propia de Nexus — taza + vapor, estilo flat monolínea (mismo
     lenguaje que components/icons.tsx). Reemplaza el emoji ☕ unicode que
@@ -51,11 +56,23 @@ function fmtElapsed(min: number): string {
 export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] }) {
   const msg = messages.find((m) => m.id === "cumpleanos") ?? messages.find((m) => m.id.startsWith("pausa-activa-")) ?? null;
   const [shownId, setShownId] = useState<string | null>(null);
+  // Se re-evalúa cada tick para poder volver a mostrarse en cuanto expira un
+  // snooze, incluso si el padre no vuelve a recalcular `messages` mientras
+  // tanto (el heartbeat de pausa activa puede tardar en volver a tocar).
+  const [, forceTick] = useState(0);
 
   useEffect(() => {
     if (!msg) return;
-    const seen = sessionStorage.getItem(SEEN_KEY);
-    if (seen !== msg.id) setShownId(msg.id);
+    const check = () => {
+      const seen = sessionStorage.getItem(SEEN_KEY);
+      if (seen === msg.id) return;
+      const snoozeUntil = Number(sessionStorage.getItem(SNOOZE_KEY) || 0);
+      if (Date.now() < snoozeUntil) { forceTick((n) => n + 1); return; }
+      setShownId(msg.id);
+    };
+    check();
+    const t = setInterval(check, 15_000);
+    return () => clearInterval(t);
   }, [msg]);
 
   const open = !!msg && shownId === msg.id;
@@ -63,8 +80,18 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
   // Sheet/NotificationBell: nunca queda un overlay fantasma en el DOM.
   const { mounted, visible } = useMountOnOpen(open, 220);
 
+  // "Tomaré una pausa" — acuse de recibo real: no vuelve a insistir hasta
+  // el siguiente ciclo (nuevo id de pausa-activa-N).
   const dismiss = () => {
     if (msg) sessionStorage.setItem(SEEN_KEY, msg.id);
+    setShownId(null);
+  };
+
+  // "Ahora no" — solo para pausa activa: snooze corto (SNOOZE_MIN), NO
+  // marca el id como "visto" para siempre, así puede volver a aparecer
+  // antes del próximo ciclo si el usuario sigue trabajando sin pausar.
+  const snooze = () => {
+    sessionStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MIN * 60_000));
     setShownId(null);
   };
 
@@ -99,7 +126,7 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
         onClick={(e) => e.stopPropagation()}
       >
         {isPausaActiva ? (
-          <PausaActivaBody msg={msg} onDismiss={dismiss} />
+          <PausaActivaBody msg={msg} onDismiss={dismiss} onSnooze={snooze} />
         ) : (
           <>
             <div className="mx-auto w-14 h-14 rounded-full mb-4 nx-msg-icon-bounce flex items-center justify-center"
@@ -119,7 +146,7 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
 /** Cuerpo de pausa activa — jerarquía de 5 niveles (ilustración → título →
     mensaje principal → explicación con el tiempo destacado → botones),
     exactamente en ese orden y sin repetir "Pausa activa" dos veces. */
-function PausaActivaBody({ msg, onDismiss }: { msg: AssistantMessage; onDismiss: () => void }) {
+function PausaActivaBody({ msg, onDismiss, onSnooze }: { msg: AssistantMessage; onDismiss: () => void; onSnooze: () => void }) {
   const elapsed = msg.elapsedMin != null ? fmtElapsed(msg.elapsedMin) : null;
   return (
     <>
@@ -151,7 +178,7 @@ function PausaActivaBody({ msg, onDismiss }: { msg: AssistantMessage; onDismiss:
       {/* 5 — Botones: acción principal + salida sin fricción. */}
       <div className="flex flex-col gap-2 mt-6">
         <button className="btn-primary w-full py-2.5" onClick={onDismiss}>Tomaré una pausa</button>
-        <button className="btn-tertiary w-full py-2" onClick={onDismiss}>Ahora no</button>
+        <button className="btn-tertiary w-full py-2" onClick={onSnooze}>Ahora no</button>
       </div>
     </>
   );

@@ -23,7 +23,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
 
   const [
     { data: att }, { data: weekAtt }, { data: sched }, { data: assignments }, { data: jornadaStates }, { data: actTypes },
-    { data: pausaFrases }, { data: pausaSettings }, { data: myVacs }, { data: holidayToday },
+    { data: pausaFrases }, { data: pausaSettings }, { data: myVacs }, { data: holidayToday }, { data: myIncsToday },
   ] = await Promise.all([
     supabase.from("attendance").select("*").eq("user_id", profile.id).eq("date", today).order("time"),
     supabase.from("attendance").select("date").eq("user_id", profile.id).gte("date", monday).lte("date", sunday),
@@ -38,7 +38,12 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
     // Vacaciones propias — para el Context Header (hoy / próximas / regreso reciente).
     supabase.from("vacations").select("start_date, end_date").eq("user_id", profile.id).eq("status", "Aprobada").is("archived_at", null),
     supabase.from("holidays").select("date").eq("date", today).maybeSingle(),
+    // Incidencia propia autorizada vigente hoy — sin esto "Mi jornada" decía
+    // "Sin iniciar" aunque la persona tuviera permiso/incapacidad aprobada y,
+    // correctamente, no hubiera fichado (FASE S).
+    supabase.from("incidents").select("id").eq("user_id", profile.id).eq("status", "Autorizado").lte("start_date", today).gte("end_date", today).limit(1),
   ]);
+  const incidentToday = (myIncsToday ?? []).length > 0;
   const vacToday = (myVacs ?? []).some((v) => v.start_date <= today && v.end_date >= today);
   const vacSoonRow = (myVacs ?? [])
     .filter((v) => v.start_date > today && v.start_date <= addDays(today, 3))
@@ -134,6 +139,7 @@ export default async function MiDia({ searchParams }: { searchParams: Promise<{ 
       context={{
         vacation: { today: vacToday, soonDays: vacSoonDays, returnedRecently: vacReturnedRecently },
         isHoliday: !!holidayToday,
+        incidentToday,
       }}
       day={{
         totalMin: day.totalMin, targetMin: day.targetMin, isOpen: day.isOpen, hasEntry: !!day.firstIn,

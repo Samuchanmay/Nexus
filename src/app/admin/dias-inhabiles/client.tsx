@@ -164,7 +164,7 @@ export default function DiasClient({ holidays }: { holidays: Holiday[] }) {
             <h2 className="text-[16px] font-bold capitalize">{MONTHS[month - 1]} {year}</h2>
             <div className="flex items-center gap-2">
               <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, -1))}>← Mes anterior</button>
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(today.slice(0, 7))}>Hoy</button>
+              <button className="btn-tertiary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(today.slice(0, 7))}>Hoy</button>
               <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, 1))}>Mes siguiente →</button>
               <Select
                 value={String(year)} onChange={(v) => setYm(`${v}-${String(month).padStart(2, "0")}`)}
@@ -177,7 +177,7 @@ export default function DiasClient({ holidays }: { holidays: Holiday[] }) {
           <div className="grid grid-cols-7 gap-1.5 mb-2">
             {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
           </div>
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="grid grid-cols-7 gap-2">
             {monthCells.map((c) => {
               const h = holidayOf.get(c.date);
               const style = h ? holidayStyle(h.kind) : null;
@@ -186,17 +186,17 @@ export default function DiasClient({ holidays }: { holidays: Holiday[] }) {
                   key={c.date} type="button" disabled={!c.inMonth}
                   onClick={() => { if (h) openEdit(h); }}
                   title={h ? `${dmy(c.date)} · ${h.name} (${HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind})` : dmy(c.date)}
-                  className="rounded-sm p-1.5 min-h-[56px] flex flex-col items-center justify-start gap-1 transition-colors"
+                  className="rounded-sm p-2 min-h-[72px] flex flex-col items-start justify-start gap-1.5 transition-colors text-left"
                   style={{
-                    background: "var(--surface-2)",
+                    background: h ? style!.bg : "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.3,
                     outline: c.date === today ? "2px solid var(--accent)" : undefined,
                     outlineOffset: "-2px",
                     cursor: h ? "pointer" : "default",
                   }}>
-                  <p className="text-[12px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>{c.day}</p>
+                  <p className="text-[12px] font-bold tabular-nums" style={{ color: h ? style!.fg : "var(--text-2)" }}>{c.day}</p>
                   {h && (
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: style!.fg }} />
+                    <p className="text-[10.5px] font-semibold leading-tight line-clamp-2" style={{ color: style!.fg }}>{h.name}</p>
                   )}
                 </button>
               );

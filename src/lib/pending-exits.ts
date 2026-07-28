@@ -107,7 +107,8 @@ export async function resolvePendingExit(
   return { ok: true };
 }
 
-/** La persona no recuerda su hora exacta: pide que RH lo valide manualmente. */
+/** La persona no recuerda su hora exacta: pide que un Administrador (antes
+    era flujo exclusivo de RH sin pantalla real — FASE R) lo valide manualmente. */
 export async function requestRhValidation(
   supabase: SupabaseClient, userId: string, date: string, note: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -115,5 +116,59 @@ export async function requestRhValidation(
     .update({ requested_rh_validation: true, resolved_reason: note || null })
     .eq("user_id", userId).eq("date", date).eq("status", "pendiente");
   if (error) return { ok: false, error: error.message };
+  // Aviso a Administrador — antes esta solicitud quedaba muda en la tabla,
+  // sin ninguna pantalla que la mostrara. notify_admins ya existe en la BD
+  // (0006_notification_link.sql), solo faltaba llamarlo desde aquí.
+  await supabase.rpc("notify_admins", {
+    p_title: "Salida pendiente de validar",
+    p_body: `Alguien del equipo pidió confirmar manualmente su salida del ${date}.`,
+    p_kind: "incident",
+    p_link: "/admin/nexus",
+  });
+  return { ok: true };
+}
+
+/**
+ * Administrador confirma la hora real de salida en nombre de la persona
+ * (mismo camino de datos que resolvePendingExit, pero disparado desde el
+ * panel de Asistencia) y le notifica que ya quedó resuelto.
+ */
+export async function adminResolvePendingExit(
+  supabase: SupabaseClient, userId: string, date: string, time: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error: attErr } = await supabase.from("attendance").insert({
+    user_id: userId, type: "Salida", reason: "Fin de jornada", date, time,
+    lat: null, lng: null, distance_m: null, device_id: "jornada-pendiente-resuelta-admin",
+  });
+  if (attErr) return { ok: false, error: attErr.message };
+  const { error: peErr } = await supabase.from("pending_exits")
+    .update({ status: "resuelta", resolved_time: time, resolved_at: new Date().toISOString() })
+    .eq("user_id", userId).eq("date", date).eq("status", "pendiente");
+  if (peErr) return { ok: false, error: peErr.message };
+  await supabase.rpc("create_notification", {
+    p_user_id: userId,
+    p_title: "Tu salida pendiente quedó confirmada",
+    p_body: `Un administrador confirmó tu salida del ${date} a las ${time.slice(0, 5)}.`,
+    p_kind: "info",
+    p_link: null,
+  });
+  return { ok: true };
+}
+
+/** Administrador determina que de verdad no hay forma de recuperar la hora — cierra el caso como definitivo. */
+export async function adminMarkNoRegistro(
+  supabase: SupabaseClient, userId: string, date: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await supabase.from("pending_exits")
+    .update({ status: "no_registro", resolved_at: new Date().toISOString() })
+    .eq("user_id", userId).eq("date", date).eq("status", "pendiente");
+  if (error) return { ok: false, error: error.message };
+  await supabase.rpc("create_notification", {
+    p_user_id: userId,
+    p_title: "Tu salida del " + date + " quedó marcada como no registrada",
+    p_body: "Un administrador cerró el caso porque no fue posible confirmar la hora real de salida.",
+    p_kind: "incident",
+    p_link: null,
+  });
   return { ok: true };
 }

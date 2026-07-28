@@ -22,6 +22,7 @@ import { createPortal } from "react-dom";
 import { IconCalendar } from "./icons";
 import { useMountOnOpen } from "@/lib/use-mount-on-open";
 import { MONTHS, DOW, buildMonthGrid, monthBounds, shiftMonth } from "@/lib/calendar-grid";
+import { addDays } from "@/lib/tz";
 
 function cx(...a: (string | false | null | undefined)[]) {
   return a.filter(Boolean).join(" ");
@@ -52,7 +53,7 @@ function todayIsoOf() {
 /* ── CalendarGrid: rejilla mensual — día único o rango. Mismos colores,
    radios, tipografía, hover, "hoy" y "seleccionado" en TODA la app. ── */
 function CalendarGrid({
-  ym, onYm, value, range, isBlocked, onPick,
+  ym, onYm, value, range, isBlocked, onPick, focused,
 }: {
   ym: string;
   onYm: (ym: string) => void;
@@ -60,6 +61,10 @@ function CalendarGrid({
   range?: { start: string | null; end: string | null };
   isBlocked?: (date: string) => boolean;
   onPick: (date: string) => void;
+  /** Fecha con el anillo de foco de teclado (flechas), independiente de la
+      selección — así se puede recorrer el mes sin alterar lo ya elegido
+      hasta presionar Enter. */
+  focused?: string | null;
 }) {
   const todayIso = todayIsoOf();
   const { first, last, daysInMonth, year, month } = monthBounds(ym);
@@ -111,7 +116,7 @@ function CalendarGrid({
                 }} />
               )}
               <button
-                type="button" disabled={blocked}
+                type="button" disabled={blocked} data-date={c.date}
                 onClick={() => onPick(c.date)}
                 className={cx(
                   "relative z-10 w-full h-full rounded-full text-[12.5px] flex items-center justify-center transition-colors",
@@ -122,6 +127,8 @@ function CalendarGrid({
                   color: selected ? "#fff" : blocked ? "var(--text-3)" : isToday ? "var(--accent)" : "var(--text-1)",
                   fontWeight: selected || isToday ? 800 : 600,
                   boxShadow: selected ? "0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent)" : "none",
+                  outline: focused === c.date ? "2px solid var(--accent)" : "none",
+                  outlineOffset: focused === c.date ? "2px" : "0",
                   cursor: blocked ? "default" : "pointer",
                   textDecoration: blocked ? "line-through" : "none",
                 }}
@@ -157,15 +164,26 @@ function FooterRow({ footer }: { footer: Footer }) {
    backdrop-blur, Sheets con transform, motion.div animado, etc.) —
    así se resuelve el bug de z-index de raíz, en todos los usos a la vez. ── */
 function DateSheetShell({
-  open, anchorRef, onClose, title, children, footer,
+  open, anchorRef, onClose, title, children, footer, onKeyDown,
 }: {
   open: boolean; anchorRef: RefObject<HTMLElement | null>; onClose: () => void;
   title: string; children: React.ReactNode; footer: Footer;
+  /** Navegación por teclado (flechas/Enter) — el shell solo maneja ESC
+      (cierra, universal); el resto lo interpreta quien sabe de fechas
+      (DatePicker/DateRangeField), porque mover el cursor un día no es
+      genérico del shell. */
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }) {
   const isMobile = useIsMobile();
   const [dragY, setDragY] = useState(0);
   const dragging = useRef(false);
   const startY = useRef(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") { e.stopPropagation(); onClose(); return; }
+    onKeyDown?.(e);
+  };
 
   // Ambos hooks se llaman siempre, sin condicionar por isMobile (Rules of
   // Hooks) — isMobile puede cambiar entre renders (resize cruzando el
@@ -174,6 +192,7 @@ function DateSheetShell({
   const { mounted: showDesktopShell, visible } = useMountOnOpen(open && !isMobile, 180);
 
   useEffect(() => { if (!open) setDragY(0); }, [open]);
+  useEffect(() => { if (open) requestAnimationFrame(() => panelRef.current?.focus()); }, [open]);
 
   // anchorRef ya no se usa para posicionar (Sistema global de overlays: los
   // popovers de selección SIEMPRE abren centrados en pantalla, nunca debajo
@@ -198,7 +217,7 @@ function DateSheetShell({
       <div className="fixed inset-0 z-[900] flex items-end justify-center"
         style={{ background: "rgba(0,0,0,.4)", backdropFilter: "blur(12px)" }}
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-        <div className="w-full max-w-[520px] flex flex-col"
+        <div ref={panelRef} tabIndex={-1} onKeyDown={handleKeyDown} className="w-full max-w-[520px] flex flex-col outline-none"
           style={{
             height: "70vh",
             background: "var(--surface)",
@@ -248,7 +267,8 @@ function DateSheetShell({
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full rounded-lg overflow-hidden shadow-nx"
+        ref={panelRef} tabIndex={-1} onKeyDown={handleKeyDown}
+        className="w-full rounded-lg overflow-hidden shadow-nx outline-none"
         style={{
           maxWidth: 320,
           border: "1px solid var(--border)", background: "var(--panel)",
@@ -318,14 +338,30 @@ export function DatePicker({ value, onChange, placeholder = "dd/mm/aaaa", classN
   const todayIso = todayIsoOf();
   const [pending, setPending] = useState(value || "");
   const [ym, setYm] = useState((value || minDate || todayIso).slice(0, 7));
+  const [focused, setFocused] = useState(value || minDate || todayIso);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const isBlocked = (date: string) => (!!minDate && date < minDate) || (!!maxDate && date > maxDate);
 
   const openSheet = () => {
+    const start = value || minDate || todayIso;
     setPending(value || "");
-    setYm((value || minDate || todayIso).slice(0, 7));
+    setYm(start.slice(0, 7));
+    setFocused(start);
     setOpen(true);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      const delta = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" ? -7 : 7;
+      const next = addDays(focused, delta);
+      setFocused(next);
+      if (next.slice(0, 7) !== ym) setYm(next.slice(0, 7));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (!isBlocked(focused)) setPending(focused);
+    }
   };
 
   return (
@@ -340,15 +376,16 @@ export function DatePicker({ value, onChange, placeholder = "dd/mm/aaaa", classN
       </div>
       <DateSheetShell
         open={open} anchorRef={wrapRef} onClose={() => setOpen(false)} title="Seleccionar fecha"
+        onKeyDown={onKeyDown}
         footer={{
           onCancel: () => setOpen(false),
-          onToday: () => { if (!isBlocked(todayIso)) { setPending(todayIso); setYm(todayIso.slice(0, 7)); } },
+          onToday: () => { if (!isBlocked(todayIso)) { setPending(todayIso); setFocused(todayIso); setYm(todayIso.slice(0, 7)); } },
           onApply: () => { onChange(pending); setOpen(false); },
         }}
       >
         <CalendarGrid
-          ym={ym} onYm={setYm} value={pending} isBlocked={isBlocked}
-          onPick={(date) => { if (!isBlocked(date)) setPending(date); }}
+          ym={ym} onYm={setYm} value={pending} isBlocked={isBlocked} focused={focused}
+          onPick={(date) => { if (!isBlocked(date)) { setPending(date); setFocused(date); } }}
         />
       </DateSheetShell>
     </div>
@@ -370,6 +407,7 @@ export function DateRangeField({
   const [pStart, setPStart] = useState<string | null>(start);
   const [pEnd, setPEnd] = useState<string | null>(end);
   const [ym, setYm] = useState((start ?? minDate ?? todayIso).slice(0, 7));
+  const [focused, setFocused] = useState(start ?? minDate ?? todayIso);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const isBlocked = (date: string) => (!!minDate && date < minDate) || !!holidays?.has(date) || !!disabledDates?.has(date);
@@ -386,8 +424,23 @@ export function DateRangeField({
 
   const openSheet = () => {
     setPStart(start); setPEnd(end);
-    setYm((start ?? minDate ?? todayIso).slice(0, 7));
+    const at = start ?? minDate ?? todayIso;
+    setYm(at.slice(0, 7));
+    setFocused(at);
     setOpen(true);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      const delta = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" ? -7 : 7;
+      const next = addDays(focused, delta);
+      setFocused(next);
+      if (next.slice(0, 7) !== ym) setYm(next.slice(0, 7));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pick(focused);
+    }
   };
 
   return (
@@ -399,13 +452,14 @@ export function DateRangeField({
       </button>
       <DateSheetShell
         open={open} anchorRef={wrapRef} onClose={() => setOpen(false)} title="Selecciona el rango"
+        onKeyDown={onKeyDown}
         footer={{
           onCancel: () => setOpen(false),
-          onToday: () => { if (!isBlocked(todayIso)) setYm(todayIso.slice(0, 7)); },
+          onToday: () => { if (!isBlocked(todayIso)) { setFocused(todayIso); setYm(todayIso.slice(0, 7)); } },
           onApply: () => { onSelect(pStart, pEnd); setOpen(false); },
         }}
       >
-        <CalendarGrid ym={ym} onYm={setYm} range={{ start: pStart, end: pEnd }} isBlocked={isBlocked} onPick={pick} />
+        <CalendarGrid ym={ym} onYm={setYm} range={{ start: pStart, end: pEnd }} isBlocked={isBlocked} onPick={pick} focused={focused} />
       </DateSheetShell>
     </div>
   );

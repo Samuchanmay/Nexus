@@ -22,6 +22,7 @@ import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
 import { ContextHeader } from "@/components/context-header";
 import type { ContextHeaderInput } from "@/lib/context-header";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
+import { resolvePresence } from "@/lib/status";
 
 interface Task {
   assignmentId: string; isLead: boolean; projectId: string;
@@ -44,6 +45,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
   context: {
     vacation: { today: boolean; soonDays: number | null; returnedRecently: boolean };
     isHoliday: boolean;
+    incidentToday?: boolean;
   };
   day: {
     totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
@@ -360,8 +362,15 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
           tiempo trabajado grande, objetivo, barra de progreso, hora de entrada. ── */}
       <Card>
         {(() => {
-          const dotColor = !day.hasEntry ? "var(--text-3)" : day.isOpen ? "var(--ok)" : "var(--text-3)";
-          const statusLabel = !day.hasEntry ? "Sin iniciar" : day.isOpen ? "Trabajando" : "Jornada terminada";
+          // Mismo criterio que el Dashboard admin (FASE S): pasa por
+          // resolvePresence en vez de un ternario propio, para que vacaciones
+          // o una incidencia aprobada hoy nunca se vean como "Sin iniciar".
+          const myPresence = resolvePresence({
+            firstIn: day.hasEntry ? (day.firstIn ?? "00:00") : null, isOpen: day.isOpen, noRegistroSalida: false,
+            onVacationToday: context.vacation.today, onApprovedIncidentToday: !!context.incidentToday,
+          });
+          const dotColor = myPresence.key === "trabajando" ? "var(--ok)" : myPresence.color;
+          const statusLabel = myPresence.label;
           return (
             <LiveJornadaHero
               firstIn={day.firstIn ?? null} totalMin={day.totalMin} targetMin={day.targetMin}

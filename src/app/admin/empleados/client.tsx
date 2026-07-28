@@ -6,7 +6,7 @@ import type { UserProfile, Department } from "@/lib/types";
 import { useToast, Sheet, Avatar, DatePicker, Menu, MenuItem, Select, TimePicker } from "@/components/ui";
 import {
   IconUserPlus, IconCamera, IconChevronLeft, IconClipboard, IconPen, IconCalendar, IconX,
-  IconMail, IconPhone, IconBuilding, IconAlert,
+  IconMail, IconPhone, IconBuilding,
 } from "@/components/icons";
 import { Switch, Field } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
@@ -363,6 +363,11 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
       >
         {/* Avatar 44px + punto de estado (activo/vacaciones/baja/…) + badge
             separado de "perfil incompleto" (esquina opuesta, nunca compiten). */}
+        {/* Avatar único — sin badge de alerta superpuesto (con 14/20 perfiles
+            incompletos, un ícono de alarma repetido en cada fila era ruido,
+            no señal; el conteo ya vive en el encabezado del módulo). El
+            estado "incompleto" ahora es un badge de texto discreto junto al
+            cargo/departamento, ver abajo. */}
         <span className="relative shrink-0">
           <Avatar
             name={u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
@@ -370,22 +375,13 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
             birthday={isBirthdayToday(u.birth_date, todayISO())}
             status={status.color} statusLabel={status.label}
           />
-          {!u.onboarded && (
-            <span
-              className="absolute -top-0.5 -right-0.5 w-[15px] h-[15px] rounded-full grid place-items-center"
-              style={{ background: "var(--warn)", boxShadow: "0 0 0 2px var(--surface)" }}
-              title="Perfil incompleto — aún no ha iniciado sesión"
-            >
-              <IconAlert className="w-[9px] h-[9px] text-white" />
-            </span>
-          )}
         </span>
 
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold truncate">
             {u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
           </p>
-          {(u.title || dept) && (
+          {(u.title || dept || !u.onboarded) && (
             <div className="flex items-center gap-1.5 mt-[3px]">
               {u.title && (
                 <span
@@ -400,6 +396,13 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                   style={{ background: "var(--surface-2)", color: "var(--text-3)" }}
                   title={dept}
                 >{dept}</span>
+              )}
+              {!u.onboarded && (
+                <span
+                  className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                  style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
+                  title="Aún no ha iniciado sesión — perfil incompleto"
+                >Incompleto</span>
               )}
             </div>
           )}
@@ -449,7 +452,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
         </div>
 
         <span onClick={(e) => e.stopPropagation()} className="shrink-0">
-          <Switch tone="status" checked={u.active} onChange={() => requestToggle(u)} />
+          <Switch size="sm" tone="neutral" checked={u.active} onChange={() => requestToggle(u)} />
         </span>
       </div>
     );

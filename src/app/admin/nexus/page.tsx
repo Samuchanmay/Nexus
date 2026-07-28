@@ -3,7 +3,7 @@ import { summarizeDay, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, addDays } from "@/lib/tz";
-import AsistenciaClient, { type PersonDay, type WeekRow } from "./client";
+import AsistenciaClient, { type PersonDay, type WeekRow, type PendingValidation } from "./client";
 import type { WeekBlock, DayDetail } from "./xlsx-weekly-report";
 
 const DIAS_LARGO = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -75,7 +75,7 @@ export default async function AsistenciaEquipo() {
   const today = todayMerida();
   const since = addDays(today, -56); // 8 semanas
 
-  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area, title, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
     supabase.from("schedules").select("*"),
@@ -88,6 +88,16 @@ export default async function AsistenciaEquipo() {
     supabase.from("vacations").select("user_id, start_date, end_date")
       .eq("status", "Aprobada").is("archived_at", null).gte("end_date", today),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+    // Salidas olvidadas que la propia persona ya no puede confirmar y pidió
+    // validación manual — antes era un flujo exclusivo de RH sin pantalla
+    // real; ahora Administrador también lo resuelve desde Asistencia
+    // (FASE R). Trae el nombre para no cruzar contra `team` (team ya viene
+    // filtrado a active=true, pero una salida pendiente puede ser de
+    // cualquier persona con jornada, activa o no).
+    supabase.from("pending_exits")
+      .select("id, user_id, date, resolved_reason, users:user_id(display_name, avatar_url, nexus_color)")
+      .eq("status", "pendiente").eq("requested_rh_validation", true)
+      .order("date", { ascending: true }),
   ]);
   // "Próximo" = arranca en los próximos 3 días (mismo umbral que "Saldo
   // bajo" en Vacaciones admin) — ventana corta, solo lo inminente.
@@ -173,10 +183,20 @@ export default async function AsistenciaEquipo() {
   }
   weekBlocks.sort((a, b) => b.weekStart.localeCompare(a.weekStart) || a.name.localeCompare(b.name));
 
+  type PendingExitRow = {
+    id: string; user_id: string; date: string; resolved_reason: string | null;
+    users: { display_name: string; avatar_url: string | null; nexus_color: string | null } | null;
+  };
+  const pendingValidations: PendingValidation[] = ((pendingExits ?? []) as unknown as PendingExitRow[]).map((p) => ({
+    id: p.id, userId: p.user_id, date: p.date, note: p.resolved_reason,
+    userName: p.users?.display_name ?? "—", avatarUrl: p.users?.avatar_url ?? null, color: p.users?.nexus_color ?? null,
+  }));
+
   return (
     <AsistenciaClient
       people={people} states={states} weekRows={weekRows} weekBlocks={weekBlocks}
       reportSettings={reportSettings} today={today} adminId={meRes?.data?.id ?? ""}
+      pendingValidations={pendingValidations}
     />
   );
 }

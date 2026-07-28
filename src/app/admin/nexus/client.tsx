@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useState } from "react";
 import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
-import { IconDownload } from "@/components/icons";
+import { IconDownload, IconClock, IconX } from "@/components/icons";
 import { usePersistedView } from "@/lib/persisted-view";
 import { PageHeader, Switch } from "@/components/shared";
 import { createClient } from "@/lib/supabase/client";
@@ -17,7 +17,14 @@ import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { logAdminAction } from "@/lib/admin-log";
+import { adminResolvePendingExit, adminMarkNoRegistro } from "@/lib/pending-exits";
+import { TimePicker } from "@/components/select";
 import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
+
+export interface PendingValidation {
+  id: string; userId: string; date: string; note: string | null;
+  userName: string; avatarUrl: string | null; color: string | null;
+}
 
 export interface PersonDay {
   user: {
@@ -122,11 +129,44 @@ function estadoStatus(day: PersonDay["day"], vacation?: Vacation): { color: stri
   return estadoOf(day, vacation);
 }
 
-export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId }: {
+export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId, pendingValidations }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[]; weekBlocks: WeekBlock[];
   reportSettings: { enabled: boolean; email: string }; today: string; adminId: string;
+  pendingValidations: PendingValidation[];
 }) {
   const toast = useToast();
+  // FASE R — cola de "salida olvidada" escalada por la propia persona
+  // (antes era un flujo de RH sin ninguna pantalla real: los registros se
+  // quedaban mudos en la tabla). Estado local para poder quitar la tarjeta
+  // al resolver sin esperar un refresh completo de la página.
+  const [pending, setPending] = useState(pendingValidations);
+  useEffect(() => setPending(pendingValidations), [pendingValidations]);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveTime, setResolveTime] = useState("");
+  const [savingResolve, setSavingResolve] = useState(false);
+
+  const confirmExit = async (p: PendingValidation) => {
+    if (!resolveTime) { toast("Elige la hora antes de confirmar", "danger"); return; }
+    setSavingResolve(true);
+    const res = await adminResolvePendingExit(createClient(), p.userId, p.date, resolveTime);
+    setSavingResolve(false);
+    if (!res.ok) { toast(res.error || "No se pudo confirmar", "danger"); return; }
+    setPending((prev) => prev.filter((x) => x.id !== p.id));
+    setResolvingId(null); setResolveTime("");
+    if (adminId) logAdminAction(createClient(), adminId, "Confirmó salida pendiente", `${p.userName} · ${p.date}`);
+    toast("Salida confirmada");
+  };
+
+  const markNoRegistro = async (p: PendingValidation) => {
+    setSavingResolve(true);
+    const res = await adminMarkNoRegistro(createClient(), p.userId, p.date);
+    setSavingResolve(false);
+    if (!res.ok) { toast(res.error || "No se pudo marcar", "danger"); return; }
+    setPending((prev) => prev.filter((x) => x.id !== p.id));
+    setResolvingId(null); setResolveTime("");
+    if (adminId) logAdminAction(createClient(), adminId, "Marcó salida sin registro", `${p.userName} · ${p.date}`);
+    toast("Marcado como no registrado");
+  };
   const [view, setView] = usePersistedView<"tabla" | "gantt" | "semana">(
     "asistencia.view", ["tabla", "gantt", "semana"], "tabla"
   );
@@ -217,6 +257,54 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           </div>
         </div>
       </PageHeader>
+
+      {pending.length > 0 && (
+        <div className="card p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <IconClock className="w-4 h-4 text-[var(--warn)]" />
+            <p className="text-[13.5px] font-bold">Salidas pendientes de validar</p>
+            <span className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+              — {pending.length} {pending.length === 1 ? "persona pidió" : "personas pidieron"} confirmación manual
+            </span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {pending.map((p) => (
+              <div key={p.id} className="rounded-m border border-border p-3" style={{ background: "var(--surface)" }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Avatar name={p.userName} color={p.color} avatarUrl={p.avatarUrl} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13.5px] font-semibold truncate">{p.userName}</p>
+                    <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
+                      {dmy(p.date)}{p.note ? ` — "${p.note}"` : ""}
+                    </p>
+                  </div>
+                  {resolvingId !== p.id ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button className="btn-secondary px-3 py-1.5 text-[12.5px]" onClick={() => { setResolvingId(p.id); setResolveTime(""); }}>
+                        Confirmar hora
+                      </button>
+                      <button className="btn-tertiary px-3 py-1.5 text-[12.5px]" disabled={savingResolve} onClick={() => markNoRegistro(p)}>
+                        Sin registro
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <TimePicker value={resolveTime} onChange={setResolveTime} className="field-input text-[12.5px] py-1.5 w-[140px] flex items-center justify-between gap-2 text-left" />
+                      <button className="btn-primary px-3 py-1.5 text-[12.5px]" disabled={savingResolve} onClick={() => confirmExit(p)}>
+                        Guardar
+                      </button>
+                      <button className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3" style={{ color: "var(--text-3)" }}
+                        onClick={() => { setResolvingId(null); setResolveTime(""); }} aria-label="Cancelar">
+                        <IconX className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {view === "semana" && (
         <div className="card p-4 mb-4 flex items-center gap-4 flex-wrap">
