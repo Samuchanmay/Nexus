@@ -36,11 +36,27 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-Deno.serve(async (req) => {
-  const cors = {
-    "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "https://nexus-samu09.vercel.app",
+// S-CORS-FIX: lista de orígenes permitidos (no un solo dominio fijo) — un
+// cambio de dominio, o agregar uno nuevo (ej. futura migración a emet.uno),
+// ya no vuelve a bloquear silenciosamente las peticiones del navegador.
+// ALLOWED_ORIGINS (env, opcional, separado por comas) se suma a esta lista.
+const ALLOWED_ORIGINS = [
+  "https://nexus-cert01.vercel.app",
+  "https://nexus-samu09.vercel.app",
+  "https://emet.uno",
+  ...(Deno.env.get("ALLOWED_ORIGINS")?.split(",").map((s) => s.trim()).filter(Boolean) ?? []),
+];
+function corsFor(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
     "Access-Control-Allow-Headers": "authorization, content-type",
+    "Vary": "Origin",
   };
+}
+
+Deno.serve(async (req) => {
+  const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
