@@ -137,11 +137,15 @@ body {
 /* Antes 1.4× — el salto de color entre sidebar y contenido se notaba
    demasiado (auditoría punto 12); mucho más sutil ahora, tipo Arc. */
 [data-theme="dark"][data-mesh].mesh::before { opacity: 1.05; }
-/* Los mismos valores rgba se afinaron a ojo sobre fondo oscuro (por eso el
-   boost de arriba) — sobre #FBFBFD casi blanco, ese mismo tinte se ve
-   lavado/sucio en vez de brillar (queja de diseño, ronda 4). Nunca se había
-   definido nada específico para claro; ahora sí, mucho más tenue. */
-[data-theme="light"][data-mesh].mesh::before { opacity: 0.45; }
+/* Ronda 4: se agregó opacity:0.45 aquí asumiendo que "se ve sucio en modo
+   claro" quería decir "demasiado intenso" — equivocado. La regla base
+   .mesh::before (arriba) nunca tuvo opacity propia (implícito 1), así que
+   claro SIEMPRE se vio al 100% antes de esa ronda. Bajarlo a 0.45 lo dejó
+   casi invisible (queja real del usuario, ronda 5). Se revierte a 1 —
+   vuelve a verse como antes de la ronda 4 — mientras se decide un
+   tratamiento mejor para el look "lavado" sobre #FBFBFD (no es cuestión de
+   opacidad sino de cómo esos mismos rgba se leen sobre casi-blanco). */
+[data-theme="light"][data-mesh].mesh::before { opacity: 1; }
 
 /* ── Saludo animado (emoji 👋 en encabezados de Hoy/Mi Día) ── */
 .wave-emoji { display: inline-block; transform-origin: 70% 70%; animation: nx-wave 1.6s ease-in-out 1; }
