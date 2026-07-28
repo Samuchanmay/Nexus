@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { AppShell } from "@/components/os/app-shell";
-import { roleLabel, type Role } from "@/lib/nav";
+import { roleLabel } from "@/lib/nav";
 
-// Enlace es el único módulo abierto a los 5 roles por igual (a diferencia
-// de admin/comunicacion/coordinador/rh, que gatean por rol específico) —
-// necesita su propio layout en vez de vivir dentro de uno existente.
-export default async function EnlaceLayout({ children }: { children: React.ReactNode }) {
+// Chat es solo para el equipo interno de CERT (admin + empleado) — a
+// diferencia del primer intento (Enlace), NO es para coordinador/
+// departamento/rh: esos roles son contrapartes externas que le piden
+// cosas a CERT vía Solicitudes, no compañeros de equipo. Mismo criterio
+// de rol que ya usa comunicacion/layout.tsx para "la experiencia de equipo".
+export default async function ChatLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -16,8 +18,9 @@ export default async function EnlaceLayout({ children }: { children: React.React
   if (!profile) redirect("/login?error=no-autorizado");
   if (!profile.onboarded) redirect("/onboarding");
   if (!profile.active) redirect("/");
+  if (!["admin", "empleado"].includes(profile.role)) redirect("/");
 
-  const role = (profile.role as Role) ?? "empleado";
+  const role = profile.role === "admin" ? "admin" : "empleado";
 
   return (
     <ToastProvider>

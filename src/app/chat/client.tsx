@@ -96,7 +96,7 @@ export default function EnlaceListClient({
 
   return (
     <div className="max-w-[720px] mx-auto pb-16">
-      <PageHeader title="Enlace" subtitle="Mensajes con tu equipo">
+      <PageHeader title="Chat" subtitle="Mensajes con tu equipo">
         <Button variant="primary" icon="plus" onClick={() => setNewOpen(true)}>Nuevo</Button>
       </PageHeader>
 
@@ -120,7 +120,7 @@ export default function EnlaceListClient({
                 avatarUrl={avatarUrl}
                 color={color}
                 meta={preview}
-                onClick={() => router.push(`/enlace/${c.id}`)}
+                onClick={() => router.push(`/chat/${c.id}`)}
                 right={c.last_message_at ? (
                   <span className="text-[11px] shrink-0" style={{ color: "var(--text-3)" }}>{timeAgo(c.last_message_at)}</span>
                 ) : undefined}
@@ -133,7 +133,7 @@ export default function EnlaceListClient({
       <NewConversationSheet
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        onCreated={(id) => { setNewOpen(false); router.push(`/enlace/${id}`); }}
+        onCreated={(id) => { setNewOpen(false); router.push(`/chat/${id}`); }}
         myId={myId}
         onToast={(msg) => toast(msg, "danger")}
       />
@@ -161,10 +161,15 @@ function NewConversationSheet({
     if (!open) return;
     setMode("direct"); setSearch(""); setSelected(new Set()); setGroupName("");
     const supabase = createClient();
+    // Solo equipo interno (admin/empleado) — coordinador/departamento/rh no
+    // deben aparecer como destino de chat. El filtro real (que no se puede
+    // saltar) vive en las funciones nx_enlace_* (ver migración 0012);
+    // este es el filtro de UI para no ni mostrarlos como opción.
     supabase
       .from("users_directory")
-      .select("id, display_name, avatar_url, nexus_color")
+      .select("id, display_name, avatar_url, nexus_color, role")
       .eq("active", true)
+      .in("role", ["admin", "empleado"])
       .neq("id", myId)
       .order("display_name")
       .then(({ data }) => setPeople((data ?? []) as ParticipantLite[]));
