@@ -8,15 +8,16 @@ import { createClient } from "@/lib/supabase/server";
 // movió a /app (ver src/app/app/page.tsx) — login y las guardias de rol
 // redirigen ahí, nunca a "/".
 //
-// Orden narrativo (ronda de auditoría): Hero → Problema → Solución →
-// Funcionalidades → Beneficios → Capturas → Footer. Antes iba directo de
-// Hero a una lista de módulos, sin explicar primero qué problema resuelve
-// EMET — de ahí que se sintiera "una página de login ampliada" en vez de
-// un sitio institucional.
+// Orden narrativo (ronda de corrección final para Google): Hero → ¿Qué es
+// EMET? → ¿Cómo funciona? → Casos de uso → Funcionalidades → Beneficios →
+// Footer. Google reportó que la portada no dejaba claro el propósito de
+// la app en los primeros segundos — este orden antepone una definición
+// explícita (qué es, quién lo usa, qué problema resuelve, por qué existe)
+// a la lista de módulos, en vez de asumir que se infiere del contexto.
 export const metadata = {
-  title: "EMET · Sistema operativo para organizaciones",
+  title: "EMET | Sistema operativo para organizaciones",
   description:
-    "EMET centraliza la comunicación, la operación, la gestión del tiempo y la colaboración de los equipos en una sola plataforma.",
+    "EMET es una plataforma web para organizaciones que centraliza la comunicación, la operación, la gestión del tiempo y la colaboración de los equipos en un solo lugar.",
 };
 
 const FUNCIONALIDADES = [
@@ -36,6 +37,22 @@ const BENEFICIOS = [
   { title: "Procesos claros", desc: "Cada solicitud, aprobación y registro sigue un flujo definido, visible para quien lo necesita." },
   { title: "Menos herramientas", desc: "Un sistema en vez de cinco suscripciones distintas que hay que mantener sincronizadas a mano." },
   { title: "Más productividad", desc: "Menos tiempo buscando información y coordinando por mensajes, más tiempo operando." },
+];
+
+const FLUJO = [
+  { paso: "Organización", desc: "Un administrador da de alta a la organización y define sus áreas o departamentos." },
+  { paso: "Usuarios", desc: "Cada colaborador entra con una cuenta de Google autorizada por el administrador." },
+  { paso: "Comunicación", desc: "El equipo se coordina por chat, anuncios y notificaciones dentro de la misma plataforma." },
+  { paso: "Operación", desc: "Asistencia, solicitudes y actividades se registran a medida que ocurren, no al final del mes." },
+  { paso: "Reportes", desc: "La organización consulta esa información ya ordenada, sin armar nada a mano." },
+];
+
+const CASOS_DE_USO = [
+  { title: "Instituciones educativas", desc: "Coordinan personal docente y administrativo, asistencia y comunicación institucional en un solo sistema." },
+  { title: "Empresas", desc: "Centralizan la operación diaria de sus equipos sin depender de hojas de cálculo y chats sueltos." },
+  { title: "Equipos administrativos", desc: "Dan seguimiento a solicitudes, aprobaciones y tareas con un flujo claro y trazable." },
+  { title: "Departamentos de Recursos Humanos", desc: "Gestionan asistencia, vacaciones y directorio de colaboradores desde un mismo lugar." },
+  { title: "Equipos de comunicación", desc: "Publican avisos y anuncios institucionales que todo el equipo ve en el mismo canal." },
 ];
 
 export default async function LandingPage() {
@@ -69,15 +86,16 @@ export default async function LandingPage() {
               Sistema operativo para organizaciones.
             </p>
             <p className="text-[15px] sm:text-[16px] leading-relaxed max-w-[520px] mx-auto mb-10" style={{ color: "var(--text-2)" }}>
-              EMET centraliza la comunicación, la operación, la gestión del tiempo y la
-              colaboración de los equipos en una sola plataforma.
+              EMET es una plataforma web para organizaciones: centraliza la comunicación, la
+              operación, la gestión del tiempo y la colaboración de sus equipos en un solo
+              lugar, en vez de repartirlas entre varias herramientas distintas.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Link href={ctaHref} className="btn-primary px-6 py-3.5 text-[14.5px] font-semibold">
                 {ctaLabel}
               </Link>
               <a
-                href="#problema"
+                href="#que-es"
                 className="px-6 py-3.5 text-[14.5px] font-semibold rounded-sm"
                 style={{ color: "var(--text-1)", border: "1px solid var(--border)" }}
               >
@@ -87,41 +105,82 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* ── Problema ── */}
-        <section id="problema" className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="problema-heading">
-          <div className="max-w-[680px] mx-auto text-center">
-            <h2 id="problema-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight mb-4">
-              La operación de un equipo vive repartida en demasiados lugares
+        {/* ── ¿Qué es EMET? ── */}
+        <section id="que-es" className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="que-es-heading">
+          <div className="max-w-[680px] mx-auto text-center flex flex-col gap-5">
+            <h2 id="que-es-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight">
+              ¿Qué es EMET?
             </h2>
-            <p className="text-[15px] leading-relaxed" style={{ color: "var(--text-2)" }}>
-              Asistencia en una hoja de cálculo, solicitudes por correo, avisos importantes
-              perdidos en un chat de WhatsApp, reportes armados a mano cada mes. Cada
-              herramienta resuelve una parte, pero nadie tiene una vista completa de cómo
-              está operando realmente la organización.
+            <p className="text-[15px] leading-relaxed text-left" style={{ color: "var(--text-2)" }}>
+              EMET es un software — una plataforma web — para organizaciones que necesitan
+              operar como equipo: instituciones educativas, empresas y departamentos
+              administrativos que hoy coordinan su trabajo repartido entre hojas de cálculo,
+              chats sueltos y correos.
+            </p>
+            <p className="text-[15px] leading-relaxed text-left" style={{ color: "var(--text-2)" }}>
+              Cada una de esas herramientas resuelve una parte del trabajo, pero ninguna
+              muestra el conjunto: nadie tiene una vista completa de cómo está operando
+              realmente la organización. EMET existe para reunir esa operación —
+              comunicación, asistencia, solicitudes, actividades y reportes — en un solo
+              sistema, con la misma información disponible para todo el equipo.
             </p>
           </div>
         </section>
 
-        {/* ── Solución ── */}
-        <section id="solucion" className="px-5 sm:px-10 py-20 sm:py-24" aria-labelledby="solucion-heading">
-          <div className="max-w-[680px] mx-auto text-center">
-            <h2 id="solucion-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight mb-4">
-              EMET reúne esa operación en un solo sistema
+        {/* ── ¿Cómo funciona? ── */}
+        <section className="px-5 sm:px-10 py-20 sm:py-24" aria-labelledby="funciona-heading">
+          <div className="max-w-[680px] mx-auto">
+            <h2 id="funciona-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
+              ¿Cómo funciona?
             </h2>
-            <p className="text-[15px] leading-relaxed" style={{ color: "var(--text-2)" }}>
-              En vez de coordinar cinco herramientas distintas, cada persona de la
-              organización entra a un mismo lugar para comunicarse, registrar su jornada,
-              hacer solicitudes y dar seguimiento a su trabajo — con información que se
-              mantiene consistente para todo el equipo.
+            <p className="text-[14.5px] text-center max-w-[480px] mx-auto mb-10" style={{ color: "var(--text-2)" }}>
+              El mismo flujo, de principio a fin, sin cambiar de herramienta.
             </p>
+            <ol className="flex flex-col gap-3">
+              {FLUJO.map((f, i) => (
+                <li key={f.paso} className="card p-5 flex items-start gap-4">
+                  <span
+                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-[12.5px] font-bold"
+                    style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+                    aria-hidden="true"
+                  >
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="text-[14.5px] font-bold mb-1">{f.paso}</p>
+                    <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)" }}>{f.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── Casos de uso ── */}
+        <section className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="casos-heading">
+          <div className="max-w-[960px] mx-auto">
+            <h2 id="casos-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
+              Casos de uso
+            </h2>
+            <p className="text-[14.5px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
+              Pensado para organizaciones que necesitan operar con claridad.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {CASOS_DE_USO.map((c) => (
+                <div key={c.title} className="card p-5">
+                  <p className="text-[14.5px] font-bold mb-1.5">{c.title}</p>
+                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)" }}>{c.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* ── Funcionalidades ── */}
-        <section id="funcionalidades" className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="funcionalidades-heading">
+        <section id="funcionalidades" className="px-5 sm:px-10 py-20 sm:py-24" aria-labelledby="funcionalidades-heading">
           <div className="max-w-[960px] mx-auto">
             <h2 id="funcionalidades-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
-              Así se ve en la práctica
+              Funcionalidades
             </h2>
             <p className="text-[14.5px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
               Todo lo que un equipo necesita para operar, en un solo sistema.
@@ -138,7 +197,7 @@ export default async function LandingPage() {
         </section>
 
         {/* ── Beneficios ── */}
-        <section id="beneficios" className="px-5 sm:px-10 py-20 sm:py-24" aria-labelledby="beneficios-heading">
+        <section className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="beneficios-heading">
           <div className="max-w-[960px] mx-auto">
             <h2 id="beneficios-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
               Lo que cambia al centralizar todo
@@ -154,19 +213,6 @@ export default async function LandingPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ── Por qué EMET ── */}
-        <section className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="por-que-heading">
-          <div className="max-w-[680px] mx-auto text-center">
-            <h2 id="por-que-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight mb-4">¿Por qué EMET?</h2>
-            <p className="text-[15px] leading-relaxed" style={{ color: "var(--text-2)" }}>
-              EMET está pensado para organizaciones educativas, empresas y equipos de trabajo
-              que necesitan operar con claridad: menos herramientas dispersas, menos procesos
-              manuales, y un solo lugar donde cada persona encuentra lo que necesita para
-              hacer su trabajo.
-            </p>
           </div>
         </section>
 
@@ -187,7 +233,7 @@ export default async function LandingPage() {
               <Link href="/contact" className="hover:underline">Contacto</Link>
             </nav>
           </div>
-          <p className="text-[11.5px] text-center mt-6" style={{ color: "var(--text-3)" }}>
+          <p className="text-[11.5px] text-center mt-6" style={{ color: "var(--text-2)" }}>
             Desarrollado por Samu Chan
           </p>
         </footer>

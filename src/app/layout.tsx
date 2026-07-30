@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 const SITE_URL = "https://emet.uno";
-const SITE_TITLE = "EMET · Sistema operativo para organizaciones";
+const SITE_TITLE = "EMET | Sistema operativo para organizaciones";
 const SITE_DESCRIPTION =
-  "EMET centraliza la comunicación, la operación, la gestión del tiempo y la colaboración de los equipos en una sola plataforma.";
+  "EMET es una plataforma web para organizaciones que centraliza la comunicación, la operación, la gestión del tiempo y la colaboración de los equipos en un solo lugar.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -40,10 +40,9 @@ export const viewport: Viewport = {
   width: "device-width", initialScale: 1, viewportFit: "cover",
 };
 
-// JSON-LD: le da a Google (y a cualquier buscador) una descripción
-// estructurada de qué es EMET, sin depender de que el crawler interprete
-// bien el HTML visual. Ayuda directamente con el motivo de rechazo de
-// OAuth "la portada no explica el propósito de la app".
+// JSON-LD: descripción estructurada de qué es EMET, independiente de que
+// el crawler interprete bien el HTML visual. Apunta directo al motivo de
+// rechazo "la portada no explica el propósito de la app".
 const ORG_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
