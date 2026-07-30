@@ -62,7 +62,7 @@ export default async function LandingPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const ctaHref = user ? "/app" : "/login";
-  const ctaLabel = user ? "Ir a mi panel" : "Iniciar sesión";
+  const ctaLabel = user ? "Acceder a EMET" : "Iniciar sesión";
 
   return (
     <>
@@ -83,12 +83,13 @@ export default async function LandingPage() {
             </div>
             <h1 className="text-[44px] sm:text-[56px] font-bold tracking-tight leading-none mb-3">EMET</h1>
             <p className="text-[19px] sm:text-[22px] font-semibold mb-4" style={{ color: "var(--text-2)" }}>
-              Sistema operativo para organizaciones.
+              Sistema operativo para organizaciones educativas, empresas y equipos de trabajo.
             </p>
-            <p className="text-[15px] sm:text-[16px] leading-relaxed max-w-[520px] mx-auto mb-10" style={{ color: "var(--text-2)" }}>
-              EMET es una plataforma web para organizaciones: centraliza la comunicación, la
-              operación, la gestión del tiempo y la colaboración de sus equipos en un solo
-              lugar, en vez de repartirlas entre varias herramientas distintas.
+            <p className="text-[15px] sm:text-[16px] leading-relaxed max-w-[560px] mx-auto mb-10" style={{ color: "var(--text-2)" }}>
+              EMET es una plataforma web que centraliza la comunicación, la asistencia, las
+              solicitudes, los proyectos, el calendario, los reportes y la operación diaria de
+              un equipo en un solo lugar — sin hojas de cálculo, sin chats dispersos y sin
+              depender de varias herramientas distintas.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Link href={ctaHref} className="btn-primary px-6 py-3.5 text-[14.5px] font-semibold">
@@ -102,6 +103,31 @@ export default async function LandingPage() {
                 Conocer más
               </a>
             </div>
+          </div>
+        </section>
+
+        {/* ── ¿Qué puedes hacer con EMET? ── */}
+        <section className="px-5 sm:px-10 py-16 sm:py-20" aria-labelledby="capacidades-heading">
+          <div className="max-w-[720px] mx-auto">
+            <h2 id="capacidades-heading" className="text-[22px] sm:text-[26px] font-bold tracking-tight text-center mb-8">
+              ¿Qué puedes hacer con EMET?
+            </h2>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 max-w-[520px] mx-auto">
+              {[
+                "Gestionar colaboradores",
+                "Registrar asistencia",
+                "Aprobar vacaciones y solicitudes",
+                "Coordinar proyectos y actividades",
+                "Comunicación interna",
+                "Calendario institucional",
+                "Reportes",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2.5 text-[14px]" style={{ color: "var(--text-1)" }}>
+                  <span aria-hidden="true" style={{ color: "var(--ok)" }}>✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -233,8 +259,8 @@ export default async function LandingPage() {
               <Link href="/contact" className="hover:underline">Contacto</Link>
             </nav>
           </div>
-          <p className="text-[11.5px] text-center mt-6" style={{ color: "var(--text-2)" }}>
-            Desarrollado por Samu Chan
+          <p className="text-[11.5px] text-center mt-6 max-w-[440px] mx-auto" style={{ color: "var(--text-2)" }}>
+            EMET es un software SaaS para organizaciones, desarrollado por Samu Chan.
           </p>
         </footer>
       </main>

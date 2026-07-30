@@ -12,10 +12,7 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   alternates: { canonical: SITE_URL },
   icons: {
-    icon: [
-      { url: "/logo-emet-isotipo.svg", type: "image/svg+xml" },
-      { url: "/logo-emet-icon.png", sizes: "256x256", type: "image/png" },
-    ],
+    icon: [{ url: "/logo-emet-icon.png", sizes: "512x512", type: "image/png" }],
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",

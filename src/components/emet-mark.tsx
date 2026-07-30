@@ -1,12 +1,10 @@
-// Isotipo real de EMET: SVG vectorial puro (no un recorte de imagen).
-// Tres trazos que convergen en un punto central, en el gradiente morado
-// del brand book. Al ser SVG escala sin pixelarse y no arrastra ningun
-// residuo de fondo, a diferencia del PNG recortado que usaba esta ronda
-// anterior.
+// Isotipo oficial de EMET — logo aprobado (archivo entregado por Samu),
+// no una reinterpretación. Recorte con transparencia real desde el PNG
+// original, sin residuo de fondo.
 export function EmetMark({ size = 40 }: { size?: number }) {
   return (
     <img
-      src="/logo-emet-isotipo.svg"
+      src="/logo-emet-icon.png"
       alt="EMET"
       width={size}
       height={size}
