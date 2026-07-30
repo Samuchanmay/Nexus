@@ -29,7 +29,12 @@ export function usePushNotifications(userId: string | undefined) {
 
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          // El cast a BufferSource es solo para el checker: los tipos globales de
+          // Uint8Array/DOM lib de esta versión de TS son estrictos sobre el tipo
+          // de buffer subyacente (ArrayBuffer vs ArrayBufferLike), pero en runtime
+          // esto siempre es un ArrayBuffer real — Uint8Array.from() nunca produce
+          // un SharedArrayBuffer.
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
         });
 
         subRef.current = sub;
