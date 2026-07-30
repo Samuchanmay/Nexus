@@ -3,6 +3,19 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/legal"];
 
+// Dominio canonico: la app vive en un solo lugar (emet.uno). Los alias
+// *.vercel.app siguen existiendo en Vercel (utiles para preview/debug),
+// pero cualquier trafico real que aterrice ahi se redirige aqui mismo -
+// asi la sesion (cookies de Supabase, scoped por host) nunca queda
+// fragmentada entre dominios distintos.
+const CANONICAL_HOST = "emet.uno";
+const OLD_HOSTS = new Set([
+  "nexus-samu09.vercel.app",
+  "nexus-cert01.vercel.app",
+  "nexus-git-main-samu09.vercel.app",
+  "www.emet.uno",
+]);
+
 // MFA obligatorio para Admin y RH (rutas con acceso a datos sensibles de
 // todo el equipo — ver AskUserQuestion respondida por defecto: TOTP +
 // Admin/RH, ninguna respuesta explícita llegó, así que se documenta como
@@ -13,6 +26,15 @@ const MFA_REQUIRED_ROLES = new Set(["admin", "rh"]);
 const MFA_PATHS = "/mfa";
 
 export async function middleware(request: NextRequest) {
+  const host = request.nextUrl.hostname;
+  if (OLD_HOSTS.has(host)) {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.protocol = "https:";
+    canonicalUrl.hostname = CANONICAL_HOST;
+    canonicalUrl.port = "";
+    return NextResponse.redirect(canonicalUrl, 308);
+  }
+
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
