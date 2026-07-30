@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-// Punto de entrada autenticado. Antes viv\u00eda en "/", pero la ra\u00edz del
-// sitio ahora es la landing p\u00fablica (ver src/app/page.tsx) - requisito de
-// verificaci\u00f3n de Google OAuth: Google necesita cargar https://emet.uno
-// sin iniciar sesi\u00f3n. Login y cualquier guardia de rol redirigen aqu\u00ed
+// Punto de entrada autenticado. Antes vivía en "/", pero la raíz del
+// sitio ahora es la landing pública (ver src/app/page.tsx) - requisito de
+// verificación de Google OAuth: Google necesita cargar https://emet.uno
+// sin iniciar sesión. Login y cualquier guardia de rol redirigen aquí
 // ("/app"), nunca a "/".
 export default async function AppEntry() {
   const supabase = await createClient();

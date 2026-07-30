@@ -62,10 +62,10 @@ function LoginInner() {
           </svg>
           {loading ? "Conectando…" : "Continuar con Google"}
         </button>
-        <p className="text-[12px] mt-6" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] mt-6" style={{ color: "var(--text-2)" }}>
           Solo correos autorizados por el administrador
         </p>
-        <p className="text-[12px] mt-8" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] mt-8" style={{ color: "var(--text-2)" }}>
           Hecho con ❤️ por Samu Chan
         </p>
       </div>

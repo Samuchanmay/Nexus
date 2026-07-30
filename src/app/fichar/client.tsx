@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
+import { EmetMark } from "@/components/emet-mark";
 import type { AttendanceReason } from "@/lib/types";
 import type { AccionJornada, ContextoJornada, Momento } from "@/lib/jornada-flow";
 import type { Quote } from "./quotes";
@@ -202,8 +203,7 @@ export default function FicharClient({
         </button>
 
         <div className="text-center mb-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-cert.png" alt="Logo CERT" className="w-14 h-14 mx-auto object-contain mb-2" />
+          <div className="flex justify-center mb-2"><EmetMark size={56} /></div>
           <h1 className="text-[19px] font-bold" style={{ color: "var(--text-1)" }}>Registro de jornada</h1>
           <p className="text-[12.5px] mt-0.5" style={{ color: "var(--text-2)" }}>{fechaHora}</p>
         </div>

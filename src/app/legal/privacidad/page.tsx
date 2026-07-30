@@ -34,7 +34,7 @@ export default function AvisoPrivacidad() {
 
         <div className="card p-6 sm:p-9">
           <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight mb-1.5">Aviso de Privacidad Integral</h1>
-          <p className="text-[13px] mb-6" style={{ color: "var(--text-3)" }}>
+          <p className="text-[13px] mb-6" style={{ color: "var(--text-2)" }}>
             Última actualización: 17 de julio de 2026
           </p>
 
@@ -210,7 +210,7 @@ export default function AvisoPrivacidad() {
           </div>
         </div>
 
-        <p className="text-center text-[12px] mt-6" style={{ color: "var(--text-3)" }}>
+        <p className="text-center text-[12px] mt-6" style={{ color: "var(--text-2)" }}>
           EMET
         </p>
       </div>

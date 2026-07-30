@@ -283,10 +283,10 @@ function Sidebar({ items, active, onGo, className, theme }: {
     <aside className={cx("w-[248px] shrink-0 flex-col bg-sidebar border-r border-border", className)}>
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={theme === "dark" ? "/logo-cert-dark.png" : "/logo-cert-light.png"} alt="CERT" className="h-7 w-7 object-contain shrink-0" />
+        <img src="/logo-emet-isotipo.svg" alt="EMET" className="h-7 w-7 object-contain shrink-0" />
         <div className="leading-tight">
-          <p className="text-[15px] font-bold text-text-1">Emet</p>
-          <p className="text-[12px] text-text-3 -mt-0.5">CERT · Comunicación</p>
+          <p className="text-[15px] font-bold text-text-1">EMET</p>
+          <p className="text-[12px] text-text-3 -mt-0.5">Sistema operativo</p>
         </div>
       </div>
 

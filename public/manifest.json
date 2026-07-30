@@ -5,17 +5,10 @@
   "start_url": "/login",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#5b3df5",
+  "theme_color": "#6D28D9",
   "icons": [
-    {
-      "src": "/logo-emet-icon.png",
-      "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "/favicon.ico",
-      "sizes": "48x48 32x32 16x16",
-      "type": "image/x-icon"
-    }
+    { "src": "/logo-emet-isotipo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

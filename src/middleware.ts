@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATH_PREFIXES = ["/login", "/auth", "/legal", "/contact"];
-// Coincidencia exacta (no prefijo) para la ra\u00edz: usar startsWith("/")
-// har\u00eda p\u00fablica cualquier ruta, ya que todas empiezan con "/".
+// Coincidencia exacta (no prefijo) para la raíz: usar startsWith("/")
+// haría pública cualquier ruta, ya que todas empiezan con "/".
 const PUBLIC_EXACT_PATHS = new Set(["/", "/robots.txt", "/sitemap.xml", "/manifest.json"]);
 
 // Dominio canonico: la app vive en un solo lugar (emet.uno). Los alias

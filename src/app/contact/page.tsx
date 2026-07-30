@@ -9,8 +9,8 @@ export default function ContactPage() {
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault();
-    const asunto = encodeURIComponent(`Contacto EMET \u2014 ${nombre || "sin nombre"}`);
-    const cuerpo = encodeURIComponent(`${mensaje}\n\n\u2014\n${nombre} <${correo}>`);
+    const asunto = encodeURIComponent(`Contacto EMET — ${nombre || "sin nombre"}`);
+    const cuerpo = encodeURIComponent(`${mensaje}\n\n—\n${nombre} <${correo}>`);
     window.location.href = `mailto:samuel.chan@cert.edu.mx?subject=${asunto}&body=${cuerpo}`;
   };
 
@@ -24,8 +24,8 @@ export default function ContactPage() {
 
         <div className="card p-6 sm:p-8">
           <h1 className="text-[24px] sm:text-[28px] font-bold tracking-tight mb-1.5 text-center">Contacto</h1>
-          <p className="text-[13.5px] mb-7 text-center" style={{ color: "var(--text-3)" }}>
-            \u00bfPreguntas sobre EMET? Escr\u00edbenos y te respondemos lo antes posible.
+          <p className="text-[13.5px] mb-7 text-center" style={{ color: "var(--text-2)" }}>
+            ¿Preguntas sobre EMET? Escríbenos y te respondemos lo antes posible.
           </p>
 
           <p className="text-[13px] mb-6 text-center rounded-sm px-4 py-3" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
@@ -65,8 +65,8 @@ export default function ContactPage() {
             </button>
           </form>
 
-          <p className="text-[11.5px] mt-5 text-center" style={{ color: "var(--text-3)" }}>
-            Al enviar, se abrir\u00e1 tu cliente de correo con el mensaje ya redactado.
+          <p className="text-[11.5px] mt-5 text-center" style={{ color: "var(--text-2)" }}>
+            Al enviar, se abrirá tu cliente de correo con el mensaje ya redactado.
           </p>
         </div>
       </div>
