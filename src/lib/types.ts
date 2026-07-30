@@ -178,10 +178,17 @@ export interface EnlaceParticipant {
   role: "admin" | "member";
   joined_at: string;
   muted: boolean;
+  /** Fijado/archivado por usuario — cada participante tiene su propio
+      estado, no es una propiedad de la conversación (ver migración
+      chat_signal_style_foundations). */
+  pinned: boolean;
+  archived: boolean;
+  last_read_at: string;
   users?: { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null } | null;
 }
 
-export type EnlaceMessageType = "text" | "image" | "file";
+export type EnlaceMessageType = "text" | "image" | "file" | "system";
+export type EnlaceMessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";
 
 export interface EnlaceMessage {
   id: string;
@@ -191,6 +198,19 @@ export interface EnlaceMessage {
   content: string | null;
   reply_to_id: string | null;
   edited: boolean;
+  created_at: string;
+  status: EnlaceMessageStatus;
+  /** Solo existe en el cliente antes de que el insert confirme — se manda
+      como columna `client_id` para que el outbox pueda reconciliar sin
+      duplicar si un reintento sí había llegado la primera vez. */
+  client_id?: string | null;
+}
+
+export interface EnlaceReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
   created_at: string;
 }
 

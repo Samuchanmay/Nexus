@@ -64,6 +64,24 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
     }
   }
 
+  // Mi propia fila de participante por conversación — silenciado/fijado/
+  // archivado/último leído son por usuario (ver migración
+  // chat_signal_style_foundations), así que se leen aparte de la lista de
+  // "quién más está en la conversación" de arriba.
+  let myStateByConv: Record<string, { muted: boolean; pinned: boolean; archived: boolean; last_read_at: string }> = {};
+  if (convIds.length > 0) {
+    const { data: mine } = await supabase
+      .from("conversation_participants")
+      .select("conversation_id, muted, pinned, archived, last_read_at")
+      .eq("user_id", myId)
+      .in("conversation_id", convIds);
+    for (const row of mine ?? []) {
+      myStateByConv[row.conversation_id] = {
+        muted: row.muted, pinned: row.pinned, archived: row.archived, last_read_at: row.last_read_at,
+      };
+    }
+  }
+
   return (
     <ToastProvider>
       <AppShell
@@ -82,6 +100,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
           myId={myId}
           initialConversations={(conversations ?? []) as EnlaceConversation[]}
           participantsByConv={participantsByConv}
+          myStateByConv={myStateByConv}
         >
           {children}
         </ChatShell>

@@ -1,14 +1,18 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PersonRow, EmptyState } from "@/components/shared";
 import { useToast, Sheet, CheckBox } from "@/components/ui";
 import { Button, Input } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
+import { ConversationRow } from "@/components/chat/conversation-row";
 import type { EnlaceConversation } from "@/lib/types";
 
 export type ParticipantLite = { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null };
+export type MyConvState = { muted: boolean; pinned: boolean; archived: boolean; last_read_at: string };
+
+type MessageHit = { id: string; conversation_id: string; content: string | null; sender_name: string };
 
 function timeAgo(iso: string | null): string {
   if (!iso) return "";
@@ -31,6 +35,8 @@ function conversationDisplay(c: EnlaceConversation, myId: string, participants: 
   return { name: other?.display_name ?? "Conversación", avatarUrl: other?.avatar_url ?? null, color: other?.nexus_color ?? "#0066FF" };
 }
 
+const DEFAULT_STATE: MyConvState = { muted: false, pinned: false, archived: false, last_read_at: new Date(0).toISOString() };
+
 // ChatShell — panel de lista (izquierda) + conversación abierta (derecha),
 // visibles al mismo tiempo en escritorio (como WhatsApp Web). En celular
 // solo se ve un panel a la vez: la lista en /chat, la conversación en
@@ -40,11 +46,12 @@ function conversationDisplay(c: EnlaceConversation, myId: string, participants: 
 // recargar al abrir/cerrar una conversación: la lista, su suscripción de
 // tiempo real y el estado de scroll quedan intactos.
 export default function ChatShell({
-  myId, initialConversations, participantsByConv, children,
+  myId, initialConversations, participantsByConv, myStateByConv, children,
 }: {
   myId: string;
   initialConversations: EnlaceConversation[];
   participantsByConv: Record<string, ParticipantLite[]>;
+  myStateByConv: Record<string, MyConvState>;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -52,11 +59,16 @@ export default function ChatShell({
   const toast = useToast();
   const [conversations, setConversations] = useState(initialConversations);
   const [participants, setParticipants] = useState(participantsByConv);
+  const [myState, setMyState] = useState(myStateByConv);
   const [newOpen, setNewOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [messageHits, setMessageHits] = useState<MessageHit[]>([]);
 
   const atRoot = pathname === "/chat";
   const selectedId = !atRoot ? pathname.split("/")[2] : undefined;
+
+  const stateFor = useCallback((id: string) => myState[id] ?? DEFAULT_STATE, [myState]);
 
   // Realtime: RLS ya limita qué conversaciones puede ver este usuario, así
   // que no hace falta un filtro adicional aquí — cualquier INSERT/UPDATE
@@ -70,7 +82,7 @@ export default function ChatShell({
         setConversations((cur) => {
           const exists = cur.some((c) => c.id === row.id);
           const next = exists ? cur.map((c) => (c.id === row.id ? row : c)) : [row, ...cur];
-          return [...next].sort((a, b) => (b.last_message_at ?? "").localeCompare(a.last_message_at ?? ""));
+          return [...next];
         });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversations" }, (payload) => {
@@ -108,14 +120,117 @@ export default function ChatShell({
     return () => { active = false; };
   }, [conversations, participants]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return conversations;
-    const q = search.toLowerCase();
-    return conversations.filter((c) => {
+  // Búsqueda unificada — personas/grupos por nombre (en memoria, ya
+  // cargados) + mensajes (consulta a Supabase, con un pequeño debounce).
+  // Todo desde la misma caja, como pedía la referencia de Signal.
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < 2) { setMessageHits([]); return; }
+    let active = true;
+    const t = setTimeout(async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("messages")
+        .select("id, conversation_id, content, sender_id")
+        .ilike("content", `%${q}%`)
+        .eq("type", "text")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      if (!active || !data) return;
+      const senderIds = Array.from(new Set(data.map((m) => m.sender_id)));
+      const { data: senders } = senderIds.length
+        ? await supabase.from("users_directory").select("id, display_name").in("id", senderIds)
+        : { data: [] as { id: string; display_name: string }[] };
+      const nameById = new Map((senders ?? []).map((s) => [s.id, s.display_name]));
+      setMessageHits(data.map((m) => ({
+        id: m.id, conversation_id: m.conversation_id, content: m.content,
+        sender_name: nameById.get(m.sender_id) ?? "Alguien",
+      })));
+    }, 250);
+    return () => { active = false; clearTimeout(t); };
+  }, [search]);
+
+  const filteredConversations = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    const base = conversations.filter((c) => !stateFor(c.id).archived);
+    const matched = !q ? base : base.filter((c) => {
       const { name } = conversationDisplay(c, myId, participants[c.id] ?? []);
-      return name.toLowerCase().includes(q);
+      const namesMatch = name.toLowerCase().includes(q);
+      const memberMatch = (participants[c.id] ?? []).some((p) => p.display_name.toLowerCase().includes(q));
+      return namesMatch || memberMatch;
     });
-  }, [conversations, participants, myId, search]);
+    // Fijadas primero, luego por actividad reciente — el punto de fijar es
+    // exactamente que no se pierdan en el orden cronológico normal.
+    return [...matched].sort((a, b) => {
+      const pa = stateFor(a.id).pinned, pb = stateFor(b.id).pinned;
+      if (pa !== pb) return pa ? -1 : 1;
+      return (b.last_message_at ?? "").localeCompare(a.last_message_at ?? "");
+    });
+  }, [conversations, participants, myId, search, stateFor]);
+
+  const archivedConversations = useMemo(
+    () => conversations.filter((c) => stateFor(c.id).archived),
+    [conversations, stateFor]
+  );
+
+  const patchState = (id: string, patch: Partial<MyConvState>) => {
+    setMyState((cur) => ({ ...cur, [id]: { ...(cur[id] ?? DEFAULT_STATE), ...patch } }));
+  };
+
+  const toggleMute = async (id: string) => {
+    const supabase = createClient();
+    patchState(id, { muted: !stateFor(id).muted });
+    const { error } = await supabase.rpc("nx_enlace_toggle_mute", { p_conversation_id: id });
+    if (error) { patchState(id, { muted: stateFor(id).muted }); toast(error.message, "danger"); }
+  };
+  const togglePin = async (id: string) => {
+    const supabase = createClient();
+    patchState(id, { pinned: !stateFor(id).pinned });
+    const { error } = await supabase.rpc("nx_enlace_toggle_conversation_pin", { p_conversation_id: id });
+    if (error) { patchState(id, { pinned: stateFor(id).pinned }); toast(error.message, "danger"); }
+  };
+  const toggleArchive = async (id: string) => {
+    const supabase = createClient();
+    patchState(id, { archived: !stateFor(id).archived });
+    const { error } = await supabase.rpc("nx_enlace_toggle_conversation_archived", { p_conversation_id: id });
+    if (error) { patchState(id, { archived: stateFor(id).archived }); toast(error.message, "danger"); }
+  };
+  const markRead = async (id: string) => {
+    const supabase = createClient();
+    patchState(id, { last_read_at: new Date().toISOString() });
+    await supabase.rpc("nx_enlace_mark_conversation_read", { p_conversation_id: id });
+  };
+
+  const isUnread = (c: EnlaceConversation) =>
+    !!c.last_message_at &&
+    c.last_message_sender_id !== myId &&
+    new Date(c.last_message_at) > new Date(stateFor(c.id).last_read_at);
+
+  const renderRow = (c: EnlaceConversation) => {
+    const { name, avatarUrl, color } = conversationDisplay(c, myId, participants[c.id] ?? []);
+    const mine = c.last_message_sender_id === myId;
+    const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
+    const st = stateFor(c.id);
+    return (
+      <ConversationRow
+        key={c.id}
+        name={name}
+        avatarUrl={avatarUrl}
+        color={color}
+        preview={preview}
+        time={timeAgo(c.last_message_at)}
+        unread={isUnread(c)}
+        active={c.id === selectedId}
+        muted={st.muted}
+        pinned={st.pinned}
+        onOpen={() => { if (isUnread(c)) markRead(c.id); router.push(`/chat/${c.id}`); }}
+        onToggleMute={() => toggleMute(c.id)}
+        onTogglePin={() => togglePin(c.id)}
+        onMarkRead={() => markRead(c.id)}
+        onToggleArchive={() => toggleArchive(c.id)}
+      />
+    );
+  };
 
   return (
     // Altura fija reservada bajo el header del Shell (y la tab bar inferior
@@ -134,7 +249,7 @@ export default function ChatShell({
         </div>
 
         <div className="px-4 md:px-0 md:pr-4 pb-3 shrink-0">
-          <Input icon="search" placeholder="Buscar en chats..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input icon="search" placeholder="Buscar personas, grupos o mensajes..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-0 md:pr-2">
@@ -147,31 +262,45 @@ export default function ChatShell({
                 action={<Button variant="primary" onClick={() => setNewOpen(true)}>Escribir a alguien</Button>}
               />
             </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
-              Nadie coincide con &ldquo;{search}&rdquo;
-            </p>
           ) : (
             <div className="space-y-0.5">
-              {filtered.map((c) => {
-                const { name, avatarUrl, color } = conversationDisplay(c, myId, participants[c.id] ?? []);
-                const mine = c.last_message_sender_id === myId;
-                const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
-                return (
-                  <PersonRow
-                    key={c.id}
-                    name={name}
-                    avatarUrl={avatarUrl}
-                    color={color}
-                    meta={preview}
-                    active={c.id === selectedId}
-                    onClick={() => router.push(`/chat/${c.id}`)}
-                    right={c.last_message_at ? (
-                      <span className="text-[12px] shrink-0" style={{ color: "var(--text-3)" }}>{timeAgo(c.last_message_at)}</span>
-                    ) : undefined}
-                  />
-                );
-              })}
+              {filteredConversations.map(renderRow)}
+
+              {filteredConversations.length === 0 && messageHits.length === 0 && (
+                <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
+                  Nadie coincide con &ldquo;{search}&rdquo;
+                </p>
+              )}
+
+              {messageHits.length > 0 && (
+                <div className="pt-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wide px-2 pb-1.5" style={{ color: "var(--text-3)" }}>Mensajes</p>
+                  {messageHits.map((hit) => (
+                    <button
+                      key={hit.id}
+                      onClick={() => router.push(`/chat/${hit.conversation_id}`)}
+                      className="w-full text-left px-2 py-2 rounded-m hover:bg-hover"
+                    >
+                      <p className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{hit.sender_name}</p>
+                      <p className="text-[12.5px] truncate">{hit.content}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!search && archivedConversations.length > 0 && (
+                <div className="pt-3">
+                  <button
+                    onClick={() => setShowArchived((v) => !v)}
+                    className="w-full flex items-center justify-between px-2 py-2 text-[12.5px] font-semibold"
+                    style={{ color: "var(--text-3)" }}
+                  >
+                    <span>Archivadas ({archivedConversations.length})</span>
+                    <span>{showArchived ? "▲" : "▼"}</span>
+                  </button>
+                  {showArchived && <div className="space-y-0.5">{archivedConversations.map(renderRow)}</div>}
+                </div>
+              )}
             </div>
           )}
         </div>
