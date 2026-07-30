@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Emet · CERT Comunicación",
-  description: "Sistema operativo del Departamento de Comunicación · Hecho con ❤️ por Samu Chan",
+  title: "EMET · Sistema operativo para organizaciones",
+  description:
+    "EMET centraliza la comunicación, la operación, la gestión del tiempo y la colaboración de los equipos en una sola plataforma.",
 };
 export const viewport: Viewport = {
   width: "device-width", initialScale: 1, viewportFit: "cover",

@@ -30,8 +30,8 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
     .from("users").select("*").eq("auth_id", user.id).single();
   if (!profile) redirect("/login?error=no-autorizado");
   if (!profile.onboarded) redirect("/onboarding");
-  if (!profile.active) redirect("/");
-  if (!["admin", "empleado"].includes(profile.role)) redirect("/");
+  if (!profile.active) redirect("/app");
+  if (!["admin", "empleado"].includes(profile.role)) redirect("/app");
 
   const role = profile.role === "admin" ? "admin" : "empleado";
   const myId = profile.id as string;

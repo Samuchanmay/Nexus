@@ -92,7 +92,7 @@ export async function GET(request: Request) {
             .is("avatar_url", null);
         }
       }
-      return NextResponse.redirect(origin);
+      return NextResponse.redirect(`${origin}/app`);
     }
   }
   return NextResponse.redirect(`${origin}/login?error=auth`);

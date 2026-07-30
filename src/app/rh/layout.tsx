@@ -13,7 +13,7 @@ export default async function RHLayout({ children }: { children: React.ReactNode
     .from("users").select("*").eq("auth_id", user.id).single();
   if (!profile) redirect("/login?error=no-autorizado");
   if (!profile.onboarded) redirect("/onboarding");
-  if (!["rh", "admin"].includes(profile.role)) redirect("/");
+  if (!["rh", "admin"].includes(profile.role)) redirect("/app");
 
   return (
     <ToastProvider>

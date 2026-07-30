@@ -1,7 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth", "/legal"];
+const PUBLIC_PATH_PREFIXES = ["/login", "/auth", "/legal", "/contact"];
+// Coincidencia exacta (no prefijo) para la ra\u00edz: usar startsWith("/")
+// har\u00eda p\u00fablica cualquier ruta, ya que todas empiezan con "/".
+const PUBLIC_EXACT_PATHS = new Set(["/", "/robots.txt", "/sitemap.xml"]);
 
 // Dominio canonico: la app vive en un solo lugar (emet.uno). Los alias
 // *.vercel.app siguen existiendo en Vercel (utiles para preview/debug),
@@ -55,7 +58,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user }, error } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
+  const isPublic = PUBLIC_EXACT_PATHS.has(path) || PUBLIC_PATH_PREFIXES.some((p) => path.startsWith(p));
 
   // Carrera de refresh token: cuando el navegador dispara varias peticiones
   // casi al mismo tiempo (ej. la lista de Chat + la conversación abierta),

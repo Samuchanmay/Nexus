@@ -15,7 +15,7 @@ export default async function EmpleadoLayout({ children }: { children: React.Rea
   if (!profile) redirect("/login?error=no-autorizado");
   if (!profile.onboarded) redirect("/onboarding");
   // Admin es superset de Empleado: también puede entrar aquí
-  if (!["empleado", "admin"].includes(profile.role)) redirect("/");
+  if (!["empleado", "admin"].includes(profile.role)) redirect("/app");
 
   return (
     <ToastProvider>

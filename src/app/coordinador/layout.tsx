@@ -13,7 +13,7 @@ export default async function CoordinadorLayout({ children }: { children: React.
     .from("users").select("*").eq("auth_id", user.id).single();
   if (!profile) redirect("/login?error=no-autorizado");
   if (!profile.onboarded) redirect("/onboarding");
-  if (!["coordinador", "departamento", "admin"].includes(profile.role)) redirect("/");
+  if (!["coordinador", "departamento", "admin"].includes(profile.role)) redirect("/app");
 
   return (
     <ToastProvider>

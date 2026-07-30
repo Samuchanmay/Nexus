@@ -176,12 +176,12 @@ export default function FicharClient({
     setEnviando(false);
     if (r.ok) {
       setBanner({ kind: "ok", texto: "Registro realizado correctamente" });
-      setTimeout(() => router.push("/"), 1100);
+      setTimeout(() => router.push("/app"), 1100);
     } else if (r.retriable) {
       writeQueue([...readQueue(), reg]);
       setPendientes(readQueue().length);
       setBanner({ kind: "queued", texto: "Guardado en este dispositivo. Se sincronizará automáticamente cuando vuelva la conexión." });
-      setTimeout(() => router.push("/"), 1800);
+      setTimeout(() => router.push("/app"), 1800);
     } else {
       setBanner({ kind: "error", texto: r.msg });
     }

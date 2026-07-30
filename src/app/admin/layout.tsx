@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .from("users").select("*").eq("auth_id", user.id).single();
   if (!profile) redirect("/login?error=no-autorizado");
   if (!profile.onboarded) redirect("/onboarding");
-  if (profile.role !== "admin") redirect("/");
+  if (profile.role !== "admin") redirect("/app");
 
   return (
     <ToastProvider>
