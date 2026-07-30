@@ -57,7 +57,7 @@ export function XlsxWeeklyReportButton({ blocks, adminId }: { blocks: WeekBlock[
     try {
       const ExcelJS = (await import("exceljs")).default;
       const wb = new ExcelJS.Workbook();
-      wb.creator = "Nexus";
+      wb.creator = "EMET";
       wb.created = new Date();
 
       const byWeek = new Map<string, WeekBlock[]>();

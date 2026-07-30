@@ -1,22 +1,15 @@
-// Wordmark de EMET: la app no ten\u00eda un logo propio (solo el logo de
-// CERT, cliente institucional, en public/logo-cert-*.png). Este marcador
-// tipogr\u00e1fico cubre la superficie p\u00fablica (landing, login, legal,
-// contacto) sin depender de un archivo de imagen que no existe.
+// Wordmark real de EMET (icono provisto por Samu). Reemplaza el
+// placeholder tipogr\u00e1fico de la ronda anterior por la imagen real.
 export function EmetMark({ size = 40 }: { size?: number }) {
   return (
-    <div
-      className="inline-flex items-center justify-center rounded-2xl font-bold shrink-0 select-none"
-      style={{
-        width: size,
-        height: size,
-        background: "linear-gradient(135deg, var(--accent), #0044CC)",
-        color: "#fff",
-        fontSize: size * 0.42,
-        letterSpacing: "-0.02em",
-      }}
-      aria-hidden="true"
-    >
-      E
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo-emet-icon.png"
+      alt="EMET"
+      width={size}
+      height={size}
+      className="inline-block shrink-0 select-none object-contain"
+      style={{ width: size, height: size }}
+    />
   );
 }

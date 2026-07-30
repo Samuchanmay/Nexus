@@ -28,7 +28,7 @@ function Inner() {
   return (
     <Shell
       role="admin" user={USER} active={active} onNavigate={setActive}
-      title={TITLES[active] ?? "Nexus"}
+      title={TITLES[active] ?? "EMET"}
       actions={<Button variant="primary" size="sm" icon="plus">Nueva actividad</Button>}
     >
       {active === "hoy" ? <Today /> : <Soon label={TITLES[active] ?? active} />}
