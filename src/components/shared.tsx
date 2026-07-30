@@ -30,7 +30,12 @@ export function Switch({ checked, onChange, disabled, label, tone = "neutral", s
   return (
     <button
       type="button" role="switch" aria-checked={checked} disabled={disabled}
-      onClick={onChange}
+      // stopPropagation aquí (no en un <span> envolvente en cada call site) —
+      // reanálisis de Directorio, bug B2: un wrapper externo puede no estar
+      // presente todavía en el segundo render si React re-renderiza entre
+      // mousedown/mouseup (ej. tras un toggle que cambia estado), dejando
+      // pasar el clic al row padre. El propio botón nunca desaparece.
+      onClick={(e) => { e.stopPropagation(); onChange(); }}
       className="inline-flex items-center gap-2 disabled:opacity-50"
     >
       <span className={`relative inline-block ${track} rounded-full shrink-0 transition-colors`}
