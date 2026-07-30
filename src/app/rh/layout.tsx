@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { AppShell } from "@/components/os/app-shell";
+import { EmuBanner } from "@/components/os/emu-banner";
 import { roleLabel } from "@/lib/nav";
 
 export default async function RHLayout({ children }: { children: React.ReactNode }) {
@@ -16,6 +17,7 @@ export default async function RHLayout({ children }: { children: React.ReactNode
 
   return (
     <ToastProvider>
+      <EmuBanner userId={profile.id} role={profile.role} />
       <AppShell
         role={profile.role === "admin" ? "admin" : "rh"}
         user={{

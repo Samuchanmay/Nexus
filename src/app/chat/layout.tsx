@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient, getAuthedUser } from "@/lib/supabase/server";
 import { ToastProvider } from "@/components/ui";
 import { AppShell } from "@/components/os/app-shell";
+import { EmuBanner } from "@/components/os/emu-banner";
 import { roleLabel } from "@/lib/nav";
 import type { EnlaceConversation } from "@/lib/types";
 import ChatShell, { type ParticipantLite } from "./client";
@@ -84,6 +85,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
 
   return (
     <ToastProvider>
+      <EmuBanner userId={profile.id} role={profile.role} />
       <AppShell
         role={role}
         user={{

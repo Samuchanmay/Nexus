@@ -8,6 +8,8 @@ import { ImageCropper } from "./image-cropper";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { dmy } from "@/lib/tz";
 import { useMountOnOpen } from "@/lib/use-mount-on-open";
+import { useRouter, usePathname } from "next/navigation";
+import { Dialog } from "./ui";
 
 type ProfileData = {
   email: string;
@@ -39,12 +41,88 @@ function InfoRow({ icon, label, color, children }: {
   );
 }
 
+/** Fila de "Verificación en dos pasos" — para roles con MFA obligatorio
+ *  (Admin/RH, ver middleware.ts) solo informa el estado y manda a
+ *  /mfa/setup si aún no lo activó (no puede "Desactivar" desde aquí,
+ *  igual que middleware no la dejaría pasar de todos modos). Para el
+ *  resto de roles, MFA es opcional — pueden activarla o desactivarla
+ *  libremente desde este mismo lugar. */
+function MfaRow({ color, role }: { color: string; role: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const toast = useToast();
+  const [status, setStatus] = useState<"loading" | "on" | "off">("loading");
+  const [factorId, setFactorId] = useState("");
+  const [confirmOff, setConfirmOff] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const required = role === "admin" || role === "rh";
+
+  useEffect(() => {
+    let active = true;
+    createClient().auth.mfa.listFactors().then(({ data }) => {
+      if (!active) return;
+      const totp = data?.totp?.[0];
+      if (totp) { setFactorId(totp.id); setStatus("on"); } else setStatus("off");
+    });
+    return () => { active = false; };
+  }, []);
+
+  const disable = async () => {
+    setBusy(true);
+    const { error } = await createClient().auth.mfa.unenroll({ factorId });
+    setBusy(false);
+    setConfirmOff(false);
+    if (error) { toast("No se pudo desactivar — intenta de nuevo", "danger"); return; }
+    setStatus("off");
+    toast("Verificación en dos pasos desactivada");
+  };
+
+  return (
+    <>
+      <InfoRow icon="lock" label="Verificación en dos pasos" color={color}>
+        <div className="flex items-center gap-2">
+          <p className="text-[13.5px] text-text-1">
+            {status === "loading" ? "…" : status === "on" ? "Activada" : "No activada"}
+          </p>
+          {status === "off" && (
+            <button
+              onClick={() => router.push(`/mfa/setup?next=${encodeURIComponent(pathname)}`)}
+              className="ml-auto text-[12px] font-bold" style={{ color: "var(--accent)" }}
+            >
+              Activar
+            </button>
+          )}
+          {status === "on" && !required && (
+            <button onClick={() => setConfirmOff(true)} className="ml-auto text-[12px] font-bold" style={{ color: "var(--danger)" }}>
+              Desactivar
+            </button>
+          )}
+          {status === "on" && required && (
+            <span className="ml-auto text-[11px]" style={{ color: "var(--text-3)" }}>Obligatoria para tu rol</span>
+          )}
+        </div>
+      </InfoRow>
+      <Dialog
+        open={confirmOff}
+        onClose={() => setConfirmOff(false)}
+        onConfirm={disable}
+        title="¿Desactivar verificación en dos pasos?"
+        description="Tu cuenta quedará protegida solo con tu inicio de sesión de Google."
+        confirmLabel="Desactivar"
+        variant="danger"
+        busy={busy}
+      />
+    </>
+  );
+}
+
 export function ProfileModal({
-  userId, name, roleLabel, color, onClose,
+  userId, name, roleLabel, role, color, onClose,
 }: {
   userId: string;
   name: string;
   roleLabel: string;
+  role: string;
   color: string;
   onClose: () => void;
 }) {
@@ -229,6 +307,10 @@ export function ProfileModal({
                     className="w-full bg-transparent text-[13.5px] text-text-1 uppercase focus:outline-none placeholder:text-text-3 placeholder:normal-case"
                   />
                 </InfoRow>
+              </div>
+
+              <div className="rounded-sm border border-border divide-y divide-border">
+                <MfaRow color={color} role={role} />
               </div>
             </>
           )}

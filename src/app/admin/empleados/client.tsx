@@ -10,6 +10,7 @@ import {
 } from "@/components/icons";
 import { Switch, Field } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
+import { Dialog } from "@/components/os/ui";
 import { todayMerida, dmy } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
@@ -1022,30 +1023,19 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
       </Sheet>
 
       {/* Confirmar antes de desactivar (punto 5) — nunca se desactiva de golpe
-          desde el switch de la lista. Se desmonta por completo cuando
-          confirmUser es null: nada de overlays fantasma (punto 1). */}
-      {confirmUser && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center px-4"
-          style={{ background: "rgba(0,0,0,.38)", backdropFilter: "blur(14px)" }}
-          onClick={(e) => { if (e.target === e.currentTarget && !confirmBusy) setConfirmUser(null); }}>
-          <div className="w-full max-w-[380px] p-5"
-            style={{ background: "var(--surface)", borderRadius: 20, border: "0.5px solid var(--border-2)", boxShadow: "0 8px 60px rgba(0,0,0,0.22)" }}>
-            <p className="text-[15px] font-bold">¿Desactivar a {confirmUser.full_name}?</p>
-            <p className="text-[12.5px] mt-1.5" style={{ color: "var(--text-2)" }}>
-              Perderá acceso a Emet de inmediato. Su historial se conserva y puedes reactivarla cuando quieras.
-            </p>
-            <div className="flex gap-2.5 mt-4">
-              <button className="btn-secondary flex-1 py-2.5 text-[13.5px]" disabled={confirmBusy}
-                onClick={() => setConfirmUser(null)}>Cancelar</button>
-              <button className="flex-1 py-2.5 text-[13.5px] rounded-full font-semibold text-white disabled:opacity-60"
-                style={{ background: "var(--danger)" }} disabled={confirmBusy}
-                onClick={confirmDeactivate}>
-                {confirmBusy ? "Desactivando…" : "Desactivar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          desde el switch de la lista. Dialog accesible (W2/auditoría punto 7):
+          role="alertdialog", foco atrapado, cierre con Escape, portado a
+          document.body — reemplaza el modal ad-hoc que no tenía nada de eso. */}
+      <Dialog
+        open={!!confirmUser}
+        onClose={() => { if (!confirmBusy) setConfirmUser(null); }}
+        onConfirm={confirmDeactivate}
+        title={`¿Desactivar a ${confirmUser?.full_name ?? ""}?`}
+        description="Perderá acceso a Emet de inmediato. Su historial se conserva y puedes reactivarla cuando quieras."
+        confirmLabel={confirmBusy ? "Desactivando…" : "Desactivar"}
+        variant="danger"
+        busy={confirmBusy}
+      />
 
       {cropFile && (
         <ImageCropper

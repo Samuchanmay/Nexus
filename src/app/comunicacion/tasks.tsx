@@ -15,7 +15,7 @@ import type { AssistantMessage } from "@/lib/assistant";
 import { todayMerida, addDays } from "@/lib/tz";
 import { fmtMin } from "@/lib/hours";
 import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
-import { Card, SectionTitle, Badge, Button, Pill, EmptyState, Field, Input } from "@/components/os/ui";
+import { Card, SectionTitle, Badge, Button, SegmentPill, EmptyState, Field, Input } from "@/components/os/ui";
 import { DatePicker } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
@@ -554,9 +554,9 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
         <p className="text-[12px] font-bold mb-2.5 text-text-3">Tipo de actividad</p>
         <div className="flex flex-wrap gap-2 mb-4">
           {activityTypes.map((t) => (
-            <Pill key={t.key} active={actForm.type === t.key} onClick={() => setActForm((f) => ({ ...f, type: t.key }))}>
+            <SegmentPill key={t.key} active={actForm.type === t.key} onClick={() => setActForm((f) => ({ ...f, type: t.key }))}>
               {t.label}
-            </Pill>
+            </SegmentPill>
           ))}
         </div>
         <div className="space-y-3 mb-4">

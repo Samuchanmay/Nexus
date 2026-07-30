@@ -1,5 +1,16 @@
+import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./icons";
+import { useMountOnOpen } from "@/lib/use-mount-on-open";
+
+/* ── Avatar: una sola implementación en toda la app (W3 — consolidación
+   de componentes). Vivía duplicado en components/ui.tsx y aquí con
+   diferencias mínimas mainly cosmeticas (color de anillo default, orden
+   de cómputo de iniciales) — un bug en una versión no se replicaba a la
+   otra. Ahora components/ui.tsx es la fuente única y este archivo solo
+   re-exporta, para no romper los ~35 imports existentes de cada lado. */
+export { Avatar } from "../ui";
 
 export function cx(...a: (string | false | null | undefined)[]) {
   return a.filter(Boolean).join(" ");
@@ -176,7 +187,13 @@ export function Badge({ tone = "neutral", dot, pulse, children }: { tone?: Tone;
     </span>
   );
 }
-export function Pill({ active, children, ...rest }: { active?: boolean; children: ReactNode } & ButtonHTMLAttributes<HTMLButtonElement>) {
+/* Renombrado de Pill → SegmentPill (W3): el nombre "Pill" ya lo usa
+   components/ui.tsx para la píldora de estado (tone-based, no interactiva).
+   Eran dos componentes distintos con el mismo nombre — nunca colisionaron
+   en tiempo de ejecución porque cada pantalla importaba el correcto, pero
+   sí en legibilidad. Este es el botón de filtro/segmento (activo/inactivo,
+   con onClick). */
+export function SegmentPill({ active, children, ...rest }: { active?: boolean; children: ReactNode } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       className={cx(
@@ -187,62 +204,6 @@ export function Pill({ active, children, ...rest }: { active?: boolean; children
     >
       {children}
     </button>
-  );
-}
-
-/* ───────────────────────── Avatar ───────────────────────── */
-export function Avatar({ name, color, size = 34, avatarUrl, birthday, status, statusLabel }: {
-  name: string; color?: string; size?: number; avatarUrl?: string | null; birthday?: boolean;
-  /** Color del anillo/punto de estado (trabajando/pausa/fuera). El cumpleaños
-      gana la esquina si ambos aplican — es lo más raro de los dos. */
-  status?: string | null; statusLabel?: string;
-}) {
-  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-  // Anillo de color de usuario (mismo color en toda la app) — se aplica igual
-  // tenga foto real o solo iniciales, para que nunca falte en ningún lugar
-  // donde se use este componente (header, sidebar, notificaciones, etc.).
-  const ring = { boxShadow: `0 0 0 2px var(--bg), 0 0 0 3.5px ${color ?? "var(--accent)"}` };
-  const content = avatarUrl ? (
-    // Recorte circular en el span envolvente (overflow:hidden), no en el
-    // <img> — border-radius + object-cover directo en el <img> puede dejar
-    // una esquina sin recortar en algunos navegadores si la imagen fuente
-    // no es cuadrada (se ve "cortado"). El ring vive afuera para que este
-    // mismo overflow:hidden no se lo recorte también a él.
-    <span className="relative block rounded-full shrink-0" style={{ width: size, height: size, ...ring }} title={name}>
-      <span className="block w-full h-full rounded-full overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-      </span>
-    </span>
-  ) : (
-    <span
-      className="inline-grid place-items-center rounded-full font-bold text-white select-none"
-      style={{ width: size, height: size, background: color ?? "var(--accent)", fontSize: size * 0.38, ...ring }}
-      title={name}
-    >
-      {initials}
-    </span>
-  );
-  if (!birthday && !status) return <span className="relative inline-block shrink-0" style={{ width: size, height: size }}>{content}</span>;
-  const badge = Math.max(13, Math.round(size * 0.4));
-  const dot = Math.max(9, Math.round(size * 0.28));
-  return (
-    <span className="relative inline-block shrink-0" style={{ width: size, height: size }} title={birthday ? `${name} · ¡Feliz cumpleaños!` : statusLabel ? `${name} · ${statusLabel}` : name}>
-      {content}
-      {birthday ? (
-        <span
-          className="absolute grid place-items-center rounded-full"
-          style={{ right: -2, bottom: -2, width: badge, height: badge, fontSize: badge * 0.62, lineHeight: 1, background: "var(--bg)", boxShadow: "0 0 0 2px var(--bg)" }}
-        >
-          🎉
-        </span>
-      ) : status ? (
-        <span
-          className="absolute rounded-full"
-          style={{ right: -1, bottom: -1, width: dot, height: dot, background: status, boxShadow: "0 0 0 2px var(--bg)" }}
-        />
-      ) : null}
-    </span>
   );
 }
 
@@ -311,5 +272,132 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
         <p className="mt-1 text-[13px] text-text-3">{label}</p>
       </div>
     </Card>
+  );
+}
+
+
+/* ───────────────────────── Dialog ─────────────────────────
+   Diálogo de confirmación accesible y reutilizable (auditoría de diseño,
+   punto 7). Reemplaza los modales de confirmación improvisados que había
+   por pantalla (empleados, etc.): role="alertdialog", aria-modal,
+   aria-labelledby/describedby, foco atrapado dentro del diálogo, cierre
+   con Escape, y portado a document.body con el mismo estándar anti-overlay
+   -bug que Sheet/Menu/DateSheet (ver DIAGNOSTICO-OVERLAY-BUG.md). */
+export function Dialog({
+  open, onClose, onConfirm, title, description,
+  confirmLabel = "Confirmar", cancelLabel = "Cancelar",
+  variant = "default", busy = false, children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm?: () => void;
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: "default" | "danger" | "warning";
+  busy?: boolean;
+  children?: ReactNode;
+}) {
+  const { mounted, visible } = useMountOnOpen(open, 260);
+  const [hydrated, setHydrated] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => { setHydrated(true); }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
+  // Foco al abrir (en el botón "Cancelar" — nunca en la acción destructiva
+  // por defecto) + trampa de Tab dentro del panel + cierre con Escape.
+  useEffect(() => {
+    if (!open) return;
+    const raf = requestAnimationFrame(() => cancelRef.current?.focus());
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) { onClose(); return; }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusables = panelRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("keydown", onKeyDown); };
+  }, [open, onClose, busy]);
+
+  if (!hydrated || !mounted) return null;
+
+  const confirmBg = variant === "danger" ? "var(--danger)" : variant === "warning" ? "var(--warn)" : "var(--accent)";
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[600] flex items-center justify-center px-4"
+      style={{
+        background: visible ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
+        backdropFilter: visible ? "blur(14px)" : "blur(0px)",
+        pointerEvents: visible ? "all" : "none",
+        transition: "background .28s var(--ease), backdrop-filter .28s var(--ease)",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="nx-dialog-title"
+      aria-describedby={description ? "nx-dialog-desc" : undefined}
+    >
+      <div
+        ref={panelRef}
+        className="w-full max-w-[380px] p-5"
+        style={{
+          background: "var(--surface)", borderRadius: 20, border: "0.5px solid var(--border-2)",
+          boxShadow: "0 8px 60px rgba(0,0,0,0.22)",
+          transform: visible ? "scale(1)" : "scale(.96)",
+          opacity: visible ? 1 : 0,
+          transition: "transform .28s var(--spring), opacity .2s ease",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p id="nx-dialog-title" className="text-[15px] font-bold">{title}</p>
+        {description && (
+          <p id="nx-dialog-desc" className="text-[12.5px] mt-1.5" style={{ color: "var(--text-2)" }}>
+            {description}
+          </p>
+        )}
+        {children}
+        <div className="flex gap-2.5 mt-4">
+          <button
+            ref={cancelRef}
+            type="button"
+            className="btn-secondary flex-1 py-2.5 text-[13.5px]"
+            disabled={busy}
+            aria-label={cancelLabel}
+            onClick={onClose}
+          >
+            {cancelLabel}
+          </button>
+          {onConfirm && (
+            <button
+              type="button"
+              className="flex-1 py-2.5 text-[13.5px] rounded-full font-semibold text-white disabled:opacity-60"
+              style={{ background: confirmBg }}
+              disabled={busy}
+              aria-label={confirmLabel}
+              onClick={onConfirm}
+            >
+              {busy ? "…" : confirmLabel}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

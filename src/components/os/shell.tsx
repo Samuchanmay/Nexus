@@ -139,6 +139,7 @@ export function Shell({
           userId={user.id}
           name={user.name}
           roleLabel={user.roleLabel}
+          role={role}
           color={user.color}
           onClose={() => setProfileOpen(false)}
         />

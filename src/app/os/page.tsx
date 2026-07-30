@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import { ThemeProvider } from "@/lib/theme";
 import { Shell, type ShellUser } from "@/components/os/shell";
 import {
-  Avatar, Badge, Button, Card, EmptyState, Field, Input, Pill, SectionTitle, StatCard, cx,
+  Avatar, Badge, Button, Card, EmptyState, Field, Input, SegmentPill, SectionTitle, StatCard, cx,
 } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 
@@ -113,10 +113,10 @@ function Today() {
               <Badge tone="danger" dot>Vencido</Badge>
             </Row>
             <Row label="Filtros">
-              <Pill active>Todas</Pill>
-              <Pill>Video</Pill>
-              <Pill>Diseño</Pill>
-              <Pill>Cobertura</Pill>
+              <SegmentPill active>Todas</SegmentPill>
+              <SegmentPill>Video</SegmentPill>
+              <SegmentPill>Diseño</SegmentPill>
+              <SegmentPill>Cobertura</SegmentPill>
             </Row>
             <Row label="Equipo">
               <Avatar name="Samu Chan" color="#5856D6" />

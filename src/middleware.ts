@@ -3,6 +3,15 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/legal"];
 
+// MFA obligatorio para Admin y RH (rutas con acceso a datos sensibles de
+// todo el equipo — ver AskUserQuestion respondida por defecto: TOTP +
+// Admin/RH, ninguna respuesta explícita llegó, así que se documenta como
+// decisión tomada, redirigible si el usuario prefiere otro alcance).
+const MFA_REQUIRED_ROLES = new Set(["admin", "rh"]);
+// /mfa/* nunca entra en el propio gate de MFA (evita el loop de redirect),
+// pero SÍ exige sesión de primer factor como cualquier ruta privada.
+const MFA_PATHS = "/mfa";
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -44,6 +53,30 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = "/login";
     return NextResponse.redirect(loginUrl);
   }
+
+  // ── MFA gate (Admin/RH) ──
+  // Corre en el middleware (no en cada layout) a propósito: un admin puede
+  // aterrizar en /admin, /comunicacion, /coordinador o /chat (todas esas
+  // rutas lo dejan pasar por ser superset), así que el candado tiene que
+  // vivir en el único punto por el que pasa CUALQUIER ruta privada.
+  if (user && !isPublic && !path.startsWith(MFA_PATHS)) {
+    const { data: profile } = await supabase
+      .from("users").select("role").eq("auth_id", user.id).maybeSingle();
+
+    if (profile && MFA_REQUIRED_ROLES.has(profile.role)) {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      // aal1/aal1 = sin factor enrolado todavía → forzar alta.
+      // aal1/aal2 = factor enrolado pero no verificado en esta sesión → forzar reto.
+      // aal2/aal2 = ya verificado → pasa.
+      if (aal && aal.currentLevel === "aal1") {
+        const mfaUrl = request.nextUrl.clone();
+        mfaUrl.pathname = aal.nextLevel === "aal2" ? "/mfa/verify" : "/mfa/setup";
+        mfaUrl.searchParams.set("next", path);
+        return NextResponse.redirect(mfaUrl);
+      }
+    }
+  }
+
   return response;
 }
 
