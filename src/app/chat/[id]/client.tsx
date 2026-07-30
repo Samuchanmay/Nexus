@@ -400,7 +400,7 @@ export default function EnlaceConversationClient({
           ref={scrollRef}
           onScroll={onScroll}
           className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-3 rounded-[14px]"
-          style={{ background: "var(--wa-chat-bg)" }}
+          style={{ background: "var(--chat-bg)" }}
         >
           {loadingMore && (
             <p className="text-center text-[11.5px] py-2" style={{ color: "var(--text-3)" }}>Cargando mensajes anteriores…</p>
@@ -434,10 +434,12 @@ export default function EnlaceConversationClient({
             return (
               <div key={m.id}>
                 {showDaySeparator && (
-                  <div className="flex justify-center py-3">
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--wa-received-bg)", color: "var(--text-2)" }}>
+                  <div className="flex items-center gap-3 py-3" aria-hidden={false}>
+                    <span className="flex-1 h-px" style={{ background: "var(--border)" }} />
+                    <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>
                       {dayLabel(m.created_at)}
                     </span>
+                    <span className="flex-1 h-px" style={{ background: "var(--border)" }} />
                   </div>
                 )}
                 <MessageBubble
@@ -512,7 +514,7 @@ export default function EnlaceConversationClient({
               label="Enviar"
               onClick={sendMessage}
               className="shrink-0"
-              style={{ background: draft.trim() ? "var(--wa-sent-bg)" : undefined, color: draft.trim() ? "var(--wa-sent-fg)" : undefined }}
+              style={{ background: draft.trim() ? "var(--accent)" : undefined, color: draft.trim() ? "#FFFFFF" : undefined }}
             />
           </div>
         </div>
@@ -590,8 +592,8 @@ function MessageBubble({
               <div
                 className="rounded-[9px] shadow-sm overflow-hidden"
                 style={mine
-                  ? { background: "var(--wa-sent-bg)", color: "var(--wa-sent-fg)", borderTopRightRadius: prevSameSender ? 9 : 2 }
-                  : { background: "var(--wa-received-bg)", color: "var(--text-1)", borderTopLeftRadius: prevSameSender ? 9 : 2 }}
+                  ? { background: "var(--chat-bubble-sent-bg)", color: "var(--chat-bubble-sent-fg)", borderTopRightRadius: prevSameSender ? 9 : 2 }
+                  : { background: "var(--chat-bubble-received-bg)", color: "var(--text-1)", border: "0.5px solid var(--border)", borderTopLeftRadius: prevSameSender ? 9 : 2 }}
               >
                 <div className="px-2.5 pt-1.5 pb-1">
                   {!mine && showName && (

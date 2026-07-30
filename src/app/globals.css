@@ -55,14 +55,13 @@
   --fs-display: 28px;
   --fs-hero: 42px;
 
-  /* Chat (FASE W6) — paleta inspirada en WhatsApp, deliberadamente
-     distinta del --accent azul de Nexus: el verde de "burbuja propia"
-     es un patrón reconocible que no queremos diluir mezclándolo con el
-     azul de acento del resto de la app. */
-  --wa-chat-bg: #EFEAE2;
-  --wa-sent-bg: #D9FDD3;
-  --wa-sent-fg: #111B21;
-  --wa-received-bg: #FFFFFF;
+  /* Chat — paleta nativa EMET (ronda de rediseño: se abandonó la paleta
+     tipo WhatsApp beige/verde en favor del --accent azul del resto de
+     la app, para que el chat se sienta parte de EMET y no un clon). */
+  --chat-bg: var(--surface-2);
+  --chat-bubble-sent-bg: rgba(0,102,255,0.15);
+  --chat-bubble-sent-fg: var(--text-1);
+  --chat-bubble-received-bg: var(--surface);
 }
 [data-theme="dark"] {
   color-scheme: dark;
@@ -91,10 +90,10 @@
   --shadow-2: 0 4px 16px rgba(0,0,0,0.28);
   --shadow-3: 0 16px 48px rgba(0,0,0,0.55);
 
-  --wa-chat-bg: #0B141A;
-  --wa-sent-bg: #005C4B;
-  --wa-sent-fg: #E9EDEF;
-  --wa-received-bg: #202C33;
+  --chat-bg: var(--bg);
+  --chat-bubble-sent-bg: rgba(10,132,255,0.22);
+  --chat-bubble-sent-fg: var(--text-1);
+  --chat-bubble-received-bg: var(--surface-2);
 }
 
 html, body { background: var(--bg); }
