@@ -110,7 +110,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
           components/os/pausa-activa-popup.tsx (círculo con acento, título,
           mensaje), estática/embebida en la tarjeta en vez de flotante. */}
       <div className="card p-6 mb-6 text-center" style={{ background: "var(--surface-2)" }}>
-        <p className="text-[10px] font-bold mb-4" style={{ color: "var(--text-3)" }}>VISTA PREVIA DEL AVISO</p>
+        <p className="text-[12px] font-bold mb-4" style={{ color: "var(--text-3)" }}>VISTA PREVIA DEL AVISO</p>
         <div className="max-w-[340px] mx-auto rounded-lg p-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
           <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4"
             style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
@@ -127,7 +127,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
         <p className="text-[13px] font-bold mb-3">Ritmo del aviso</p>
         <div className="grid sm:grid-cols-3 gap-2.5 mb-3">
           <label className="block">
-            <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
+            <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
               Cada cuántas horas de trabajo continuo
             </span>
             <input type="number" min={0.5} step={0.5} value={intervalHours}
@@ -135,7 +135,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
               className="field-input text-[13px] py-2" />
           </label>
           <label className="block">
-            <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
+            <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
               Minutos que permanece visible cada aviso
             </span>
             <input type="number" min={1} value={windowMinutes}
@@ -143,7 +143,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
               className="field-input text-[13px] py-2" />
           </label>
           <label className="block">
-            <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
+            <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
               Orden de rotación
             </span>
             <Select
@@ -171,9 +171,9 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
           <div key={row.id} className="card p-3.5 flex items-center gap-2.5" style={{ opacity: row.activo ? 1 : 0.5 }}>
             <div className="flex flex-col shrink-0">
               <button onClick={() => move(idx, -1)} disabled={idx === 0 || saving}
-                className="text-[11px] font-bold px-1 disabled:opacity-30" style={{ color: "var(--text-2)" }}>↑</button>
+                className="text-[12px] font-bold px-1 disabled:opacity-30" style={{ color: "var(--text-2)" }}>↑</button>
               <button onClick={() => move(idx, 1)} disabled={idx === frases.length - 1 || saving}
-                className="text-[11px] font-bold px-1 disabled:opacity-30" style={{ color: "var(--text-2)" }}>↓</button>
+                className="text-[12px] font-bold px-1 disabled:opacity-30" style={{ color: "var(--text-2)" }}>↓</button>
             </div>
             <input defaultValue={row.texto} onBlur={(e) => saveTexto(row, e.target.value)}
               className="text-[13.5px] bg-transparent border-0 outline-none flex-1 min-w-0" />
@@ -181,14 +181,14 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
               label={row.activo ? "Activa" : "Inactiva"} />
             {confirmId === row.id ? (
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
                 <button disabled={saving} onClick={() => remove(row)}
-                  className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                  className="text-[12px] font-semibold px-2 py-1 rounded-full"
                   style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                   Sí, eliminar
                 </button>
                 <button onClick={() => setConfirmId(null)}
-                  className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                  className="text-[12px] font-semibold px-2 py-1 rounded-full"
                   style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                   No
                 </button>

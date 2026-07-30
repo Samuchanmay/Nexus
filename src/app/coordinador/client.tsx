@@ -177,14 +177,14 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
                 {r.status === "solicitada" && (
                   confirmId === r.id ? (
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                      <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
                       <button disabled={deleting} onClick={() => removeRequest(r.id)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                         Sí, eliminar
                       </button>
                       <button onClick={() => setConfirmId(null)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                         No
                       </button>
@@ -241,7 +241,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
                   <p className="text-[15px] font-bold">{m.label}</p>
                   <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>{m.desc}</p>
                 </div>
-                <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>
+                <span className="text-[12px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>
                   mín. {m.minHours / 24} días
                 </span>
               </button>

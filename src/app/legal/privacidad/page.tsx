@@ -211,7 +211,7 @@ export default function AvisoPrivacidad() {
           </div>
         </div>
 
-        <p className="text-center text-[11.5px] mt-6" style={{ color: "var(--text-3)" }}>
+        <p className="text-center text-[12px] mt-6" style={{ color: "var(--text-3)" }}>
           Emet · CERT Comunicación
         </p>
       </div>

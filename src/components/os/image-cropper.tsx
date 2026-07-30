@@ -126,7 +126,7 @@ export function ImageCropper({ file, onCancel, onSave }: {
         </div>
 
         <div className="px-6 py-4 flex items-center gap-3">
-          <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>Zoom</span>
+          <span className="text-[12px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>Zoom</span>
           <input
             type="range" min={minScale} max={minScale * 3} step={0.01} value={scale}
             onChange={(e) => onZoom(Number(e.target.value))}

@@ -89,7 +89,7 @@ export default function DevMode() {
               <h2 className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>
                 {g.label}
               </h2>
-              {g.note && <span className="text-[11.5px]" style={{ color: "var(--text-3)" }}>· {g.note}</span>}
+              {g.note && <span className="text-[12px]" style={{ color: "var(--text-3)" }}>· {g.note}</span>}
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {g.items.map((it) => (

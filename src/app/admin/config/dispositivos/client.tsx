@@ -90,23 +90,23 @@ export default function DispositivosClient({ devices, adminId, embedded }: { dev
               <div key={d.id} className="card px-5 py-3.5 flex items-center justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
                   <p className="text-[13.5px] font-bold">{d.name}</p>
-                  <p className="text-[11.5px] font-mono" style={{ color: "var(--text-3)" }}>{d.device_id}</p>
+                  <p className="text-[12px] font-mono" style={{ color: "var(--text-3)" }}>{d.device_id}</p>
                   <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                    <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+                    <span className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                       {browser} · {os}
                     </span>
                     {hasLocation && (
                       <a
                         href={`https://www.google.com/maps?q=${d.last_lat},${d.last_lng}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-1"
+                        className="text-[12px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-1"
                         style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
                       >
                         <Icon name="pin" size={10} /> Ver ubicación
                       </a>
                     )}
                   </div>
-                  <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>
+                  <p className="text-[12px] mt-1" style={{ color: "var(--text-3)" }}>
                     Visto por última vez: {new Date(d.last_seen_at).toLocaleString("es-MX")}
                   </p>
                 </div>
@@ -115,14 +115,14 @@ export default function DispositivosClient({ devices, adminId, embedded }: { dev
                     label={d.active ? "Activo" : "Desactivado"} />
                   {revokeId === d.id ? (
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Revocar?</span>
+                      <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Revocar?</span>
                       <button disabled={saving} onClick={() => revoke(d)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                         Sí, revocar
                       </button>
                       <button onClick={() => setRevokeId(null)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                         No
                       </button>

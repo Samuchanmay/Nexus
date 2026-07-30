@@ -32,13 +32,13 @@ export function SectionIntro({ stats, recent, tip }: {
         {stats.map((s, i) => (
           <div key={i} className="min-w-[64px]">
             <p className="text-[19px] font-bold tabular-nums leading-none" style={{ color: toneColor(s.tone) }}>{s.value}</p>
-            <p className="text-[10.5px] font-semibold mt-1" style={{ color: "var(--text-3)" }}>{s.label}</p>
+            <p className="text-[12px] font-semibold mt-1" style={{ color: "var(--text-3)" }}>{s.label}</p>
           </div>
         ))}
         {recent && (
           <div className="min-w-0 flex-1 basis-[180px]">
             <p className="text-[12px] font-semibold truncate leading-none mt-0.5" style={{ color: "var(--text-2)" }}>{recent}</p>
-            <p className="text-[10.5px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>Lo más reciente</p>
+            <p className="text-[12px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>Lo más reciente</p>
           </div>
         )}
       </div>

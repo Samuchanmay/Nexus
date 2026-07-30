@@ -20,7 +20,7 @@ function ColorPreviewCard({ name, color }: { name: string; color: string }) {
         style={{ background: color, fontSize: 10 }}>
         {initials}
       </span>
-      <span className="text-[11.5px] font-semibold truncate max-w-[110px]">{name}</span>
+      <span className="text-[12px] font-semibold truncate max-w-[110px]">{name}</span>
     </div>
   );
 }
@@ -42,14 +42,14 @@ function Swatches({ value, used, onPick }: {
   return (
     <div className="flex flex-col gap-2 max-w-[300px]">
       <div>
-        <p className="text-[10px] font-bold mb-1" style={{ color: "var(--text-3)" }}>DISPONIBLES</p>
+        <p className="text-[12px] font-bold mb-1" style={{ color: "var(--text-3)" }}>DISPONIBLES</p>
         <div className="flex flex-wrap gap-1.5">
           {available.map((c) => <Swatch key={c} c={c} title={c} />)}
         </div>
       </div>
       {taken.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold mb-1" style={{ color: "var(--text-3)" }}>EN USO</p>
+          <p className="text-[12px] font-bold mb-1" style={{ color: "var(--text-3)" }}>EN USO</p>
           <div className="flex flex-wrap gap-1.5">
             {taken.map((c) => <Swatch key={c} c={c} disabled title={`En uso por ${usedMap.get(c.toUpperCase())}`} />)}
           </div>
@@ -128,7 +128,7 @@ export default function ColoresClient({ areas, rhColor, embedded }: { areas: Dep
 
       {(["coordinacion", "departamento"] as const).map((tipo) => (
         <div key={tipo} className="mb-6">
-          <h3 className="text-[11.5px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
+          <h3 className="text-[12px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
             {tipo === "coordinacion" ? "Coordinaciones" : "Departamentos"}
           </h3>
           <div className="flex flex-col gap-2">
@@ -174,7 +174,7 @@ export default function ColoresClient({ areas, rhColor, embedded }: { areas: Dep
             <IconPlus className="w-4 h-4" /> Agregar
           </button>
         </div>
-        <p className="text-[11px] mt-2.5" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] mt-2.5" style={{ color: "var(--text-3)" }}>
           Su color se asigna solo — no hace falta elegirlo.
         </p>
       </div>

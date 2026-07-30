@@ -12,7 +12,7 @@ export function CsvLink({ rows, filename, adminId, label = "CSV" }: {
   const href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   return (
     <a
-      href={href} download={filename} className="no-print flex items-center gap-1 text-[11.5px] font-semibold shrink-0" style={{ color: "var(--accent)" }}
+      href={href} download={filename} className="no-print flex items-center gap-1 text-[12px] font-semibold shrink-0" style={{ color: "var(--accent)" }}
       onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", filename); }}
     >
       <IconDownload className="w-3 h-3" /> {label}

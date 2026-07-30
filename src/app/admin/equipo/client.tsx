@@ -96,7 +96,7 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                 })()}
                 <div className="min-w-0">
                   <p className="text-[14px] font-bold truncate">{u.display_name}</p>
-                  <p className="text-[11px] truncate" style={{ color: "var(--text-3)" }}>
+                  <p className="text-[12px] truncate" style={{ color: "var(--text-3)" }}>
                     {u.specialties.map((sp) => SPECIALTY_LABELS[sp] ?? sp).join(" · ") || u.area}
                   </p>
                 </div>
@@ -122,7 +122,7 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                     </span>
                   ))}
                   {u.tasks.length > 2 && (
-                    <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--accent)" }}>
+                    <span className="text-[12px] font-semibold shrink-0" style={{ color: "var(--accent)" }}>
                       +{u.tasks.length - 2} más
                     </span>
                   )}
@@ -167,7 +167,7 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: presence.color }} />
                         <span className="text-[13px] font-bold" style={{ color: "var(--text-2)" }}>Hoy · {presence.label}</span>
                       </div>
-                      <span className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
+                      <span className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
                         {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
                       </span>
                     </div>
@@ -179,10 +179,10 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
                       </div>
                       <div className="flex items-center justify-between mt-1.5">
-                        <span className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
+                        <span className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
                           {sel.today.firstIn ? `Entrada ${fmtTime(sel.today.firstIn)}` : "Objetivo diario"}
                         </span>
-                        <span className="text-[11px] font-bold tabular-nums" style={{ color: "var(--text-3)" }}>{fmtMin(sel.today.targetMin)}</span>
+                        <span className="text-[12px] font-bold tabular-nums" style={{ color: "var(--text-3)" }}>{fmtMin(sel.today.targetMin)}</span>
                       </div>
                     </div>
                   </>
@@ -207,7 +207,7 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                             {t.is_lead && <Icon name="star" size={12} style={{ color: "var(--warn)" }} />}
                             {t.title}
                           </p>
-                          <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                          <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                             {t.typeLabel ?? "—"} · {t.status.replace("_", " ")}
                           </p>
                         </div>

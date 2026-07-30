@@ -108,14 +108,14 @@ export default function EstadosClient({ states, adminId, embedded }: { states: E
                     label={row.activo ? "Activo" : "Inactivo"} />
                   {confirmId === row.id ? (
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                      <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
                       <button disabled={saving} onClick={() => remove(row)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                         Sí, eliminar
                       </button>
                       <button onClick={() => setConfirmId(null)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                         No
                       </button>
@@ -135,7 +135,7 @@ export default function EstadosClient({ states, adminId, embedded }: { states: E
                     <Switch checked={row[f.key]} onChange={() => toggle(row, f.key)} disabled={saving} />
                     <span>
                       <span className="block text-[12.5px] font-semibold leading-tight">{f.label}</span>
-                      <span className="block text-[11px] mt-0.5" style={{ color: "var(--text-3)" }}>{f.hint}</span>
+                      <span className="block text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>{f.hint}</span>
                     </span>
                   </div>
                 ))}
@@ -160,7 +160,7 @@ export default function EstadosClient({ states, adminId, embedded }: { states: E
             <IconPlus className="w-4 h-4" /> Agregar
           </button>
         </div>
-        <p className="text-[11px] mt-2.5" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] mt-2.5" style={{ color: "var(--text-3)" }}>
           Un estado nuevo aquí no crea un motivo de check-in nuevo en /fichar — solo queda listo para cuando se conecte.
         </p>
       </div>

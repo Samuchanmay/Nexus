@@ -291,11 +291,11 @@ export default async function Reportes() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums">{totalReqs}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Solicitudes totales</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Solicitudes totales</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums">{projs.length}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Actividades creadas</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Actividades creadas</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums">
@@ -303,7 +303,7 @@ export default async function Reportes() {
               ? `${avgApprovalHours.toFixed(1)} h`
               : `${(avgApprovalHours / 24).toFixed(1)} d`}
           </p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo prom. de aprobación</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo prom. de aprobación</p>
         </div>
       </div>
 
@@ -328,7 +328,7 @@ export default async function Reportes() {
           dónde se está atorando el proceso (aprobación más lenta). */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
         <div className="card p-4">
-          <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>Top empleado (horas)</p>
+          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Top empleado (horas)</p>
           {topEmployee ? (
             <>
               <p className="text-[15px] font-bold mt-1 truncate">{topEmployee.name}</p>
@@ -339,7 +339,7 @@ export default async function Reportes() {
           )}
         </div>
         <div className="card p-4">
-          <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>Área con más carga</p>
+          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Área con más carga</p>
           {topAreas.length > 0 ? (
             <>
               <p className="text-[15px] font-bold mt-1 truncate">{topAreas[0][0]}</p>
@@ -350,7 +350,7 @@ export default async function Reportes() {
           )}
         </div>
         <div className="card p-4">
-          <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>Cuello de botella</p>
+          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Cuello de botella</p>
           {bottleneck ? (
             <>
               <p className="text-[15px] font-bold mt-1 truncate">{bottleneck.area}</p>
@@ -448,7 +448,7 @@ export default async function Reportes() {
               Vacaciones por persona
             </h2>
             {vacTotalDays > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold" style={{ color: "var(--text-3)" }}>
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
                 <Donut size={20} thickness={4}
                   segments={[
                     { value: vacUsedDays, color: vacPctUsed < 50 ? "var(--ok)" : vacPctUsed < 80 ? "var(--warn)" : "var(--danger)" },

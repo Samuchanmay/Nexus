@@ -199,20 +199,20 @@ export default function TiposClient({ types, templates, embedded }: {
                   <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
                     label={row.activo ? "Activo" : "Inactivo"} />
                   <button onClick={() => duplicate(row)} disabled={saving}
-                    className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-full shrink-0"
+                    className="text-[12px] font-semibold px-2.5 py-1.5 rounded-full shrink-0"
                     style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                     Duplicar
                   </button>
                   {confirmKey === row.key ? (
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                      <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
                       <button disabled={saving} onClick={() => remove(row)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                         Sí, eliminar
                       </button>
                       <button onClick={() => setConfirmKey(null)}
-                        className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                        className="text-[12px] font-semibold px-2 py-1 rounded-full"
                         style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                         No
                       </button>
@@ -229,7 +229,7 @@ export default function TiposClient({ types, templates, embedded }: {
 
               <div className="grid sm:grid-cols-3 gap-2.5 mb-3">
                 <label className="block">
-                  <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Icono</span>
+                  <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Icono</span>
                   <Select
                     value={row.icon} onChange={(v) => update(row, { icon: v })}
                     title="Ícono" searchable={false} className="field-input text-[13px] py-2 w-full flex items-center justify-between gap-2 text-left"
@@ -237,7 +237,7 @@ export default function TiposClient({ types, templates, embedded }: {
                   />
                 </label>
                 <label className="block">
-                  <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
+                  <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
                     Anticipación mínima (días)
                   </span>
                   <input type="number" min={1} defaultValue={row.min_hours / 24}
@@ -245,7 +245,7 @@ export default function TiposClient({ types, templates, embedded }: {
                     className="field-input text-[13px] py-2" />
                 </label>
                 <label className="block">
-                  <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
+                  <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
                     Subtipos (separados por coma)
                   </span>
                   <input defaultValue={row.subtypes.join(", ")}
@@ -258,7 +258,7 @@ export default function TiposClient({ types, templates, embedded }: {
                 <div className="flex items-center gap-1 flex-wrap mb-2.5">
                   {items.slice(0, 4).map((it, i) => (
                     <span key={it.id} className="flex items-center gap-1">
-                      <span className="text-[11px] font-semibold px-2 py-1 rounded-full truncate max-w-[140px]"
+                      <span className="text-[12px] font-semibold px-2 py-1 rounded-full truncate max-w-[140px]"
                         style={{ background: "var(--surface-2)", color: "var(--text-2)" }} title={it.label}>
                         {it.label}
                       </span>
@@ -266,7 +266,7 @@ export default function TiposClient({ types, templates, embedded }: {
                     </span>
                   ))}
                   {items.length > 4 && (
-                    <span className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>+{items.length - 4} más</span>
+                    <span className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>+{items.length - 4} más</span>
                   )}
                 </div>
               )}
@@ -285,7 +285,7 @@ export default function TiposClient({ types, templates, embedded }: {
                   )}
                   {items.map((it, idx) => (
                     <div key={it.id} className="flex items-center gap-2 px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
-                      <span className="text-[11px] font-bold w-4 text-center shrink-0" style={{ color: "var(--text-3)" }}>
+                      <span className="text-[12px] font-bold w-4 text-center shrink-0" style={{ color: "var(--text-3)" }}>
                         {idx + 1}
                       </span>
                       <span className="text-[13px] flex-1">{it.label}</span>
@@ -330,7 +330,7 @@ export default function TiposClient({ types, templates, embedded }: {
         </div>
         <div className="grid md:grid-cols-2 gap-2.5 mb-3">
           <label className="block">
-            <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
+            <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
               Anticipación mínima (días)
             </span>
             <input type="number" min={1} value={form.minDays}
@@ -338,7 +338,7 @@ export default function TiposClient({ types, templates, embedded }: {
               className="field-input" />
           </label>
           <label className="block">
-            <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
+            <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
               Subtipos (separados por coma, opcional)
             </span>
             <input value={form.subtypes} onChange={(e) => setForm({ ...form, subtypes: e.target.value })}
@@ -349,7 +349,7 @@ export default function TiposClient({ types, templates, embedded }: {
           disabled={saving} onClick={add}>
           <IconPlus className="w-4 h-4" /> Agregar tipo
         </button>
-        <p className="text-[11px] mt-2.5" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] mt-2.5" style={{ color: "var(--text-3)" }}>
           El tipo queda disponible de inmediato en Nueva solicitud (coordinador) y en Agregar actividad (Mi Día).
         </p>
       </div>

@@ -166,7 +166,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
             <textarea className="field-input resize-none" rows={2} placeholder="Detalle breve…"
               value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
           </div>
-          <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+          <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
             Al registrarla aquí queda Autorizada de inmediato — es el admin quien la está dando de alta.
           </p>
           <div className="flex gap-2.5 mt-1">

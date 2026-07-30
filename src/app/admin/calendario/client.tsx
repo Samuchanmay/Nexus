@@ -337,7 +337,7 @@ export default function CalendarioClient({
               <div className="flex-1 grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
                 {attendanceDays.map((d) => (
                   <span key={d.n}
-                    className="text-center text-[9px] font-bold tabular-nums"
+                    className="text-center text-[12px] font-bold tabular-nums"
                     style={{ color: d.date === today ? "var(--accent)" : d.isWeekend ? "var(--text-3)" : "var(--text-2)" }}>
                     {d.n}
                   </span>
@@ -367,12 +367,12 @@ export default function CalendarioClient({
                 </div>
                 <div className="w-[70px] shrink-0 text-right">
                   <p className="text-[12px] font-bold tabular-nums">{conRegistro}/{habiles}</p>
-                  <p className="text-[9px]" style={{ color: "var(--text-3)" }}>días reg.</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}>días reg.</p>
                 </div>
               </div>
             ))}
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3.5 h-3 rounded-[3px]" style={{ background: CELL.fichaje.bg }} /> Con registro
               </span>
@@ -397,7 +397,7 @@ export default function CalendarioClient({
         <div className="card p-4 overflow-x-auto">
           <div className="min-w-[640px]">
           <div className="grid grid-cols-7 gap-1.5 mb-2">
-            {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
+            {DOW.map((d) => <p key={d} className="text-center text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
           </div>
           <div className="grid grid-cols-7 gap-1.5">
             {monthCells.map((c) => {
@@ -411,13 +411,13 @@ export default function CalendarioClient({
                     background: people.length > 0 ? "var(--purple-tint)" : "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.35,
                   }}>
-                  <p className="text-[11.5px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
+                  <p className="text-[12px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
                     style={{
                       color: c.date === today ? "#fff" : "var(--text-2)",
                       background: c.date === today ? "var(--accent)" : "transparent",
                     }}>{c.day}</p>
                   {holidayOf.get(c.date) && (
-                    <p className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                    <p className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
                       style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
                       {holidayOf.get(c.date)}
                     </p>
@@ -426,7 +426,7 @@ export default function CalendarioClient({
                   {acts.slice(0, 2).map((p) => {
                     const lead = p.project_assignments.find((a) => a.is_lead) ?? p.project_assignments[0];
                     return (
-                      <p key={p.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                      <p key={p.id} className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
                         style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
                         title={`${p.requests?.title ?? "Actividad"}${lead ? " · " + lead.users.display_name : ""}`}>
                         {p.requests?.title ?? "Actividad"}
@@ -434,30 +434,30 @@ export default function CalendarioClient({
                     );
                   })}
                   {acts.length > 2 && (
-                    <p className="text-[9px] font-semibold" style={{ color: "var(--warn)" }}>+{acts.length - 2} actividad{acts.length - 2 > 1 ? "es" : ""}</p>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--warn)" }}>+{acts.length - 2} actividad{acts.length - 2 > 1 ? "es" : ""}</p>
                   )}
 
                   {gevs.slice(0, 2).map((ev) => (
-                    <p key={ev.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                    <p key={ev.id} className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
                       style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
                       title={`${ev.title} · Eventos CERT (Google Calendar)`}>
                       {ev.title}
                     </p>
                   ))}
                   {gevs.length > 2 && (
-                    <p className="text-[9px] font-semibold" style={{ color: "var(--accent)" }}>+{gevs.length - 2} evento{gevs.length - 2 > 1 ? "s" : ""}</p>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>+{gevs.length - 2} evento{gevs.length - 2 > 1 ? "s" : ""}</p>
                   )}
 
                   {insts.slice(0, 2).map((ev) => (
                     <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
-                      className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px] text-left"
+                      className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px] text-left"
                       style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
                       title={`${ev.title} · ${INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}`}>
                       {ev.title}
                     </button>
                   ))}
                   {insts.length > 2 && (
-                    <p className="text-[9px] font-semibold" style={{ color: "var(--purple)" }}>+{insts.length - 2} institucional{insts.length - 2 > 1 ? "es" : ""}</p>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--purple)" }}>+{insts.length - 2} institucional{insts.length - 2 > 1 ? "es" : ""}</p>
                   )}
 
                   {people.length > 0 && (
@@ -468,7 +468,7 @@ export default function CalendarioClient({
                         </div>
                       ))}
                       {people.length > 4 && (
-                        <span className="text-[9px] font-semibold ml-1" style={{ color: "var(--purple)" }}>+{people.length - 4}</span>
+                        <span className="text-[12px] font-semibold ml-1" style={{ color: "var(--purple)" }}>+{people.length - 4}</span>
                       )}
                     </div>
                   )}
@@ -476,7 +476,7 @@ export default function CalendarioClient({
               );
             })}
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Actividad Emet
             </span>
@@ -512,7 +512,7 @@ export default function CalendarioClient({
                     background: people.length > 0 ? "var(--purple-tint)" : "var(--surface-2)",
                   }}>
                   <div className="flex items-center justify-between">
-                    <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
+                    <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
                     <p className="text-[13px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
                       style={{
                         color: c.date === today ? "#fff" : "var(--text-2)",
@@ -520,7 +520,7 @@ export default function CalendarioClient({
                       }}>{c.day}</p>
                   </div>
                   {holidayOf.get(c.date) && (
-                    <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]"
+                    <p className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
                       style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
                       {holidayOf.get(c.date)}
                     </p>
@@ -529,7 +529,7 @@ export default function CalendarioClient({
                   {acts.map((p) => {
                     const lead = p.project_assignments.find((a) => a.is_lead) ?? p.project_assignments[0];
                     return (
-                      <p key={p.id} className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px]"
+                      <p key={p.id} className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
                         style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
                         title={lead ? lead.users.display_name : undefined}>
                         {p.requests?.title ?? "Actividad"}
@@ -538,7 +538,7 @@ export default function CalendarioClient({
                   })}
 
                   {gevs.map((ev) => (
-                    <p key={ev.id} className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px]"
+                    <p key={ev.id} className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
                       style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
                       title="Eventos CERT (Google Calendar)">
                       {ev.title}
@@ -547,7 +547,7 @@ export default function CalendarioClient({
 
                   {insts.map((ev) => (
                     <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
-                      className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px] text-left"
+                      className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px] text-left"
                       style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
                       title={INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}>
                       {ev.title}
@@ -559,13 +559,13 @@ export default function CalendarioClient({
                       {people.map((u) => (
                         <div key={u.id} title="Vacaciones" className="flex items-center gap-1 pr-1.5 rounded-full" style={{ background: "var(--purple-tint)" }}>
                           <Avatar name={u.display_name} color={u.nexus_color} size={16} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
-                          <span className="text-[9.5px] font-semibold" style={{ color: "var(--purple)" }}>{u.display_name.split(" ")[0]}</span>
+                          <span className="text-[12px] font-semibold" style={{ color: "var(--purple)" }}>{u.display_name.split(" ")[0]}</span>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {empty && <p className="text-[10px]" style={{ color: "var(--text-3)" }}>Sin eventos</p>}
+                  {empty && <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin eventos</p>}
                 </div>
               );
             })}

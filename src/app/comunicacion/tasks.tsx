@@ -338,7 +338,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
           <ContextHeader input={contextInput} />
           <div className="flex items-center gap-2.5 flex-wrap">
             {day.hasEntry && day.stateName && (
-              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11.5px] font-semibold"
+              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-semibold"
                 style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: day.stateColor ?? "var(--text-3)" }} />
                 {day.stateName}
@@ -350,7 +350,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
           </p>
         </div>
         <div className="rounded-m px-4 py-3 text-center sm:text-right bg-surface-2">
-          <p className="text-[11px] font-semibold text-text-3">Tiempo activo</p>
+          <p className="text-[12px] font-semibold text-text-3">Tiempo activo</p>
           <p className={`text-[24px] font-bold tabular-nums ${activeLog ? "text-accent" : pausedAssignment ? "" : "text-text-3"}`}
             style={pausedAssignment && !activeLog ? { color: "var(--warn)" } : undefined}>
             {timerStr}
@@ -419,7 +419,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
               background: d.today ? "var(--accent)" : "var(--surface-2)",
               color: d.today ? "#fff" : "var(--text-2)",
             }}>
-            <p className="text-[11px] font-semibold opacity-80">{d.l}</p>
+            <p className="text-[12px] font-semibold opacity-80">{d.l}</p>
             <p className="text-[17px] font-bold tabular-nums mt-1">{d.n}</p>
             {d.has && !d.today && <span className="block mx-auto mt-1.5 h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />}
           </Link>
@@ -551,7 +551,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
             Esta actividad quedará marcada como <strong>sin validar</strong> hasta que el administrador la revise.
           </span>
         </div>
-        <p className="text-[11px] font-bold mb-2.5 text-text-3">Tipo de actividad</p>
+        <p className="text-[12px] font-bold mb-2.5 text-text-3">Tipo de actividad</p>
         <div className="flex flex-wrap gap-2 mb-4">
           {activityTypes.map((t) => (
             <Pill key={t.key} active={actForm.type === t.key} onClick={() => setActForm((f) => ({ ...f, type: t.key }))}>

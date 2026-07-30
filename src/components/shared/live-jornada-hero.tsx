@@ -49,7 +49,7 @@ export function LiveJornadaHero({
           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} /> Mi jornada · {statusLabel}
         </span>
         {liveExtraMin > 0 && (
-          <span className="text-[11.5px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>+{fmtMin(liveExtraMin)} extra</span>
+          <span className="text-[12px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>+{fmtMin(liveExtraMin)} extra</span>
         )}
       </div>
       <p className="text-[42px] font-bold tabular-nums leading-none text-text-1 mb-1.5">

@@ -124,7 +124,7 @@ export function Shell({
         <main className="flex-1 nx-scroll overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 flex flex-col">
           <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
           {/* Solo en móvil — en escritorio no aporta y compite con el contenido real (punto 11 de la auditoría). */}
-          <footer className="md:hidden max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[11px]"
+          <footer className="md:hidden max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[12px]"
             style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>
             Hecho con ❤️ por Samu Chan
           </footer>
@@ -170,7 +170,7 @@ function MobileBottomNav({ items, active, onGo, ficharAction }: {
         style={{ color: on ? "var(--accent)" : "var(--text-3)" }}
       >
         <Icon name={i.icon} size={20} />
-        <span className="text-[10px] font-semibold leading-none">{i.label}</span>
+        <span className="text-[12px] font-semibold leading-none">{i.label}</span>
       </button>
     );
   };
@@ -285,7 +285,7 @@ function Sidebar({ items, active, onGo, className, theme }: {
         <img src={theme === "dark" ? "/logo-cert-dark.png" : "/logo-cert-light.png"} alt="CERT" className="h-7 w-7 object-contain shrink-0" />
         <div className="leading-tight">
           <p className="text-[15px] font-bold text-text-1">Emet</p>
-          <p className="text-[11px] text-text-3 -mt-0.5">CERT · Comunicación</p>
+          <p className="text-[12px] text-text-3 -mt-0.5">CERT · Comunicación</p>
         </div>
       </div>
 
@@ -295,7 +295,7 @@ function Sidebar({ items, active, onGo, className, theme }: {
           if (!list.length) return null;
           return (
             <div key={sec.id}>
-              <p className="px-2.5 mb-1.5 text-[11px] font-bold text-text-3">{sec.label}</p>
+              <p className="px-2.5 mb-1.5 text-[12px] font-bold text-text-3">{sec.label}</p>
               <div className="space-y-0.5">
                 {list.map((i) => {
                   const on = active === i.key;
@@ -390,7 +390,7 @@ function Spotlight({ open, items, onGo, onClose }: {
               >
                 <Icon name={i.icon} size={18} className={on ? "text-white" : "text-text-3"} />
                 <span className="text-[14px] font-medium flex-1">{i.label}</span>
-                {on && <span className="text-[11px] opacity-80">↵</span>}
+                {on && <span className="text-[12px] opacity-80">↵</span>}
               </button>
             );
           })}

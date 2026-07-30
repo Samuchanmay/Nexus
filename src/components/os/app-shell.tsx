@@ -49,7 +49,7 @@ const HREF: Record<Role, Record<string, string>> = {
 const TITLES: Record<string, string> = {
   hoy: "Hoy", actividades: "Actividades", solicitudes: "Solicitudes", calendario: "Calendario",
   biblioteca: "Biblioteca", asistencia: "Asistencia", jornada: "Mi día", vacaciones: "Vacaciones",
-  incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Equipo", chat: "Chat",
+  incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Directorio", chat: "Chat",
   "dias-inhabiles": "Días inhábiles", reportes: "Reportes", config: "Configuración",
 };
 

@@ -167,7 +167,7 @@ export default function ChatShell({
                     active={c.id === selectedId}
                     onClick={() => router.push(`/chat/${c.id}`)}
                     right={c.last_message_at ? (
-                      <span className="text-[11px] shrink-0" style={{ color: "var(--text-3)" }}>{timeAgo(c.last_message_at)}</span>
+                      <span className="text-[12px] shrink-0" style={{ color: "var(--text-3)" }}>{timeAgo(c.last_message_at)}</span>
                     ) : undefined}
                   />
                 );

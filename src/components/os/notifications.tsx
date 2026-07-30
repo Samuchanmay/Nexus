@@ -179,7 +179,7 @@ export function NotificationBell({ userId }: { userId: string }) {
         <IconButton icon="bell" label="Notificaciones" onClick={handleOpen} />
         {unread > 0 && (
           <span
-            className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full text-[9px] font-bold text-white flex items-center justify-center pointer-events-none"
+            className="absolute top-0.5 right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full text-[12px] font-bold text-white flex items-center justify-center pointer-events-none"
             style={{ background: "var(--danger)" }}
           >
             {unread > 9 ? "9+" : unread}
@@ -298,7 +298,7 @@ export function NotificationBell({ userId }: { userId: string }) {
             ) : (
               groupedByDay(filtered).map((group) => (
                 <div key={group.label}>
-                  <p className="px-5 pt-3 pb-1.5 text-[11px] font-bold text-text-3 sticky top-0"
+                  <p className="px-5 pt-3 pb-1.5 text-[12px] font-bold text-text-3 sticky top-0"
                     style={{ background: "var(--surface)" }}>
                     {group.label}
                   </p>
@@ -331,7 +331,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                               {!n.read && <span className="h-[6px] w-[6px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
                             </span>
                             {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}
-                            <span className="block text-[10.5px] text-text-3 mt-1 font-medium">{timeAgo(n.created_at)}</span>
+                            <span className="block text-[12px] text-text-3 mt-1 font-medium">{timeAgo(n.created_at)}</span>
                           </span>
                           {n.link && <Icon name="chevron" size={14} className="shrink-0 text-text-3" />}
                         </button>

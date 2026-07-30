@@ -101,7 +101,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
         </div>
         <div className="card px-5 py-3 text-center shrink-0">
           <p className="text-[23px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>{balance}</p>
-          <p className="text-[10px] font-semibold" style={{ color: "var(--text-3)" }}>días disponibles</p>
+          <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>días disponibles</p>
         </div>
       </header>
 

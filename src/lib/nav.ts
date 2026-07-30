@@ -22,7 +22,7 @@ export const NAV: NavItem[] = [
   { key: "incidencias", label: "Incidencias", icon: "alert", roles: "all", section: "personal" },
 
   { key: "equipo", label: "Carga del equipo", icon: "users", roles: ["admin"], section: "administracion" },
-  { key: "empleados", label: "Equipo", icon: "users", roles: ["admin"], section: "administracion" },
+  { key: "empleados", label: "Directorio", icon: "users", roles: ["admin"], section: "administracion" },
   { key: "asistencia", label: "Asistencia", icon: "clock", roles: ["admin"], section: "administracion" },
   { key: "dias-inhabiles", label: "Días inhábiles", icon: "calendar", roles: ["admin"], section: "administracion" },
   { key: "reportes", label: "Reportes", icon: "chart", roles: ["admin"], section: "administracion" },

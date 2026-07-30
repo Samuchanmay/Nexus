@@ -263,7 +263,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           <div className="flex items-center gap-2 mb-3">
             <IconClock className="w-4 h-4 text-[var(--warn)]" />
             <p className="text-[13.5px] font-bold">Salidas pendientes de validar</p>
-            <span className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+            <span className="text-[12px]" style={{ color: "var(--text-3)" }}>
               — {pending.length} {pending.length === 1 ? "persona pidió" : "personas pidieron"} confirmación manual
             </span>
           </div>
@@ -318,7 +318,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
               onBlur={() => { if (reportEmail !== reportSettings.email) saveReportSettings({ email: reportEmail }); }}
             />
           </div>
-          <p className="text-[11.5px] w-full" style={{ color: "var(--text-3)" }}>
+          <p className="text-[12px] w-full" style={{ color: "var(--text-3)" }}>
             El botón &quot;Enviar ahora&quot; siempre funciona, sin importar este switch — el switch solo controla el envío automático de cada lunes.
           </p>
         </div>
@@ -339,13 +339,13 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                       <p className="text-[14.5px] font-bold">{u.display_name}</p>
                       {incidentsOf(day).length > 0 && (
                         <span title={incidentsOf(day).map((m) => `${REASON_LABEL[m.reason] ?? m.reason} · ${fmtTime(m.time)}`).join(", ")}
-                          className="px-1.5 py-[1px] rounded-full text-[10px] font-bold"
+                          className="px-1.5 py-[1px] rounded-full text-[12px] font-bold"
                           style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
                           {incidentsOf(day).length} {incidentsOf(day).length === 1 ? "incidencia" : "incidencias"}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{u.title ?? u.area}</p>
+                    <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{u.title ?? u.area}</p>
                   </div>
                 </div>
                 {estadoPill(day, states, u.vacation)}
@@ -373,18 +373,18 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                           <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? "var(--ok)" : "var(--accent)" }} />
                           </div>
-                          <p className="text-[11px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>
+                          <p className="text-[12px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>
                             Objetivo {fmtMin(day.targetMin)}{day.firstIn ? ` · Entrada ${fmtTime(day.firstIn)}` : ""}
                             {!day.isOpen && day.lastOut ? ` · Salida ${fmtTime(day.lastOut)}` : ""}
                           </p>
                           <div className="flex items-center gap-2.5 mt-1 flex-wrap">
                             {day.totalMin > day.targetMin && (
-                              <p className="text-[11px] font-semibold" style={{ color: "var(--ok)" }}>
+                              <p className="text-[12px] font-semibold" style={{ color: "var(--ok)" }}>
                                 +{fmtMin(day.totalMin - day.targetMin)} extra
                               </p>
                             )}
                             {mealMinutesOf(day) > 0 && (
-                              <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>
+                              <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
                                 Comida {fmtMin(mealMinutesOf(day))}
                               </p>
                             )}
@@ -423,7 +423,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             {/* Eje de horas */}
             <div className="relative h-6 ml-[168px] mb-1">
               {HOURS.map((h) => (
-                <span key={h} className="absolute -translate-x-1/2 text-[10.5px] font-semibold tabular-nums"
+                <span key={h} className="absolute -translate-x-1/2 text-[12px] font-semibold tabular-nums"
                   style={{ left: `${pct(h)}%`, color: "var(--text-3)" }}>
                   {String(h / 60).padStart(2, "0")}:00
                 </span>
@@ -442,7 +442,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                   <div className="absolute -top-1 -bottom-1 z-10" style={{ left: `${pct(nowMin)}%` }}>
                     <div className="absolute top-0 bottom-0 w-[2px] -translate-x-1/2 rounded-full"
                       style={{ background: "var(--danger)", boxShadow: "0 0 8px rgba(255,59,48,.45)" }} />
-                    <span className="absolute -top-0.5 left-1.5 text-[9.5px] font-bold px-1.5 py-0.5 rounded-full text-white whitespace-nowrap"
+                    <span className="absolute -top-0.5 left-1.5 text-[12px] font-bold px-1.5 py-0.5 rounded-full text-white whitespace-nowrap"
                       style={{ background: "var(--danger)" }}>
                       Ahora · {nowLabel}
                     </span>
@@ -463,13 +463,13 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                           <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
                           {incidentsOf(day).length > 0 && (
                             <span title={incidentsOf(day).map((m) => `${REASON_LABEL[m.reason] ?? m.reason} · ${fmtTime(m.time)}`).join(", ")}
-                              className="px-1 rounded-full text-[9px] font-bold shrink-0"
+                              className="px-1 rounded-full text-[12px] font-bold shrink-0"
                               style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
                               {incidentsOf(day).length}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] tabular-nums" style={{ color: "var(--text-3)" }}>
+                        <p className="text-[12px] tabular-nums" style={{ color: "var(--text-3)" }}>
                           {fmtTime(schedule.start_time)}–{fmtTime(schedule.end_time)}
                         </p>
                       </div>
@@ -514,9 +514,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                       <p className="text-[12px] font-bold tabular-nums">
                         {day.firstIn ? fmtMin(day.totalMin) : "—"}
                       </p>
-                      <p className="text-[9.5px]" style={{ color: "var(--text-3)" }}>de {fmtMin(day.targetMin)}</p>
+                      <p className="text-[12px]" style={{ color: "var(--text-3)" }}>de {fmtMin(day.targetMin)}</p>
                       {day.totalMin > day.targetMin && (
-                        <p className="text-[9.5px] font-semibold tabular-nums" style={{ color: "var(--ok)" }}>
+                        <p className="text-[12px] font-semibold tabular-nums" style={{ color: "var(--ok)" }}>
                           +{fmtMin(day.totalMin - day.targetMin)}
                         </p>
                       )}
@@ -527,7 +527,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             </div>
 
             {/* Leyenda */}
-            <div className="flex items-center gap-4 mt-3 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
+            <div className="flex items-center gap-4 mt-3 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "linear-gradient(155deg,#34D058,#2FB344)" }} /> Presente
               </span>

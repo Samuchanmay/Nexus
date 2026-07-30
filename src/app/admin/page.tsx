@@ -486,7 +486,7 @@ export default async function AdminDashboard() {
                       <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
                         <div className="h-full rounded-full" style={{ width: `${a.pct}%`, background: "var(--accent)" }} />
                       </div>
-                      <span className="md:hidden text-[11px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{a.pct}%</span>
+                      <span className="md:hidden text-[12px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{a.pct}%</span>
                     </div>
                   </div>
                   <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>

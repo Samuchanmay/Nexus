@@ -188,7 +188,7 @@ export default function CalendarioClient({
         <Link href={`/comunicacion/calendario?m=${nextActivity.deadline.slice(0, 7)}&d=${nextActivity.deadline}`}
           className="card p-4 mb-4 flex items-center justify-between gap-3 hover:bg-hover transition-colors">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold" style={{ color: "var(--text-3)" }}>Tu próxima actividad</p>
+            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Tu próxima actividad</p>
             <p className="text-[13.5px] font-semibold truncate mt-0.5">{nextActivity.requests?.title ?? "Actividad"}</p>
           </div>
           <span className="text-[12.5px] font-bold shrink-0" style={{ color: "var(--accent)" }}>
@@ -214,7 +214,7 @@ export default function CalendarioClient({
         <div className="card p-4 overflow-x-auto">
           <div className="min-w-[640px]">
           <div className="grid grid-cols-7 gap-1.5 mb-2">
-            {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
+            {DOW.map((d) => <p key={d} className="text-center text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
           </div>
           <div className="grid grid-cols-7 gap-1.5">
             {monthCells.map((c) => {
@@ -228,53 +228,53 @@ export default function CalendarioClient({
                     background: vac ? "var(--purple-tint)" : "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.35,
                   }}>
-                  <p className="text-[11.5px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
+                  <p className="text-[12px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
                     style={{
                       color: c.date === today ? "#fff" : "var(--text-2)",
                       background: c.date === today ? "var(--accent)" : "transparent",
                     }}>{c.day}</p>
                   {holidayOf.get(c.date) && (
-                    <p className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                    <p className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
                       style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
                       {holidayOf.get(c.date)}
                     </p>
                   )}
                   {vac && (
-                    <p className="text-[9.5px] font-semibold px-1 py-0.5 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
+                    <p className="text-[12px] font-semibold px-1 py-0.5 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
                   )}
 
                   {acts.slice(0, 2).map((p) => (
-                    <p key={p.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                    <p key={p.id} className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
                       style={{ background: "var(--warn-tint)", color: "var(--warn)" }} title={p.requests?.title ?? "Actividad"}>
                       {p.requests?.title ?? "Actividad"}
                     </p>
                   ))}
                   {acts.length > 2 && (
-                    <p className="text-[9px] font-semibold" style={{ color: "var(--warn)" }}>+{acts.length - 2} actividad{acts.length - 2 > 1 ? "es" : ""}</p>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--warn)" }}>+{acts.length - 2} actividad{acts.length - 2 > 1 ? "es" : ""}</p>
                   )}
 
                   {gevs.slice(0, 2).map((ev) => (
-                    <p key={ev.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                    <p key={ev.id} className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
                       style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
                       title={`${ev.title} · Eventos CERT (Google Calendar)`}>
                       {ev.title}
                     </p>
                   ))}
                   {gevs.length > 2 && (
-                    <p className="text-[9px] font-semibold" style={{ color: "var(--accent)" }}>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
                       +{gevs.length - 2} evento{gevs.length - 2 > 1 ? "s" : ""}
                     </p>
                   )}
 
                   {insts.slice(0, 2).map((ev) => (
-                    <p key={ev.id} className="text-[9.5px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
+                    <p key={ev.id} className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
                       style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
                       title={`${ev.title} · ${INSTITUTIONAL_KIND_LABEL[ev.kind as InstitutionalKind] ?? ev.kind}`}>
                       {ev.title}
                     </p>
                   ))}
                   {insts.length > 2 && (
-                    <p className="text-[9px] font-semibold" style={{ color: "var(--ok)" }}>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--ok)" }}>
                       +{insts.length - 2} institucional{insts.length - 2 > 1 ? "es" : ""}
                     </p>
                   )}
@@ -282,7 +282,7 @@ export default function CalendarioClient({
               );
             })}
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[10.5px] font-semibold" style={{ color: "var(--text-2)" }}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Tu actividad
             </span>
@@ -315,7 +315,7 @@ export default function CalendarioClient({
                     background: vac ? "var(--purple-tint)" : "var(--surface-2)",
                   }}>
                   <div className="flex items-center justify-between">
-                    <p className="text-[10.5px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
+                    <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
                     <p className="text-[13px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
                       style={{
                         color: c.date === today ? "#fff" : "var(--text-2)",
@@ -323,24 +323,24 @@ export default function CalendarioClient({
                       }}>{c.day}</p>
                   </div>
                   {holidayOf.get(c.date) && (
-                    <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]"
+                    <p className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
                       style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
                       {holidayOf.get(c.date)}
                     </p>
                   )}
                   {vac && (
-                    <p className="text-[10px] font-semibold px-1.5 py-1 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
+                    <p className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>Vacaciones</p>
                   )}
 
                   {acts.map((p) => (
-                    <p key={p.id} className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px]"
+                    <p key={p.id} className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
                       style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
                       {p.requests?.title ?? "Actividad"}
                     </p>
                   ))}
 
                   {gevs.map((ev) => (
-                    <p key={ev.id} className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px]"
+                    <p key={ev.id} className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
                       style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
                       title="Eventos CERT (Google Calendar)">
                       {ev.title}
@@ -348,14 +348,14 @@ export default function CalendarioClient({
                   ))}
 
                   {insts.map((ev) => (
-                    <p key={ev.id} className="text-[10.5px] font-semibold px-1.5 py-1 rounded-[4px]"
+                    <p key={ev.id} className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
                       style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
                       title={INSTITUTIONAL_KIND_LABEL[ev.kind as InstitutionalKind] ?? ev.kind}>
                       {ev.title}
                     </p>
                   ))}
 
-                  {empty && <p className="text-[10px] mt-auto" style={{ color: "var(--text-3)" }}>Sin eventos</p>}
+                  {empty && <p className="text-[12px] mt-auto" style={{ color: "var(--text-3)" }}>Sin eventos</p>}
                 </div>
               );
             })}

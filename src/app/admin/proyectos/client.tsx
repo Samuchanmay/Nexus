@@ -267,7 +267,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
 
     const depsBlock = (
       <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
-        <p className="text-[11px] font-bold mb-1.5" style={{ color: "var(--text-3)" }}>Depende de</p>
+        <p className="text-[12px] font-bold mb-1.5" style={{ color: "var(--text-3)" }}>Depende de</p>
         {myDeps.length === 0 && open !== p.id && (
           <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Sin dependencias</p>
         )}
@@ -279,7 +279,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
                 <span className="truncate flex items-center gap-1" style={{ color: blocked ? "var(--danger)" : "var(--ok)" }}>
                   <Icon name={blocked ? "lock" : "check"} size={11} /> {d.projects?.requests?.title ?? "Actividad"}
                 </span>
-                <button className="text-[11.5px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}
+                <button className="text-[12px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}
                   onClick={() => removeDependency(d.id)}>
                   Quitar
                 </button>
@@ -340,7 +340,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
             <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
               <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--accent)" }} />
             </div>
-            <span className="text-[11px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{pct}%</span>
+            <span className="text-[12px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{pct}%</span>
           </div>
 
           {depsBlock}
@@ -496,7 +496,7 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
                   <span className="text-[13px] font-medium flex-1">{m.display_name}</span>
                   {assignees.includes(m.id) && (
                     assignees.length > 1 ? (
-                      <button className="text-[11px] font-semibold shrink-0"
+                      <button className="text-[12px] font-semibold shrink-0"
                         style={{ color: lead === m.id ? "var(--accent)" : "var(--text-3)" }}
                         onClick={(e) => { e.preventDefault(); setLead(m.id); }}>
                         {lead === m.id ? <span className="inline-flex items-center gap-1"><Icon name="star" size={10} /> responsable</span> : "hacer responsable"}

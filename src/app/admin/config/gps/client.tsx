@@ -118,14 +118,14 @@ export default function GpsClient({ zones, devices, adminId, embedded }: { zones
                   label={z.activo ? "Activa" : "Inactiva"} />
                 {confirmId === z.id ? (
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                    <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
                     <button disabled={saving} onClick={() => remove(z)}
-                      className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                      className="text-[12px] font-semibold px-2 py-1 rounded-full"
                       style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                       Sí, eliminar
                     </button>
                     <button onClick={() => setConfirmId(null)}
-                      className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                      className="text-[12px] font-semibold px-2 py-1 rounded-full"
                       style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                       No
                     </button>
@@ -141,17 +141,17 @@ export default function GpsClient({ zones, devices, adminId, embedded }: { zones
             </div>
             <div className="grid sm:grid-cols-3 gap-2.5">
               <label className="block">
-                <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Latitud</span>
+                <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Latitud</span>
                 <input className="field-input" type="number" step="0.000001" defaultValue={z.lat}
                   onBlur={(e) => { const v = parseFloat(e.target.value); if (!Number.isNaN(v) && v !== z.lat) updateField(z, { lat: v }); }} />
               </label>
               <label className="block">
-                <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Longitud</span>
+                <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Longitud</span>
                 <input className="field-input" type="number" step="0.000001" defaultValue={z.lng}
                   onBlur={(e) => { const v = parseFloat(e.target.value); if (!Number.isNaN(v) && v !== z.lng) updateField(z, { lng: v }); }} />
               </label>
               <label className="block">
-                <span className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Radio (metros)</span>
+                <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Radio (metros)</span>
                 <input className="field-input" type="number" step="1" defaultValue={z.radio_m}
                   onBlur={(e) => { const v = parseInt(e.target.value, 10); if (!Number.isNaN(v) && v !== z.radio_m) updateField(z, { radio_m: v }); }} />
               </label>
@@ -212,7 +212,7 @@ export default function GpsClient({ zones, devices, adminId, embedded }: { zones
             <IconPlus className="w-4 h-4" /> Agregar
           </button>
         </div>
-        <p className="text-[11px] mt-2.5" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] mt-2.5" style={{ color: "var(--text-3)" }}>
           Tip: en Google Maps, clic derecho sobre el punto exacto y copia las coordenadas (latitud, longitud).
         </p>
       </div>

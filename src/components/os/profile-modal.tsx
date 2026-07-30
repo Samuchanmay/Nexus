@@ -32,7 +32,7 @@ function InfoRow({ icon, label, color, children }: {
         <Icon name={icon} size={15} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11.5px] font-semibold text-text-3 mb-0.5">{label}</p>
+        <p className="text-[12px] font-semibold text-text-3 mb-0.5">{label}</p>
         {children}
       </div>
     </div>
@@ -173,7 +173,7 @@ export function ProfileModal({
             />
           </div>
           <p className="text-[17px] font-bold text-text-1 mt-2.5">{name}</p>
-          <span className="mt-1 mb-4 px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold"
+          <span className="mt-1 mb-4 px-2.5 py-0.5 rounded-full text-[12px] font-semibold"
             style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}>
             {(data?.honorific ? `${data.honorific} ` : "") + (data?.title || roleLabel)}
           </span>

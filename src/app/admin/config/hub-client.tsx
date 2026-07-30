@@ -105,23 +105,23 @@ export default function ConfigHub(props: {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums">{topStats.users}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Colaboradores activos</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Colaboradores activos</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums">{topStats.coordinaciones}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Coordinaciones/deptos.</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Coordinaciones/deptos.</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: isProdMode ? "var(--ok)" : "var(--warn)" }}>
             <Icon name={isProdMode ? "check" : "alert"} size={12} /> {isProdMode ? "Producción" : "Modo demo"}
           </p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Conexión con Supabase</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Conexión con Supabase</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: isEmailConfigured ? "var(--ok)" : "var(--warn)" }}>
             <Icon name={isEmailConfigured ? "check" : "alert"} size={12} /> {isEmailConfigured ? "Activo" : "Sin configurar"}
           </p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Correo (Resend)</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Correo (Resend)</p>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export default function ConfigHub(props: {
         <nav className={`flex-col gap-4 ${selected ? "hidden md:flex" : "flex"}`}>
           {GROUPS.map((group) => (
             <div key={group}>
-              <p className="text-[10.5px] font-bold mb-1.5 px-1" style={{ color: "var(--text-3)" }}>{group.toUpperCase()}</p>
+              <p className="text-[12px] font-bold mb-1.5 px-1" style={{ color: "var(--text-3)" }}>{group.toUpperCase()}</p>
               <div className="flex flex-col gap-0.5">
                 {SECTIONS.filter((s) => s.group === group).map((s) => (
                   <button

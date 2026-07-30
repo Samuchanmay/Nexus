@@ -75,17 +75,17 @@ export default async function Jornada() {
       <div className="grid grid-cols-3 gap-2.5 mb-6">
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums">{days.length}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Días con registro</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Días con registro</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums">{fmtMin(totalMin)}</p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Total laborado</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Total laborado</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-[19px] font-bold tabular-nums" style={{ color: totalExtra > 0 ? "var(--ok)" : undefined }}>
             {totalExtra > 0 ? `+${fmtMin(totalExtra)}` : "—"}
           </p>
-          <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo extra</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo extra</p>
         </div>
       </div>
 

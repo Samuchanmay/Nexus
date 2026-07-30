@@ -433,27 +433,27 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-5 mb-5">
         <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="plane" size={13} /><span className="text-[10.5px] font-semibold">Pendientes</span></div>
+          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="plane" size={13} /><span className="text-[12px] font-semibold">Pendientes</span></div>
           <p className="text-[22px] font-bold tabular-nums" style={{ color: pending.length > 0 ? "var(--warn)" : undefined }}>{pending.length}</p>
         </div>
         <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="calendar" size={13} /><span className="text-[10.5px] font-semibold">Programadas</span></div>
+          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="calendar" size={13} /><span className="text-[12px] font-semibold">Programadas</span></div>
           <p className="text-[22px] font-bold tabular-nums">{futuras}</p>
         </div>
         <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="alert" size={13} /><span className="text-[10.5px] font-semibold">Saldo bajo</span></div>
+          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="alert" size={13} /><span className="text-[12px] font-semibold">Saldo bajo</span></div>
           <p className="text-[22px] font-bold tabular-nums" style={{ color: criticos > 0 ? "var(--danger)" : undefined }}>{criticos}</p>
           {criticos > 0 && (
-            <p className="text-[10px] mt-1 truncate" style={{ color: "var(--text-3)" }} title={criticosTeam.map((t) => t.display_name).join(", ")}>
+            <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-3)" }} title={criticosTeam.map((t) => t.display_name).join(", ")}>
               {criticosTeam.slice(0, 2).map((t) => t.display_name).join(", ")}{criticos > 2 ? ` +${criticos - 2}` : ""}
             </p>
           )}
         </div>
         <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="alarm" size={13} /><span className="text-[10.5px] font-semibold">Próx. reinicio</span></div>
+          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="alarm" size={13} /><span className="text-[12px] font-semibold">Próx. reinicio</span></div>
           <p className="text-[22px] font-bold tabular-nums">{diasParaReinicio ?? "—"}{diasParaReinicio !== null && <span className="text-[12px] font-semibold ml-1" style={{ color: "var(--text-3)" }}>días</span>}</p>
           {proximoReinicio && (
-            <p className="text-[10px] mt-1 truncate" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-3)" }}>
               {proximoReinicio.t.display_name} · {shortDate(proximoReinicio.next)}
             </p>
           )}
@@ -511,7 +511,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         <div className="flex items-center gap-2 mb-3">
           <Icon name="plane" size={15} style={{ color: "var(--text-3)" }} />
           <p className="text-[13.5px] font-bold">Registrar vacaciones</p>
-          <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>— salta el flujo de solicitud, queda Aprobada de inmediato.</p>
+          <p className="text-[12px]" style={{ color: "var(--text-3)" }}>— salta el flujo de solicitud, queda Aprobada de inmediato.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <Field label="Empleado">
@@ -555,7 +555,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
               className="field-input flex-1 min-w-[220px] text-[13px]" placeholder="direccion@cert.edu.mx (opcional)"
               value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} onBlur={saveAuthEmail}
             />
-            <p className="text-[11.5px] w-full" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px] w-full" style={{ color: "var(--text-3)" }}>
               Cuando alguien solicite vacaciones, el correo de solicitud formal también llegará aquí para autorización externa — además de a Samuel, como siempre.
             </p>
           </div>
@@ -578,7 +578,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
                 <Avatar name={t.display_name} color={t.nexus_color} size={32} avatarUrl={t.avatar_url} birthday={isBirthdayToday(t.birth_date, todayISO())} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold truncate">{t.display_name}</p>
-                  {seniority && <p className="text-[10.5px] truncate" style={{ color: "var(--text-3)" }}>{seniority}</p>}
+                  {seniority && <p className="text-[12px] truncate" style={{ color: "var(--text-3)" }}>{seniority}</p>}
                 </div>
                 <p className="text-[20px] font-bold tabular-nums shrink-0" style={{ color }}>{t.vacation_balance}</p>
               </div>
@@ -586,9 +586,9 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
                 <div className="h-full rounded-full" style={{ width: `${pctAvailable}%`, background: color, transition: "width .4s var(--ease)" }} />
               </div>
               <div className="flex items-center justify-between mt-1.5">
-                <p className="text-[10.5px]" style={{ color: "var(--text-3)" }}>{used} usados de {total}</p>
+                <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{used} usados de {total}</p>
                 {t.lastReset && (
-                  <p className="text-[9.5px]" style={{ color: "var(--text-3)" }}
+                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}
                     title={`Ciclo anterior: ${t.lastReset.days_used} usados de ${t.lastReset.days_granted}${t.lastReset.days_forfeited > 0 ? ` · ${t.lastReset.days_forfeited} perdidos` : ""}`}>
                     Reinició {shortDate(t.lastReset.reset_at)}
                   </p>
@@ -632,8 +632,8 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
               ))}
             </div>
             <div className="flex items-center justify-between mt-3 pl-[152px]">
-              <p className="text-[10.5px]" style={{ color: "var(--text-3)" }}>Hoy</p>
-              <p className="text-[10.5px]" style={{ color: "var(--text-3)" }}>+{TIMELINE_WINDOW} días</p>
+              <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Hoy</p>
+              <p className="text-[12px]" style={{ color: "var(--text-3)" }}>+{TIMELINE_WINDOW} días</p>
             </div>
           </>
         )}
@@ -644,7 +644,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         <button className="w-full flex items-center justify-between gap-3 px-4 py-3" onClick={() => setCoverageOpen((o) => !o)}>
           <div className="text-left">
             <p className="text-[13.5px] font-bold">Cobertura del equipo</p>
-            <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>Vista anual — para detectar temporadas apretadas con meses de anticipación</p>
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Vista anual — para detectar temporadas apretadas con meses de anticipación</p>
           </div>
           <span className="shrink-0 transition-transform" style={{ color: "var(--text-3)", transform: coverageOpen ? "rotate(180deg)" : "none" }}>
             <Icon name="chevronDown" size={15} />
@@ -652,7 +652,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         </button>
         {coverageOpen && (
           <div className="px-4 pb-4">
-            <div className="flex items-center gap-4 mb-3 flex-wrap text-[10.5px]" style={{ color: "var(--text-3)" }}>
+            <div className="flex items-center gap-4 mb-3 flex-wrap text-[12px]" style={{ color: "var(--text-3)" }}>
               <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--surface-2)" }} /> Todo el equipo disponible</span>
               <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--accent)" }} /> Alguien fuera</span>
               <span className="flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--warn)" }} /> Cobertura ajustada</span>
@@ -700,7 +700,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
                 <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={28} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold truncate">{v.users?.display_name}</p>
-                  <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día" : "días"}</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día" : "días"}</p>
                 </div>
                 <p className="text-[12px] font-semibold shrink-0" style={{ color: daysUntil <= 3 ? "var(--accent)" : "var(--text-3)" }}>
                   {daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : `en ${daysUntil} días`}
@@ -739,20 +739,20 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
                   {v.status === "Aprobada" && (
                     confirmCancelId === v.id ? (
                       <div className="flex items-center gap-1">
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[11.5px]" style={{ color: "var(--danger)" }}
+                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" style={{ color: "var(--danger)" }}
                           disabled={cancelling} onClick={() => cancelVacation(v.id)}>
                           {cancelling ? "Cancelando…" : "Sí, cancelar"}
                         </button>
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[11.5px]" onClick={() => setConfirmCancelId(null)}>
+                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" onClick={() => setConfirmCancelId(null)}>
                           No
                         </button>
                       </div>
                     ) : (
                       <>
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[11.5px]" onClick={() => openEdit(v)}>
+                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" onClick={() => openEdit(v)}>
                           Editar
                         </button>
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[11.5px]" onClick={() => setConfirmCancelId(v.id)}>
+                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" onClick={() => setConfirmCancelId(v.id)}>
                           Cancelar
                         </button>
                       </>
@@ -799,7 +799,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
                 {saving ? "Guardando…" : "Aprobar vacaciones"}
               </button>
             </div>
-            <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
               Al aprobar se descuentan {sel.days} días del saldo del empleado.
             </p>
           </div>
@@ -828,7 +828,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
             <button className="btn-primary btn-ok py-3 text-[14px]" disabled={editing || editDays === 0} onClick={saveEdit}>
               {editing ? "Guardando…" : "Guardar cambios"}
             </button>
-            <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
               El saldo del empleado se ajusta automáticamente según la diferencia de días.
             </p>
           </div>

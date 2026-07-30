@@ -256,17 +256,17 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="card p-5 text-center">
           <p className="text-[26px] font-bold tabular-nums">{totals.days}</p>
-          <p className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Días con registro</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Días con registro</p>
         </div>
         <div className="card p-5 text-center">
           <p className="text-[26px] font-bold tabular-nums">{fmtMin(totals.min)}</p>
-          <p className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Horas del equipo</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Horas del equipo</p>
         </div>
         <div className="card p-5 text-center">
           <p className="text-[26px] font-bold tabular-nums" style={{ color: totals.extra > 0 ? "var(--ok)" : undefined }}>
             {totals.extra > 0 ? `+${fmtMin(totals.extra)}` : "—"}
           </p>
-          <p className="text-[11px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo extra</p>
+          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo extra</p>
         </div>
       </div>
 
@@ -287,27 +287,27 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                 <Avatar name={s.user.display_name} color={s.user.nexus_color} avatarUrl={s.user.avatar_url} size={36} birthday={isBirthdayToday(s.user.birth_date, todayISO())} />
                 <div>
                   <p className="text-[14px] font-bold">{s.user.full_name}</p>
-                  <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{s.user.title ?? s.user.area}</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{s.user.title ?? s.user.area}</p>
                 </div>
               </div>
               <div className="flex gap-5 text-center">
                 <div>
                   <p className="text-[15px] font-bold tabular-nums">{s.daysWorked}</p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Días</p>
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Días</p>
                 </div>
                 <div>
                   <p className="text-[15px] font-bold tabular-nums">{fmtMin(s.totalMin)}</p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Total</p>
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Total</p>
                 </div>
                 <div>
                   <p className="text-[15px] font-bold tabular-nums">{s.daysWorked ? fmtMin(s.avgMin) : "—"}</p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Promedio</p>
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Promedio</p>
                 </div>
                 <div>
                   <p className="text-[15px] font-bold tabular-nums" style={{ color: s.extraMin > 0 ? "var(--ok)" : undefined }}>
                     {s.extraMin > 0 ? `+${fmtMin(s.extraMin)}` : "—"}
                   </p>
-                  <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Extra</p>
+                  <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Extra</p>
                 </div>
               </div>
             </div>
@@ -355,7 +355,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
               <Avatar name={m.display_name} color={m.nexus_color} avatarUrl={m.avatar_url} size={34} birthday={isBirthdayToday(m.birth_date, todayISO())} />
               <div>
                 <p className="text-[13.5px] font-bold">{m.full_name}</p>
-                <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+                <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                   {seniorityLabel(m.hire_date) ?? m.area}
                   {m.hire_date && ` · reinicia ${shortDate(nextAnniversary(m.hire_date))}`}
                 </p>
@@ -364,11 +364,11 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
             <div className="flex items-center gap-5 text-center">
               <div>
                 <p className="text-[14px] font-bold tabular-nums">{used}</p>
-                <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Tomados</p>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Tomados</p>
               </div>
               <div>
                 <p className="text-[14px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>{m.vacation_balance}</p>
-                <p className="text-[9.5px] font-semibold" style={{ color: "var(--text-3)" }}>Restantes</p>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Restantes</p>
               </div>
               <Pill tone={pctUsed < 50 ? "ok" : pctUsed < 80 ? "warn" : "danger"}>
                 {balanceLabel(pctUsed)} · {pctUsed}%
@@ -430,7 +430,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
         <div className="flex flex-col gap-5">
           {historyByMonth.map(([label, items]) => (
             <div key={label}>
-              <p className="text-[11px] font-bold mb-2" style={{ color: "var(--text-3)" }}>{label}</p>
+              <p className="text-[12px] font-bold mb-2" style={{ color: "var(--text-3)" }}>{label}</p>
               <div className="flex flex-col gap-2">
                 {items.map((v) => (
                   <div key={v.id} className="card px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
@@ -438,7 +438,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                       <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={30} birthday={isBirthdayToday(v.users?.birth_date, todayISO())} />
                       <div>
                         <p className="text-[13px] font-bold">{v.users?.full_name}</p>
-                        <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)}</p>
+                        <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

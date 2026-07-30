@@ -249,7 +249,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                       <Avatar name={m.display_name} color={m.nexus_color} size={30} avatarUrl={m.avatar_url} birthday={isBirthdayToday(m.birth_date, todayISO())} />
                       <div className="flex-1">
                         <p className="text-[13.5px] font-semibold">{m.display_name}</p>
-                        <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                        <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                           {m.specialties.map((s) => SPECIALTY_LABELS[s] ?? s).join(" · ") || "—"}
                         </p>
                       </div>
@@ -289,7 +289,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                 Crear evento en Google Calendar
               </label>
             )}
-            <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
               Al aprobar se crea el proyecto con el checklist de {typeLabel[sel.type] ?? sel.type} para el responsable.
             </p>
             <div className="flex gap-2.5">

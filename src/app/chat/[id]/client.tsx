@@ -302,7 +302,7 @@ export default function EnlaceConversationClient({
               <div key={m.id}>
                 {showDaySeparator && (
                   <div className="flex justify-center py-3">
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--wa-received-bg)", color: "var(--text-2)" }}>
+                    <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--wa-received-bg)", color: "var(--text-2)" }}>
                       {dayLabel(m.created_at)}
                     </span>
                   </div>
@@ -349,7 +349,7 @@ export default function EnlaceConversationClient({
                             </a>
                           ) : (
                             <div className="w-[220px] h-[160px] rounded-[7px] mb-1 flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
-                              <span className="text-[11px]" style={{ color: "var(--text-3)" }}>Cargando imagen…</span>
+                              <span className="text-[12px]" style={{ color: "var(--text-3)" }}>Cargando imagen…</span>
                             </div>
                           )
                         )}
@@ -364,7 +364,7 @@ export default function EnlaceConversationClient({
                             <span className="text-[22px] leading-none shrink-0" aria-hidden>{fileEmoji(attachment.mime_type)}</span>
                             <div className="min-w-0 flex-1">
                               <p className="text-[12.5px] font-semibold truncate">{attachment.file_name}</p>
-                              <p className="text-[10.5px] opacity-70">{fmtBytes(attachment.file_size)}</p>
+                              <p className="text-[12px] opacity-70">{fmtBytes(attachment.file_size)}</p>
                             </div>
                             <Icon name="download" size={15} className="shrink-0 opacity-70" />
                           </a>
@@ -373,7 +373,7 @@ export default function EnlaceConversationClient({
                         {m.type === "text" && (
                           <p className="text-[14px] leading-snug whitespace-pre-wrap break-words">{m.content}</p>
                         )}
-                        <p className="text-[10.5px] text-right mt-0.5 opacity-60 select-none">{timeOnly(m.created_at)}</p>
+                        <p className="text-[12px] text-right mt-0.5 opacity-60 select-none">{timeOnly(m.created_at)}</p>
                       </div>
                     </div>
                   </div>
@@ -457,7 +457,7 @@ function InfoPanel({
       </div>
 
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
           {conversation.type === "group" ? `Miembros (${participants.length})` : "Conversación directa"}
         </p>
         <div className="space-y-1.5 mb-4">
@@ -468,7 +468,7 @@ function InfoPanel({
                 {p.id === myId ? "Tú" : p.display_name}
               </p>
               {(p as PersonLite).role === "admin" && (
-                <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>Admin</span>
+                <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>Admin</span>
               )}
             </div>
           ))}
@@ -476,7 +476,7 @@ function InfoPanel({
       </div>
 
       <div className="mb-4">
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Notificaciones</p>
+        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Notificaciones</p>
         <button
           onClick={onToggleMuted}
           className="w-full flex items-center justify-between rounded-[10px] px-3 py-2.5"
@@ -499,9 +499,9 @@ function InfoPanel({
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Archivos recientes</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Archivos recientes</p>
           {recentFiles.length > 3 && (
-            <button onClick={() => setShowAllFiles((v) => !v)} className="text-[11px] font-semibold" style={{ color: "var(--accent)" }}>
+            <button onClick={() => setShowAllFiles((v) => !v)} className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
               {showAllFiles ? "Ver menos" : "Ver todos"}
             </button>
           )}
@@ -514,8 +514,8 @@ function InfoPanel({
               <div key={f.id} className="flex items-center gap-2 rounded-[8px] px-2 py-1.5" style={{ background: "var(--surface-2)" }}>
                 <span className="text-[16px] leading-none shrink-0" aria-hidden>{fileEmoji(f.mime_type)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11.5px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{f.file_name}</p>
-                  <p className="text-[10px]" style={{ color: "var(--text-3)" }}>{fmtBytes(f.file_size)}</p>
+                  <p className="text-[12px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{f.file_name}</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{fmtBytes(f.file_size)}</p>
                 </div>
               </div>
             ))}

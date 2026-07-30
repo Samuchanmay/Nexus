@@ -154,7 +154,7 @@ export default function DiasClient({ holidays, adminId }: { holidays: Holiday[];
               </span>
               <div className="min-w-0">
                 <p className="text-[18px] font-bold tabular-nums leading-none">{kindCounts[k] ?? 0}</p>
-                <p className="text-[11.5px] font-semibold truncate" style={{ color: "var(--text-2)" }}>{HOLIDAY_KIND_LABEL[k]}</p>
+                <p className="text-[12px] font-semibold truncate" style={{ color: "var(--text-2)" }}>{HOLIDAY_KIND_LABEL[k]}</p>
               </div>
             </div>
           );
@@ -183,7 +183,7 @@ export default function DiasClient({ holidays, adminId }: { holidays: Holiday[];
             </div>
           </div>
           <div className="grid grid-cols-7 gap-1.5 mb-2">
-            {DOW.map((d) => <p key={d} className="text-center text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
+            {DOW.map((d) => <p key={d} className="text-center text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
           </div>
           <div className="grid grid-cols-7 gap-2">
             {monthCells.map((c) => {
@@ -204,7 +204,7 @@ export default function DiasClient({ holidays, adminId }: { holidays: Holiday[];
                   }}>
                   <p className="text-[12px] font-bold tabular-nums" style={{ color: h ? style!.fg : "var(--text-2)" }}>{c.day}</p>
                   {h && (
-                    <p className="text-[10.5px] font-semibold leading-tight line-clamp-2" style={{ color: style!.fg }}>{h.name}</p>
+                    <p className="text-[12px] font-semibold leading-tight line-clamp-2" style={{ color: style!.fg }}>{h.name}</p>
                   )}
                 </button>
               );

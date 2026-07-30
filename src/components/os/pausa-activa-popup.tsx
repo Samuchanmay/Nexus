@@ -133,7 +133,7 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
               style={{ background: "var(--accent-tint)" }}>
               <span className="block text-[28px] leading-none text-center" style={{ width: "1em" }}>{emojiFor(msg)}</span>
             </div>
-            <p className="text-[11.5px] font-bold mb-1.5" style={{ color: "var(--accent)" }}>Un día especial</p>
+            <p className="text-[12px] font-bold mb-1.5" style={{ color: "var(--accent)" }}>Un día especial</p>
             <p className="text-[15px] font-semibold leading-snug mb-5" style={{ color: "var(--text-1)" }}>{msg.text}</p>
             <button className="btn-primary w-full py-2.5" onClick={dismiss}>Entendido</button>
           </>

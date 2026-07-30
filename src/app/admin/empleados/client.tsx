@@ -393,21 +393,21 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
             <div className="flex items-center gap-1.5 mt-[3px]">
               {u.title && (
                 <span
-                  className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0 truncate max-w-[170px]"
+                  className="px-1.5 py-[1px] rounded-full text-[12px] font-semibold shrink-0 truncate max-w-[170px]"
                   style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
                   title={u.title}
                 >{u.title}</span>
               )}
               {dept && (
                 <span
-                  className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0 truncate max-w-[140px]"
+                  className="px-1.5 py-[1px] rounded-full text-[12px] font-semibold shrink-0 truncate max-w-[140px]"
                   style={{ background: "var(--surface-2)", color: "var(--text-3)" }}
                   title={dept}
                 >{dept}</span>
               )}
               {!u.onboarded && (
                 <span
-                  className="px-1.5 py-[1px] rounded-full text-[10.5px] font-semibold shrink-0"
+                  className="px-1.5 py-[1px] rounded-full text-[12px] font-semibold shrink-0"
                   style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
                   title="Aún no ha iniciado sesión — perfil incompleto"
                 >Incompleto</span>
@@ -416,27 +416,15 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
           )}
         </div>
 
-        {/* Acciones al hover — invisibles Y no-clickeables cuando no se está
-            encima (pointer-events-none): así nunca queda un contenedor
-            fantasma capturando el siguiente clic (ver nota de causa raíz
-            arriba y en components/shared.tsx PersonRow). */}
-        <div
-          className="hidden sm:flex items-center gap-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity shrink-0"
-        >
-          <button
-            onClick={() => openEdit(u)}
-            title="Ver perfil" aria-label="Ver perfil"
-            className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
-            style={{ color: "var(--text-3)" }}>
-            <IconPen className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); copyEmail(u.email); }}
-            title="Copiar correo" aria-label="Copiar correo"
-            className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
-            style={{ color: "var(--text-3)" }}>
-            <IconClipboard className="w-3.5 h-3.5" />
-          </button>
+        {/* Acciones — mismo botón "⋮" siempre visible en móvil y escritorio
+            (antes: escondido con hidden sm:flex + opacity en hover, así que
+            en escritorio dependía de pasar el mouse y en móvil no existía
+            ningún acceso rápido a estas acciones desde la fila). Un solo
+            punto de entrada evita la inconsistencia entre pantallas que
+            señalaba la auditoría — "Ver perfil" y "Copiar correo" viven
+            ahora dentro del mismo menú junto con Vacaciones y
+            Activar/Desactivar, en vez de ser botones aparte. */}
+        <div className="flex items-center shrink-0">
           <Menu
             align="right"
             trigger={({ onClick }) => (
@@ -446,6 +434,12 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                 <span className="text-[15px] leading-none font-bold">⋯</span>
               </button>
             )}>
+            <MenuItem icon={<IconPen className="w-4 h-4" />} onClick={() => openEdit(u)}>
+              Ver perfil
+            </MenuItem>
+            <MenuItem icon={<IconClipboard className="w-4 h-4" />} onClick={() => copyEmail(u.email)}>
+              Copiar correo
+            </MenuItem>
             <MenuItem icon={<IconCalendar className="w-4 h-4" />} onClick={() => router.push("/admin/vacaciones")}>
               Vacaciones
             </MenuItem>
@@ -520,7 +514,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
   return (
     <>
       <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Equipo</h1>
+        <h1 className="text-[28px] font-bold tracking-tight">Directorio</h1>
         <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
           {users.length} colaborador{users.length === 1 ? "" : "es"}
           {" "}&bull;{" "}
@@ -537,7 +531,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
         <div className="flex items-center gap-1.5 flex-wrap">
           {ROLE_CHIPS.map((c) => (
             <button key={c.key} onClick={() => setRoleFilter(c.key)}
-              className="px-3 py-1.5 rounded-full text-[11.5px] font-semibold transition-colors"
+              className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors"
               style={roleFilter === c.key
                 ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
                 : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
@@ -684,7 +678,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
           )}
 
           {AREA_TIPO[form.role] && (
-            <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
               Si dejas el área en blanco, la persona la elegirá ella misma la primera vez que entre — su color se
               asigna automático en cuanto elija.
             </p>
@@ -755,7 +749,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                 <input ref={avatarFileRef} type="file" accept="image/*" className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFile(f); e.target.value = ""; }} />
               </div>
-              <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+              <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                 {avatarUploading ? "Subiendo…" : "Foto de perfil"}
               </p>
             </div>
@@ -768,14 +762,14 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                   <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
                     <IconBuilding className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Departamento</p>
+                      <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Departamento</p>
                       <p className="text-[13px] font-semibold truncate">{(editing.area_id ? areas.find((a) => a.id === editing.area_id)?.nombre : editing.area) ?? "—"}</p>
                     </div>
                   </div>
                   <a href={`mailto:${editing.email}`} className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm hover:bg-hover transition-colors" style={{ background: "var(--surface-2)" }}>
                     <IconMail className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Correo</p>
+                      <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Correo</p>
                       <p className="text-[13px] font-semibold truncate">{editing.email}</p>
                     </div>
                   </a>
@@ -783,14 +777,14 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                     <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
                       <IconPhone className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Teléfono</p>
+                        <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Teléfono</p>
                         <p className="text-[13px] font-semibold truncate">{editing.phone ?? "—"}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
                       <IconClipboard className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold" style={{ color: "var(--text-3)" }}>Extensión</p>
+                        <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Extensión</p>
                         <p className="text-[13px] font-semibold truncate">{editing.extension ?? "—"}</p>
                       </div>
                     </div>
@@ -972,7 +966,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                       onChange={(e) => setEditForm({ ...editForm, daysPerYear: e.target.value })} />
                   </div>
                 </div>
-                <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                   Ajusta el saldo aquí solo para correcciones manuales — la aprobación de solicitudes ya lo descuenta automáticamente.
                 </p>
 
@@ -980,7 +974,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                     cargadas de forma perezosa al abrir esta ficha (ver openEdit). */}
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Vacaciones recientes</p>
+                    <p className="text-[12px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Vacaciones recientes</p>
                     {loadingDetail ? (
                       <div className="h-16 rounded-sm animate-pulse" style={{ background: "var(--surface-2)" }} />
                     ) : !fullDetail || fullDetail.vacations.length === 0 ? (
@@ -988,7 +982,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                     ) : (
                       <div className="flex flex-col gap-1">
                         {fullDetail.vacations.slice(0, 4).map((v) => (
-                          <div key={v.id} className="text-[11.5px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
+                          <div key={v.id} className="text-[12px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
                             <span className="font-semibold">{dmy(v.start_date)}–{dmy(v.end_date)}</span>
                             <span style={{ color: "var(--text-3)" }}> · {v.days}d · {v.status}</span>
                           </div>
@@ -997,7 +991,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                     )}
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Incidencias recientes</p>
+                    <p className="text-[12px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Incidencias recientes</p>
                     {loadingDetail ? (
                       <div className="h-16 rounded-sm animate-pulse" style={{ background: "var(--surface-2)" }} />
                     ) : !fullDetail || fullDetail.incidents.length === 0 ? (
@@ -1005,7 +999,7 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
                     ) : (
                       <div className="flex flex-col gap-1">
                         {fullDetail.incidents.slice(0, 4).map((i) => (
-                          <div key={i.id} className="text-[11.5px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
+                          <div key={i.id} className="text-[12px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
                             <span className="font-semibold">{dmy(i.start_date)}–{dmy(i.end_date)}</span>
                             <span style={{ color: "var(--text-3)" }}> · {KIND_LABELS[i.kind as keyof typeof KIND_LABELS] ?? i.kind}</span>
                           </div>

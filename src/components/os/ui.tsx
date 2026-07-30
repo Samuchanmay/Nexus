@@ -249,7 +249,7 @@ export function Avatar({ name, color, size = 34, avatarUrl, birthday, status, st
 /* ───────────────────────── Kbd ───────────────────────── */
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="flex items-center justify-center leading-none min-w-[20px] h-[20px] px-1.5 rounded-[6px] bg-surface-2 border border-border text-[11px] font-semibold text-text-3 not-italic">
+    <kbd className="flex items-center justify-center leading-none min-w-[20px] h-[20px] px-1.5 rounded-[6px] bg-surface-2 border border-border text-[12px] font-semibold text-text-3 not-italic">
       <span className="relative -top-px">{children}</span>
     </kbd>
   );
@@ -291,7 +291,7 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
         </span>
         <div className="flex items-center gap-1.5">
           <p className="text-[13px] font-bold leading-snug text-text-1 flex-1 min-w-0">{label}</p>
-          <span className="shrink-0 h-5 min-w-[20px] px-1.5 rounded-full grid place-items-center text-[11px] font-bold"
+          <span className="shrink-0 h-5 min-w-[20px] px-1.5 rounded-full grid place-items-center text-[12px] font-bold"
             style={{ background: t.bg, color: t.fg }}>
             {value}
           </span>

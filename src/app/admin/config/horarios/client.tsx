@@ -182,7 +182,7 @@ export default function HorariosClient({ team, schedules, adminId, embedded }: {
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
                       <p className="text-[13px] font-bold tabular-nums">{fmtTime(current.start_time)}</p>
-                      <p className="text-[11px]" style={{ color: isOverride ? "var(--accent)" : "var(--text-3)" }}>
+                      <p className="text-[12px]" style={{ color: isOverride ? "var(--accent)" : "var(--text-3)" }}>
                         {fmtMin(current.target_min)}{isOverride ? " · temporal" : ""}
                       </p>
                     </div>
@@ -230,14 +230,14 @@ export default function HorariosClient({ team, schedules, adminId, embedded }: {
                     <Pill tone={tone}>{status}</Pill>
                     {confirmId === o.id ? (
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
+                        <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar?</span>
                         <button disabled={saving} onClick={() => removeOverride(o.id)}
-                          className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                          className="text-[12px] font-semibold px-2 py-1 rounded-full"
                           style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                           Sí, eliminar
                         </button>
                         <button onClick={() => setConfirmId(null)}
-                          className="text-[11.5px] font-semibold px-2 py-1 rounded-full"
+                          className="text-[12px] font-semibold px-2 py-1 rounded-full"
                           style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
                           No
                         </button>

@@ -211,13 +211,13 @@ export default function FicharClient({
         {/* Frase del día — un momento de pausa, no compite con la acción principal */}
         <div className="mt-4 rounded-[14px] px-4 py-3.5 text-center" style={{ background: "var(--accent-tint)" }}>
           <span
-            className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide mb-1.5 px-2 py-0.5 rounded-full"
+            className="inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-wide mb-1.5 px-2 py-0.5 rounded-full"
             style={{ color: "var(--accent)", background: "var(--surface)" }}
           >
             <Icon name="sparkle" size={10} /> {BADGE_MOMENTO[contexto.momento]}
           </span>
           <p className="text-[13.5px] font-medium leading-snug" style={{ color: "var(--text-1)" }}>&ldquo;{frase.texto}&rdquo;</p>
-          <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>— {frase.autor}</p>
+          <p className="text-[12px] mt-1" style={{ color: "var(--text-3)" }}>— {frase.autor}</p>
         </div>
 
         {/* Colaborador */}
@@ -225,14 +225,14 @@ export default function FicharClient({
           <Avatar name={nombre} avatarUrl={avatarUrl} color={color} size={34} />
           <div className="min-w-0">
             <p className="text-[13.5px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{nombre}</p>
-            {area && <p className="text-[11.5px] truncate" style={{ color: "var(--text-3)" }}>{area}</p>}
+            {area && <p className="text-[12px] truncate" style={{ color: "var(--text-3)" }}>{area}</p>}
           </div>
         </div>
 
         {pendientes > 0 && (
           <div className="mt-3 flex items-center gap-2 rounded-[10px] px-3 py-2" style={{ background: "var(--warn-tint)" }}>
             <Icon name="signal" size={14} style={{ color: "var(--warn)" }} />
-            <span className="text-[11.5px] font-medium" style={{ color: "var(--text-1)" }}>
+            <span className="text-[12px] font-medium" style={{ color: "var(--text-1)" }}>
               {pendientes} registro{pendientes > 1 ? "s" : ""} guardado{pendientes > 1 ? "s" : ""} en este dispositivo — se enviará{pendientes > 1 ? "n" : ""} solo{pendientes > 1 ? "s" : ""} al recuperar señal.
             </span>
           </div>
@@ -292,7 +292,7 @@ export default function FicharClient({
           </>
         )}
 
-        <p className="text-center text-[10.5px] mt-5" style={{ color: "var(--text-3)" }}>Hecho con ❤️ por Samu Chan</p>
+        <p className="text-center text-[12px] mt-5" style={{ color: "var(--text-3)" }}>Hecho con ❤️ por Samu Chan</p>
       </div>
     </div>
   );
@@ -316,7 +316,7 @@ function TarjetaAccion({
       <span className="text-[24px] leading-none shrink-0" aria-hidden>{accion.emoji}</span>
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-semibold" style={{ color: "var(--text-1)" }}>{accion.titulo}</p>
-        {accion.descripcion && <p className="text-[11.5px] mt-0.5" style={{ color: "var(--text-3)" }}>{accion.descripcion}</p>}
+        {accion.descripcion && <p className="text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>{accion.descripcion}</p>}
       </div>
       <div
         className="w-5 h-5 rounded-full border shrink-0 flex items-center justify-center"
@@ -334,7 +334,7 @@ function TarjetaInfo({ emoji, titulo, descripcion }: { emoji: string; titulo: st
       <span className="text-[24px] leading-none shrink-0" aria-hidden>{emoji}</span>
       <div>
         <p className="text-[14px] font-semibold" style={{ color: "var(--text-1)" }}>{titulo}</p>
-        <p className="text-[11.5px] mt-0.5" style={{ color: "var(--text-3)" }}>{descripcion}</p>
+        <p className="text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>{descripcion}</p>
       </div>
     </div>
   );
