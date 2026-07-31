@@ -1,8 +1,9 @@
 "use client";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, Pill, Sheet, useToast, CheckBox, DatePicker, Menu, MenuItem, Select } from "@/components/ui";
+import { Avatar, Pill, Sheet, useToast, CheckBox, DatePicker, Menu, MenuItem, Select, SlidingSegments } from "@/components/ui";
 import { EmptyState, Field } from "@/components/shared";
 import { Icon } from "@/components/os/icons";
 import { IconDownload } from "@/components/icons";
@@ -14,6 +15,7 @@ import { PrintButton } from "../reportes/print-button";
 import { fmtMin } from "@/lib/hours";
 import { dmy, todayMerida } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
+import { usePersistedView } from "@/lib/persisted-view";
 
 /* ═══════════════════════════════════════════════════════════════
    Dependencias entre Actividades — Plano Maestro §04.
@@ -25,7 +27,7 @@ import { isBirthdayToday, todayISO } from "@/lib/birthday";
    ═══════════════════════════════════════════════════════════════ */
 
 export type ProjectRow = {
-  id: string; status: string; priority: string; deadline: string | null; created_at: string;
+  id: string; status: string; priority: string; deadline: string | null; completed_at: string | null; created_at: string;
   requests: { title: string; type: RequestType } | null;
   project_assignments: {
     is_lead: boolean;
@@ -37,10 +39,28 @@ export type DepRow = {
   id: string; project_id: string; depends_on_project_id: string;
   projects: { id: string; status: string; requests: { title: string } | null } | null;
 };
+/** Solicitud sin triar (status "solicitada") — Fase 3, columna "Solicitada"
+    de la vista Pipeline. Solo lectura aquí: aprobar/rechazar sigue siendo
+    responsabilidad de Solicitudes (evita duplicar esa lógica). */
+export type PendingRequestRow = {
+  id: string; title: string; type: RequestType; requester_name: string | null;
+  priority: string; created_at: string;
+};
 type Member = { id: string; display_name: string; full_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null };
 type ActTypeOpt = { key: string; label: string };
 
 const PRIORITIES: Priority[] = ["baja", "normal", "alta", "urgente"];
+
+/** Etapas del flujo Solicitud → Actividad, en orden — Fase 3. "Pausada" y
+    "Cancelada" son estados terminales fuera del flujo activo, así que no
+    tienen columna propia (siguen visibles en la vista Lista → Cerrados). */
+const PIPELINE_STAGES: { key: RequestStatus; label: string }[] = [
+  { key: "solicitada", label: "Solicitada" },
+  { key: "aprobada", label: "Aprobada" },
+  { key: "en_progreso", label: "En progreso" },
+  { key: "en_revision", label: "En revisión" },
+  { key: "completada", label: "Completada" },
+];
 
 /** Reporte HTML de Actividades agrupadas por persona — título, tipo, estado,
  * prioridad y entrega de cada quien, más el total de horas registradas
@@ -109,12 +129,13 @@ function printByEmployeeReport(
   if (w) { w.document.write(html); w.document.close(); }
 }
 
-export default function ProyectosClient({ projects, dependencies, typeLabel, types, team, hoursByUserMin, adminId }: {
-  projects: ProjectRow[]; dependencies: DepRow[]; typeLabel: Record<string, string>;
+export default function ProyectosClient({ projects, dependencies, pendingRequests, typeLabel, types, team, hoursByUserMin, adminId }: {
+  projects: ProjectRow[]; dependencies: DepRow[]; pendingRequests: PendingRequestRow[]; typeLabel: Record<string, string>;
   types: ActTypeOpt[]; team: Member[]; hoursByUserMin: Record<string, number>; adminId: string;
 }) {
   const toast = useToast();
   const router = useRouter();
+  const [view, setView] = usePersistedView<"Lista" | "Pipeline">("proyectos-view", ["Lista", "Pipeline"], "Lista");
   const [deps, setDeps] = useState(dependencies);
   const [open, setOpen] = useState<string | null>(null); // project_id con el picker abierto
   const [picked, setPicked] = useState("");
@@ -179,6 +200,20 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
     if (error) { toast("No se pudo quitar", "danger"); return; }
     setDeps((d) => d.filter((x) => x.id !== depId));
     toast("Dependencia eliminada");
+  };
+
+  // Cierra el hueco del pipeline (Fase 3, auditoría): antes ningún botón ni
+  // trigger de BD llevaba un proyecto de "en_revision" a "completada" — se
+  // quedaba ahí para siempre salvo edición manual en Supabase.
+  const markCompleted = async (projectId: string, title: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.from("projects")
+      .update({ status: "completada", completed_at: new Date().toISOString() })
+      .eq("id", projectId);
+    if (error) { toast("No se pudo marcar como completada", "danger"); return; }
+    if (adminId) logAdminAction(supabase, adminId, "Marcó actividad como completada", title);
+    toast("Actividad completada");
+    router.refresh();
   };
 
   const openAdd = () => {
@@ -343,12 +378,27 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
             <span className="text-[12px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{pct}%</span>
           </div>
 
+          {p.status === "en_revision" && (
+            <button className="btn-primary text-[12.5px] px-3 py-2 mt-2.5 flex items-center justify-center gap-1.5"
+              onClick={() => markCompleted(p.id, titleOf(p))}>
+              <Icon name="check" size={13} /> Marcar completada
+            </button>
+          )}
+
           {depsBlock}
         </div>
 
         {/* Escritorio — sin cambios */}
         <div className="hidden md:block">
-          <div className="flex items-center gap-2 flex-wrap mb-1.5">{badges}</div>
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            {badges}
+            {p.status === "en_revision" && (
+              <button className="text-[12px] font-semibold ml-auto flex items-center gap-1" style={{ color: "var(--ok)" }}
+                onClick={() => markCompleted(p.id, titleOf(p))}>
+                <Icon name="check" size={12} /> Marcar completada
+              </button>
+            )}
+          </div>
           <h3 className="text-[15px] font-bold leading-snug">{titleOf(p)}</h3>
           <div className="flex items-center justify-between mt-3">
             <div className="flex -space-x-2">
@@ -431,24 +481,39 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
         </div>
       </header>
 
-      <h2 className="text-[15px] font-bold mb-2 md:mb-3">Activos</h2>
-      {active.length === 0 && (
-        <div className="mb-6">
-          <EmptyState
-            icon={<Icon name="layers" size={22} />}
-            title="Sin actividades activas"
-            hint="Aprueba una solicitud o añade una directamente."
-            action={<button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>+ Añadir proyecto</button>}
-          />
-        </div>
-      )}
-      <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 mb-6 md:mb-8">{active.map((p) => <Card key={p.id} p={p} />)}</div>
+      {/* Fase 3: Lista (comportamiento original, sin cambios) vs Pipeline
+          (las etapas Solicitud→Actividad en un solo lugar). */}
+      <div className="mb-5">
+        <SlidingSegments options={["Lista", "Pipeline"]} value={view} onChange={(v) => setView(v as "Lista" | "Pipeline")} />
+      </div>
 
-      {done.length > 0 && (
+      {view === "Lista" ? (
         <>
-          <h2 className="text-[15px] font-bold mb-2 md:mb-3">Cerrados</h2>
-          <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 opacity-70">{done.map((p) => <Card key={p.id} p={p} />)}</div>
+          <h2 className="text-[15px] font-bold mb-2 md:mb-3">Activos</h2>
+          {active.length === 0 && (
+            <div className="mb-6">
+              <EmptyState
+                icon={<Icon name="layers" size={22} />}
+                title="Sin actividades activas"
+                hint="Aprueba una solicitud o añade una directamente."
+                action={<button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>+ Añadir proyecto</button>}
+              />
+            </div>
+          )}
+          <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 mb-6 md:mb-8">{active.map((p) => <Card key={p.id} p={p} />)}</div>
+
+          {done.length > 0 && (
+            <>
+              <h2 className="text-[15px] font-bold mb-2 md:mb-3">Cerrados</h2>
+              <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 opacity-70">{done.map((p) => <Card key={p.id} p={p} />)}</div>
+            </>
+          )}
         </>
+      ) : (
+        <PipelineBoard
+          projects={projects} pendingRequests={pendingRequests} typeLabel={typeLabel}
+          onMarkCompleted={markCompleted} onGoToList={() => setView("Lista")}
+        />
       )}
 
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Añadir proyecto" subtitle="Crea una actividad directamente, sin pasar por Solicitudes">
@@ -514,5 +579,110 @@ export default function ProyectosClient({ projects, dependencies, typeLabel, typ
         </div>
       </Sheet>
     </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PipelineBoard — Fase 3. Las mismas Solicitudes/Actividades de
+   siempre, agrupadas por etapa en vez de por dos pantallas sueltas.
+   No duplica lógica: la columna "Solicitada" es solo lectura y
+   enlaza a Solicitudes para aprobar/rechazar (esa cadena de efectos
+   — checklist, evento de calendario, log — sigue viviendo ahí).
+   ═══════════════════════════════════════════════════════════════ */
+const COMPLETADA_VISIBLE = 8;
+
+function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, onGoToList }: {
+  projects: ProjectRow[]; pendingRequests: PendingRequestRow[]; typeLabel: Record<string, string>;
+  onMarkCompleted: (id: string, title: string) => void; onGoToList: () => void;
+}) {
+  const byStage = useMemo(() => {
+    const m = new Map<string, ProjectRow[]>();
+    for (const p of projects) (m.get(p.status) ?? m.set(p.status, []).get(p.status)!).push(p);
+    return m;
+  }, [projects]);
+  const completadas = (byStage.get("completada") ?? [])
+    .slice()
+    .sort((a, b) => (b.completed_at ?? b.created_at).localeCompare(a.completed_at ?? a.created_at));
+
+  const PriorityPill = ({ priority }: { priority: string }) =>
+    (priority as Priority) !== "normal"
+      ? <Pill tone={PRIORITY_TONE[priority as Priority]}>{priority}</Pill>
+      : null;
+
+  const RequestCard = ({ r }: { r: PendingRequestRow }) => (
+    <Link href="/admin/solicitudes" className="card card-hover p-3 flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Pill tone="muted">{typeLabel[r.type] ?? r.type}</Pill>
+        <PriorityPill priority={r.priority} />
+      </div>
+      <p className="text-[13px] font-bold leading-snug truncate">{r.title}</p>
+      <p className="text-[12px] truncate" style={{ color: "var(--text-3)" }}>{r.requester_name ?? "—"}</p>
+      <span className="text-[11.5px] font-semibold mt-0.5" style={{ color: "var(--accent)" }}>Revisar en Solicitudes →</span>
+    </Link>
+  );
+
+  const ProjectCard = ({ p }: { p: ProjectRow }) => {
+    const asgs = p.project_assignments ?? [];
+    const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
+    return (
+      <div className="card p-3 flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Pill tone="muted">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
+          <PriorityPill priority={p.priority} />
+        </div>
+        <p className="text-[13px] font-bold leading-snug truncate">{p.requests?.title ?? "Actividad"}</p>
+        <div className="flex items-center justify-between mt-0.5">
+          {lead ? (
+            <span className="inline-flex items-center gap-1.5 min-w-0">
+              <Avatar name={lead.display_name} color={lead.nexus_color} avatarUrl={lead.avatar_url} size={18} birthday={isBirthdayToday(lead.birth_date, todayISO())} />
+              <span className="text-[12px] font-semibold truncate" style={{ color: "var(--text-2)" }}>{lead.display_name}</span>
+            </span>
+          ) : <span className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin asignar</span>}
+          {p.deadline && <span className="text-[11.5px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>{dmy(p.deadline)}</span>}
+        </div>
+        {p.status === "en_revision" && (
+          <button className="text-[12px] font-semibold mt-1 flex items-center gap-1 self-start" style={{ color: "var(--ok)" }}
+            onClick={() => onMarkCompleted(p.id, p.requests?.title ?? "Actividad")}>
+            <Icon name="check" size={12} /> Marcar completada
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex gap-3 overflow-x-auto nx-scroll pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+      {PIPELINE_STAGES.map((stage) => {
+        const items = stage.key === "solicitada" ? pendingRequests
+          : stage.key === "completada" ? completadas.slice(0, COMPLETADA_VISIBLE)
+          : byStage.get(stage.key) ?? [];
+        const total = stage.key === "solicitada" ? pendingRequests.length
+          : stage.key === "completada" ? completadas.length
+          : (byStage.get(stage.key) ?? []).length;
+        return (
+          <div key={stage.key} className="flex flex-col shrink-0 w-[260px] md:w-[280px]">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-[12.5px] font-bold" style={{ color: "var(--text-2)" }}>{stage.label}</span>
+              <span className="text-[11.5px] font-bold tabular-nums px-1.5 py-0.5 rounded-full"
+                style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>{total}</span>
+            </div>
+            <div className="flex flex-col gap-2 min-h-[60px]">
+              {items.length === 0 ? (
+                <div className="text-[12px] text-center py-6" style={{ color: "var(--text-3)" }}>Vacío</div>
+              ) : stage.key === "solicitada" ? (
+                (items as PendingRequestRow[]).map((r) => <RequestCard key={r.id} r={r} />)
+              ) : (
+                (items as ProjectRow[]).map((p) => <ProjectCard key={p.id} p={p} />)
+              )}
+              {stage.key === "completada" && total > COMPLETADA_VISIBLE && (
+                <button className="text-[12px] font-semibold text-center py-2" style={{ color: "var(--accent)" }} onClick={onGoToList}>
+                  Ver las {total} en Lista →
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
