@@ -12,8 +12,13 @@ export const IconHome = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>);
 export const IconCamera = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className}><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>);
+/* Lápiz — antes tenía dos paths de dos íconos distintos superpuestos (una
+   pluma/feather mezclada con otra forma), lo que se veía como un ícono
+   "sucio"/ambiguo. Ahora es un solo lápiz limpio y estándar, mismo estilo
+   monolínea que el resto del set — es el único ícono de "editar" en toda
+   la app. */
 export const IconPen = ({ className = "w-[18px] h-[18px]" }: P) => (
-  <svg {...base} className={className}><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18z" /></svg>);
+  <svg {...base} className={className}><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>);
 export const IconVideo = ({ className = "w-[18px] h-[18px]" }: P) => (
   <svg {...base} className={className}><rect x="2" y="6" width="14" height="12" rx="2" /><path d="M16 10l6-4v12l-6-4" /></svg>);
 export const IconMegaphone = ({ className = "w-[18px] h-[18px]" }: P) => (

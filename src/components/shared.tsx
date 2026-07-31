@@ -38,10 +38,15 @@ export function Switch({ checked, onChange, disabled, label, tone = "neutral", s
       onClick={(e) => { e.stopPropagation(); onChange(); }}
       className="inline-flex items-center gap-2 disabled:opacity-50"
     >
-      <span className={`relative inline-block ${track} rounded-full shrink-0 transition-colors`}
-        style={{ background: checked ? "var(--ok)" : offColor, border: "1px solid var(--border)" }}>
-        <span className={`absolute top-[1px] ${thumb} rounded-full bg-white transition-all shadow-sm`}
-          style={{ left: checked ? thumbOn : "1px" }} />
+      {/* Transición propia (curva --spring en el desplazamiento, --ease en el
+          color) en vez del transition-colors/transition-all genérico de
+          Tailwind — mismo lenguaje de movimiento que el resto del Design
+          System (.card-hover, Sheet, etc.), no la curva por defecto del
+          navegador. */}
+      <span className={`relative inline-block ${track} rounded-full shrink-0`}
+        style={{ background: checked ? "var(--ok)" : offColor, border: "1px solid var(--border)", transition: "background-color .18s var(--ease)" }}>
+        <span className={`absolute top-[1px] ${thumb} rounded-full bg-white shadow-sm`}
+          style={{ left: checked ? thumbOn : "1px", transition: "left .2s var(--spring)" }} />
       </span>
       {label && <span className="text-[12.5px] font-semibold" style={{ color: tone === "status" ? (checked ? "var(--ok)" : "var(--danger)") : "var(--text-1)" }}>{label}</span>}
     </button>

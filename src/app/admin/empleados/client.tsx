@@ -92,9 +92,15 @@ export default function EmpleadosClient({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  {/* En el header compartido (búsqueda/tema/notificaciones/avatar ya ocupan
+      esa fila en móvil), el botón con texto completo competía con los demás
+      íconos y se sentía dominante. En pantallas angostas queda solo el
+      ícono — sigue siendo el CTA principal, pero con el mismo peso visual
+      que sus vecinos — y el texto vuelve desde `sm:`. */}
   useHeaderAction(() => (
-    <button onClick={() => setOpen(true)} className="btn-primary px-3.5 h-8 text-[13px] flex items-center gap-1.5">
-      <IconUserPlus className="w-3.5 h-3.5" /> Nuevo colaborador
+    <button onClick={() => { setAttemptedSave(false); setOpen(true); }} aria-label="Nuevo colaborador" title="Nuevo colaborador"
+      className="btn-primary h-8 px-2.5 sm:px-3.5 text-[13px] flex items-center gap-1.5 shrink-0">
+      <IconUserPlus className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Nuevo colaborador</span>
     </button>
   ));
   const usedLockedColors = [...areas.map((a) => a.color), rhColor];
@@ -144,7 +150,9 @@ export default function EmpleadosClient({
     return form.color;
   };
 
+  const [attemptedSave, setAttemptedSave] = useState(false);
   const save = async () => {
+    setAttemptedSave(true);
     if (!form.email.trim() || !form.full_name.trim()) { toast("Correo y nombre son obligatorios", "warn"); return; }
     setSaving(true);
     const supabase = createClient();
@@ -178,7 +186,7 @@ export default function EmpleadosClient({
         target_min: targetMin,
       });
     }
-    setSaving(false); setOpen(false);
+    setSaving(false); setOpen(false); setAttemptedSave(false);
     if (adminId) logAdminAction(supabase, adminId, "Dio de alta a una persona", form.full_name.trim());
     toast("Persona agregada a la whitelist");
     router.refresh();
@@ -381,7 +389,7 @@ export default function EmpleadosClient({
     return (
       <div
         onClick={() => openEdit(u)}
-        className="group relative w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-m border border-border cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[3px]"
+        className="group relative w-full text-left flex items-center gap-3 sm:gap-3.5 px-3.5 py-3 sm:px-4 rounded-m border border-border cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[3px]"
         style={{
           background: "var(--surface)", opacity: u.active ? 1 : 0.55,
           transition: "transform .22s var(--spring), box-shadow .22s var(--ease), border-color .22s var(--ease)",
@@ -408,7 +416,7 @@ export default function EmpleadosClient({
             {u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
           </p>
           {(u.title || dept || !u.onboarded) && (
-            <div className="flex items-center gap-1.5 mt-[3px]">
+            <div className="flex items-center gap-1.5 flex-wrap mt-1">
               {u.title && (
                 <span
                   className="px-1.5 py-[1px] rounded-full text-[12px] font-semibold shrink-0 truncate max-w-[170px]"
@@ -551,13 +559,18 @@ export default function EmpleadosClient({
         </p>
       </header>
 
-      <div className="flex items-center gap-2 flex-wrap mb-4">
-        <input className="field-input text-[12.5px] w-[220px]" placeholder="Buscar por nombre, correo, cargo o área…"
+      {/* Mobile: buscador en su propia fila (ancho completo) y chips en tira
+          horizontal con scroll nativo — estilo iOS (App Store, Mensajes),
+          en vez de envolver en varias líneas y empujar la lista hacia abajo.
+          Desktop (sm:+): vuelve al layout en línea de siempre. */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-2 mb-4">
+        <input className="field-input text-[12.5px] w-full sm:w-[220px] shrink-0" placeholder="Buscar por nombre, correo, cargo o área…"
           value={search} onChange={(e) => setSearch(e.target.value)} />
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 overflow-x-auto sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: "none" }}>
           {ROLE_CHIPS.map((c) => (
             <button key={c.key} onClick={() => setRoleFilter(c.key)}
-              className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors"
+              className="px-3.5 py-2 sm:py-1.5 rounded-full text-[12.5px] sm:text-[12px] font-semibold transition-colors shrink-0 whitespace-nowrap"
               style={roleFilter === c.key
                 ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
                 : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
@@ -571,7 +584,7 @@ export default function EmpleadosClient({
         {groups.map((g) => <Group key={g.label} g={g} />)}
       </div>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="Nuevo colaborador">
+      <Sheet open={open} onClose={() => { setOpen(false); setAttemptedSave(false); }} title="Nuevo colaborador">
         <div className="flex flex-col gap-3">
           <Field label="Selecciona el tipo de usuario">
             <Select
@@ -589,13 +602,15 @@ export default function EmpleadosClient({
 
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo Google *</label>
-            <input className="field-input" placeholder="nombre@cert.edu.mx" type="email"
+            <input className="field-input" placeholder="nombre@cert.edu.mx" type="email" aria-required="true"
+              aria-invalid={attemptedSave && !form.email.trim() ? "true" : undefined}
               value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo *</label>
-              <input className="field-input" placeholder="Nombre Apellido"
+              <input className="field-input" placeholder="Nombre Apellido" aria-required="true"
+                aria-invalid={attemptedSave && !form.full_name.trim() ? "true" : undefined}
                 value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
             </div>
             <div>
@@ -750,7 +765,7 @@ export default function EmpleadosClient({
           )}
 
           <div className="flex gap-2.5 mt-1">
-            <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setOpen(false)}>Cancelar</button>
+            <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => { setOpen(false); setAttemptedSave(false); }}>Cancelar</button>
             <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={saving} onClick={save}>
               {saving ? "Guardando…" : "Agregar a la whitelist"}
             </button>

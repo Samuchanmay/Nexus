@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { IconCheck, IconMoon, IconSun, IconAlert, IconX } from "./icons";
 import { useMountOnOpen } from "@/lib/use-mount-on-open";
@@ -202,6 +202,31 @@ export function Menu({ trigger, align = "right", width = 210, children }: {
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Floating placement — se recalcula cada vez que se abre: mide el trigger
+  // y el propio panel contra el viewport y decide arriba/abajo + izquierda/
+  // derecha, en vez de asumir siempre "abajo, alineado a `align`" como antes
+  // (se cortaba en filas cerca del borde inferior o lateral de la pantalla).
+  // Sigue siendo position:absolute dentro del wrap, sin portal: el wrap ya
+  // resuelve stopPropagation/click-outside/mouseleave de forma probada —
+  // portar el panel a document.body obligaría a rehacer los tres contra el
+  // mismo bug de "backdrop fantasma" que ya se documentó y resolvió aquí.
+  const [placement, setPlacement] = useState<{ vertical: "down" | "up"; horizontal: "left" | "right" }>({
+    vertical: "down", horizontal: align,
+  });
+  useLayoutEffect(() => {
+    if (!open || !wrapRef.current || !panelRef.current) return;
+    const triggerRect = wrapRef.current.getBoundingClientRect();
+    const panelRect = panelRef.current.getBoundingClientRect();
+    const margin = 8;
+    const fitsBelow = triggerRect.bottom + panelRect.height + margin <= window.innerHeight;
+    const fitsAbove = triggerRect.top - panelRect.height - margin >= 0;
+    const vertical = fitsBelow || !fitsAbove ? "down" : "up";
+    let horizontal = align;
+    if (align === "right" && triggerRect.right - width < margin) horizontal = "left";
+    if (align === "left" && triggerRect.left + width > window.innerWidth - margin) horizontal = "right";
+    setPlacement({ vertical, horizontal });
+  }, [open, align, width]);
 
   // Cierre por click-fuera/ESC vía listener del documento — NUNCA un backdrop
   // "fixed inset-0" propio. Ese backdrop es exactamente la causa raíz del
@@ -247,7 +272,8 @@ export function Menu({ trigger, align = "right", width = 210, children }: {
       {trigger({ onClick: () => setOpen((v) => !v), open })}
       {open && (
         <div
-          className={`absolute ${align === "right" ? "right-0" : "left-0"} top-full mt-1.5 z-50 nx-pop`}
+          ref={panelRef}
+          className={`absolute ${placement.horizontal === "right" ? "right-0" : "left-0"} ${placement.vertical === "down" ? "top-full mt-1.5" : "bottom-full mb-1.5"} z-50 nx-pop`}
           style={{ width }}
           onClick={() => setOpen(false)}
         >
