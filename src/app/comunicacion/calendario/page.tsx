@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { todayMerida } from "@/lib/tz";
 import { shiftMonth, monthBounds } from "@/lib/calendar-grid";
+import { yearRange } from "@/lib/calendar-core";
 import CalendarioClient, { type Deadline, type VacationRange, type NextActivity, type InstitutionalEvent } from "./client";
 
 /* ═══════════════════════════════════════════════════════════════
@@ -19,7 +20,11 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
   const today = todayMerida();
   const ym = /^\d{4}-\d{2}$/.test(m ?? "") ? m! : today.slice(0, 7);
   const initialFocusDate = /^\d{4}-\d{2}-\d{2}$/.test(d ?? "") && (d as string).slice(0, 7) === ym ? d! : undefined;
-  const { year, month, daysInMonth, first, last } = monthBounds(ym);
+  const { year, month, daysInMonth } = monthBounds(ym);
+  // Rango de AÑO completo (EMET-CALENDAR-ENGINE.md §8.5) — igual que en
+  // admin/calendario, la vista Año necesita los 12 meses, no solo el mes
+  // en pantalla. `deadlines` ya venía sin acotar por mes (ver abajo).
+  const { first: yFirst, last: yLast } = yearRange(year);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -29,8 +34,8 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
   const [{ data: vacs }, { data: hols }, { data: assignments }, { data: allAssignments }, { data: activitySetting }, { data: instEvents }] = await Promise.all([
     supabase.from("vacations").select("start_date, end_date")
       .eq("user_id", profile!.id).eq("status", "Aprobada").is("archived_at", null)
-      .lte("start_date", last).gte("end_date", first),
-    supabase.from("holidays").select("date, name, kind").gte("date", first).lte("date", last),
+      .lte("start_date", yLast).gte("end_date", yFirst),
+    supabase.from("holidays").select("date, name, kind").gte("date", yFirst).lte("date", yLast),
     supabase.from("project_assignments")
       .select("projects(id, deadline, status, requests(title, type))")
       .eq("user_id", profile!.id),
@@ -44,7 +49,7 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
     // como una capa más (solo lectura para el colaborador; RLS ya bloquea
     // escritura para roles distintos de admin).
     supabase.from("institutional_events").select("id, title, kind, start_date, end_date, notes")
-      .lte("start_date", last).gte("end_date", first).order("start_date"),
+      .lte("start_date", yLast).gte("end_date", yFirst).order("start_date"),
   ]);
 
   // Eventos ya agendados en "Eventos CERT" (Google Calendar) — misma fuente
@@ -58,8 +63,8 @@ export default async function CalendarioEmpleado({ searchParams }: { searchParam
       const { data, error } = await supabase.functions.invoke("gcal-list-events", {
         body: {
           calendarId: activitySetting.value,
-          timeMin: `${first}T00:00:00-06:00`,
-          timeMax: `${last}T23:59:59-06:00`,
+          timeMin: `${yFirst}T00:00:00-06:00`,
+          timeMax: `${yLast}T23:59:59-06:00`,
         },
       });
       if (error) gcalError = "No se pudo conectar con el servidor para leer Google Calendar. Intenta recargar la página.";

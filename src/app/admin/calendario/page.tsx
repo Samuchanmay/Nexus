@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { todayMerida } from "@/lib/tz";
 import { shiftMonth, monthBounds } from "@/lib/calendar-grid";
+import { yearRange } from "@/lib/calendar-core";
 import { getTodayEfemerides } from "@/lib/efemerides";
 import CalendarioClient, { type TeamMember, type ProjectDeadline, type VacationRange, type InstitutionalEvent } from "./client";
 
@@ -17,24 +18,29 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   const ym = /^\d{4}-\d{2}$/.test(m ?? "") ? m! : today.slice(0, 7);
   const initialFocusDate = /^\d{4}-\d{2}-\d{2}$/.test(d ?? "") && (d as string).slice(0, 7) === ym ? d! : undefined;
   const { year, month, daysInMonth, first, last } = monthBounds(ym);
+  // Rango de AÑO completo (EMET-CALENDAR-ENGINE.md §8.5, vista Año/heatmap):
+  // el motor necesita los eventos de los 12 meses para el heatmap, no solo
+  // el mes en pantalla. Asistencia sigue acotada al mes (first/last arriba)
+  // porque su heatmap solo se muestra en granularidad Mes/Semana/Día.
+  const { first: yFirst, last: yLast } = yearRange(year);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }, { data: efemSetting }, { data: activitySetting }, { data: instEvents }] = await Promise.all([
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
-    supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", last).gte("end_date", first),
-    supabase.from("holidays").select("date, name, kind").gte("date", first).lte("date", last),
+    supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", yLast).gte("end_date", yFirst),
+    supabase.from("holidays").select("date, name, kind").gte("date", yFirst).lte("date", yLast),
     supabase.from("projects")
       .select("id, deadline, status, requests(title, type), project_assignments(is_lead, users(display_name, nexus_color))")
-      .not("deadline", "is", null).gte("deadline", first).lte("deadline", last).order("deadline"),
+      .not("deadline", "is", null).gte("deadline", yFirst).lte("deadline", yLast).order("deadline"),
     supabase.from("app_settings").select("value").eq("key", "gcal_efemerides_calendar_id").maybeSingle(),
     supabase.from("app_settings").select("value").eq("key", "gcal_activity_calendar_id").maybeSingle(),
     // Calendarios institucionales (FASE U) — fusionados aquí como una capa
     // más, administrados directamente en Emet (a diferencia de "Eventos
     // CERT" que vive en Google Calendar y solo se lee vía gcal-list-events).
     supabase.from("institutional_events").select("id, title, kind, start_date, end_date, notes")
-      .lte("start_date", last).gte("end_date", first).order("start_date"),
+      .lte("start_date", yLast).gte("end_date", yFirst).order("start_date"),
   ]);
   const { data: meRow } = user ? await supabase.from("users").select("id").eq("auth_id", user.id).single() : { data: null };
 
@@ -52,8 +58,8 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       const { data, error } = await supabase.functions.invoke("gcal-list-events", {
         body: {
           calendarId: activitySetting.value,
-          timeMin: `${first}T00:00:00-06:00`,
-          timeMax: `${last}T23:59:59-06:00`,
+          timeMin: `${yFirst}T00:00:00-06:00`,
+          timeMax: `${yLast}T23:59:59-06:00`,
         },
       });
       if (error) {

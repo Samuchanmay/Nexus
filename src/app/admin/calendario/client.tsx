@@ -1,43 +1,23 @@
 "use client";
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar, SlidingSegments, Sheet, DateRangeField, Select, useToast } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
-import { MONTHS, DOW, buildMonthGrid } from "@/lib/calendar-grid";
+import { MONTHS, dayLongLabel, weekRangeLabel, weekStartOf, daysInRange } from "@/lib/calendar-core";
+import { shiftMonth } from "@/lib/calendar-grid";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { dmy, addDays } from "@/lib/tz";
-import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind, INSTITUTIONAL_KIND_LABEL, institutionalStyle, type InstitutionalKind } from "@/lib/ui-maps";
+import { holidayStyle, INSTITUTIONAL_KIND_LABEL, type InstitutionalKind } from "@/lib/ui-maps";
 import { usePersistedView } from "@/lib/persisted-view";
 import { useSupabaseMutation, Field } from "@/components/shared";
 import { IconTrash } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { logAdminAction } from "@/lib/admin-log";
+import { CalendarEngine, CalendarHeader, MonthView, WeekView, DayView, AgendaView, YearView, CalendarLegend, CalendarRightPanel, CalendarFilterBar } from "@/components/calendar";
+import type { CalendarEvent, CalendarLayer } from "@/components/calendar";
 
-const HOLIDAY_KIND_ICON: Record<HolidayKind, string> = {
-  nacional: "calendar", estatal: "pin", empresa: "building", puente: "sun",
-};
-
-const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-const DOW_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-
-/** Lun=0..Dom=6, para indexar en DOW/DOW_LONG que ya empiezan en lunes. */
-function mondayIndex(iso: string) {
-  return (new Date(`${iso}T12:00:00`).getDay() + 6) % 7;
-}
-function dayLongLabel(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  const dow = DOW_LONG[new Date(`${iso}T12:00:00`).getDay()];
-  return `${dow.charAt(0).toUpperCase()}${dow.slice(1)} ${d} de ${MONTHS[m - 1]} ${y}`;
-}
-function weekRangeLabel(cells: { date: string }[]) {
-  if (!cells.length) return "";
-  const a = cells[0].date, b = cells[cells.length - 1].date;
-  const [ay, am, ad] = a.split("-").map(Number);
-  const [by, bm, bd] = b.split("-").map(Number);
-  if (am === bm && ay === by) return `${ad}–${bd} ${MONTHS_SHORT[am - 1]} ${ay}`;
-  return `${ad} ${MONTHS_SHORT[am - 1]} – ${bd} ${MONTHS_SHORT[bm - 1]} ${by}`;
-}
+const GRANULARITIES = ["Agenda", "Día", "Semana", "Mes", "Año"] as const;
+type Granularity = (typeof GRANULARITIES)[number];
 
 export type TeamMember = { id: string; display_name: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null };
 export type VacationRange = { user_id: string; start_date: string; end_date: string };
@@ -66,16 +46,14 @@ export default function CalendarioClient({
   adminId?: string;
 }) {
   const router = useRouter();
-  const [view, setView] = usePersistedView<"Asistencia" | "Equipo">(
-    "calendario.admin.view", ["Asistencia", "Equipo"], "Equipo"
+  const [view, setView] = usePersistedView<"Equipo" | "Asistencia">(
+    "calendario.admin.view", ["Equipo", "Asistencia"], "Equipo"
   );
-  // Granularidad Día/Semana/Mes (Plano Maestro — pedido explícito: "que haya
-  // la opción de poner día, semana o mes"). focusDate es la fecha "activa"
-  // para Día/Semana; en Mes no se usa para la rejilla pero sí para saber
-  // qué semana mostrar si se cambia a Semana desde un día cualquiera.
-  // Persistida: no debe reiniciar a "Mes" al salir y volver a entrar (punto 1).
-  const [granularity, setGranularity] = usePersistedView<"Día" | "Semana" | "Mes">(
-    "calendario.admin.granularity", ["Día", "Semana", "Mes"], "Mes"
+  // Granularidad Agenda/Día/Semana/Mes/Año (Plano Maestro + Fase B del motor
+  // — EMET-CALENDAR-ENGINE.md §14). Persistida: no debe reiniciar a "Mes" al
+  // salir y volver a entrar (punto 1 del pulido UX).
+  const [granularity, setGranularity] = usePersistedView<Granularity>(
+    "calendario.admin.granularity", GRANULARITIES, "Mes"
   );
   const [focusDate, setFocusDate] = useState(initialFocusDate ?? today);
 
@@ -139,6 +117,9 @@ export default function CalendarioClient({
   const last = `${ym}-${String(daysInMonth).padStart(2, "0")}`;
   const holidayOf = useMemo(() => new Map(holidays.map((h) => [h.date, h.name])), [holidays]);
   const holidayKindOf = useMemo(() => new Map(holidays.map((h) => [h.date, h.kind])), [holidays]);
+  // `holidays` ahora llega con el AÑO completo (para la vista Año del motor)
+  // — esta lista se acota de vuelta al mes en pantalla para el resumen de abajo.
+  const monthHolidays = useMemo(() => holidays.filter((h) => h.date >= first && h.date <= last), [holidays, first, last]);
   const attSet = useMemo(() => new Set(attendance.map((a) => `${a.user_id}|${a.date}`)), [attendance]);
 
   const days = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => {
@@ -148,26 +129,24 @@ export default function CalendarioClient({
     return { n: i + 1, date, isWeekend: dow === 0 || dow === 6, holiday: holidayOf.get(date) ?? null };
   }), [daysInMonth, ym, holidayOf]);
 
-  const monthCells = useMemo(() => buildMonthGrid(first, last, daysInMonth), [first, last, daysInMonth]);
-
-  // Semana enfocada: monthCells ya viene en bloques completos de 7 (Lun–Dom),
-  // así que la semana de cualquier fecha es simplemente el bloque que la contiene.
-  const weekCells = useMemo(() => {
-    for (let i = 0; i < monthCells.length; i += 7) {
-      const chunk = monthCells.slice(i, i + 7);
-      if (chunk.some((c) => c.date === focusDate)) return chunk;
-    }
-    return monthCells.slice(0, 7);
-  }, [monthCells, focusDate]);
+  // Semana enfocada (Lun–Dom) que contiene focusDate — ya no depende de la
+  // rejilla del mes (antes buscaba el bloque dentro de monthCells), así que
+  // funciona igual aunque la semana cruce a otro mes.
+  const weekStart = useMemo(() => weekStartOf(focusDate), [focusDate]);
+  const weekCells = useMemo(() => daysInRange(weekStart, addDays(weekStart, 6)).map((date) => ({ date })), [weekStart]);
 
   // Días visibles en el heatmap de Asistencia según granularidad — los de
   // Semana/Día que caen fuera del mes actual no tienen datos (el fetch del
   // servidor es por mes), así que se recortan a los que sí están dentro.
   const attendanceDays = useMemo(() => {
-    if (granularity === "Mes") return days;
     if (granularity === "Día") return days.filter((d) => d.date === focusDate);
-    const weekDates = new Set(weekCells.map((c) => c.date));
-    return days.filter((d) => weekDates.has(d.date));
+    if (granularity === "Semana") {
+      const weekDates = new Set(weekCells.map((c) => c.date));
+      return days.filter((d) => weekDates.has(d.date));
+    }
+    // Mes/Agenda/Año: el heatmap de Asistencia solo existe por mes — Agenda
+    // y Año son vistas del motor genérico, no tienen equivalente propio ahí.
+    return days;
   }, [granularity, days, focusDate, weekCells]);
 
   /** Navega Prev/Hoy/Next respetando la granularidad — si la nueva fecha cae
@@ -184,6 +163,21 @@ export default function CalendarioClient({
     const newYm = today.slice(0, 7);
     if (newYm !== ym) router.push(`/admin/calendario?m=${newYm}&d=${today}`);
     else setFocusDate(today);
+  };
+  /** Navegación de la vista Año — mueve el mes en pantalla ±12 (mismo año
+      completo ya viene cargado del server, ver page.tsx §yearRange). */
+  const shiftYear = (dir: 1 | -1) => router.push(`/admin/calendario?m=${shiftMonth(ym, dir * 12)}`);
+  /** Salta a un día concreto (desde Semana/Año/Agenda) y cambia a vista Día. */
+  const goToDate = (date: string) => {
+    setGranularity("Día");
+    const newYm = date.slice(0, 7);
+    if (newYm !== ym) router.push(`/admin/calendario?m=${newYm}&d=${date}`);
+    else setFocusDate(date);
+  };
+  /** Salta a un mes concreto (desde Año) y cambia a vista Mes. */
+  const goToMonth = (newYm: string) => {
+    setGranularity("Mes");
+    if (newYm !== ym) router.push(`/admin/calendario?m=${newYm}`);
   };
 
   type Cell = { kind: "fichaje" | "vacacion" | "inhabil" | "sin" | "off" | "futuro"; tip: string };
@@ -211,102 +205,112 @@ export default function CalendarioClient({
     futuro:   { bg: "transparent", border: "1px dashed var(--border)" },
   };
 
-  const deadlinesByDate = useMemo(() => {
-    const m = new Map<string, ProjectDeadline[]>();
+  // (deadlinesByDate/vacationsByDate/instByDate/gcalByDate del render viejo
+  // de Semana/Día se retiraron — Fase B migra esas dos vistas al motor
+  // genérico, que ya recibe TODO normalizado en `events` más abajo.)
+
+  // ── Calendar Engine (EMET-CALENDAR-ENGINE.md §3.2): TODAS las fuentes se
+  //    normalizan a CalendarEvent[] ANTES de entrar al motor. La vista Mes
+  //    usa MonthView (puntos indicadores + "+n" + DayPopover). Semana/Día y
+  //    el heatmap de Asistencia conservan su render actual. ──
+  const events = useMemo<CalendarEvent[]>(() => {
+    const out: CalendarEvent[] = [];
     for (const p of deadlines) {
       if (p.status === "cancelada") continue;
-      const list = m.get(p.deadline) ?? [];
-      list.push(p);
-      m.set(p.deadline, list);
+      const lead = p.project_assignments.find((a) => a.is_lead) ?? p.project_assignments[0];
+      out.push({
+        id: `act-${p.id}`, kind: "actividad",
+        title: p.requests?.title ?? "Actividad",
+        start: p.deadline, end: p.deadline, allDay: true,
+        user: lead?.users ? { id: "", display_name: lead.users.display_name, nexus_color: lead.users.nexus_color } : undefined,
+        source: "db",
+      });
     }
-    return m;
-  }, [deadlines]);
-
-  const vacationsByDate = useMemo(() => {
-    const m = new Map<string, TeamMember[]>();
-    for (const c of monthCells) {
-      const people = team.filter((u) => vacations.some((v) => v.user_id === u.id && v.start_date <= c.date && v.end_date >= c.date));
-      if (people.length) m.set(c.date, people);
+    for (const v of vacations) {
+      const u = team.find((t) => t.id === v.user_id);
+      out.push({
+        id: `vac-${v.user_id}-${v.start_date}`, kind: "vacacion",
+        title: u?.display_name ?? "Vacaciones",
+        start: v.start_date, end: v.end_date, allDay: true,
+        user: u ? { id: u.id, display_name: u.display_name, nexus_color: u.nexus_color, avatar_url: u.avatar_url } : undefined,
+        source: "db",
+      });
     }
-    return m;
-  }, [monthCells, team, vacations]);
-
-  // Eventos institucionales (FASE U) — expandidos día por día dentro del
-  // mes visible, mismo criterio que vacationsByDate.
-  const instByDate = useMemo(() => {
-    const m = new Map<string, InstitutionalEvent[]>();
     for (const ev of institutionalEvents ?? []) {
-      const start = ev.start_date < first ? first : ev.start_date;
-      const end = ev.end_date > last ? last : ev.end_date;
-      let d = start;
-      while (d <= end) {
-        const list = m.get(d) ?? [];
-        list.push(ev);
-        m.set(d, list);
-        d = addDays(d, 1);
-      }
+      out.push({
+        id: `inst-${ev.id}`, kind: "evento_institucional",
+        title: ev.title, start: ev.start_date, end: ev.end_date, allDay: true,
+        source: "db", meta: { institutionalId: ev.id },
+      });
     }
-    return m;
-  }, [institutionalEvents, first, last]);
-
-  // Eventos ya agendados en Google Calendar ("Eventos CERT") — incluye los
-  // creados directamente en Google, no solo los que nacieron en Nexus.
-  // Para eventos de todo el día, "end" viene exclusivo (estándar de Google
-  // Calendar); para eventos con hora tratamos start=end como un solo día.
-  const gcalByDate = useMemo(() => {
-    const m = new Map<string, GcalEvent[]>();
     for (const ev of gcalEvents ?? []) {
-      const d0 = new Date(`${ev.start}T12:00:00`);
-      const dEnd = new Date(`${ev.allDay ? ev.end : ev.end}T12:00:00`);
-      if (!ev.allDay) dEnd.setDate(dEnd.getDate() + 1); // incluir el día del evento
-      const d = new Date(d0);
-      let guard = 0;
-      while (d < dEnd && guard < 60) {
-        const iso = d.toISOString().slice(0, 10);
-        if (iso >= first && iso <= last) {
-          const list = m.get(iso) ?? [];
-          list.push(ev);
-          m.set(iso, list);
-        }
-        d.setDate(d.getDate() + 1);
-        guard++;
-      }
+      out.push({
+        id: `g-${ev.id}`, kind: "google",
+        title: ev.title,
+        start: ev.start,
+        end: ev.allDay && ev.end.length === 10 ? addDays(ev.end, -1) : ev.end, // Google: "end" exclusivo en todo el día
+        allDay: ev.allDay,
+        source: "google",
+      });
     }
-    return m;
-  }, [gcalEvents, first, last]);
+    for (const h of holidays) {
+      out.push({ id: `hol-${h.date}`, kind: "inhabil", title: h.name, start: h.date, end: h.date, allDay: true, source: "db" });
+    }
+    return out;
+  }, [deadlines, vacations, team, institutionalEvents, gcalEvents, holidays]);
+
+  const layers = useMemo<CalendarLayer[]>(() => [
+    { key: "actividad", label: "Actividades", color: "var(--ev-blue)", active: true },
+    { key: "vacacion", label: "Vacaciones", color: "var(--ev-purple)", active: true },
+    { key: "evento_institucional", label: "Institucional", color: "var(--ev-blue)", active: true },
+    { key: "google", label: "Google Calendar", color: "var(--ev-blue)", active: true },
+    { key: "inhabil", label: "Días inhábiles", color: "var(--ev-gray)", active: true },
+  ], []);
+
+  // La leyenda refleja el color que PINTAN los puntos (la paleta agrupa
+  // actividad/institucional/google en el azul de "trabajo").
+  const legendItems = [
+    { color: "var(--ev-blue)", label: "Actividades · Institucional · Google" },
+    { color: "var(--ev-purple)", label: "Vacaciones" },
+    { color: "var(--ev-gray)", label: "Días inhábiles" },
+  ];
+
+  const handleEventClick = (ev: CalendarEvent) => {
+    if (ev.kind !== "evento_institucional") return;
+    const inst = (institutionalEvents ?? []).find((i) => i.id === ev.meta?.institutionalId);
+    if (inst) openEditEvent(inst);
+  };
+
+  // Fondo morado suave en días donde alguien está de vacaciones (paridad con
+  // el render anterior; los puntos del motor aportan el detalle).
+  const cellTint = (date: string) =>
+    vacations.some((v) => v.start_date <= date && v.end_date >= date) ? "var(--purple-tint)" : undefined;
+
+  const title = granularity === "Mes" ? `${MONTHS[month - 1]} ${year}`
+    : granularity === "Semana" ? weekRangeLabel(weekCells)
+    : granularity === "Día" ? dayLongLabel(focusDate)
+    : granularity === "Año" ? `${year}`
+    : "Agenda";
 
   return (
     <>
-      <header className="pt-8 pb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight capitalize">
-            {granularity === "Mes" ? `${MONTHS[month - 1]} ${year}`
-              : granularity === "Semana" ? weekRangeLabel(weekCells)
-              : dayLongLabel(focusDate)}
-          </h1>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            Calendario del equipo · asistencia, actividades y vacaciones
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {granularity === "Mes" ? (
-            <>
-              <Link href={prevHref} className="btn-secondary px-3.5 py-2 text-[13px]">←</Link>
-              <Link href="/admin/calendario" className="btn-secondary px-3.5 py-2 text-[13px]">Hoy</Link>
-              <Link href={nextHref} className="btn-secondary px-3.5 py-2 text-[13px]">→</Link>
-            </>
-          ) : (
-            <>
-              <button onClick={() => shiftFocus(-1)} className="btn-secondary px-3.5 py-2 text-[13px]">←</button>
-              <button onClick={goToday} className="btn-secondary px-3.5 py-2 text-[13px]">Hoy</button>
-              <button onClick={() => shiftFocus(1)} className="btn-secondary px-3.5 py-2 text-[13px]">→</button>
-            </>
-          )}
-          <button onClick={openAddEvent} className="btn-primary px-4 py-2 text-[13px] flex items-center gap-1.5">
-            <Icon name="plus" size={14} /> Evento institucional
-          </button>
-        </div>
-      </header>
+      <CalendarHeader
+        title={title}
+        subtitle="Calendario del equipo · asistencia, actividades y vacaciones"
+        prevHref={granularity === "Mes" ? prevHref : undefined}
+        nextHref={granularity === "Mes" ? nextHref : undefined}
+        onPrev={granularity === "Mes" || granularity === "Agenda" ? undefined : granularity === "Año" ? () => shiftYear(-1) : () => shiftFocus(-1)}
+        onNext={granularity === "Mes" || granularity === "Agenda" ? undefined : granularity === "Año" ? () => shiftYear(1) : () => shiftFocus(1)}
+        todayHref={granularity === "Mes" ? "/admin/calendario" : undefined}
+        onToday={granularity === "Mes" || granularity === "Agenda" ? undefined : goToday}
+      >
+        <SlidingSegments options={["Equipo", "Asistencia"]} value={view} onChange={(v) => setView(v as typeof view)} />
+        <SlidingSegments options={[...GRANULARITIES]} value={granularity}
+          onChange={(v) => setGranularity(v as Granularity)} />
+        <button onClick={openAddEvent} className="btn-primary h-8 px-3.5 text-[12.5px] flex items-center gap-1.5">
+          <Icon name="plus" size={13} /> Crear
+        </button>
+      </CalendarHeader>
 
       {efemerides && efemerides.length > 0 && (
         <div className="card px-4 py-2.5 mb-4 flex items-center gap-2 text-[12.5px]" style={{ color: "var(--text-2)" }}>
@@ -322,12 +326,6 @@ export default function CalendarioClient({
           <span>No se pudieron cargar los eventos de Google Calendar — {gcalError}</span>
         </div>
       )}
-
-      <div className="mb-4 flex flex-wrap items-center gap-2.5">
-        <SlidingSegments options={["Equipo", "Asistencia"]} value={view} onChange={(v) => setView(v as typeof view)} />
-        <SlidingSegments options={["Día", "Semana", "Mes"]} value={granularity}
-          onChange={(v) => setGranularity(v as typeof granularity)} />
-      </div>
 
       {view === "Asistencia" && (
         <div className="card p-5 overflow-x-auto">
@@ -393,261 +391,42 @@ export default function CalendarioClient({
         </div>
       )}
 
-      {view === "Equipo" && granularity === "Mes" && (
-        <div className="card p-4 overflow-x-auto">
-          <div className="min-w-[640px]">
-          <div className="grid grid-cols-7 gap-1.5 mb-2">
-            {DOW.map((d) => <p key={d} className="text-center text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
+      {view === "Equipo" && (
+        <CalendarEngine today={today} events={events} layers={layers}>
+          <CalendarFilterBar />
+          <div className="flex flex-col lg:flex-row gap-5 items-start">
+            <div className="flex-1 min-w-0 w-full">
+              {granularity === "Mes" && (
+                <>
+                  <MonthView ym={ym} onEventClick={handleEventClick} cellTint={cellTint} />
+                  <div className="mt-3.5">
+                    <CalendarLegend items={legendItems} />
+                  </div>
+                </>
+              )}
+              {granularity === "Semana" && (
+                <WeekView weekStart={weekStart} onDayClick={goToDate} onEventClick={handleEventClick} />
+              )}
+              {granularity === "Día" && (
+                <DayView date={focusDate} onEventClick={handleEventClick} />
+              )}
+              {granularity === "Agenda" && (
+                <AgendaView onDayClick={goToDate} onEventClick={handleEventClick} />
+              )}
+              {granularity === "Año" && (
+                <YearView year={year} onMonthClick={goToMonth} onDayClick={goToDate} />
+              )}
+            </div>
+            <CalendarRightPanel onEventClick={handleEventClick} />
           </div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {monthCells.map((c) => {
-              const acts = deadlinesByDate.get(c.date) ?? [];
-              const gevs = gcalByDate.get(c.date) ?? [];
-              const people = vacationsByDate.get(c.date) ?? [];
-              const insts = instByDate.get(c.date) ?? [];
-              return (
-                <div key={c.date} className="rounded-sm p-1.5 min-h-[96px] flex flex-col gap-1"
-                  style={{
-                    background: people.length > 0 ? "var(--purple-tint)" : "var(--surface-2)",
-                    opacity: c.inMonth ? 1 : 0.35,
-                  }}>
-                  <p className="text-[12px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
-                    style={{
-                      color: c.date === today ? "#fff" : "var(--text-2)",
-                      background: c.date === today ? "var(--accent)" : "transparent",
-                    }}>{c.day}</p>
-                  {holidayOf.get(c.date) && (
-                    <p className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
-                      style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
-                      {holidayOf.get(c.date)}
-                    </p>
-                  )}
-
-                  {acts.slice(0, 2).map((p) => {
-                    const lead = p.project_assignments.find((a) => a.is_lead) ?? p.project_assignments[0];
-                    return (
-                      <p key={p.id} className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
-                        style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
-                        title={`${p.requests?.title ?? "Actividad"}${lead ? " · " + lead.users.display_name : ""}`}>
-                        {p.requests?.title ?? "Actividad"}
-                      </p>
-                    );
-                  })}
-                  {acts.length > 2 && (
-                    <p className="text-[12px] font-semibold" style={{ color: "var(--warn)" }}>+{acts.length - 2} actividad{acts.length - 2 > 1 ? "es" : ""}</p>
-                  )}
-
-                  {gevs.slice(0, 2).map((ev) => (
-                    <p key={ev.id} className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px]"
-                      style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
-                      title={`${ev.title} · Eventos CERT (Google Calendar)`}>
-                      {ev.title}
-                    </p>
-                  ))}
-                  {gevs.length > 2 && (
-                    <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>+{gevs.length - 2} evento{gevs.length - 2 > 1 ? "s" : ""}</p>
-                  )}
-
-                  {insts.slice(0, 2).map((ev) => (
-                    <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
-                      className="text-[12px] font-semibold truncate px-1 py-0.5 rounded-[4px] text-left"
-                      style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
-                      title={`${ev.title} · ${INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}`}>
-                      {ev.title}
-                    </button>
-                  ))}
-                  {insts.length > 2 && (
-                    <p className="text-[12px] font-semibold" style={{ color: "var(--purple)" }}>+{insts.length - 2} institucional{insts.length - 2 > 1 ? "es" : ""}</p>
-                  )}
-
-                  {people.length > 0 && (
-                    <div className="flex -space-x-1.5 mt-auto pt-1 flex-wrap gap-y-1">
-                      {people.slice(0, 4).map((u) => (
-                        <div key={u.id} title={`${u.display_name} · Vacaciones`} style={{ border: "1.5px solid var(--surface-2)", borderRadius: "100px" }}>
-                          <Avatar name={u.display_name} color={u.nexus_color} size={18} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
-                        </div>
-                      ))}
-                      {people.length > 4 && (
-                        <span className="text-[12px] font-semibold ml-1" style={{ color: "var(--purple)" }}>+{people.length - 4}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--warn-tint)" }} /> Actividad Emet
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--accent-tint)" }} /> Evento (Google Calendar)
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--ok-tint)" }} /> Evento institucional
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3.5 h-3 rounded-full" style={{ background: "var(--purple)" }} /> Vacaciones
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3.5 h-3 rounded-[4px]" style={{ background: "var(--accent-tint)" }} /> Día inhábil
-            </span>
-          </div>
-          </div>
-        </div>
+        </CalendarEngine>
       )}
 
-      {view === "Equipo" && granularity === "Semana" && (
-        <div className="card p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
-            {weekCells.map((c) => {
-              const acts = deadlinesByDate.get(c.date) ?? [];
-              const gevs = gcalByDate.get(c.date) ?? [];
-              const people = vacationsByDate.get(c.date) ?? [];
-              const insts = instByDate.get(c.date) ?? [];
-              const empty = acts.length === 0 && gevs.length === 0 && insts.length === 0 && people.length === 0 && !holidayOf.get(c.date);
-              return (
-                <div key={c.date} className="rounded-sm p-2.5 flex flex-col gap-1.5 min-h-[110px]"
-                  style={{
-                    background: people.length > 0 ? "var(--purple-tint)" : "var(--surface-2)",
-                  }}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[mondayIndex(c.date)]}</p>
-                    <p className="text-[13px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
-                      style={{
-                        color: c.date === today ? "#fff" : "var(--text-2)",
-                        background: c.date === today ? "var(--accent)" : "transparent",
-                      }}>{c.day}</p>
-                  </div>
-                  {holidayOf.get(c.date) && (
-                    <p className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
-                      style={{ background: holidayStyle(holidayKindOf.get(c.date)).bg, color: holidayStyle(holidayKindOf.get(c.date)).fg }}>
-                      {holidayOf.get(c.date)}
-                    </p>
-                  )}
-
-                  {acts.map((p) => {
-                    const lead = p.project_assignments.find((a) => a.is_lead) ?? p.project_assignments[0];
-                    return (
-                      <p key={p.id} className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
-                        style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
-                        title={lead ? lead.users.display_name : undefined}>
-                        {p.requests?.title ?? "Actividad"}
-                      </p>
-                    );
-                  })}
-
-                  {gevs.map((ev) => (
-                    <p key={ev.id} className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px]"
-                      style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
-                      title="Eventos CERT (Google Calendar)">
-                      {ev.title}
-                    </p>
-                  ))}
-
-                  {insts.map((ev) => (
-                    <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
-                      className="text-[12px] font-semibold px-1.5 py-1 rounded-[4px] text-left"
-                      style={{ background: institutionalStyle(ev.kind).bg, color: institutionalStyle(ev.kind).fg }}
-                      title={INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}>
-                      {ev.title}
-                    </button>
-                  ))}
-
-                  {people.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-auto pt-1">
-                      {people.map((u) => (
-                        <div key={u.id} title="Vacaciones" className="flex items-center gap-1 pr-1.5 rounded-full" style={{ background: "var(--purple-tint)" }}>
-                          <Avatar name={u.display_name} color={u.nexus_color} size={16} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
-                          <span className="text-[12px] font-semibold" style={{ color: "var(--purple)" }}>{u.display_name.split(" ")[0]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {empty && <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin eventos</p>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {view === "Equipo" && granularity === "Día" && (() => {
-        const acts = deadlinesByDate.get(focusDate) ?? [];
-        const gevs = gcalByDate.get(focusDate) ?? [];
-        const people = vacationsByDate.get(focusDate) ?? [];
-        const insts = instByDate.get(focusDate) ?? [];
-        const holiday = holidayOf.get(focusDate);
-        const empty = acts.length === 0 && gevs.length === 0 && insts.length === 0 && people.length === 0 && !holiday;
-        return (
-          <div className="card p-5 flex flex-col gap-3">
-            {holiday && (() => {
-              const k = (holidayKindOf.get(focusDate) as HolidayKind) ?? "empresa";
-              const st = holidayStyle(k);
-              return (
-                <div className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: st.bg }}>
-                  <Icon name={HOLIDAY_KIND_ICON[k]} size={16} style={{ color: st.fg }} />
-                  <p className="text-[13.5px] font-bold" style={{ color: st.fg }}>{holiday} · {HOLIDAY_KIND_LABEL[k]}</p>
-                </div>
-              );
-            })()}
-            {acts.map((p) => {
-              const lead = p.project_assignments.find((a) => a.is_lead) ?? p.project_assignments[0];
-              return (
-                <div key={p.id} className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: "var(--warn-tint)" }}>
-                  <Icon name="flag" size={16} style={{ color: "var(--warn)" }} />
-                  <div className="min-w-0">
-                    <p className="text-[13.5px] font-bold truncate" style={{ color: "var(--warn)" }}>{p.requests?.title ?? "Actividad"}</p>
-                    {lead && <p className="text-[12px]" style={{ color: "var(--text-2)" }}>{lead.users.display_name}</p>}
-                  </div>
-                </div>
-              );
-            })}
-            {gevs.map((ev) => (
-              <div key={ev.id} className="flex items-center gap-3 px-3.5 py-3 rounded-sm" style={{ background: "var(--accent-tint)" }}>
-                <Icon name="calendar" size={16} style={{ color: "var(--accent)" }} />
-                <p className="text-[13.5px] font-bold" style={{ color: "var(--accent)" }}>{ev.title}</p>
-              </div>
-            ))}
-            {insts.map((ev) => (
-              <button key={ev.id} type="button" onClick={() => openEditEvent(ev)}
-                className="flex items-center gap-3 px-3.5 py-3 rounded-sm text-left w-full"
-                style={{ background: institutionalStyle(ev.kind).bg }}>
-                <Icon name="calendar" size={16} style={{ color: institutionalStyle(ev.kind).fg }} />
-                <div className="min-w-0">
-                  <p className="text-[13.5px] font-bold truncate" style={{ color: institutionalStyle(ev.kind).fg }}>{ev.title}</p>
-                  <p className="text-[12px]" style={{ color: "var(--text-2)" }}>{INSTITUTIONAL_KIND_LABEL[(ev.kind as InstitutionalKind) ?? "evento"]}</p>
-                </div>
-              </button>
-            ))}
-            {people.length > 0 && (
-              <div className="px-3.5 py-3 rounded-sm" style={{ background: "var(--purple-tint)" }}>
-                <p className="text-[12px] font-bold mb-2" style={{ color: "var(--purple)" }}>De vacaciones hoy</p>
-                <div className="flex flex-wrap gap-3">
-                  {people.map((u) => (
-                    <div key={u.id} className="flex items-center gap-1.5">
-                      <Avatar name={u.display_name} color={u.nexus_color} size={22} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
-                      <span className="text-[12.5px] font-semibold">{u.display_name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {empty && (
-              <p className="text-[13px] py-6 text-center" style={{ color: "var(--text-3)" }}>
-                Sin actividades, eventos ni vacaciones registradas para este día.
-              </p>
-            )}
-          </div>
-        );
-      })()}
-
-      {holidays.length > 0 && (
+      {monthHolidays.length > 0 && (
         <div className="card p-5 mt-4">
           <h2 className="text-[15px] font-bold mb-2.5">Días inhábiles de {MONTHS[month - 1]}</h2>
           <div className="flex flex-col gap-1.5">
-            {holidays.map((h) => {
+            {monthHolidays.map((h) => {
               const st = holidayStyle(h.kind);
               return (
                 <div key={h.date} className="flex items-center justify-between text-[13px]">
