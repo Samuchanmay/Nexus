@@ -10,47 +10,13 @@ import { useMemo, useRef } from "react";
 import { ThemeProvider } from "@/lib/theme";
 import { Shell, type ShellUser } from "./shell";
 import { HeaderActionsProvider, useHeaderActionSlot } from "@/lib/header-actions";
-import { navFor, type Role } from "@/lib/nav";
+import { navFor, domainViewsFor, HREF, type Role } from "@/lib/nav";
 export { roleLabel } from "@/lib/nav";
 
-const HREF: Record<Role, Record<string, string>> = {
-  admin: {
-    hoy: "/admin",
-    actividades: "/admin/proyectos",
-    solicitudes: "/admin/solicitudes",
-    calendario: "/admin/calendario",
-    asistencia: "/admin/nexus",
-    jornada: "/comunicacion/jornada",
-    vacaciones: "/admin/vacaciones",
-    incidencias: "/admin/incidencias",
-    equipo: "/admin/equipo",
-    empleados: "/admin/empleados",
-    chat: "/chat",
-    "dias-inhabiles": "/admin/dias-inhabiles",
-    config: "/admin/config",
-    biblioteca: "/admin/biblioteca",
-    reportes: "/admin/reportes",
-  },
-  empleado: {
-    hoy: "/comunicacion",
-    actividades: "/comunicacion/actividades",
-    calendario: "/comunicacion/calendario",
-    biblioteca: "/comunicacion/biblioteca",
-    chat: "/chat",
-    jornada: "/comunicacion/jornada",
-    vacaciones: "/comunicacion/vacaciones",
-    incidencias: "/comunicacion/incidencias",
-  },
-  coordinador: { hoy: "/coordinador" },
-  departamento: { hoy: "/coordinador" },
-  rh: { hoy: "/rh" },
-};
-
 const TITLES: Record<string, string> = {
-  hoy: "Hoy", actividades: "Actividades", solicitudes: "Solicitudes", calendario: "Calendario",
-  biblioteca: "Biblioteca", asistencia: "Asistencia", jornada: "Mi día", vacaciones: "Vacaciones",
-  incidencias: "Incidencias", equipo: "Carga del equipo", empleados: "Directorio", chat: "Chat",
-  "dias-inhabiles": "Días inhábiles", reportes: "Reportes", config: "Configuración",
+  hoy: "Inicio", actividades: "Actividades", solicitudes: "Solicitudes", calendario: "Calendario",
+  biblioteca: "Biblioteca", chat: "Chat", personas: "Personas", tiempo: "Tiempo",
+  reportes: "Reportes", config: "Configuración",
 };
 
 // FASE W1 — antes, cualquier sub-página de Configuración (Colores,
@@ -59,7 +25,9 @@ const TITLES: Record<string, string> = {
 // la página ya mostrara su título específico (PageHeader propio) — dos
 // títulos distintos apilados en la misma pantalla. Un mapa por ruta exacta,
 // consultado antes que TITLES[active], resuelve esto sin tocar la
-// navegación ni el resto del header.
+// navegación ni el resto del header. FASE 2 — mismo mecanismo para las
+// vistas internas de los dominios-hub Personas/Tiempo (el header ya no dice
+// solo "Personas" en /admin/equipo, dice "Personas · Carga").
 const SUBTITLES: Record<string, string> = {
   "/admin/config/colores": "Colores de equipo",
   "/admin/config/dispositivos": "Dispositivos",
@@ -68,6 +36,15 @@ const SUBTITLES: Record<string, string> = {
   "/admin/config/horarios": "Horarios",
   "/admin/config/pausa-activa": "Pausa activa",
   "/admin/config/tipos-actividad": "Tipos de actividad",
+  "/admin/empleados": "Personas · Lista",
+  "/admin/equipo": "Personas · Carga",
+  "/comunicacion/jornada": "Tiempo · Mi día",
+  "/admin/vacaciones": "Tiempo · Vacaciones",
+  "/comunicacion/vacaciones": "Tiempo · Vacaciones",
+  "/admin/incidencias": "Tiempo · Incidencias",
+  "/comunicacion/incidencias": "Tiempo · Incidencias",
+  "/admin/nexus": "Tiempo · Asistencia",
+  "/admin/dias-inhabiles": "Tiempo · Días inhábiles",
 };
 
 export function AppShell({
@@ -89,12 +66,18 @@ export function AppShell({
     let best = items[0]?.key ?? "hoy";
     let bestLen = -1;
     for (const i of items) {
-      const href = map[i.key];
-      const matches = pathname === href || pathname.startsWith(href + "/");
-      if (matches && href.length > bestLen) { best = i.key; bestLen = href.length; }
+      // Un dominio-hub (Personas/Tiempo) sigue "activo" en el sidebar aunque
+      // estés en cualquiera de sus vistas internas (DomainTabs), no solo en
+      // el href principal del hub — si no, pasar a la pestaña "Carga" apaga
+      // el resaltado de "Personas" sin motivo.
+      const candidates = [map[i.key], ...domainViewsFor(i.key, role).map((v) => v.href)].filter(Boolean) as string[];
+      for (const href of candidates) {
+        const matches = pathname === href || pathname.startsWith(href + "/");
+        if (matches && href.length > bestLen) { best = i.key; bestLen = href.length; }
+      }
     }
     return best;
-  }, [items, map, pathname]);
+  }, [items, map, pathname, role]);
 
   // Red de seguridad general de navegación — reconstruida desde cero.
   // No dependemos de adivinar en qué página específica se atora la

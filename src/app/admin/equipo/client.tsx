@@ -14,6 +14,7 @@ import { fmtMin, fmtTime } from "@/lib/hours";
 import { dmy } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { getAttendanceStatus } from "@/lib/domain/attendance/status";
+import { DomainTabs } from "@/components/os/domain-tabs";
 import type { Priority, RequestType, Incident } from "@/lib/types";
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -67,6 +68,7 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
 
   return (
     <>
+      <DomainTabs domain="personas" role="admin" />
       <PageHeader
         title="Carga del equipo"
         subtitle="Tareas activas por persona — clic en alguien para ver su detalle"

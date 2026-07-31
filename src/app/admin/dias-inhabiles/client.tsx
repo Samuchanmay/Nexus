@@ -12,6 +12,7 @@ import { todayMerida } from "@/lib/tz";
 import { HOLIDAY_KIND_LABEL, holidayStyle, type HolidayKind } from "@/lib/ui-maps";
 import { usePersistedView } from "@/lib/persisted-view";
 import { logAdminAction } from "@/lib/admin-log";
+import { DomainTabs } from "@/components/os/domain-tabs";
 
 const KIND_ICON: Record<HolidayKind, React.ComponentType<{ className?: string }>> = {
   nacional: IconCalendar, estatal: IconMapPin, empresa: IconFolder, puente: IconSun,
@@ -156,6 +157,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
 
   return (
     <>
+      <DomainTabs domain="tiempo" role="admin" />
       {/* ── Header: título + descripción, selector de año, importar feriados ── */}
       <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
         <div>

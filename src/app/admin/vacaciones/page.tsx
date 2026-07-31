@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Vacation } from "@/lib/types";
 import VacAdminClient from "./client";
+import { DomainTabs } from "@/components/os/domain-tabs";
 
 export default async function VacacionesAdmin() {
   const supabase = await createClient();
@@ -27,17 +28,20 @@ export default async function VacacionesAdmin() {
   const teamWithReset = (team ?? []).map((t) => ({ ...t, lastReset: lastResetByUser.get(t.id) ?? null }));
 
   return (
-    <VacAdminClient
-      vacations={(vacs ?? []) as unknown as Vacation[]}
-      team={teamWithReset as {
-        id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null;
-        vacation_balance_reset: string | null; avatar_url?: string | null; birth_date?: string | null;
-        lastReset: { reset_at: string; days_granted: number; days_used: number; days_forfeited: number } | null;
-      }[]}
-      adminId={meRes?.data?.id ?? ""}
-      vacationCalendarId={calSetting?.value ?? null}
-      authorizationEmail={authEmailSetting?.value ?? ""}
-      holidays={(hols ?? []).map((h) => h.date as string)}
-    />
+    <>
+      <DomainTabs domain="tiempo" role="admin" />
+      <VacAdminClient
+        vacations={(vacs ?? []) as unknown as Vacation[]}
+        team={teamWithReset as {
+          id: string; display_name: string; vacation_balance: number; vacation_days_per_year: number; hire_date: string | null; nexus_color: string | null;
+          vacation_balance_reset: string | null; avatar_url?: string | null; birth_date?: string | null;
+          lastReset: { reset_at: string; days_granted: number; days_used: number; days_forfeited: number } | null;
+        }[]}
+        adminId={meRes?.data?.id ?? ""}
+        vacationCalendarId={calSetting?.value ?? null}
+        authorizationEmail={authEmailSetting?.value ?? ""}
+        holidays={(hols ?? []).map((h) => h.date as string)}
+      />
+    </>
   );
 }

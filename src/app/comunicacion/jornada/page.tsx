@@ -8,12 +8,17 @@ import { todayMerida, addDays } from "@/lib/tz";
 import { syncPendingExits, getPendingExitsMap, exitPillFor } from "@/lib/pending-exits";
 import { ResolvePendingExit } from "@/components/os/resolve-pending-exit";
 import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
+import { DomainTabs } from "@/components/os/domain-tabs";
 
 export default async function Jornada() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
-    .from("users").select("id, display_name").eq("auth_id", user!.id).single();
+    .from("users").select("id, display_name, role").eq("auth_id", user!.id).single();
+  // Esta ruta la sirven tanto empleado como admin (ComunicacionLayout es
+  // superset) — DomainTabs necesita el rol real para saber si también debe
+  // ofrecer Asistencia/Días inhábiles (solo admin).
+  const role = profile!.role === "admin" ? "admin" : "empleado";
 
   const since = addDays(todayMerida(), -30);
   const [{ data: att }, { data: sched }, { data: hols }, { data: jornadaStates }] = await Promise.all([
@@ -59,6 +64,7 @@ export default async function Jornada() {
 
   return (
     <>
+      <DomainTabs domain="tiempo" role={role} />
       <header className="pt-8 pb-5">
         <h1 className="text-[28px] font-bold tracking-tight">Mi jornada</h1>
         <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>Últimos 30 días</p>

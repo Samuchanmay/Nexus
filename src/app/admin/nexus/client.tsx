@@ -9,6 +9,7 @@ import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
 import { IconDownload, IconClock, IconX } from "@/components/icons";
 import { usePersistedView } from "@/lib/persisted-view";
 import { PageHeader, Switch } from "@/components/shared";
+import { DomainTabs } from "@/components/os/domain-tabs";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
@@ -257,6 +258,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
 
   return (
     <>
+      <DomainTabs domain="tiempo" role="admin" />
       <PageHeader
         title="Asistencia"
         subtitle="Jornadas del equipo en tiempo real · la comida cuenta como tiempo laborado"

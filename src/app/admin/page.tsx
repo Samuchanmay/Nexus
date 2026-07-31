@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { summarizeDay, fmtTime, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
+import { summarizeDay, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
 import { WORK_STATUS_LABEL } from "@/lib/status";
 import { getAttendanceStatus } from "@/lib/domain/attendance/status";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes, shortDate, addDays } from "@/lib/tz";
-import { Card, SectionTitle, Badge, Avatar, EmptyState } from "@/components/os/ui";
+import { Card, SectionTitle, Badge, Avatar } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { contextualMessages } from "@/lib/assistant";
 import type { AssistantTask } from "@/lib/assistant";
@@ -17,37 +17,21 @@ import type { ContextHeaderInput } from "@/lib/context-header";
 import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
 
 /* ═══════════════════════════════════════════════════════════════
-   Hoy · Centro de Operaciones (admin)
-   Rediseño sobre el sistema de diseño Nexus OS (Card/Badge/StatCard),
-   con el mismo contenido real de siempre — nada inventado — más dos
-   bloques nuevos: Actividades activas y Solicitudes por revisar,
-   que reemplazan a los KPIs sueltos por listas accionables reales.
+   Inicio — home personal del admin, no un panel operativo.
+   Reorganización del menú, Fase 2.3, 2026-07-31: los widgets que
+   duplicaban vistas de dominio (feed de actividad del equipo, banda
+   de KPIs, Actividades activas, Solicitudes por revisar) se quitaron
+   de aquí — ya viven en Trabajo (Actividades/Solicitudes) y Tiempo
+   (Asistencia), accesibles en un clic desde el sidebar por dominio.
+   Lo que queda es soy-yo-hoy: alertas que me tocan, asistente
+   contextual, mi jornada + pulso del equipo (misma superficie,
+   punto 9), y mi productividad del día.
    ═══════════════════════════════════════════════════════════════ */
 
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
-// Para mostrar: 12h con am/pm. Para ordenar cronológicamente: 24h (no usar el 12h para sort).
 const meridaClock = (iso: string) =>
   new Date(iso).toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/Merida" });
-const meridaSortKey = (iso: string) =>
-  new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Merida" });
-
-const TYPE_LABEL: Record<string, string> = {
-  cobertura: "Cobertura", diseno: "Diseño", lona: "Lona", video: "Video", difusion: "Difusión",
-};
-const PRIORITY_TONE: Record<string, "danger" | "warn" | "neutral"> = {
-  urgente: "danger", alta: "danger", normal: "neutral", baja: "neutral",
-};
-
-type ProjRow = {
-  id: string; status: string; deadline: string | null; priority: string;
-  requests: { title: string; type: string; requester_name: string | null } | null;
-  project_assignments: {
-    is_lead: boolean;
-    users: { display_name: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null } | null;
-    project_checklist: { done: boolean }[];
-  }[];
-};
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -58,18 +42,15 @@ export default async function AdminDashboard() {
   const utcDayStart = `${today}T06:00:00Z`; // medianoche Mérida (UTC-6)
   const [
     { count: pendingReqs }, { count: pendingVacs }, { count: pendingIncs },
-    { count: activeProjects }, { data: myAtt }, { data: myScheds },
+    { data: myAtt }, { data: myScheds },
     { data: team }, { data: teamAtt }, { data: allScheds },
     { data: vacsToday }, { data: urgentReqs }, { data: holidayToday }, { data: incsToday },
-    { data: reqsToday }, { data: vacsCreatedToday },
-    { data: activeProjectsList }, { data: pendingRequestsList },
     { data: jornadaStates }, { data: myActionsToday },
     { data: vacsSoon },
   ] = await Promise.all([
     supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "solicitada"),
     supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente").is("archived_at", null),
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("status", "Pendiente"),
-    supabase.from("projects").select("id", { count: "exact", head: true }).in("status", ["aprobada", "en_progreso", "en_revision"]),
     supabase.from("attendance").select("*").eq("user_id", me!.id).eq("date", today).order("time"),
     supabase.from("schedules").select("*").eq("user_id", me!.id),
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
@@ -83,14 +64,6 @@ export default async function AdminDashboard() {
     // aprobado y sin fichar se veía igual que alguien que simplemente no
     // había llegado ("Sin iniciar"). FASE S.
     supabase.from("incidents").select("user_id").eq("status", "Autorizado").lte("start_date", today).gte("end_date", today),
-    supabase.from("requests").select("id, title, created_at, requester:requester_id(display_name)").gte("created_at", utcDayStart).order("created_at", { ascending: false }).limit(8),
-    supabase.from("vacations").select("id, start_date, end_date, created_at, users:user_id(display_name)").gte("created_at", utcDayStart).order("created_at", { ascending: false }).limit(8),
-    supabase.from("projects").select(`
-      id, status, deadline, priority,
-      requests(title, type, requester_name),
-      project_assignments(is_lead, users(display_name, nexus_color, avatar_url, birth_date), project_checklist(done))
-    `).in("status", ["aprobada", "en_progreso", "en_revision"]),
-    supabase.from("requests").select("id, title, type, requester_name, priority, created_at").eq("status", "solicitada").order("created_at", { ascending: false }),
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("admin_activity_log").select("id, action, detail, created_at")
       .eq("user_id", me!.id).gte("created_at", utcDayStart).order("created_at", { ascending: false }),
@@ -247,54 +220,6 @@ export default async function AdminDashboard() {
     }
   }
 
-  /* ── Feed de actividad de hoy ── */
-  type FeedItem = { key: string; icon: string; iconColor?: string; text: string; time: string; sort: string };
-  const feed: FeedItem[] = [
-    ...((teamAtt ?? []) as { id: string; user_id: string; reason: string; time: string }[]).map((a) => ({
-      key: `att-${a.id}`,
-      icon: "dot",
-      iconColor: a.reason === "Entrada a trabajo" ? "var(--ok)" : a.reason === "Fin de jornada" ? "var(--accent)" : a.reason.startsWith("Salida") ? "var(--warn)" : "var(--text-3)",
-      text: `${nameOf.get(a.user_id) ?? "—"} · ${a.reason}`,
-      time: fmtTime(a.time),
-      sort: a.time.slice(0, 5),
-    })),
-    ...((reqsToday ?? []) as unknown as { id: string; title: string; created_at: string; requester: { display_name: string } | null }[]).map((r) => ({
-      key: `req-${r.id}`,
-      icon: "inbox",
-      iconColor: "var(--text-2)",
-      text: `${r.requester?.display_name ?? "—"} creó la solicitud "${r.title}"`,
-      time: meridaClock(r.created_at),
-      sort: meridaSortKey(r.created_at),
-    })),
-    ...((vacsCreatedToday ?? []) as unknown as { id: string; start_date: string; end_date: string; created_at: string; users: { display_name: string } | null }[]).map((v) => ({
-      key: `vac-${v.id}`,
-      icon: "plane",
-      iconColor: "var(--accent)",
-      text: `${v.users?.display_name ?? "—"} solicitó vacaciones (${shortDate(v.start_date)} → ${shortDate(v.end_date)})`,
-      time: meridaClock(v.created_at),
-      sort: meridaSortKey(v.created_at),
-    })),
-  ].sort((a, b) => b.sort.localeCompare(a.sort)).slice(0, 12);
-
-  /* ── Actividades activas (progreso real por checklist) ── */
-  const activities = ((activeProjectsList ?? []) as unknown as ProjRow[]).map((p) => {
-    const lead = p.project_assignments.find((a) => a.is_lead)?.users ?? p.project_assignments[0]?.users ?? null;
-    const items = p.project_assignments.flatMap((a) => a.project_checklist ?? []);
-    const done = items.filter((i) => i.done).length;
-    const pct = items.length ? Math.round((done / items.length) * 100) : 0;
-    return {
-      id: p.id,
-      title: p.requests?.title ?? "Actividad",
-      type: p.requests?.type ?? "",
-      deadline: p.deadline,
-      lead,
-      pct,
-    };
-  }).sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999")).slice(0, 6);
-
-  /* ── Solicitudes por revisar ── */
-  const pendingList = (pendingRequestsList ?? []).slice(0, 6);
-
   const hour = Number(new Date().toLocaleTimeString("es-MX", { hour: "2-digit", hour12: false, timeZone: "America/Merida" }));
   const firstName = me!.display_name.split(" ")[0];
 
@@ -442,104 +367,6 @@ export default async function AdminDashboard() {
           </div>
         </div>
       </Card>
-
-      {/* Actividad de hoy — timeline (punto 10): línea vertical + puntos, no filas de tabla */}
-      <Card>
-        <SectionTitle hint="registros · solicitudes · vacaciones">Actividad de hoy</SectionTitle>
-        {feed.length === 0 ? (
-          <p className="text-[13px] py-4 text-center text-text-3">Aún no hay actividad registrada hoy</p>
-        ) : (
-          <div className="relative">
-            <div className="absolute left-[9px] top-2 bottom-2 w-px" style={{ background: "var(--border-2)" }} />
-            {feed.map((f) => (
-              <div key={f.key} className="relative flex items-center gap-3 py-2.5 pl-5">
-                <span className="absolute left-[5px] w-[9px] h-[9px] rounded-full" style={{ background: f.iconColor ?? "var(--text-3)" }} />
-                <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">{f.text}</p>
-                <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{f.time}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* Todo lo demás — una sola banda de métricas, no cuatro cajas (punto 3) */}
-      <Card pad={false} className="flex items-stretch overflow-hidden">
-        {[
-          { label: "Pendientes", value: pendingReqs ?? 0, href: "/admin/solicitudes" },
-          { label: "Actividades", value: activeProjects ?? 0, href: "/admin/proyectos" },
-          { label: "Vacaciones", value: pendingVacs ?? 0, href: "/admin/vacaciones" },
-          { label: "Incidencias", value: pendingIncs ?? 0, href: "/admin/incidencias" },
-        ].map((m, i) => (
-          <Link key={m.label} href={m.href}
-            className="flex-1 px-4 py-3.5 hover:bg-hover transition-colors"
-            style={i > 0 ? { borderLeft: "1px solid var(--border)" } : undefined}>
-            <p className="text-[21px] font-bold tabular-nums leading-none text-text-1">{m.value}</p>
-            <p className="text-[12px] font-semibold mt-1.5" style={{ color: "var(--text-3)" }}>{m.label}</p>
-          </Link>
-        ))}
-      </Card>
-
-      {/* Dos columnas: actividades activas + solicitudes por revisar */}
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5 md:gap-4">
-        <Card>
-          <SectionTitle hint={`${activeProjects ?? 0} en total`}>Actividades</SectionTitle>
-          {activities.length === 0 ? (
-            <EmptyState icon="layers" title="Sin actividades activas" hint="Cuando se apruebe una solicitud, aparecerá aquí con su avance." />
-          ) : (
-            <div className="space-y-1.5 md:space-y-1">
-              {activities.map((a) => (
-                <div key={a.id} className="flex items-center gap-2.5 p-2 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{a.title}</p>
-                    <div className="flex items-center gap-2 mt-1 md:mt-1.5">
-                      <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${a.pct}%`, background: "var(--accent)" }} />
-                      </div>
-                      <span className="md:hidden text-[12px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{a.pct}%</span>
-                    </div>
-                  </div>
-                  <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
-                  {a.lead && <Avatar name={a.lead.display_name} color={a.lead.nexus_color ?? undefined} size={28} avatarUrl={a.lead.avatar_url} birthday={isBirthdayToday(a.lead.birth_date, todayISO())} />}
-                </div>
-              ))}
-            </div>
-          )}
-          <Link href="/admin/proyectos" className="mt-3 w-full h-9 flex items-center justify-center rounded-sm text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
-            Ver todas las actividades →
-          </Link>
-        </Card>
-
-        <Card>
-          <SectionTitle hint={`${pendingReqs ?? 0} en total`}>Pendientes</SectionTitle>
-          {pendingList.length === 0 ? (
-            <div className="flex items-center gap-3 py-3">
-              <span className="grid place-items-center h-9 w-9 rounded-full shrink-0" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
-                <Icon name="check" size={16} />
-              </span>
-              <div>
-                <p className="text-[13.5px] font-bold text-text-1">Todo al día</p>
-                <p className="text-[12px] text-text-3">No hay solicitudes esperando revisión.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-1.5 md:space-y-1">
-              {pendingList.map((r) => (
-                <div key={r.id} className="flex items-center gap-2.5 p-2 md:p-2.5 rounded-sm hover:bg-hover transition-colors">
-                  <span className="grid place-items-center h-7 w-7 md:h-8 md:w-8 rounded-sm bg-surface-2 text-text-3 shrink-0"><Icon name="inbox" size={14} /></span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] md:text-[14px] font-bold md:font-semibold text-text-1 truncate">{r.title}</p>
-                    <p className="text-[12px] text-text-3 truncate">{r.requester_name ?? "—"}</p>
-                  </div>
-                  <Badge tone={PRIORITY_TONE[r.priority] ?? "neutral"}>{r.priority}</Badge>
-                </div>
-              ))}
-            </div>
-          )}
-          <Link href="/admin/solicitudes" className="mt-3 w-full h-9 flex items-center justify-center rounded-sm text-[13px] font-semibold text-accent hover:bg-hover transition-colors">
-            Revisar bandeja →
-          </Link>
-        </Card>
-      </div>
 
       {/* Mi productividad hoy — todo lo que hice como admin también es trabajo:
           aprobar, rechazar, asignar, exportar. Cuenta para "Mi día". */}

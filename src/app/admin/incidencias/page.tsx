@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Incident } from "@/lib/types";
 import IncAdminClient from "./client";
+import { DomainTabs } from "@/components/os/domain-tabs";
 
 export default async function IncidenciasAdmin() {
   const supabase = await createClient();
@@ -13,10 +14,13 @@ export default async function IncidenciasAdmin() {
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
   return (
-    <IncAdminClient
-      incidents={(data ?? []) as unknown as Incident[]}
-      team={(team ?? []) as { id: string; display_name: string }[]}
-      adminId={meRes?.data?.id ?? ""}
-    />
+    <>
+      <DomainTabs domain="tiempo" role="admin" />
+      <IncAdminClient
+        incidents={(data ?? []) as unknown as Incident[]}
+        team={(team ?? []) as { id: string; display_name: string }[]}
+        adminId={meRes?.data?.id ?? ""}
+      />
+    </>
   );
 }

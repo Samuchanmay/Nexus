@@ -18,6 +18,7 @@ import { useHeaderAction } from "@/lib/header-actions";
 import { KIND_LABELS } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
 import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
+import { DomainTabs } from "@/components/os/domain-tabs";
 
 /** Los roles "Equipo" (empleado) y Administrador son los que realmente
     administramos día a día (asistencia, vacaciones, incidencias) — reciben
@@ -534,6 +535,7 @@ export default function EmpleadosClient({
 
   return (
     <>
+      <DomainTabs domain="personas" role="admin" />
       <header className="pt-8 pb-6">
         <h1 className="text-[28px] font-bold tracking-tight">Directorio</h1>
         <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
