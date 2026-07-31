@@ -4,14 +4,14 @@
 //  Toggle Tabla ⇄ Gantt diario por persona con línea "Ahora" viva.
 //  Todo con tokens v6; datos 100 % Supabase (server page los junta).
 // ═══════════════════════════════════════════════════════════════
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
 import { IconDownload, IconClock, IconX } from "@/components/icons";
 import { usePersistedView } from "@/lib/persisted-view";
 import { PageHeader, Switch } from "@/components/shared";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
-import { resolvePresence } from "@/lib/status";
+import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
 import { dmy } from "@/lib/tz";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
@@ -30,6 +30,8 @@ export interface PersonDay {
   user: {
     id: string; display_name: string; area: string | null; title?: string | null; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null;
     vacation?: { today: boolean; soonDays: number | null; startDate?: string | null; endDate?: string | null };
+    incident?: { kind: string; note: string | null } | null;
+    restDay?: { note: string | null } | null;
   };
   schedule: { start_time: string; end_time: string; target_min: number };
   day: {
@@ -103,36 +105,59 @@ function soonLabel(days: number): string {
   return `Vacaciones en ${days} día${days === 1 ? "" : "s"}`;
 }
 
-/** Estado unificado (lib/status.ts) + los matices propios de esta pantalla
-    (Completa/Cerrada al día terminado, "por iniciar" cuando la vacación es
-    en los próximos días). La vacación de HOY siempre pesa más que cualquier
-    otra cosa — no tiene caso alertar por una jornada que no va a pasar. */
-function estadoOf(day: PersonDay["day"], vacation?: Vacation): { color: string; label: string; tone: "ok" | "warn" | "muted" | "purple" | "danger" } {
+/** Estado unificado (Attendance Status Resolver, spec 2026-07-31) + los
+    matices propios de esta pantalla (Completa/Cerrada al día terminado,
+    "por iniciar" cuando la vacación es en los próximos días). La vacación
+    de HOY y el "próximo" siguen resolviéndose aquí mismo (el resolver no
+    conoce "en N días" — es una anticipación exclusiva de esta pantalla);
+    incidencia/feriado/descanso de hoy sí se delegan al resolver, ya que
+    antes de Task 4 esta pantalla no los consultaba en absoluto. */
+function estadoOf(
+  day: PersonDay["day"], vacation?: Vacation,
+  incident?: { kind: string; note: string | null } | null,
+  isHoliday?: boolean, restDay?: { note: string | null } | null,
+): { color: string; label: string; tone: "ok" | "warn" | "muted" | "purple" | "danger" } {
   if (vacation?.today) return { color: "var(--purple)", label: "Vacaciones", tone: "purple" };
   if (!day.firstIn && vacation?.soonDays != null) return { color: "var(--purple)", label: soonLabel(vacation.soonDays), tone: "purple" };
   const last = day.movements.at(-1);
   const liveState = day.isOpen && last ? stateAfter(last) : null;
-  const presence = resolvePresence({
-    firstIn: day.firstIn, isOpen: day.isOpen, noRegistroSalida: day.noRegistroSalida,
+  const today = todayISO();
+  const s = getAttendanceStatus({
+    date: today, today, firstIn: day.firstIn, isOpen: day.isOpen, noRegistroSalida: day.noRegistroSalida,
     liveStateName: liveState, liveStateColor: null,
+    incident: incident ? { kind: incident.kind as IncidentKind, note: incident.note } : null,
+    isHoliday, restDay: restDay ?? null,
+    isBusinessDay: true,
   });
-  if (day.noRegistroSalida) return { color: presence.color, label: presence.label, tone: "danger" };
-  if (!day.firstIn) return { color: presence.color, label: presence.label, tone: "muted" };
-  if (day.isOpen) return { color: presence.color, label: presence.label, tone: presence.key === "trabajando" ? "ok" : "warn" };
+  if (day.noRegistroSalida) return { color: s.color, label: s.label, tone: "danger" };
+  if (!day.firstIn) {
+    // "muted" salvo que el resolver haya devuelto un evento administrativo
+    // (incidencia/feriado/descanso) con su propio tono — mismo mapeo de
+    // badgeVariant→tone que empleados/client.tsx (Task 3).
+    const tone = s.badgeVariant === "warn" ? "warn" : s.badgeVariant === "danger" ? "danger" : s.badgeVariant === "purple" ? "purple" : "muted";
+    return { color: s.color, label: s.label, tone };
+  }
+  if (day.isOpen) return { color: s.color, label: s.label, tone: s.key === "trabajando" ? "ok" : "warn" };
   return day.metTarget ? { color: "var(--ok)", label: "Completa", tone: "ok" } : { color: "var(--warn)", label: "Cerrada", tone: "warn" };
 }
-function estadoPill(day: PersonDay["day"], states: JornadaState[], vacation?: Vacation) {
-  const e = estadoOf(day, vacation);
+function estadoPill(
+  day: PersonDay["day"], states: JornadaState[], vacation?: Vacation,
+  incident?: { kind: string; note: string | null } | null, isHoliday?: boolean, restDay?: { note: string | null } | null,
+) {
+  const e = estadoOf(day, vacation, incident, isHoliday, restDay);
   return <Pill tone={e.tone}>{e.label}</Pill>;
 }
-function estadoStatus(day: PersonDay["day"], vacation?: Vacation): { color: string; label: string } {
-  return estadoOf(day, vacation);
+function estadoStatus(
+  day: PersonDay["day"], vacation?: Vacation,
+  incident?: { kind: string; note: string | null } | null, isHoliday?: boolean, restDay?: { note: string | null } | null,
+): { color: string; label: string } {
+  return estadoOf(day, vacation, incident, isHoliday, restDay);
 }
 
-export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId, pendingValidations }: {
+export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId, pendingValidations, isHoliday = false }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[]; weekBlocks: WeekBlock[];
   reportSettings: { enabled: boolean; email: string }; today: string; adminId: string;
-  pendingValidations: PendingValidation[];
+  pendingValidations: PendingValidation[]; isHoliday?: boolean;
 }) {
   const toast = useToast();
   // FASE R — cola de "salida olvidada" escalada por la propia persona
@@ -171,6 +196,10 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
     "asistencia.view", ["tabla", "gantt", "semana"], "tabla"
   );
   const [sending, setSending] = useState(false);
+  // Fila expandida del reporte semanal — Task 5: el desglose día a día (con
+  // motivo de ausencia) que antes solo existía en el Excel ahora también se
+  // puede ver en pantalla, sin descargar nada.
+  const [expandedWeekRow, setExpandedWeekRow] = useState<string | null>(null);
   const enviarReporte = async () => {
     setSending(true);
     const { data, error } = await createClient().functions.invoke("weekly-attendance-report", { body: { manual: true } });
@@ -333,7 +362,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 <div className="flex items-center gap-3">
                   <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url}
                     birthday={isBirthdayToday(u.birth_date, todayISO())}
-                    status={estadoStatus(day, u.vacation).color} statusLabel={estadoStatus(day, u.vacation).label} />
+                    status={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay).color} statusLabel={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay).label} />
                   <div>
                     <div className="flex items-center gap-1.5">
                       <p className="text-[14.5px] font-bold">{u.display_name}</p>
@@ -348,7 +377,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                     <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{u.title ?? u.area}</p>
                   </div>
                 </div>
-                {estadoPill(day, states, u.vacation)}
+                {estadoPill(day, states, u.vacation, u.incident, isHoliday, u.restDay)}
               </div>
               {u.vacation?.today ? (
                 <div className="flex items-center gap-2.5 rounded-m px-3.5 py-3" style={{ background: "var(--purple-tint)" }}>
@@ -573,17 +602,49 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                   </tr>
                 </thead>
                 <tbody>
-                  {weekRows.map((r) => (
-                    <tr key={`${r.userId}-${r.week}`} className="border-t transition-colors hover:bg-hover" style={{ borderColor: "var(--border)" }}>
-                      <td className="py-2 pr-4 tabular-nums">{dmy(r.week)}</td>
-                      <td className="py-2 pr-4 font-semibold">{r.name}</td>
-                      <td className="py-2 pr-4 tabular-nums">{r.days}</td>
-                      <td className="py-2 pr-4 tabular-nums">{fmtMin(r.totalMin)}</td>
-                      <td className="py-2 tabular-nums" style={{ color: r.extraMin > 0 ? "var(--ok)" : "var(--text-3)" }}>
-                        {r.extraMin > 0 ? `+${fmtMin(r.extraMin)}` : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                  {weekRows.map((r) => {
+                    const rowKey = `${r.userId}-${r.week}`;
+                    const expanded = expandedWeekRow === rowKey;
+                    // Desglose día a día — solo existe para las últimas 6 semanas
+                    // con actividad (mismo recorte que el Excel, ver page.tsx).
+                    const block = weekBlocks.find((b) => b.userId === r.userId && b.weekStart === r.week);
+                    return (
+                      <Fragment key={rowKey}>
+                        <tr
+                          className={`border-t transition-colors hover:bg-hover ${block ? "cursor-pointer" : ""}`}
+                          style={{ borderColor: "var(--border)" }}
+                          onClick={() => block && setExpandedWeekRow(expanded ? null : rowKey)}>
+                          <td className="py-2 pr-4 tabular-nums">{dmy(r.week)}</td>
+                          <td className="py-2 pr-4 font-semibold">{r.name}</td>
+                          <td className="py-2 pr-4 tabular-nums">{r.days}</td>
+                          <td className="py-2 pr-4 tabular-nums">{fmtMin(r.totalMin)}</td>
+                          <td className="py-2 tabular-nums" style={{ color: r.extraMin > 0 ? "var(--ok)" : "var(--text-3)" }}>
+                            {r.extraMin > 0 ? `+${fmtMin(r.extraMin)}` : "—"}
+                          </td>
+                        </tr>
+                        {expanded && block && (
+                          <tr key={`${rowKey}-detalle`} className="border-t" style={{ borderColor: "var(--border)" }}>
+                            <td colSpan={5} className="py-2 pr-4">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {block.days.map((d) => (
+                                  <div key={d.date} className="rounded-m px-3 py-2" style={{ background: "var(--surface-2)" }}>
+                                    <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>{d.dayLabel} {dmy(d.date)}</p>
+                                    {d.horasTrabajadas != null ? (
+                                      <p className="text-[12.5px] font-semibold">{d.horasTrabajadas} h{d.horasExtra ? ` (+${d.horasExtra} extra)` : ""}</p>
+                                    ) : (
+                                      <p className="text-[12.5px] font-semibold" style={{ color: d.statusLabel ? "var(--warn)" : "var(--text-3)" }}>
+                                        {d.statusLabel ?? "Sin registro"}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

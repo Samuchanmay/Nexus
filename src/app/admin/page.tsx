@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtTime, stateAfter, TRABAJANDO, scheduleFor } from "@/lib/hours";
-import { resolvePresence, WORK_STATUS_LABEL } from "@/lib/status";
+import { WORK_STATUS_LABEL } from "@/lib/status";
+import { getAttendanceStatus } from "@/lib/domain/attendance/status";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, nowMeridaMinutes, shortDate, addDays } from "@/lib/tz";
@@ -186,11 +187,16 @@ export default async function AdminDashboard() {
     const liveState = last ? stateAfter(last) : null;
     // "Equipo hoy" es SIEMPRE de hoy — nunca puede mostrar "No registró
     // salida" (eso solo aplica a días pasados sin resolver, vía pending_exits).
-    const presenceStatus = resolvePresence({
-      firstIn: hasIn ? "00:00" : null, isOpen: !done, noRegistroSalida: false,
+    const firstIn = hasIn ? "00:00" : null;
+    const presenceStatus = getAttendanceStatus({
+      date: today, today, firstIn, isOpen: !done, noRegistroSalida: false,
       liveStateName: liveState, liveStateColor: liveState ? (stateColor.get(liveState) ?? null) : null,
-      onVacationToday: onVacation.has(u.id),
-      onApprovedIncidentToday: onIncident.has(u.id),
+      vacation: onVacation.has(u.id) ? { start: today, end: today } : null,
+      // No se conoce el kind real aquí, solo si hay una incidencia autorizada
+      // hoy — kind:"permiso" ya solo afecta la etiqueta/tono, nunca cuál
+      // usuario aparece marcado.
+      incident: onIncident.has(u.id) && !firstIn ? { kind: "permiso" } : null,
+      isBusinessDay: true,
     });
     const status = done ? "Terminó" : presenceStatus.label;
     const color = presenceStatus.color;
@@ -378,11 +384,14 @@ export default async function AdminDashboard() {
         {(() => {
           // Antes esta tarjeta calculaba su propio texto ad hoc y podía decir
           // "Sin iniciar" aunque el propio admin estuviera de vacaciones o con
-          // una incidencia aprobada hoy — ahora pasa por el mismo resolvePresence
-          // que Equipo/Asistencia/Reportes, así nunca dice cosas distintas (FASE S).
-          const myPresence = resolvePresence({
-            firstIn: myDay.firstIn, isOpen: myDay.isOpen, noRegistroSalida: false,
-            onVacationToday: onVacation.has(me!.id), onApprovedIncidentToday: onIncident.has(me!.id),
+          // una incidencia aprobada hoy — ahora pasa por el mismo Attendance
+          // Domain que Equipo/Asistencia/Reportes, así nunca dice cosas
+          // distintas (FASE S).
+          const myPresence = getAttendanceStatus({
+            date: today, today, firstIn: myDay.firstIn, isOpen: myDay.isOpen, noRegistroSalida: false,
+            vacation: onVacation.has(me!.id) ? { start: today, end: today } : null,
+            incident: onIncident.has(me!.id) && !myDay.firstIn ? { kind: "permiso" } : null,
+            isBusinessDay: true,
           });
           const dotColor = myPresence.key === "trabajando" ? "var(--ok)" : myPresence.color;
           const statusLabel = myPresence.label;

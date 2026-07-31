@@ -5,6 +5,7 @@ import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, addDays } from "@/lib/tz";
 import AsistenciaClient, { type PersonDay, type WeekRow, type PendingValidation } from "./client";
 import type { WeekBlock, DayDetail } from "./xlsx-weekly-report";
+import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
 
 const DIAS_LARGO = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -30,10 +31,14 @@ function weekLabelOf(monday: string): string {
   return m1 === m2 ? `${d1} al ${d2} de ${m1}` : `${d1} de ${m1} al ${d2} de ${m2}`;
 }
 
-/** Desglose de un día para el Excel: entrada, salida a comer, regreso, salida final. */
+/** Desglose de un día para el Excel: entrada, salida a comer, regreso, salida
+    final, y motivo de ausencia (statusLabel) cuando no hubo entrada — el
+    `absenceReasonFor` opcional es la única pieza que no puede vivir en este
+    helper de nivel módulo (necesita los lookups históricos del componente). */
 function buildDayDetail(
   date: string, rows: AttendanceRow[],
   sched: Pick<Schedule, "target_min" | "tolerance_min" | "end_time">, states: JornadaState[],
+  absenceReasonFor?: (date: string) => string | undefined,
 ): DayDetail {
   const mv = rows.filter((r) => r.date === date).sort((a, b) => a.time.localeCompare(b.time));
   const entradas = mv.filter((m) => m.type === "Entrada");
@@ -56,6 +61,7 @@ function buildDayDetail(
     entrada2: fmtExcelTime(entrada2), salidaFinal: fmtExcelTime(salidaFinal),
     horasTrabajadas: summary && summary.totalMin > 0 ? Math.round((summary.totalMin / 60) * 10) / 10 : null,
     horasExtra: summary && summary.extraMin > 0 ? Math.round((summary.extraMin / 60) * 10) / 10 : null,
+    statusLabel: entrada ? undefined : absenceReasonFor?.(date),
   };
 }
 
@@ -75,7 +81,7 @@ export default async function AsistenciaEquipo() {
   const today = todayMerida();
   const since = addDays(today, -56); // 8 semanas
 
-  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }, { data: incs }, { data: holidayRows }, { data: restDayRows }, { data: vacsHist }, { data: incsHist }, { data: holidaysHist }, { data: restDaysHist }] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area, title, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", today).order("time"),
     supabase.from("schedules").select("*"),
@@ -98,6 +104,23 @@ export default async function AsistenciaEquipo() {
       .select("id, user_id, date, resolved_reason, users:user_id(display_name, avatar_url, nexus_color)")
       .eq("status", "pendiente").eq("requested_rh_validation", true)
       .order("date", { ascending: true }),
+    // Incidencias/feriados/descansos vigentes HOY — mismo patrón que Task 3
+    // (admin/empleados), para que el Attendance Status Resolver tenga la
+    // misma información en Asistencia que en Directorio (spec 2026-07-31).
+    supabase.from("incidents").select("user_id, kind, note, start_date, end_date").eq("status", "Autorizado")
+      .is("archived_at", null).lte("start_date", today).gte("end_date", today),
+    supabase.from("holidays").select("date").eq("date", today),
+    supabase.from("rest_days").select("user_id, note, start_date, end_date").lte("start_date", today).gte("end_date", today),
+    // Mismas 4 fuentes pero abiertas a las 8 semanas de `since` — el punto
+    // de estado de arriba solo necesita HOY, pero el reporte semanal/Excel
+    // (Task 5) necesita el motivo de cada día pasado sin entrada, no solo
+    // el de hoy.
+    supabase.from("vacations").select("user_id, start_date, end_date")
+      .eq("status", "Aprobada").is("archived_at", null).gte("end_date", since),
+    supabase.from("incidents").select("user_id, kind, note, start_date, end_date").eq("status", "Autorizado")
+      .is("archived_at", null).gte("end_date", since),
+    supabase.from("holidays").select("date").gte("date", since),
+    supabase.from("rest_days").select("user_id, note, start_date, end_date").gte("end_date", since),
   ]);
   // "Próximo" = arranca en los próximos 3 días (mismo umbral que "Saldo
   // bajo" en Vacaciones admin) — ventana corta, solo lo inminente.
@@ -111,6 +134,45 @@ export default async function AsistenciaEquipo() {
       startDate: v.start_date, endDate: v.end_date,
     }];
   }));
+  const isHoliday = (holidayRows ?? []).length > 0;
+  const incidentOf = new Map((incs ?? []).map((i) => [i.user_id as string, { kind: i.kind as string, note: i.note as string | null }]));
+  const restDayOf = new Map((restDayRows ?? []).map((r) => [r.user_id as string, { note: r.note as string | null }]));
+
+  // ── Lookups históricos (8 semanas) para el motivo de ausencia del Excel/
+  // reporte semanal (Task 5) — un usuario puede tener varias vacaciones/
+  // incidencias/descansos en la ventana, por eso son arreglos por usuario
+  // (no un Map de 1 solo valor como los "de hoy" de arriba).
+  function byUser<T extends { user_id: string }>(rows: T[] | null): Map<string, T[]> {
+    const m = new Map<string, T[]>();
+    for (const r of rows ?? []) m.set(r.user_id, [...(m.get(r.user_id) ?? []), r]);
+    return m;
+  }
+  const vacsByUser = byUser(vacsHist as { user_id: string; start_date: string; end_date: string }[] | null);
+  const incsByUser = byUser(incsHist as { user_id: string; kind: string; note: string | null; start_date: string; end_date: string }[] | null);
+  const restDaysByUser = byUser(restDaysHist as { user_id: string; note: string | null; start_date: string; end_date: string }[] | null);
+  const holidaySet = new Set((holidaysHist ?? []).map((h) => h.date as string));
+
+  /** Motivo de ausencia (Vacaciones/Incapacidad/…/Día inhábil/Descanso) para
+      un usuario en una fecha sin entrada — mismo resolver que Directorio/
+      Asistencia (Tasks 3-4), aplicado ahora también al histórico del reporte
+      semanal/Excel. */
+  const absenceReasonFor = (userId: string, date: string): string | undefined => {
+    const vac = (vacsByUser.get(userId) ?? []).find((v) => v.start_date <= date && v.end_date >= date);
+    const inc = (incsByUser.get(userId) ?? []).find((i) => i.start_date <= date && i.end_date >= date);
+    const rd = (restDaysByUser.get(userId) ?? []).find((r) => r.start_date <= date && r.end_date >= date);
+    const wd = new Date(date + "T12:00:00Z").getUTCDay();
+    const s = getAttendanceStatus({
+      date, today, firstIn: null, isOpen: false, noRegistroSalida: false,
+      vacation: vac ? { start: vac.start_date, end: vac.end_date } : null,
+      incident: inc ? { kind: inc.kind as IncidentKind, note: inc.note } : null,
+      isHoliday: holidaySet.has(date), restDay: rd ? { note: rd.note } : null,
+      isBusinessDay: wd !== 0, // el bloque semanal ya solo itera Lunes..Sábado
+    });
+    // Solo interesa el motivo cuando de verdad explica la ausencia —
+    // showInReports ya excluye "sin iniciar"/"fuera de horario" (no son un
+    // motivo), dejando la columna vacía para esos casos.
+    return s.showInReports ? s.label : undefined;
+  };
   const states = (jornadaStates ?? []) as JornadaState[];
   const settingsMap = new Map((settingsRows ?? []).map((s) => [s.key, s.value as string]));
   const reportSettings = {
@@ -132,6 +194,8 @@ export default async function AsistenciaEquipo() {
         id: u.id, display_name: u.display_name, area: u.area, title: u.title,
         nexus_color: u.nexus_color, avatar_url: u.avatar_url, birth_date: u.birth_date,
         vacation: vacationOf.get(u.id) ?? { today: false, soonDays: null, startDate: null, endDate: null },
+        incident: incidentOf.get(u.id) ?? null,
+        restDay: restDayOf.get(u.id) ?? null,
       },
       schedule,
       day: {
@@ -176,7 +240,7 @@ export default async function AsistenciaEquipo() {
       for (let i = 0; i < 6; i++) { // Lunes..Sábado
         const date = addDays(wk, i);
         const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, date) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
-        days.push(buildDayDetail(date, myRows, daySched, states));
+        days.push(buildDayDetail(date, myRows, daySched, states, (d) => absenceReasonFor(u.id, d)));
       }
       weekBlocks.push({ userId: u.id, name: u.display_name, color: u.nexus_color ?? "#5856D6", weekStart: wk, weekLabel: weekLabelOf(wk), days });
     }
@@ -196,7 +260,7 @@ export default async function AsistenciaEquipo() {
     <AsistenciaClient
       people={people} states={states} weekRows={weekRows} weekBlocks={weekBlocks}
       reportSettings={reportSettings} today={today} adminId={meRes?.data?.id ?? ""}
-      pendingValidations={pendingValidations}
+      pendingValidations={pendingValidations} isHoliday={isHoliday}
     />
   );
 }

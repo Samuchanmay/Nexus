@@ -13,7 +13,7 @@ import { PRIORITY_TONE, KIND_LABELS, INCIDENT_TONE } from "@/lib/ui-maps";
 import { fmtMin, fmtTime } from "@/lib/hours";
 import { dmy } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
-import { resolvePresence } from "@/lib/status";
+import { getAttendanceStatus } from "@/lib/domain/attendance/status";
 import type { Priority, RequestType, Incident } from "@/lib/types";
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -82,9 +82,10 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
               {/* Persona */}
               <div className="flex items-center gap-3 w-full md:w-[210px] shrink-0">
                 {(() => {
-                  const presence = resolvePresence({
-                    firstIn: u.today.firstIn, isOpen: u.today.isOpen, noRegistroSalida: u.today.noRegistroSalida,
-                    liveStateName: u.today.stateName, liveStateColor: u.today.stateColor, onVacationToday: vac.today,
+                  const presence = getAttendanceStatus({
+                    date: today, today, firstIn: u.today.firstIn, isOpen: u.today.isOpen, noRegistroSalida: u.today.noRegistroSalida,
+                    liveStateName: u.today.stateName, liveStateColor: u.today.stateColor,
+                    vacation: vac.today ? { start: today, end: today } : null, isBusinessDay: true,
                   });
                   const showSoon = vac.soonDays != null && !vac.today;
                   return (
@@ -143,9 +144,10 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
             <section>
               {(() => {
                 const vac = vacationStatus(sel.upcomingVacs, today);
-                const presence = resolvePresence({
-                  firstIn: sel.today.firstIn, isOpen: sel.today.isOpen, noRegistroSalida: sel.today.noRegistroSalida,
-                  liveStateName: sel.today.stateName, liveStateColor: sel.today.stateColor, onVacationToday: vac.today,
+                const presence = getAttendanceStatus({
+                  date: today, today, firstIn: sel.today.firstIn, isOpen: sel.today.isOpen, noRegistroSalida: sel.today.noRegistroSalida,
+                  liveStateName: sel.today.stateName, liveStateColor: sel.today.stateColor,
+                  vacation: vac.today ? { start: today, end: today } : null, isBusinessDay: true,
                 });
                 if (vac.today) {
                   const current = sel.upcomingVacs.find((v) => v.status === "Aprobada" && v.start_date <= today && v.end_date >= today);

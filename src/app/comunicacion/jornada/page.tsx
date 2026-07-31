@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime, scheduleFor } from "@/lib/hours";
-import { resolvePresence } from "@/lib/status";
+import { getAttendanceStatus } from "@/lib/domain/attendance/status";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { Pill } from "@/components/ui";
@@ -49,9 +49,9 @@ export default async function Jornada() {
   const todayEntry = days.find((d) => d.date === todayIso);
   const todayTotalMin = todayEntry?.totalMin ?? 0;
   const todayTargetMin = todayEntry?.targetMin ?? todaySchedule.target_min;
-  const todayPresence = resolvePresence({
-    firstIn: todayEntry?.firstIn ?? null, isOpen: todayEntry?.isOpen ?? false,
-    noRegistroSalida: false, liveStateName: null, liveStateColor: null,
+  const todayPresence = getAttendanceStatus({
+    date: todayIso, today: todayIso, firstIn: todayEntry?.firstIn ?? null, isOpen: todayEntry?.isOpen ?? false,
+    noRegistroSalida: false, liveStateName: null, liveStateColor: null, isBusinessDay: true,
   });
   const todayStatus = todayPresence.label;
   const todayStatusColor = !todayEntry ? "var(--text-3)"

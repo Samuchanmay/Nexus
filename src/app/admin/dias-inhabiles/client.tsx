@@ -21,6 +21,11 @@ type Holiday = { id: string; date: string; name: string; kind: string; notes: st
 type HolidayForm = { date: string; name: string; kind: string; notes: string };
 const EMPTY_FORM: HolidayForm = { date: "", name: "", kind: "empresa", notes: "" };
 
+// ── Task 6 — Descanso asignado por admin (rest_days) ──
+type RestDay = { id: string; userId: string; userName: string; startDate: string; endDate: string; note: string | null };
+type RestDayForm = { userId: string; startDate: string; endDate: string; note: string };
+const EMPTY_REST_FORM: RestDayForm = { userId: "", startDate: "", endDate: "", note: "" };
+
 /**
  * Días inhábiles — rediseño completo. Esta pantalla NO es un Excel: su
  * único trabajo es dejar ver de un vistazo qué días no cuentan como
@@ -31,10 +36,13 @@ const EMPTY_FORM: HolidayForm = { date: "", name: "", kind: "empresa", notes: ""
  * calendario, que abre el mismo Drawer de alta en modo edición (con botón
  * Eliminar) — así no hace falta una pantalla de lista aparte para el CRUD.
  */
-export default function DiasClient({ holidays, adminId }: { holidays: Holiday[]; adminId?: string }) {
+export default function DiasClient({ holidays, adminId, team = [], restDays = [] }: {
+  holidays: Holiday[]; adminId?: string; team?: { id: string; display_name: string }[]; restDays?: RestDay[];
+}) {
   const toast = useToast();
   const { run, saving } = useSupabaseMutation();
   const { run: runGen, saving: generating } = useSupabaseMutation();
+  const { run: runRest, saving: savingRest } = useSupabaseMutation();
   const today = todayMerida();
   const currentYear = Number(today.slice(0, 4));
 
@@ -47,6 +55,35 @@ export default function DiasClient({ holidays, adminId }: { holidays: Holiday[];
   const [editing, setEditing] = useState<Holiday | null>(null);
   const [form, setForm] = useState<HolidayForm>(EMPTY_FORM);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // ── Task 6 — Descanso asignado por admin ──
+  const [restOpen, setRestOpen] = useState(false);
+  const [restForm, setRestForm] = useState<RestDayForm>(EMPTY_REST_FORM);
+  const openRest = () => { setRestForm(EMPTY_REST_FORM); setRestOpen(true); };
+  const saveRest = async () => {
+    if (!restForm.userId || !restForm.startDate || !restForm.endDate) {
+      toast("Persona, fecha de inicio y fecha de fin son obligatorias", "warn"); return;
+    }
+    if (restForm.endDate < restForm.startDate) { toast("La fecha de fin no puede ser antes que la de inicio", "warn"); return; }
+    const ok = await runRest(async () => {
+      const sb = createClient();
+      const { error } = await sb.from("rest_days").insert({
+        user_id: restForm.userId, start_date: restForm.startDate, end_date: restForm.endDate,
+        note: restForm.note.trim() || null, created_by: adminId || null,
+      });
+      if (error) return { error: { message: "No se pudo asignar el descanso" } };
+      return { error: null };
+    }, { ok: "Descanso asignado" });
+    if (ok) {
+      if (adminId) logAdminAction(createClient(), adminId, "Asignó descanso", team.find((t) => t.id === restForm.userId)?.display_name ?? restForm.userId);
+      setRestOpen(false);
+    }
+  };
+  const removeRest = async (r: RestDay) => {
+    const ok = await run(() => createClient().from("rest_days").delete().eq("id", r.id),
+      { ok: "Descanso eliminado", err: "No se pudo eliminar" });
+    if (ok && adminId) logAdminAction(createClient(), adminId, "Eliminó descanso", r.userName);
+  };
 
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setConfirmDelete(false); setDrawerOpen(true); };
   const openEdit = (h: Holiday) => {
@@ -136,11 +173,37 @@ export default function DiasClient({ holidays, adminId }: { holidays: Holiday[];
           <button className="btn-secondary px-4 py-2.5 text-[13px] flex items-center gap-1.5" disabled={generating} onClick={generar}>
             <IconDownload className="w-3.5 h-3.5" /> {generating ? "Importando…" : "Importar feriados oficiales"}
           </button>
+          <button className="btn-secondary px-4 py-2.5 text-[13px] flex items-center gap-1.5" onClick={openRest} disabled={team.length === 0}>
+            <IconSun className="w-3.5 h-3.5" /> Asignar descanso
+          </button>
           <button className="btn-primary px-4 py-2.5 text-[13px] flex items-center gap-1.5" onClick={openAdd}>
             <IconPlus className="w-4 h-4" /> Agregar día inhábil
           </button>
         </div>
       </header>
+
+      {/* ── Descansos vigentes/próximos asignados por admin (Task 6) ── */}
+      {restDays.length > 0 && (
+        <div className="card p-4 mb-6">
+          <p className="text-[12px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>Descansos asignados (vigentes o por venir)</p>
+          <div className="flex flex-col gap-1.5">
+            {restDays.map((r) => (
+              <div key={r.id} className="flex items-center justify-between text-[13px] rounded-sm px-3 py-2" style={{ background: "var(--surface-2)" }}>
+                <div className="min-w-0">
+                  <span className="font-semibold">{r.userName}</span>{" "}
+                  <span className="tabular-nums" style={{ color: "var(--text-2)" }}>
+                    {dmy(r.startDate)}{r.endDate !== r.startDate ? ` → ${dmy(r.endDate)}` : ""}
+                  </span>
+                  {r.note && <span className="ml-1.5" style={{ color: "var(--text-3)" }}>· {r.note}</span>}
+                </div>
+                <button className="text-[12px] font-semibold shrink-0 ml-2" style={{ color: "var(--danger)" }} onClick={() => removeRest(r)}>
+                  Eliminar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Resumen: 4 tarjetas pequeñas ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
@@ -322,6 +385,38 @@ export default function DiasClient({ holidays, adminId }: { holidays: Holiday[];
               </button>
             </div>
           )}
+        </div>
+      </Sheet>
+
+      {/* ── Drawer: asignar descanso (Task 6) ── */}
+      <Sheet
+        open={restOpen} onClose={() => setRestOpen(false)}
+        title="Asignar descanso" subtitle="Solo administrador — la persona lo verá reflejado en su estado de asistencia"
+      >
+        <div className="flex flex-col gap-3 pb-2">
+          <Field label="Persona">
+            <Select
+              value={restForm.userId} onChange={(v) => setRestForm({ ...restForm, userId: v })}
+              title="Persona" placeholder="Elige a alguien del equipo"
+              options={team.map((u) => ({ value: u.id, label: u.display_name }))}
+            />
+          </Field>
+          <Field label="Desde">
+            <DatePicker value={restForm.startDate} onChange={(iso) => setRestForm({ ...restForm, startDate: iso })} />
+          </Field>
+          <Field label="Hasta">
+            <DatePicker value={restForm.endDate} onChange={(iso) => setRestForm({ ...restForm, endDate: iso })} />
+          </Field>
+          <Field label="Nota (opcional)">
+            <textarea className="field-input min-h-[70px] resize-none" placeholder="Contexto adicional…"
+              value={restForm.note} onChange={(e) => setRestForm({ ...restForm, note: e.target.value })} />
+          </Field>
+          <div className="flex gap-2.5 mt-1">
+            <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setRestOpen(false)}>Cancelar</button>
+            <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={savingRest} onClick={saveRest}>
+              {savingRest ? "Guardando…" : "Asignar descanso"}
+            </button>
+          </div>
         </div>
       </Sheet>
     </>

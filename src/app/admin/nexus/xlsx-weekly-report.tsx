@@ -19,6 +19,10 @@ export interface DayDetail {
   salidaFinal: string | null;
   horasTrabajadas: number | null;
   horasExtra: number | null;
+  /** Motivo de ausencia (Vacaciones/Incapacidad/Permiso/…) cuando no hubo
+      entrada ese día — Attendance Status Resolver, spec 2026-07-31, Task 5.
+      undefined cuando sí hubo entrada (columna Comentarios queda vacía). */
+  statusLabel?: string;
 }
 
 export interface WeekBlock {
@@ -114,7 +118,7 @@ export function XlsxWeeklyReportButton({ blocks, adminId }: { blocks: WeekBlock[
               d.salidaFinal ?? "",
               d.horasTrabajadas ?? "",
               d.horasExtra ?? "",
-              "",
+              d.statusLabel ?? "",
             ]);
             row.eachCell((cell) => {
               cell.border = { bottom: { style: "thin", color: { argb: "FFF1F5F9" } } };

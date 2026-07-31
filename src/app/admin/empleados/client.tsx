@@ -17,6 +17,7 @@ import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { useHeaderAction } from "@/lib/header-actions";
 import { KIND_LABELS } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
+import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
 
 /** Los roles "Equipo" (empleado) y Administrador son los que realmente
     administramos día a día (asistencia, vacaciones, incidencias) — reciben
@@ -64,9 +65,15 @@ function AreaSelect({ role, areas, value, onChange }: {
   );
 }
 
-export default function EmpleadosClient({ users, areas, rhColor, vacationTodayIds, permisoTodayIds, adminId }: {
-  users: UserProfile[]; areas: Department[]; rhColor: string | null;
-  vacationTodayIds: string[]; permisoTodayIds: string[]; adminId?: string;
+export default function EmpleadosClient({
+  users, areas, rhColor, adminId,
+  vacationOf = {}, incidentOf = {}, restDayOf = {}, isHoliday = false,
+}: {
+  users: UserProfile[]; areas: Department[]; rhColor: string | null; adminId?: string;
+  vacationOf?: Record<string, { start: string; end: string }>;
+  incidentOf?: Record<string, { kind: string; note: string | null }>;
+  restDayOf?: Record<string, { note: string | null }>;
+  isHoliday?: boolean;
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -77,8 +84,6 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
       <IconUserPlus className="w-3.5 h-3.5" /> Nuevo colaborador
     </button>
   ));
-  const vacationTodaySet = new Set(vacationTodayIds);
-  const permisoTodaySet = new Set(permisoTodayIds);
   const usedLockedColors = [...areas.map((a) => a.color), rhColor];
   const availableColors = PALETTE.filter((c) => !usedLockedColors.some((u) => u?.toUpperCase() === c.toUpperCase()));
   const [form, setForm] = useState({
@@ -193,14 +198,29 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
     setConfirmUser(null);
   };
 
-  /** Punto de estado junto al avatar — independiente del switch, prioridad:
-      baja > vacaciones > permiso > invitación pendiente (nunca inició sesión) > activo. */
+  /** Punto de estado junto al avatar — mismo Attendance Status Resolver que
+      Asistencia/Equipo/Hoy (ver spec 2026-07-31): responde "¿por qué esta
+      persona no inició su jornada?", no el estado de la cuenta. "Baja" e
+      "Invitación pendiente" siguen visibles aparte, como estado de CUENTA
+      (no de asistencia) — se resuelven antes de consultar al resolver. */
+  const today = todayMerida();
   const rowStatus = (u: UserProfile): { color: string; label: string } => {
     if (!u.active) return { color: "var(--danger)", label: "Baja" };
-    if (vacationTodaySet.has(u.id)) return { color: "var(--purple)", label: "Vacaciones" };
-    if (permisoTodaySet.has(u.id)) return { color: "var(--warn)", label: "Permiso" };
     if (!u.auth_id) return { color: "#AEAEB2", label: "Invitación pendiente" };
-    return { color: "var(--ok)", label: "Activo" };
+    const incident = incidentOf[u.id];
+    const s = getAttendanceStatus({
+      date: today, today, firstIn: null, isOpen: false, noRegistroSalida: false,
+      vacation: vacationOf[u.id] ?? null,
+      incident: incident ? { kind: incident.kind as IncidentKind, note: incident.note } : null,
+      isHoliday, restDay: restDayOf[u.id] ?? null,
+      isBusinessDay: true,
+    });
+    // "Sin iniciar"/"Jornada terminada"/"Fuera de horario" no aplican aquí
+    // (este directorio no conoce si la persona ya fichó hoy) — de vuelta a
+    // "Activo" en ese caso, que es lo que esta pantalla mostraba antes para
+    // "sin evento". showInDirectory ya centraliza exactamente este criterio.
+    if (!s.showInDirectory) return { color: "var(--ok)", label: "Activo" };
+    return { color: s.color, label: s.label };
   };
 
   // Detalle completo (vacaciones + incidencias) SOLO se consulta cuando se abre

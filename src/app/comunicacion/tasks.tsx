@@ -22,7 +22,7 @@ import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
 import { ContextHeader } from "@/components/context-header";
 import type { ContextHeaderInput } from "@/lib/context-header";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
-import { resolvePresence } from "@/lib/status";
+import { getAttendanceStatus } from "@/lib/domain/attendance/status";
 
 interface Task {
   assignmentId: string; isLead: boolean; projectId: string;
@@ -362,12 +362,17 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
           tiempo trabajado grande, objetivo, barra de progreso, hora de entrada. ── */}
       <Card>
         {(() => {
-          // Mismo criterio que el Dashboard admin (FASE S): pasa por
-          // resolvePresence en vez de un ternario propio, para que vacaciones
+          // Mismo criterio que el Dashboard admin (FASE S): pasa por el
+          // Attendance Status Resolver en vez de un ternario propio, para que vacaciones
           // o una incidencia aprobada hoy nunca se vean como "Sin iniciar".
-          const myPresence = resolvePresence({
-            firstIn: day.hasEntry ? (day.firstIn ?? "00:00") : null, isOpen: day.isOpen, noRegistroSalida: false,
-            onVacationToday: context.vacation.today, onApprovedIncidentToday: !!context.incidentToday,
+          const myFirstIn = day.hasEntry ? (day.firstIn ?? "00:00") : null;
+          const myPresence = getAttendanceStatus({
+            date: week.today, today: week.today, firstIn: myFirstIn, isOpen: day.isOpen, noRegistroSalida: false,
+            vacation: context.vacation.today ? { start: week.today, end: week.today } : null,
+            // Mismo placeholder de kind que el resto de call sites migrados —
+            // esta pantalla solo sabe "hay incidencia hoy" (booleano), no cuál.
+            incident: context.incidentToday && !myFirstIn ? { kind: "permiso" } : null,
+            isHoliday: context.isHoliday, isBusinessDay: true,
           });
           const dotColor = myPresence.key === "trabajando" ? "var(--ok)" : myPresence.color;
           const statusLabel = myPresence.label;
