@@ -72,11 +72,11 @@ export default function EmpleadosClient({ users, areas, rhColor, vacationTodayId
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  useHeaderAction(
+  useHeaderAction(() => (
     <button onClick={() => setOpen(true)} className="btn-primary px-3.5 h-8 text-[13px] flex items-center gap-1.5">
       <IconUserPlus className="w-3.5 h-3.5" /> Nuevo colaborador
     </button>
-  );
+  ));
   const vacationTodaySet = new Set(vacationTodayIds);
   const permisoTodaySet = new Set(permisoTodayIds);
   const usedLockedColors = [...areas.map((a) => a.color), rhColor];
