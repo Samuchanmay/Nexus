@@ -296,8 +296,14 @@ export function CheckBox({ checked }: { checked: boolean }) {
    Cierre unificado: click fuera, tecla ESC, o arrastrar hacia abajo
    desde el handle/encabezado. Sin botón "X": el handle superior ya
    comunica que el panel es deslizable. */
-export function Sheet({ open, onClose, title, subtitle, children }: {
+export function Sheet({ open, onClose, title, subtitle, children, footer }: {
   open: boolean; onClose: () => void; title: string; subtitle?: string; children: React.ReactNode;
+  /** Franja fija al pie (ej. Cancelar/Guardar) — NO se desplaza con el
+      contenido: el cuerpo (children) se vuelve su propio scroll interno y el
+      footer queda siempre visible, sin obligar a bajar hasta el final. Los
+      Sheets que no lo pasan conservan exactamente el comportamiento anterior
+      (todo el panel es un único scroll, botones al final del contenido). */
+  footer?: React.ReactNode;
 }) {
   const [dragY, setDragY] = useState(0);
   const dragging = useRef(false);
@@ -363,7 +369,7 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
         transition: "background .35s var(--ease), backdrop-filter .35s var(--ease)",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-[680px] max-h-[88vh] overflow-y-auto pb-11"
+      <div className={`w-full max-w-[680px] max-h-[88vh] ${footer ? "flex flex-col" : "overflow-y-auto pb-11"}`}
         style={{
           background: "var(--surface)",
           borderRadius: "26px 26px 0 0",
@@ -373,7 +379,7 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
           transition: dragY ? "none" : "transform .46s var(--spring)",
         }}>
         <div
-          className="cursor-grab active:cursor-grabbing"
+          className={`cursor-grab active:cursor-grabbing ${footer ? "shrink-0" : ""}`}
           onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
         >
           <div className="w-[34px] h-[5px] rounded-[3px] mx-auto mt-3" style={{ background: "var(--surface-3)" }} />
@@ -382,7 +388,12 @@ export function Sheet({ open, onClose, title, subtitle, children }: {
             {subtitle && <p className="text-[13px] mt-1" style={{ color: "var(--text-2)" }}>{subtitle}</p>}
           </div>
         </div>
-        <div className="px-5 pt-4">{children}</div>
+        <div className={footer ? "px-5 pt-4 pb-4 overflow-y-auto flex-1 min-h-0" : "px-5 pt-4"}>{children}</div>
+        {footer && (
+          <div className="shrink-0 px-5 py-3.5" style={{ borderTop: "0.5px solid var(--border)", background: "var(--surface)" }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body

@@ -198,7 +198,10 @@ Deno.serve(async (req) => {
 
     const saldoAntes = u.vacation_balance;
     const saldoDespues = Math.max(0, saldoAntes - vac.days);
-    const area = u.area?.trim() || "CERT Comunicación";
+    // S-12 / directiva "nunca inventar datos": si la persona no tiene área
+    // registrada, la línea de firma simplemente se omite — antes se rellenaba
+    // con un valor fijo ("CERT Comunicación") que no reflejaba a la persona real.
+    const area = u.area?.trim() || "";
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
 
@@ -263,7 +266,7 @@ Deno.serve(async (req) => {
         <p style="margin-top:24px">
           Atentamente,<br/>
           ${escapeHtml(u.full_name)}<br/>
-          Área de ${escapeHtml(area)}<br/>
+          ${area ? `Área de ${escapeHtml(area)}<br/>` : ""}
           CERT Comunicación<br/>
           ${longDate(todayIso)}
         </p>

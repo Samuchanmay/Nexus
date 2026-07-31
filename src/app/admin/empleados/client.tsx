@@ -11,11 +11,10 @@ import {
 import { Switch, Field } from "@/components/shared";
 import { ImageCropper } from "@/components/os/image-cropper";
 import { Dialog } from "@/components/os/ui";
-import { todayMerida, dmy } from "@/lib/tz";
+import { todayMerida } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { useHeaderAction } from "@/lib/header-actions";
-import { KIND_LABELS } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
 import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
 import { DomainTabs } from "@/components/os/domain-tabs";
@@ -47,6 +46,19 @@ const AREA_TIPO: Record<string, "coordinacion" | "departamento" | null> = {
   coordinador: "coordinacion", departamento: "departamento",
   empleado: null, admin: null, rh: null,
 };
+
+/** Encabezado de sección dentro del Drawer de perfil (Información personal /
+    laboral / Configuración) — mismo lenguaje tipográfico que ya se usaba para
+    "Vacaciones recientes" etc., ahora reutilizado como separador de grupos
+    reales en vez de solo etiqueta de bloque de datos. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-bold uppercase tracking-wide pt-3"
+      style={{ color: "var(--text-3)", borderTop: "0.5px solid var(--border)" }}>
+      {children}
+    </p>
+  );
+}
 
 function AreaSelect({ role, areas, value, onChange }: {
   role: string; areas: Department[]; value: string; onChange: (v: string) => void;
@@ -95,7 +107,7 @@ export default function EmpleadosClient({
 
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({
-    role: "empleado", area_id: "", nivel: "licenciatura", balance: "0", daysPerYear: "0",
+    role: "empleado", area_id: "", area: "", nivel: "licenciatura", balance: "0", daysPerYear: "0",
     fullName: "", displayName: "", title: "", honorific: "", hireDate: "", birthDate: "",
     phone: "", extension: "",
   });
@@ -224,41 +236,21 @@ export default function EmpleadosClient({
     return { color: s.color, label: s.label };
   };
 
-  // Detalle completo (vacaciones + incidencias) SOLO se consulta cuando se abre
-  // a alguien de Equipo/Administrador — el Directorio Institucional nunca lo
-  // necesita, así que nunca se pide (punto "Optimiza las consultas").
-  const [fullDetail, setFullDetail] = useState<{
-    vacations: { id: string; start_date: string; end_date: string; days: number; status: string }[];
-    incidents: { id: string; kind: string; start_date: string; end_date: string; status: string }[];
-  } | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-
+  // El Drawer de perfil administra SOLO el perfil (información personal +
+  // laboral + configuración) — Vacaciones e Incidencias ya tienen sus propios
+  // módulos especializados (admin/vacaciones, admin/incidencias) y mostrarlas
+  // aquí también era duplicar información. Menos scope → ya no hace falta
+  // precargar el detalle histórico al abrir cada ficha (una consulta menos
+  // por apertura de Drawer).
   const openEdit = (u: UserProfile) => {
     setEditing(u);
-    setFullDetail(null);
     setEditForm({
-      role: u.role, area_id: u.area_id ?? "", nivel: u.nivel ?? "licenciatura",
+      role: u.role, area_id: u.area_id ?? "", area: u.area ?? "", nivel: u.nivel ?? "licenciatura",
       balance: String(u.vacation_balance ?? 0), daysPerYear: String(u.vacation_days_per_year ?? 0),
       fullName: u.full_name ?? "", displayName: u.display_name ?? "", title: u.title ?? "",
       honorific: u.honorific ?? "", phone: u.phone ?? "", extension: u.extension ?? "",
       hireDate: u.hire_date ?? "", birthDate: u.birth_date ?? "",
     });
-    if (isFullDrawerRole(u.role)) {
-      setLoadingDetail(true);
-      const supabase = createClient();
-      Promise.all([
-        supabase.from("vacations").select("id,start_date,end_date,days,status")
-          .eq("user_id", u.id).is("archived_at", null).order("start_date", { ascending: false }).limit(8),
-        supabase.from("incidents").select("id,kind,start_date,end_date,status")
-          .eq("user_id", u.id).order("start_date", { ascending: false }).limit(8),
-      ]).then(([v, i]) => {
-        setFullDetail({
-          vacations: (v.data ?? []) as NonNullable<typeof fullDetail>["vacations"],
-          incidents: (i.data ?? []) as NonNullable<typeof fullDetail>["incidents"],
-        });
-        setLoadingDetail(false);
-      });
-    }
   };
 
   const saveEdit = async () => {
@@ -271,6 +263,7 @@ export default function EmpleadosClient({
       role: editForm.role,
       requester_kind: requesterKind,
       area_id: AREA_TIPO[editForm.role] ? (editForm.area_id || null) : null,
+      area: AREA_TIPO[editForm.role] ? null : (editForm.area.trim() || null),
       nivel: editForm.role === "coordinador" ? editForm.nivel : null,
       vacation_balance: parseInt(editForm.balance) || 0,
       vacation_days_per_year: parseInt(editForm.daysPerYear) || 0,
@@ -388,8 +381,11 @@ export default function EmpleadosClient({
     return (
       <div
         onClick={() => openEdit(u)}
-        className="group relative w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-m border border-border transition-all duration-200 cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_2px_10px_rgba(0,0,0,0.06)] hover:-translate-y-px"
-        style={{ background: "var(--surface)", opacity: u.active ? 1 : 0.55 }}
+        className="group relative w-full text-left flex items-center gap-3.5 px-4 py-3 rounded-m border border-border cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[3px]"
+        style={{
+          background: "var(--surface)", opacity: u.active ? 1 : 0.55,
+          transition: "transform .22s var(--spring), box-shadow .22s var(--ease), border-color .22s var(--ease)",
+        }}
       >
         {/* Avatar 44px + punto de estado (activo/vacaciones/baja/…) + badge
             separado de "perfil incompleto" (esquina opuesta, nunca compiten). */}
@@ -427,12 +423,19 @@ export default function EmpleadosClient({
                   title={dept}
                 >{dept}</span>
               )}
+              {/* Antes era un pill relleno de --warn (misma saturación que una
+                  alerta real) — con 14/20 perfiles así, competía visualmente
+                  con Cargo/Área. Ahora es un punto + texto discreto, mismo
+                  peso que una nota, no una advertencia. */}
               {!u.onboarded && (
                 <span
-                  className="px-1.5 py-[1px] rounded-full text-[12px] font-semibold shrink-0"
-                  style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold shrink-0"
+                  style={{ color: "var(--text-3)" }}
                   title="Aún no ha iniciado sesión — perfil incompleto"
-                >Incompleto</span>
+                >
+                  <span className="w-1 h-1 rounded-full shrink-0" style={{ background: "var(--warn)" }} />
+                  Incompleto
+                </span>
               )}
             </div>
           )}
@@ -757,7 +760,15 @@ export default function EmpleadosClient({
 
       <Sheet open={!!editing} onClose={() => setEditing(null)}
         title={editing ? (editing.honorific ? `${editing.honorific} ${editing.full_name}` : editing.full_name) : "Editar"}
-        subtitle={editing ? (isFullDrawerRole(editing.role) ? "Equipo" : "Directorio institucional") : undefined}>
+        subtitle={editing ? (isFullDrawerRole(editing.role) ? "Equipo" : "Directorio institucional") : undefined}
+        footer={editing && (
+          <div className="flex gap-2.5">
+            <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEditing(null)}>Cancelar</button>
+            <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={editSaving} onClick={saveEdit}>
+              {editSaving ? "Guardando…" : "Guardar cambios"}
+            </button>
+          </div>
+        )}>
         {editing && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col items-center gap-2 mb-1">
@@ -890,18 +901,14 @@ export default function EmpleadosClient({
                     </div>
                   </div>
                 </details>
-
-                <div className="flex gap-2.5 mt-1">
-                  <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEditing(null)}>Cancelar</button>
-                  <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={editSaving} onClick={saveEdit}>
-                    {editSaving ? "Guardando…" : "Guardar cambios"}
-                  </button>
-                </div>
               </>
             ) : (
               /* ── Ficha completa — Equipo y Administradores, a quienes sí
-                 administramos día a día. ── */
+                 administramos día a día. Solo administra el PERFIL: nada de
+                 vacaciones/incidencias/permisos aquí — esos ya viven en sus
+                 propios módulos y duplicarlos aquí era ruido, no ayuda. ── */
               <>
+                <SectionLabel>Información personal</SectionLabel>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
@@ -926,6 +933,15 @@ export default function EmpleadosClient({
                       value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
                   </div>
                 </div>
+                {/* Área — antes solo se podía fijar al crear (o quedaba de un seed
+                    histórico) y no había forma de editarla ni vaciarla desde aquí.
+                    Ahora es un campo editable normal: si se deja en blanco, se
+                    guarda null y el Directorio no la muestra (nunca se inventa). */}
+                <div>
+                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Área</label>
+                  <input className="field-input" placeholder="Ej. Comunicación — déjalo vacío si no aplica"
+                    value={editForm.area} onChange={(e) => setEditForm({ ...editForm, area: e.target.value })} />
+                </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo</label>
@@ -937,6 +953,8 @@ export default function EmpleadosClient({
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
                   </div>
                 </div>
+
+                <SectionLabel>Información laboral</SectionLabel>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de ingreso</label>
@@ -973,14 +991,21 @@ export default function EmpleadosClient({
                     />
                   </Field>
                 )}
-                <div className="grid grid-cols-2 gap-2.5">
+                {/* Estado — mismo switch/confirmación que la tarjeta de la lista
+                    (requestToggle), disponible también desde aquí para no
+                    obligar a cerrar el Drawer para dar de baja/reactivar. */}
+                <div className="flex items-center justify-between px-3.5 py-3 rounded-sm" style={{ background: "var(--surface-2)" }}>
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-                      Saldo actual (días)
-                    </label>
-                    <input type="number" className="field-input" value={editForm.balance}
-                      onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })} />
+                    <p className="text-[12.5px] font-semibold">{editing.active ? "Cuenta activa" : "Cuenta dada de baja"}</p>
+                    <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
+                      {editing.active ? "Tiene acceso a Emet" : "Su historial se conserva"}
+                    </p>
                   </div>
+                  <Switch size="sm" tone="neutral" checked={editing.active} onChange={() => requestToggle(editing)} />
+                </div>
+
+                <SectionLabel>Configuración</SectionLabel>
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
                       Días asignados/año
@@ -988,56 +1013,17 @@ export default function EmpleadosClient({
                     <input type="number" className="field-input" value={editForm.daysPerYear}
                       onChange={(e) => setEditForm({ ...editForm, daysPerYear: e.target.value })} />
                   </div>
+                  <div>
+                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                      Saldo actual (días)
+                    </label>
+                    <input type="number" className="field-input" value={editForm.balance}
+                      onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })} />
+                  </div>
                 </div>
                 <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                   Ajusta el saldo aquí solo para correcciones manuales — la aprobación de solicitudes ya lo descuenta automáticamente.
                 </p>
-
-                {/* Vacaciones + Incidencias — solo se consultan para Equipo/Admin,
-                    cargadas de forma perezosa al abrir esta ficha (ver openEdit). */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div>
-                    <p className="text-[12px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Vacaciones recientes</p>
-                    {loadingDetail ? (
-                      <div className="h-16 rounded-sm animate-pulse" style={{ background: "var(--surface-2)" }} />
-                    ) : !fullDetail || fullDetail.vacations.length === 0 ? (
-                      <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {fullDetail.vacations.slice(0, 4).map((v) => (
-                          <div key={v.id} className="text-[12px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
-                            <span className="font-semibold">{dmy(v.start_date)}–{dmy(v.end_date)}</span>
-                            <span style={{ color: "var(--text-3)" }}> · {v.days}d · {v.status}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-3)" }}>Incidencias recientes</p>
-                    {loadingDetail ? (
-                      <div className="h-16 rounded-sm animate-pulse" style={{ background: "var(--surface-2)" }} />
-                    ) : !fullDetail || fullDetail.incidents.length === 0 ? (
-                      <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {fullDetail.incidents.slice(0, 4).map((i) => (
-                          <div key={i.id} className="text-[12px] px-2 py-1.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
-                            <span className="font-semibold">{dmy(i.start_date)}–{dmy(i.end_date)}</span>
-                            <span style={{ color: "var(--text-3)" }}> · {KIND_LABELS[i.kind as keyof typeof KIND_LABELS] ?? i.kind}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-2.5 mt-1">
-                  <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setEditing(null)}>Cancelar</button>
-                  <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={editSaving} onClick={saveEdit}>
-                    {editSaving ? "Guardando…" : "Guardar cambios"}
-                  </button>
-                </div>
               </>
             )}
           </div>
