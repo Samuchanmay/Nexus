@@ -36,6 +36,11 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
   const role = profile.role === "admin" ? "admin" : "empleado";
   const myId = profile.id as string;
 
+  // Garantiza que el canal de Anuncios exista y que mi membresía esté al
+  // día (FASE W6, cierre) — no lanza si la migración todavía no corrió,
+  // para que el chat siga funcionando aunque este paso no aplique todavía.
+  await supabase.rpc("nx_enlace_get_or_create_announcement");
+
   const { data: conversations } = await supabase
     .from("conversations")
     .select("id, type, name, avatar_url, created_by, last_message_at, last_message_preview, last_message_sender_id, created_at")

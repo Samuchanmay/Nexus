@@ -154,7 +154,7 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
 // ── Enlace (mensajería interna, FASE W6 ronda 1) ──
 // Adaptado de EQUIPO-ARCHITECTURE.md — ver comentario de la migración
 // 0011_enlace_mvp.sql para el detalle de qué se dejó fuera de esta ronda.
-export type EnlaceConversationType = "direct" | "group";
+export type EnlaceConversationType = "direct" | "group" | "announcement";
 
 export interface EnlaceConversation {
   id: string;

@@ -28,6 +28,9 @@ function timeAgo(iso: string | null): string {
 }
 
 function conversationDisplay(c: EnlaceConversation, myId: string, participants: ParticipantLite[]) {
+  if (c.type === "announcement") {
+    return { name: c.name ?? "Anuncios", avatarUrl: c.avatar_url, color: "#F59E0B" };
+  }
   if (c.type === "group") {
     return { name: c.name ?? "Grupo", avatarUrl: c.avatar_url, color: "#5856D6" };
   }

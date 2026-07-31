@@ -90,13 +90,22 @@ export default function EnlaceConversationClient({
   const { typingLabel, notifyTyping } = useTyping(conversation.id, myId, peopleById.get(myId)?.display_name ?? "Alguien");
 
   const other = conversation.type === "direct" ? participants.find((p) => p.id !== myId) : null;
-  const title = conversation.type === "group" ? (conversation.name ?? "Grupo") : (other?.display_name ?? "Conversación");
+  const title = conversation.type === "announcement" ? (conversation.name ?? "Anuncios")
+    : conversation.type === "group" ? (conversation.name ?? "Grupo")
+    : (other?.display_name ?? "Conversación");
   const presence = other ? formatPresence(other.last_seen_at) : null;
-  const subtitle = typingLabel
+  const subtitle = conversation.type === "announcement"
+    ? (myRole === "admin" ? "Solo tú y otros admins pueden publicar" : "Solo administradores pueden publicar")
+    : typingLabel
     ?? (conversation.type === "group"
       ? `${participants.length} ${participants.length === 1 ? "integrante" : "integrantes"}`
       : presence ?? undefined);
   const puedoFijar = conversation.type === "direct" || myRole === "admin";
+  // Anuncios es de solo-lectura para quien no sea admin — mismo `role` de
+  // conversation_participants que ya gobierna quién puede fijar mensajes,
+  // ahora también gobierna quién puede escribir (espejo de la política RLS
+  // messages_insert, FASE W6 cierre).
+  const puedoEscribir = conversation.type !== "announcement" || myRole === "admin";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
@@ -447,8 +456,8 @@ export default function EnlaceConversationClient({
                   mine={mine}
                   myId={myId}
                   sender={sender}
-                  showAvatar={!mine && conversation.type === "group" && !prevSameSender}
-                  showName={!mine && conversation.type === "group" && !prevSameSender}
+                  showAvatar={!mine && conversation.type !== "direct" && !prevSameSender}
+                  showName={!mine && conversation.type !== "direct" && !prevSameSender}
                   prevSameSender={prevSameSender}
                   attachment={attachment}
                   signedUrl={attachment ? signedUrls[attachment.id] : undefined}
@@ -491,32 +500,40 @@ export default function EnlaceConversationClient({
 
         {/* Compositor minimalista — solo "+", campo de texto, enviar. Todo
             lo demás (cámara/galería/documento/ubicación/audio) vive detrás
-            del "+" en la hoja inferior, no como botones sueltos. */}
+            del "+" en la hoja inferior, no como botones sueltos. En Anuncios,
+            quien no sea admin no tiene compositor — es de solo lectura,
+            espejo de la política RLS messages_insert (FASE W6 cierre). */}
         <div className="pt-2 pb-1 shrink-0" style={{ background: "var(--bg)" }}>
-          <div className="flex items-end gap-1.5 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
-            <IconButton
-              icon="plus"
-              label="Adjuntar"
-              onClick={() => setAttachSheetOpen(true)}
-              disabled={upload.status === "uploading"}
-              className="shrink-0"
-            />
-            <textarea
-              value={draft}
-              onChange={(e) => onDraftChange(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={upload.status === "uploading" ? `Subiendo archivo… ${upload.progress}%` : "Escribe un mensaje..."}
-              rows={1}
-              className="flex-1 resize-none bg-transparent px-1 py-2 text-[14px] focus:outline-none max-h-[120px]"
-            />
-            <IconButton
-              icon="send"
-              label="Enviar"
-              onClick={sendMessage}
-              className="shrink-0"
-              style={{ background: draft.trim() ? "var(--accent)" : undefined, color: draft.trim() ? "#FFFFFF" : undefined }}
-            />
-          </div>
+          {puedoEscribir ? (
+            <div className="flex items-end gap-1.5 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
+              <IconButton
+                icon="plus"
+                label="Adjuntar"
+                onClick={() => setAttachSheetOpen(true)}
+                disabled={upload.status === "uploading"}
+                className="shrink-0"
+              />
+              <textarea
+                value={draft}
+                onChange={(e) => onDraftChange(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder={upload.status === "uploading" ? `Subiendo archivo… ${upload.progress}%` : "Escribe un mensaje..."}
+                rows={1}
+                className="flex-1 resize-none bg-transparent px-1 py-2 text-[14px] focus:outline-none max-h-[120px]"
+              />
+              <IconButton
+                icon="send"
+                label="Enviar"
+                onClick={sendMessage}
+                className="shrink-0"
+                style={{ background: draft.trim() ? "var(--accent)" : undefined, color: draft.trim() ? "#FFFFFF" : undefined }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 rounded-[20px] py-3 text-[12.5px] font-semibold" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
+              <Icon name="lock" size={13} /> Solo administradores pueden publicar aquí
+            </div>
+          )}
         </div>
       </div>
 
@@ -702,7 +719,8 @@ function InfoPanel({
 
       <div>
         <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
-          {conversation.type === "group" ? `Miembros (${participants.length})` : "Conversación directa"}
+          {conversation.type === "announcement" ? `Suscritos (${participants.length})`
+            : conversation.type === "group" ? `Miembros (${participants.length})` : "Conversación directa"}
         </p>
         <div className="space-y-1.5 mb-4">
           {participants.map((p) => {
