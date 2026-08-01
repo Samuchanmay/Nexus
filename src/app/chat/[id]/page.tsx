@@ -39,7 +39,10 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
   const myMuted = mine?.muted ?? false;
 
   const userIds = (participantRows ?? []).map((p) => p.user_id);
-  const [{ data: people }, { data: heartbeats }] = await Promise.all([
+  const otherUserId = conversation.type === "direct"
+    ? (participantRows ?? []).find((p) => p.user_id !== myId)?.user_id ?? null
+    : null;
+  const [{ data: people }, { data: heartbeats }, { data: otherProfileRaw }, { data: creatorRaw }] = await Promise.all([
     userIds.length > 0
       ? supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color").in("id", userIds)
       : Promise.resolve({ data: [] as ParticipantLite[] }),
@@ -48,6 +51,14 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
     userIds.length > 0
       ? supabase.from("user_heartbeats").select("user_id, last_seen_at").in("user_id", userIds)
       : Promise.resolve({ data: [] as { user_id: string; last_seen_at: string }[] }),
+    // Perfil del interlocutor en directas — para el panel contextual rico
+    // (InfoPanel): área, puesto y teléfono del otro lado.
+    otherUserId
+      ? supabase.from("users_directory").select("area, phone, title").eq("id", otherUserId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    conversation.created_by
+      ? supabase.from("users_directory").select("display_name").eq("id", conversation.created_by).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const { data: presenceSetting } = await supabase
@@ -64,12 +75,13 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
 
   // Últimos PAGE_SIZE mensajes — el resto se trae bajo demanda al hacer
   // scroll hasta arriba (ver loadMore en client.tsx). Se pide PAGE_SIZE+1
-  // para saber si hay más sin una segunda consulta de conteo.
+  // para saber si hay más sin una segunda consulta de conteo. No se filtra
+  // deleted_at: un mensaje borrado debe seguir viéndose como "Mensaje
+  // eliminado" para todos (borrado suave, no desaparición).
   const { data: messagesDesc } = await supabase
     .from("messages")
-    .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id")
+    .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
     .eq("conversation_id", id)
-    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE + 1);
 
@@ -82,7 +94,7 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
       ? supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at").in("message_id", messageIds)
       : Promise.resolve({ data: [] as EnlaceAttachment[] }),
     conversation.pinned_message_id
-      ? supabase.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id").eq("id", conversation.pinned_message_id).maybeSingle()
+      ? supabase.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng").eq("id", conversation.pinned_message_id).maybeSingle()
       : Promise.resolve({ data: null }),
     // Archivos recientes de TODA la conversación (no solo la página cargada) — para el panel derecho.
     supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, messages!inner(conversation_id)")
@@ -97,6 +109,9 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
 
   const reactionsByMessage: Record<string, EnlaceReaction[]> = {};
   for (const r of (reactionsRaw ?? []) as EnlaceReaction[]) (reactionsByMessage[r.message_id] ??= []).push(r);
+
+  const otherProfile = (otherProfileRaw ?? null) as { area: string | null; phone: string | null; title: string | null } | null;
+  const creatorName = (creatorRaw?.display_name ?? null) as string | null;
 
   const recentFiles = ((recentFilesRaw ?? []) as (EnlaceAttachment & { messages?: unknown })[])
     .map(({ messages: _messages, ...a }) => a);
@@ -114,6 +129,8 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
       reactionsByMessage={reactionsByMessage}
       initialPinnedMessage={pinnedRaw as EnlaceMessage | null}
       recentFiles={recentFiles}
+      creatorName={creatorName}
+      otherProfile={otherProfile}
     />
   );
 }

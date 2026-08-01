@@ -5,7 +5,7 @@ export type NavItem = {
   label: string;
   icon: string;
   roles: Role[] | "all";
-  section: "inicio" | "trabajo" | "chat" | "personas" | "tiempo" | "reportes" | "config";
+  section: "inicio" | "trabajo" | "chat" | "personas" | "tiempo" | "reportes" | "recorridos" | "config";
 };
 
 /** Navegación única de EMET, organizada por dominio de negocio (no por
@@ -34,6 +34,11 @@ export const NAV: NavItem[] = [
 
   { key: "reportes", label: "Reportes", icon: "chart", roles: ["admin"], section: "reportes" },
 
+  // Recorridos — demos guiadas para el onboarding del primer login. Solo el
+  // admin las crea/edita/publica desde /preptour; los empleados nunca ven
+  // esta entrada, solo el overlay resultante en su primer login.
+  { key: "recorridos", label: "Recorridos", icon: "layers", roles: ["admin"], section: "recorridos" },
+
   { key: "config", label: "Configuración", icon: "settings", roles: ["admin"], section: "config" },
 ];
 
@@ -44,6 +49,7 @@ export const SECTIONS: { id: NavItem["section"]; label: string }[] = [
   { id: "personas", label: "Personas" },
   { id: "tiempo", label: "Tiempo" },
   { id: "reportes", label: "Reportes" },
+  { id: "recorridos", label: "Recorridos" },
   { id: "config", label: "Configuración" },
 ];
 
@@ -87,6 +93,7 @@ export const HREF: Record<Role, Record<string, string>> = {
     incidencias: "/admin/incidencias",
     asistencia: "/admin/nexus",
     "dias-inhabiles": "/admin/dias-inhabiles",
+    recorridos: "/preptour",
   },
   empleado: {
     hoy: "/comunicacion",

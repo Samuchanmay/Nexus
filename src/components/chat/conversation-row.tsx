@@ -16,11 +16,11 @@ const ACTION_W = 84; // ancho de cada franja de acciones (izq/der)
  * del documento de arquitectura).
  */
 export function ConversationRow({
-  name, avatarUrl, color, preview, time, unread, active, muted, pinned,
+  name, avatarUrl, color, preview, time, unread, unreadCount = 0, active, muted, pinned,
   onOpen, onToggleMute, onTogglePin, onMarkRead, onToggleArchive,
 }: {
   name: string; avatarUrl: string | null; color: string | null; preview: string; time: string;
-  unread: boolean; active: boolean; muted: boolean; pinned: boolean;
+  unread: boolean; unreadCount?: number; active: boolean; muted: boolean; pinned: boolean;
   onOpen: () => void; onToggleMute: () => void; onTogglePin: () => void;
   onMarkRead: () => void; onToggleArchive: () => void;
 }) {
@@ -97,7 +97,18 @@ export function ConversationRow({
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <span className="text-[11.5px]" style={{ color: unread ? "var(--accent)" : "var(--text-3)" }}>{time}</span>
-          {unread && <span className="w-2 h-2 rounded-full" style={{ background: "var(--accent)" }} aria-label="No leído" />}
+          {unread && (
+            unreadCount > 0 ? (
+              <span
+                className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[11px] font-bold text-white"
+                style={{ background: muted ? "var(--text-3)" : "var(--accent)" }}
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full" style={{ background: muted ? "var(--text-3)" : "var(--accent)" }} aria-label="No leído" />
+            )
+          )}
           {muted && !unread && <span className="text-[11px]" style={{ color: "var(--text-3)" }} aria-label="Silenciado">🔕</span>}
         </div>
       </div>

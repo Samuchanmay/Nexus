@@ -6,6 +6,7 @@ import { Icon } from "./icons";
 import { Avatar, IconButton, Kbd, cx } from "./ui";
 import { NotificationBell } from "./notifications";
 import { ProfileModal } from "./profile-modal";
+import { OnboardingDemos } from "../recorridos/onboarding-demos";
 import { useTheme } from "@/lib/theme";
 import { useMountOnOpen } from "@/lib/use-mount-on-open";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
@@ -15,7 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string; avatarUrl?: string | null; birthDate?: string | null };
 
 export function Shell({
-  role, user, active, onNavigate, title, actions, children, ficharAction = false,
+  role, user, active, onNavigate, title, actions, children, ficharAction = false, badge,
 }: {
   role: Role;
   user: ShellUser;
@@ -26,6 +27,8 @@ export function Shell({
   children: ReactNode;
   /** Muestra el botón central elevado de Registro de Jornada en el tab bar móvil. */
   ficharAction?: boolean;
+  /** Contadores por key de navegación (ej. { chat: 3 }) — badges en sidebar, tab bar y spotlight. */
+  badge?: Record<string, number>;
 }) {
   const items = useMemo(() => navFor(role), [role]);
   const [drawer, setDrawer] = useState(false);
@@ -57,7 +60,7 @@ export function Shell({
   return (
     <div className="nx-os min-h-screen bg-bg flex mesh" data-mesh={role}>
       {/* Sidebar */}
-      <Sidebar items={items} active={active} onGo={go}
+      <Sidebar items={items} active={active} onGo={go} badge={badge}
         className="hidden md:flex" theme={theme} />
 
       {/* Drawer móvil */}
@@ -65,7 +68,7 @@ export function Shell({
         <div className="md:hidden fixed inset-0 z-40 nx-fade" onClick={() => setDrawer(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="absolute inset-y-0 left-0 nx-slide" onClick={(e) => e.stopPropagation()} style={{ animation: "nx-slide .2s ease both" }}>
-            <Sidebar items={items} active={active} onGo={go}
+            <Sidebar items={items} active={active} onGo={go} badge={badge}
               className="flex h-full" theme={theme} />
           </div>
         </div>
@@ -131,9 +134,9 @@ export function Shell({
         </main>
       </div>
 
-      <MobileBottomNav items={items} active={active} onGo={go} ficharAction={ficharAction} />
+      <MobileBottomNav items={items} active={active} onGo={go} ficharAction={ficharAction} badge={badge} />
 
-      <Spotlight open={spot} items={items} onGo={go} onClose={() => setSpot(false)} />
+      <Spotlight open={spot} items={items} onGo={go} onClose={() => setSpot(false)} badge={badge} />
       {profileOpen && (
         <ProfileModal
           userId={user.id}
@@ -144,6 +147,10 @@ export function Shell({
           onClose={() => setProfileOpen(false)}
         />
       )}
+      {/* Recorridos — overlay del primer login (demos de onboarding). Se
+          resuelve solo (localStorage + RPC): si no hay demos publicadas para
+          el rol, o el usuario ya lo vio, no renderiza nada. */}
+      <OnboardingDemos userId={user.id} />
     </div>
   );
 }
@@ -154,8 +161,9 @@ export function Shell({
    de Jornada, el CTA principal de la app — cuando el rol lo tiene habilitado.
    Sin "Más": el resto de la navegación vive en el drawer (ícono de menú del
    header) y en el nuevo menú del avatar (Perfil/Configuración/Cerrar sesión). */
-function MobileBottomNav({ items, active, onGo, ficharAction }: {
+function MobileBottomNav({ items, active, onGo, ficharAction, badge }: {
   items: NavItem[]; active: string; onGo: (k: string) => void; ficharAction: boolean;
+  badge?: Record<string, number>;
 }) {
   const primary = items.slice(0, ficharAction ? 4 : 5);
   const left = ficharAction ? primary.slice(0, 2) : primary;
@@ -163,14 +171,25 @@ function MobileBottomNav({ items, active, onGo, ficharAction }: {
 
   const Tab = (i: NavItem) => {
     const on = active === i.key;
+    const b = badge?.[i.key] ?? 0;
     return (
       <button
         key={i.key}
         onClick={() => onGo(i.key)}
-        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2"
+        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 relative"
         style={{ color: on ? "var(--accent)" : "var(--text-3)" }}
       >
-        <Icon name={i.icon} size={20} />
+        <span className="relative">
+          <Icon name={i.icon} size={20} />
+          {b > 0 && (
+            <span
+              className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 grid place-items-center rounded-full text-[10px] font-bold text-white"
+              style={{ background: "var(--accent)" }}
+            >
+              {b > 99 ? "99+" : b}
+            </span>
+          )}
+        </span>
         <span className="text-[12px] font-semibold leading-none">{i.label}</span>
       </button>
     );
@@ -276,8 +295,9 @@ function UserMenu({
 }
 
 /* ───────────────────────── Sidebar ───────────────────────── */
-function Sidebar({ items, active, onGo, className, theme }: {
+function Sidebar({ items, active, onGo, className, theme, badge }: {
   items: NavItem[]; active: string; onGo: (k: string) => void; className?: string; theme: "light" | "dark";
+  badge?: Record<string, number>;
 }) {
   return (
     <aside className={cx("w-[248px] shrink-0 flex-col bg-sidebar border-r border-border", className)}>
@@ -300,6 +320,7 @@ function Sidebar({ items, active, onGo, className, theme }: {
               <div className="space-y-0.5">
                 {list.map((i) => {
                   const on = active === i.key;
+                  const b = badge?.[i.key] ?? 0;
                   return (
                     <button
                       key={i.key} onClick={() => onGo(i.key)}
@@ -309,7 +330,15 @@ function Sidebar({ items, active, onGo, className, theme }: {
                       )}
                     >
                       <Icon name={i.icon} size={18} />
-                      <span>{i.label}</span>
+                      <span className="flex-1 min-w-0 truncate text-left">{i.label}</span>
+                      {b > 0 && (
+                        <span
+                          className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[11px] font-bold text-white shrink-0"
+                          style={{ background: on ? "rgba(255,255,255,0.28)" : "var(--accent)" }}
+                        >
+                          {b > 99 ? "99+" : b}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -323,8 +352,9 @@ function Sidebar({ items, active, onGo, className, theme }: {
 }
 
 /* ───────────────────────── Spotlight (⌘K) ───────────────────────── */
-function Spotlight({ open, items, onGo, onClose }: {
+function Spotlight({ open, items, onGo, onClose, badge }: {
   open: boolean; items: NavItem[]; onGo: (k: string) => void; onClose: () => void;
+  badge?: Record<string, number>;
 }) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
@@ -381,6 +411,7 @@ function Spotlight({ open, items, onGo, onClose }: {
           )}
           {results.map((i, idx) => {
             const on = idx === sel;
+            const b = badge?.[i.key] ?? 0;
             return (
               <button
                 key={i.key} onClick={() => onGo(i.key)} onMouseEnter={() => setSel(idx)}
@@ -391,6 +422,14 @@ function Spotlight({ open, items, onGo, onClose }: {
               >
                 <Icon name={i.icon} size={18} className={on ? "text-white" : "text-text-3"} />
                 <span className="text-[14px] font-medium flex-1">{i.label}</span>
+                {b > 0 && (
+                  <span
+                    className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[11px] font-bold text-white shrink-0"
+                    style={{ background: on ? "rgba(255,255,255,0.28)" : "var(--accent)" }}
+                  >
+                    {b > 99 ? "99+" : b}
+                  </span>
+                )}
                 {on && <span className="text-[12px] opacity-80">↵</span>}
               </button>
             );

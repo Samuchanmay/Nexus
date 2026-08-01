@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PersonRow, EmptyState } from "@/components/shared";
@@ -7,6 +7,8 @@ import { useToast, Sheet, CheckBox } from "@/components/ui";
 import { Button, Input } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { ConversationRow } from "@/components/chat/conversation-row";
+import { chatNotificationsSupported, requestChatNotificationPermission } from "@/lib/chat/notify";
+import { nudgePushRegistration } from "@/lib/use-push-notifications";
 import type { EnlaceConversation } from "@/lib/types";
 
 export type ParticipantLite = { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null };
@@ -40,6 +42,10 @@ function conversationDisplay(c: EnlaceConversation, myId: string, participants: 
 
 const DEFAULT_STATE: MyConvState = { muted: false, pinned: false, archived: false, last_read_at: new Date(0).toISOString() };
 
+// Banner "activa notificaciones de escritorio" — se muestra una sola vez si
+// el permiso sigue en "default" y el usuario no lo ha descartado.
+const NOTIF_BANNER_KEY = "emet:chat-notif-banner-dismissed";
+
 // ChatShell — panel de lista (izquierda) + conversación abierta (derecha),
 // visibles al mismo tiempo en escritorio (como WhatsApp Web). En celular
 // solo se ve un panel a la vez: la lista en /chat, la conversación en
@@ -67,6 +73,15 @@ export default function ChatShell({
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [messageHits, setMessageHits] = useState<MessageHit[]>([]);
+
+  // No-leídos por conversación: conteo exacto (no solo un punto), actualizado
+  // por realtime al llegar mensajes o al marcarse leído en cualquier lugar.
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
+  const stateRef = useRef(myState); stateRef.current = myState;
+  const convRef = useRef(conversations); convRef.current = conversations;
+  const refreshSeq = useRef(0);
+  const unreadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const atRoot = pathname === "/chat";
   const selectedId = !atRoot ? pathname.split("/")[2] : undefined;
@@ -123,6 +138,56 @@ export default function ChatShell({
     return () => { active = false; };
   }, [conversations, participants]);
 
+  // Conteo de no-leídos por conversación — consultas head-only (solo el
+  // conteo, sin filas) sobre messages, comparando created_at contra mi
+  // last_read_at. Se dispara al montar, al llegar un mensaje nuevo o al
+  // cambiar mi last_read_at en cualquier parte de la app.
+  const refreshUnread = useCallback(() => {
+    const seq = ++refreshSeq.current;
+    const supabase = createClient();
+    const ids = convRef.current.map((c) => c.id);
+    if (ids.length === 0) { setUnreadCounts({}); return; }
+    Promise.all(ids.map(async (id) => {
+      const readAt = stateRef.current[id]?.last_read_at;
+      if (!readAt) return [id, 0] as const;
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", id)
+        .neq("sender_id", myId)
+        .gt("created_at", readAt);
+      return [id, count ?? 0] as const;
+    })).then((entries) => {
+      if (seq === refreshSeq.current) setUnreadCounts(Object.fromEntries(entries));
+    });
+  }, [myId]);
+
+  const scheduleUnread = useCallback(() => {
+    if (unreadTimer.current) clearTimeout(unreadTimer.current);
+    unreadTimer.current = setTimeout(refreshUnread, 300);
+  }, [refreshUnread]);
+
+  useEffect(() => { scheduleUnread(); }, [scheduleUnread]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`enlace-unread-${myId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => scheduleUnread())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversation_participants", filter: `user_id=eq.${myId}` }, () => scheduleUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myId, scheduleUnread]);
+
+  // Banner de activación de notificaciones de escritorio — solo si el
+  // permiso sigue sin decidir y el usuario no lo descartó antes.
+  useEffect(() => {
+    if (!chatNotificationsSupported()) return;
+    if (Notification.permission !== "default") return;
+    try { if (localStorage.getItem(NOTIF_BANNER_KEY)) return; } catch { return; }
+    setShowNotifBanner(true);
+  }, []);
+
   // Búsqueda unificada — personas/grupos por nombre (en memoria, ya
   // cargados) + mensajes (consulta a Supabase, con un pequeño debounce).
   // Todo desde la misma caja, como pedía la referencia de Signal.
@@ -137,6 +202,7 @@ export default function ChatShell({
         .select("id, conversation_id, content, sender_id")
         .ilike("content", `%${q}%`)
         .eq("type", "text")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(8);
       if (!active || !data) return;
@@ -201,7 +267,27 @@ export default function ChatShell({
   const markRead = async (id: string) => {
     const supabase = createClient();
     patchState(id, { last_read_at: new Date().toISOString() });
+    setUnreadCounts((cur) => ({ ...cur, [id]: 0 }));
     await supabase.rpc("nx_enlace_mark_conversation_read", { p_conversation_id: id });
+  };
+
+  const enableNotifs = async () => {
+    const perm = await requestChatNotificationPermission();
+    if (perm === "granted") {
+      toast("Notificaciones de chat activadas", "ok");
+      // FASE 2: con el permiso concedido, registra la suscripción Web Push
+      // (el watcher del AppShell la intenta al montar si ya había permiso;
+      // aquí la despierta si el permiso se acaba de conceder en este clic).
+      nudgePushRegistration();
+    } else {
+      toast("No se pudo activar — permite el permiso en la barra del navegador", "danger");
+    }
+    setShowNotifBanner(false);
+    try { localStorage.setItem(NOTIF_BANNER_KEY, "1"); } catch { /* almacenamiento no disponible */ }
+  };
+  const dismissNotifBanner = () => {
+    setShowNotifBanner(false);
+    try { localStorage.setItem(NOTIF_BANNER_KEY, "1"); } catch { /* almacenamiento no disponible */ }
   };
 
   const isUnread = (c: EnlaceConversation) =>
@@ -223,6 +309,7 @@ export default function ChatShell({
         preview={preview}
         time={timeAgo(c.last_message_at)}
         unread={isUnread(c)}
+        unreadCount={unreadCounts[c.id] ?? 0}
         active={c.id === selectedId}
         muted={st.muted}
         pinned={st.pinned}
@@ -248,8 +335,32 @@ export default function ChatShell({
             <p className="text-[20px] font-bold tracking-tight">Chat</p>
             <p className="text-[12px]" style={{ color: "var(--text-2)" }}>Mensajes con tu equipo</p>
           </div>
-          <Button variant="primary" icon="plus" size="sm" onClick={() => setNewOpen(true)}>Nuevo</Button>
+          <Button variant="primary" icon="plus" size="sm" onClick={() => setNewOpen(true)} data-ripple>Nuevo</Button>
         </div>
+
+        {showNotifBanner && (
+          <div className="mb-3 shrink-0 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5"
+            style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)" }}>
+            <Icon name="bell" size={14} style={{ color: "var(--accent)" }} />
+            <p className="text-[12px] flex-1 leading-snug" style={{ color: "var(--text-2)" }}>
+              Activa las notificaciones de escritorio para no perderte los mensajes en segundo plano.
+            </p>
+            <button
+              onClick={enableNotifs}
+              className="shrink-0 text-[12px] font-bold"
+              style={{ color: "var(--accent)" }}
+            >
+              Activar
+            </button>
+            <button
+              onClick={dismissNotifBanner}
+              aria-label="Descartar"
+              className="shrink-0 grid place-items-center h-6 w-6 rounded-full hover:bg-hover"
+            >
+              <Icon name="close" size={12} style={{ color: "var(--text-3)" }} />
+            </button>
+          </div>
+        )}
 
         <div className="px-4 md:px-0 md:pr-4 pb-3 shrink-0">
           <Input icon="search" placeholder="Buscar personas, grupos o mensajes..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -262,7 +373,7 @@ export default function ChatShell({
                 icon={<Icon name="message" size={22} />}
                 title="Sin conversaciones todavía"
                 hint="Escribe a un compañero o crea un grupo para empezar."
-                action={<Button variant="primary" onClick={() => setNewOpen(true)}>Escribir a alguien</Button>}
+                action={<Button variant="primary" onClick={() => setNewOpen(true)} data-ripple>Escribir a alguien</Button>}
               />
             </div>
           ) : (

@@ -2,17 +2,24 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar } from "@/components/ui";
-import { IconButton } from "@/components/os/ui";
+import { Avatar, useToast } from "@/components/ui";
+import { IconButton, SkelRow } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { useOutbox } from "@/lib/chat/use-outbox";
 import { useAttachmentUpload } from "@/lib/chat/use-attachment-upload";
+import { useAudioRecorder } from "@/lib/chat/use-audio-recorder";
 import { useTyping } from "@/lib/chat/use-typing";
 import { useSwipeGesture } from "@/lib/chat/use-swipe-gesture";
 import { formatPresence } from "@/lib/chat/format-presence";
+import { playMessageReceived } from "@/lib/chat/sound";
+import { showIncomingChatNotification, messageNotificationBody } from "@/lib/chat/notify";
 import { MessageStatusIcon } from "@/components/chat/message-status";
 import { ReactionStrip, ReactionPicker } from "@/components/chat/reactions";
 import { AttachmentSheet } from "@/components/chat/attachment-sheet";
+import { ConversationSearch } from "@/components/chat/conversation-search";
+import { ForwardSheet } from "@/components/chat/forward-sheet";
+import { StickerPicker } from "@/components/chat/sticker-picker";
+import { CameraCapture } from "@/components/chat/camera-capture";
 import type { EnlaceAttachment, EnlaceConversation, EnlaceMessage, EnlaceReaction } from "@/lib/types";
 import type { ParticipantLite } from "../client";
 
@@ -40,6 +47,12 @@ function fmtBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function fmtRec(total: number): string {
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function fileEmoji(mime: string): string {
   if (mime.startsWith("video/")) return "🎬";
   if (mime.startsWith("audio/")) return "🎵";
@@ -49,12 +62,24 @@ function fileEmoji(mime: string): string {
   return "📦";
 }
 
+/** Texto resumido de un mensaje para previews (fijado, responder, replies).
+    Mismo criterio por tipo que nx_enlace_preview_for en 0022. */
+function messagePreview(m?: EnlaceMessage | null): string {
+  if (!m) return "";
+  if (m.deleted_at) return "Mensaje eliminado";
+  if (m.type === "sticker") return m.content ?? "Sticker";
+  if (m.type === "location") return "📍 Ubicación";
+  if (m.type === "image") return "📷 Foto";
+  if (m.type === "file") return m.content ?? "Archivo adjunto";
+  return m.content ?? "";
+}
+
 type PersonLite = ParticipantLite & { role?: "admin" | "member"; muted?: boolean; last_seen_at?: string | null };
 
 export default function EnlaceConversationClient({
   myId, myRole, initialMuted, conversation, participants, initialMessages, hasMoreOlder,
   attachmentsByMessage: initialAttachments, reactionsByMessage: initialReactions,
-  initialPinnedMessage, recentFiles,
+  initialPinnedMessage, recentFiles, creatorName, otherProfile,
 }: {
   myId: string;
   myRole: "admin" | "member";
@@ -67,9 +92,11 @@ export default function EnlaceConversationClient({
   reactionsByMessage: Record<string, EnlaceReaction[]>;
   initialPinnedMessage: EnlaceMessage | null;
   recentFiles: EnlaceAttachment[];
+  creatorName: string | null;
+  otherProfile: { area: string | null; phone: string | null; title: string | null } | null;
 }) {
   const router = useRouter();
-  const { messages, setMessages, send, retry } = useOutbox(conversation.id, myId, initialMessages);
+  const { messages, setMessages, send, sendSticker, sendLocation, retry } = useOutbox(conversation.id, myId, initialMessages);
   const [attachmentsByMessage, setAttachmentsByMessage] = useState(initialAttachments);
   const [reactionsByMessage, setReactionsByMessage] = useState(initialReactions);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -85,8 +112,43 @@ export default function EnlaceConversationClient({
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const peopleById = useMemo(() => new Map(participants.map((p) => [p.id, p])), [participants]);
+  const toast = useToast();
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState("");
+  const [forwardMsg, setForwardMsg] = useState<EnlaceMessage | null>(null);
+  const [forwardAtt, setForwardAtt] = useState<EnlaceAttachment | null>(null);
+  const [stickerOpen, setStickerOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const msgEls = useRef(new Map<string, HTMLDivElement>());
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jumpAttempts = useRef(0);
+
+  // Reflejos "vivos" para el efecto de realtime: el handler del canal usa
+  // estos refs para leer el estado actual sin re-suscribir el canal.
+  const messagesRef = useRef(messages); messagesRef.current = messages;
+  const mutedRef = useRef(muted); mutedRef.current = muted;
+  const peopleRef = useRef(peopleById); peopleRef.current = peopleById;
+  // Mensaje que acaba de llegar por realtime — anima su burbuja al entrar.
+  const [arrivalKey, setArrivalKey] = useState<string | null>(null);
+  const arrivalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const upload = useAttachmentUpload(conversation.id, myId);
+  // handleUpload se define más abajo (const) pero el hook se llama aquí
+  // (reglas de hooks) — se enruta por un ref para evitar TDZ y no tener que
+  // re-suscribir el MediaRecorder cada render.
+  const handleUploadRef = useRef<(file: File) => void>(() => {});
+  const { recording, seconds, error: recorderError, start: startRecording, stop: stopRecording, cancel: cancelRecording } =
+    useAudioRecorder((file) => handleUploadRef.current(file));
+  useEffect(() => {
+    if (recorderError) toast(recorderError, "danger");
+  }, [recorderError, toast]);
   const { typingLabel, notifyTyping } = useTyping(conversation.id, myId, peopleById.get(myId)?.display_name ?? "Alguien");
 
   const other = conversation.type === "direct" ? participants.find((p) => p.id !== myId) : null;
@@ -145,9 +207,8 @@ export default function EnlaceConversationClient({
     const supabase = createClient();
     const { data } = await supabase
       .from("messages")
-      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id")
+      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
       .eq("conversation_id", conversation.id)
-      .is("deleted_at", null)
       .lt("created_at", oldest)
       .order("created_at", { ascending: false })
       .limit(51);
@@ -227,8 +288,33 @@ export default function EnlaceConversationClient({
         (payload) => {
           const row = payload.new as EnlaceMessage;
           const matches = (m: EnlaceMessage) => m.id === row.id || (!!m.client_id && m.client_id === row.client_id);
+          const isNew = !messagesRef.current.some(matches);
           setMessages((cur) => (cur.some(matches) ? cur.map((m) => (matches(m) ? row : m)) : [...cur, row]));
-          if (row.sender_id !== myId) supabase.rpc("nx_enlace_mark_delivered", { p_message_id: row.id });
+          if (row.sender_id !== myId) {
+            supabase.rpc("nx_enlace_mark_delivered", { p_message_id: row.id });
+            // Notificaciones en vivo — solo mensajes de otros y solo si la
+            // conversación no está silenciada (FASE 1 del design review):
+            // pestaña en primer plano → sonido sutil + animación de la
+            // burbuja; en segundo plano → notificación del navegador.
+            if (isNew && !mutedRef.current) {
+              setArrivalKey(row.id);
+              if (arrivalTimer.current) clearTimeout(arrivalTimer.current);
+              arrivalTimer.current = setTimeout(() => setArrivalKey((k) => (k === row.id ? null : k)), 450);
+              if (document.visibilityState === "visible") {
+                playMessageReceived();
+              } else {
+                const sender = peopleRef.current.get(row.sender_id);
+                showIncomingChatNotification({
+                  conversationId: conversation.id,
+                  title: conversation.type === "direct"
+                    ? (sender?.display_name ?? "Nuevo mensaje")
+                    : (conversation.name ?? "Chat"),
+                  body: messageNotificationBody(row),
+                  icon: sender?.avatar_url ?? null,
+                });
+              }
+            }
+          }
         }
       )
       .on(
@@ -236,7 +322,11 @@ export default function EnlaceConversationClient({
         { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversation.id}` },
         (payload) => {
           const row = payload.new as EnlaceMessage;
-          setMessages((cur) => cur.map((m) => (m.id === row.id ? { ...m, status: row.status } : m)));
+          setMessages((cur) => cur.map((m) =>
+            m.id === row.id ? { ...m, status: row.status, content: row.content, edited: row.edited, deleted_at: row.deleted_at } : m
+          ));
+          // Si el fijado se editó/eliminó, reflejarlo en el banner superior.
+          setPinnedMessage((cur) => (cur?.id === row.id ? { ...cur, content: row.content, deleted_at: row.deleted_at } : cur));
         }
       )
       .on(
@@ -276,7 +366,7 @@ export default function EnlaceConversationClient({
             if (found) setPinnedMessage(found);
             else {
               const supabase2 = createClient();
-              supabase2.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id")
+              supabase2.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
                 .eq("id", row.pinned_message_id).maybeSingle()
                 .then(({ data }) => setPinnedMessage(data as EnlaceMessage | null));
             }
@@ -288,6 +378,11 @@ export default function EnlaceConversationClient({
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id, myId]);
+
+  useEffect(() => () => {
+    if (arrivalTimer.current) clearTimeout(arrivalTimer.current);
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+  }, []);
 
   const sendMessage = () => {
     const content = draft.trim();
@@ -316,6 +411,43 @@ export default function EnlaceConversationClient({
     setAttachmentsByMessage((cur) => ({ ...cur, [result.message.id]: result.attachment }));
     upload.reset();
   };
+  handleUploadRef.current = handleUpload;
+
+  const sendStickerMsg = useCallback((emoji: string) => {
+    sendSticker(emoji, replyTo?.id ?? null);
+    setReplyTo(null);
+  }, [sendSticker, replyTo]);
+
+  // Compartir ubicación: Geolocation del dispositivo → mensaje type=location.
+  // Se avisa con un toast mientras se busca; la burbuja (mapa) aparece al
+  // resolver. Los errores se traducen a mensajes accionables, nunca silencio.
+  const shareLocation = useCallback(() => {
+    if (!("geolocation" in navigator)) {
+      toast("Tu dispositivo no tiene GPS.", "danger");
+      return;
+    }
+    setLocating(true);
+    toast("Buscando tu ubicación…", "warn");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        sendLocation(pos.coords.latitude, pos.coords.longitude, replyTo?.id ?? null);
+        setReplyTo(null);
+      },
+      (err) => {
+        setLocating(false);
+        toast(
+          err.code === 1
+            ? "Permiso de ubicación denegado. Activa el acceso a la ubicación e inténtalo de nuevo."
+            : err.code === 2
+              ? "No se pudo obtener tu ubicación. Intenta de nuevo."
+              : "Tiempo agotado al buscar tu ubicación. Intenta de nuevo.",
+          "danger",
+        );
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 30000 },
+    );
+  }, [sendLocation, replyTo, toast]);
 
   const togglePin = useCallback(async (messageId: string) => {
     const supabase = createClient();
@@ -344,6 +476,115 @@ export default function EnlaceConversationClient({
     if (!error && typeof data === "boolean") setMuted(data);
   };
 
+  const flashMessage = useCallback((id: string) => {
+    setHighlightId(id);
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setHighlightId(null), 2400);
+  }, []);
+
+  // Salto desde la búsqueda: si el mensaje ya está cargado, directo al
+  // DOM; si no (solo se cargan los últimos 50), se piden más páginas
+  // viejas hasta encontrarlo (efecto de abajo) con un tope de intentos.
+  const jumpToMessage = useCallback((id: string) => {
+    setSearchOpen(false);
+    const el = msgEls.current.get(id);
+    if (el) {
+      // Va por rAF para correr después del ajuste de scrollTop que hace
+      // loadMore (que también usa rAF) — así no se cancela el scroll suave.
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        flashMessage(id);
+      });
+      return;
+    }
+    jumpAttempts.current = 0;
+    setJumpTarget(id);
+  }, [flashMessage]);
+
+  useEffect(() => {
+    if (!jumpTarget) return;
+    if (msgEls.current.has(jumpTarget)) {
+      const el = msgEls.current.get(jumpTarget);
+      requestAnimationFrame(() => {
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        flashMessage(jumpTarget);
+      });
+      setJumpTarget(null);
+      jumpAttempts.current = 0;
+      return;
+    }
+    // Una carga ya está en vuelo — no avanzar ni desistir todavía; el
+    // efecto volverá a correr cuando termine (cambia messages/loadingMore).
+    if (loadingMore) return;
+    if (hasMore) {
+      if (jumpAttempts.current > 14) {
+        setJumpTarget(null);
+        toast("El mensaje está muy atrás y no se pudo cargar. Prueba en la búsqueda general.", "warn");
+        return;
+      }
+      jumpAttempts.current += 1;
+      void loadMore();
+      return;
+    }
+    setJumpTarget(null);
+    toast("El mensaje ya no está disponible.", "danger");
+  }, [jumpTarget, hasMore, loadingMore, loadMore, flashMessage, toast]);
+
+  const beginEdit = (m: EnlaceMessage) => {
+    setEditingId(m.id);
+    setEditingDraft(m.content ?? "");
+    setMenuFor(null);
+    setConfirmDelete(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const content = editingDraft.trim();
+    if (!content) return;
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("nx_enlace_edit_message", { p_message_id: editingId, p_content: content });
+    const res = (data ?? null) as { ok: boolean; error?: string } | null;
+    if (error || !res?.ok) {
+      toast(res?.error === "no-autor" ? "Solo puedes editar tus propios mensajes." : "No se pudo editar el mensaje.", "danger");
+      return;
+    }
+    setMessages((cur) => cur.map((m) => (m.id === editingId ? { ...m, content, edited: true } : m)));
+    setEditingId(null);
+    setEditingDraft("");
+  };
+
+  const cancelEdit = () => { setEditingId(null); setEditingDraft(""); };
+
+  const onEditKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void saveEdit(); }
+    if (e.key === "Escape") cancelEdit();
+  };
+
+  const deleteMessage = async (id: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("nx_enlace_delete_message", { p_message_id: id });
+    const res = (data ?? null) as { ok: boolean; error?: string } | null;
+    if (error || !res?.ok) {
+      toast(res?.error === "no-autor" ? "Solo puedes eliminar tus propios mensajes." : "No se pudo eliminar el mensaje.", "danger");
+      setMenuFor(null);
+      setConfirmDelete(null);
+      return;
+    }
+    setMessages((cur) => cur.map((m) =>
+      m.id === id ? { ...m, deleted_at: new Date().toISOString(), content: null } : m
+    ));
+    setPinnedMessage((cur) => (cur?.id === id ? null : cur));
+    setMenuFor(null);
+    setConfirmDelete(null);
+  };
+
+  const openForward = (m: EnlaceMessage) => {
+    setForwardMsg(m);
+    setForwardAtt(attachmentsByMessage[m.id] ?? null);
+    setMenuFor(null);
+    setConfirmDelete(null);
+  };
+
   let lastDay = "";
 
   return (
@@ -353,6 +594,22 @@ export default function EnlaceConversationClient({
         onClose={() => setAttachSheetOpen(false)}
         onPickGallery={handleUpload}
         onPickDocument={handleUpload}
+        onPickAudio={() => { setAttachSheetOpen(false); void startRecording(); }}
+        onPickCamera={() => { setAttachSheetOpen(false); setCameraOpen(true); }}
+        onPickLocation={() => { setAttachSheetOpen(false); shareLocation(); }}
+        onPickSticker={() => { setAttachSheetOpen(false); setStickerOpen(true); }}
+      />
+
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={(file) => { setCameraOpen(false); void handleUpload(file); }}
+      />
+
+      <StickerPicker
+        open={stickerOpen}
+        onClose={() => setStickerOpen(false)}
+        onPick={(emoji) => { setStickerOpen(false); sendStickerMsg(emoji); }}
       />
 
       {/* Columna de conversación — permiso explícito del usuario para romper
@@ -361,7 +618,14 @@ export default function EnlaceConversationClient({
           header del Shell; aquí solo se llena ese panel (h-full) y solo la
           franja de mensajes tiene scroll propio, con encabezado y
           compositor fijos, como en WhatsApp/Signal. */}
-      <div className="flex-1 min-w-0 h-full flex flex-col">
+      <div className="flex-1 min-w-0 h-full flex flex-col relative">
+        <ConversationSearch
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          conversationId={conversation.id}
+          onJumpTo={jumpToMessage}
+        />
+
         <div
           onClick={() => setInfoOpen((v) => !v)}
           className="flex items-center gap-3 pb-3 shrink-0 cursor-pointer"
@@ -375,6 +639,11 @@ export default function EnlaceConversationClient({
               <p className="text-[12px] truncate" style={{ color: typingLabel ? "var(--accent)" : "var(--text-2)" }}>{subtitle}</p>
             )}
           </div>
+          <IconButton
+            icon="search"
+            label="Buscar en la conversación"
+            onClick={(e) => { e?.stopPropagation(); setSearchOpen(true); }}
+          />
           <IconButton
             icon="info"
             label="Información de la conversación"
@@ -394,7 +663,7 @@ export default function EnlaceConversationClient({
           >
             <Icon name="pin" size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
             <span className="text-[12.5px] font-medium truncate flex-1" style={{ color: "var(--text-1)" }}>
-              {pinnedMessage.content ?? "Archivo adjunto"}
+              {messagePreview(pinnedMessage)}
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); togglePin(pinnedMessage.id); }}
@@ -412,7 +681,10 @@ export default function EnlaceConversationClient({
           style={{ background: "var(--chat-bg)" }}
         >
           {loadingMore && (
-            <p className="text-center text-[11.5px] py-2" style={{ color: "var(--text-3)" }}>Cargando mensajes anteriores…</p>
+            <div className="space-y-1.5 py-1" aria-label="Cargando mensajes anteriores">
+              <SkelRow avatar />
+              <SkelRow avatar />
+            </div>
           )}
           {messages.length === 0 && (
             <p className="text-center text-[13px] py-10" style={{ color: "var(--text-2)" }}>
@@ -441,37 +713,78 @@ export default function EnlaceConversationClient({
             }
 
             return (
-              <div key={m.id}>
+              <div
+                key={m.id}
+                ref={(el) => { if (el) msgEls.current.set(m.id, el); else msgEls.current.delete(m.id); }}
+                className="relative"
+                style={{
+                  borderRadius: 10,
+                  transition: "box-shadow .35s var(--ease)",
+                  boxShadow: highlightId === m.id ? "0 0 0 3px color-mix(in srgb, var(--accent) 50%, transparent)" : undefined,
+                  animation: arrivalKey === m.id ? "nx-chat-in .3s var(--ease)" : undefined,
+                }}
+              >
                 {showDaySeparator && (
-                  <div className="flex items-center gap-3 py-3" aria-hidden={false}>
-                    <span className="flex-1 h-px" style={{ background: "var(--border)" }} />
-                    <span className="text-[11px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>
+                  <div className="flex justify-center py-2.5" aria-hidden={false}>
+                    <span
+                      className="text-[11px] font-semibold px-3 py-1 rounded-full"
+                      style={{ background: "var(--surface)", border: "0.5px solid var(--border)", color: "var(--text-3)", boxShadow: "var(--shadow-1)" }}
+                    >
                       {dayLabel(m.created_at)}
                     </span>
-                    <span className="flex-1 h-px" style={{ background: "var(--border)" }} />
                   </div>
                 )}
-                <MessageBubble
-                  message={m}
-                  mine={mine}
-                  myId={myId}
-                  sender={sender}
-                  showAvatar={!mine && conversation.type !== "direct" && !prevSameSender}
-                  showName={!mine && conversation.type !== "direct" && !prevSameSender}
-                  prevSameSender={prevSameSender}
-                  attachment={attachment}
-                  signedUrl={attachment ? signedUrls[attachment.id] : undefined}
-                  isPinned={isPinned}
-                  puedoFijar={puedoFijar}
-                  reactions={reactions}
-                  repliedTo={repliedTo}
-                  reactionPickerOpen={reactionPickerFor === m.id}
-                  onTogglePin={() => togglePin(m.id)}
-                  onReply={() => setReplyTo(m)}
-                  onOpenReactionPicker={() => setReactionPickerFor(reactionPickerFor === m.id ? null : m.id)}
-                  onPickReaction={(emoji) => toggleReaction(m.id, emoji)}
-                  onRetry={() => m.client_id && retry(m.client_id)}
-                />
+                {editingId === m.id ? (
+                  <EditMessageInline
+                    draft={editingDraft}
+                    setDraft={setEditingDraft}
+                    onSave={saveEdit}
+                    onCancel={cancelEdit}
+                    onKeyDown={onEditKeyDown}
+                    mine={mine}
+                    showName={!mine && conversation.type !== "direct" && !prevSameSender}
+                    senderName={sender?.display_name}
+                    senderColor={sender?.nexus_color}
+                  />
+                ) : (
+                  <MessageBubble
+                    message={m}
+                    mine={mine}
+                    myId={myId}
+                    sender={sender}
+                    showAvatar={!mine && conversation.type !== "direct" && !prevSameSender}
+                    showName={!mine && conversation.type !== "direct" && !prevSameSender}
+                    prevSameSender={prevSameSender}
+                    attachment={attachment}
+                    signedUrl={attachment ? signedUrls[attachment.id] : undefined}
+                    isPinned={isPinned}
+                    puedoFijar={puedoFijar}
+                    reactions={reactions}
+                    repliedTo={repliedTo}
+                    reactionPickerOpen={reactionPickerFor === m.id}
+                    menuOpen={menuFor === m.id}
+                    onOpenMenu={() => { setConfirmDelete(null); setMenuFor((v) => (v === m.id ? null : m.id)); }}
+                    onTogglePin={() => togglePin(m.id)}
+                    onReply={() => setReplyTo(m)}
+                    onOpenReactionPicker={() => setReactionPickerFor(reactionPickerFor === m.id ? null : m.id)}
+                    onPickReaction={(emoji) => toggleReaction(m.id, emoji)}
+                    onRetry={() => m.client_id && retry(m.client_id)}
+                  />
+                )}
+                {menuFor === m.id && !m.deleted_at && (
+                  <MessageMenu
+                    mine={mine}
+                    deletable
+                    editable={mine && m.type === "text"}
+                    confirming={confirmDelete === m.id}
+                    onEdit={() => beginEdit(m)}
+                    onForward={() => openForward(m)}
+                    onAskDelete={() => setConfirmDelete(m.id)}
+                    onCancelDelete={() => setConfirmDelete(null)}
+                    onDelete={() => deleteMessage(m.id)}
+                    onClose={() => { setMenuFor(null); setConfirmDelete(null); }}
+                  />
+                )}
               </div>
             );
           })}
@@ -492,7 +805,7 @@ export default function EnlaceConversationClient({
             <span className="text-[15px] leading-none" style={{ color: "var(--accent)", flexShrink: 0 }} aria-hidden>↩</span>
             <span className="text-[12px] flex-1 truncate">
               <span className="font-semibold" style={{ color: "var(--accent)" }}>Respondiendo: </span>
-              {replyTo.content ?? "Archivo adjunto"}
+              {messagePreview(replyTo)}
             </span>
             <button onClick={() => setReplyTo(null)}><Icon name="close" size={12} style={{ color: "var(--text-3)" }} /></button>
           </div>
@@ -505,30 +818,69 @@ export default function EnlaceConversationClient({
             espejo de la política RLS messages_insert (FASE W6 cierre). */}
         <div className="pt-2 pb-1 shrink-0" style={{ background: "var(--bg)" }}>
           {puedoEscribir ? (
-            <div className="flex items-end gap-1.5 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
-              <IconButton
-                icon="plus"
-                label="Adjuntar"
-                onClick={() => setAttachSheetOpen(true)}
-                disabled={upload.status === "uploading"}
-                className="shrink-0"
-              />
-              <textarea
-                value={draft}
-                onChange={(e) => onDraftChange(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={upload.status === "uploading" ? `Subiendo archivo… ${upload.progress}%` : "Escribe un mensaje..."}
-                rows={1}
-                className="flex-1 resize-none bg-transparent px-1 py-2 text-[14px] focus:outline-none max-h-[120px]"
-              />
-              <IconButton
-                icon="send"
-                label="Enviar"
-                onClick={sendMessage}
-                className="shrink-0"
-                style={{ background: draft.trim() ? "var(--accent)" : undefined, color: draft.trim() ? "#FFFFFF" : undefined }}
-              />
-            </div>
+            recording ? (
+              <div className="flex items-center gap-1.5 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
+                <IconButton
+                  icon="close"
+                  label="Cancelar nota de audio"
+                  onClick={cancelRecording}
+                  className="shrink-0"
+                />
+                <div className="flex-1 flex items-center gap-2 px-1 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: "var(--danger)", animation: "nx-breathe-soft 1s ease-in-out infinite" }}
+                  />
+                  <span className="text-[13px] font-bold truncate" style={{ color: "var(--text-1)" }}>Nota de audio</span>
+                  <span className="text-[12px] font-semibold shrink-0" style={{ color: "var(--text-2)" }}>{fmtRec(seconds)}</span>
+                </div>
+                <IconButton
+                  icon="send"
+                  label="Enviar nota de audio"
+                  onClick={stopRecording}
+                  className="shrink-0"
+                  style={{ background: "var(--accent)", color: "#FFFFFF" }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-end gap-1.5 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
+                <IconButton
+                  icon="plus"
+                  label="Adjuntar"
+                  onClick={() => setAttachSheetOpen(true)}
+                  disabled={upload.status === "uploading" || locating}
+                  className="shrink-0"
+                  data-ripple
+                />
+                <textarea
+                  value={draft}
+                  onChange={(e) => onDraftChange(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder={upload.status === "uploading" ? `Subiendo archivo… ${upload.progress}%` : "Escribe un mensaje..."}
+                  rows={1}
+                  className="flex-1 resize-none bg-transparent px-1 py-2 text-[14px] focus:outline-none max-h-[120px]"
+                />
+                {draft.trim() ? (
+                  <IconButton
+                    icon="send"
+                    label="Enviar"
+                    onClick={sendMessage}
+                    className="shrink-0"
+                    data-ripple
+                    style={{ background: "var(--accent)", color: "#FFFFFF", borderRadius: 999 }}
+                  />
+                ) : (
+                  <IconButton
+                    icon="mic"
+                    label="Grabar nota de audio"
+                    onClick={() => void startRecording()}
+                    disabled={upload.status === "uploading"}
+                    className="shrink-0"
+                    data-ripple
+                  />
+                )}
+              </div>
+            )
           ) : (
             <div className="flex items-center justify-center gap-2 rounded-[20px] py-3 text-[12.5px] font-semibold" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
               <Icon name="lock" size={13} /> Solo administradores pueden publicar aquí
@@ -545,31 +897,59 @@ export default function EnlaceConversationClient({
           muted={muted}
           onToggleMuted={toggleMuted}
           recentFiles={recentFiles}
+          creatorName={creatorName}
+          otherProfile={otherProfile}
           onClose={() => setInfoOpen(false)}
         />
       )}
+
+      <ForwardSheet
+        open={forwardMsg !== null}
+        onClose={() => setForwardMsg(null)}
+        message={forwardMsg}
+        attachment={forwardAtt}
+        myId={myId}
+        myRole={myRole}
+        currentConversationId={conversation.id}
+        onToast={toast}
+      />
     </div>
   );
 }
 
 function MessageBubble({
   message: m, mine, myId, sender, showAvatar, showName, prevSameSender, attachment, signedUrl,
-  isPinned, puedoFijar, reactions, repliedTo, reactionPickerOpen,
-  onTogglePin, onReply, onOpenReactionPicker, onPickReaction, onRetry,
+  isPinned, puedoFijar, reactions, repliedTo, reactionPickerOpen, menuOpen,
+  onOpenMenu, onTogglePin, onReply, onOpenReactionPicker, onPickReaction, onRetry,
 }: {
   message: EnlaceMessage; mine: boolean; myId: string; sender?: PersonLite; showAvatar: boolean; showName: boolean;
   prevSameSender: boolean; attachment?: EnlaceAttachment; signedUrl?: string; isPinned: boolean; puedoFijar: boolean;
-  reactions: EnlaceReaction[]; repliedTo?: EnlaceMessage | null; reactionPickerOpen: boolean;
-  onTogglePin: () => void; onReply: () => void; onOpenReactionPicker: () => void;
+  reactions: EnlaceReaction[]; repliedTo?: EnlaceMessage | null; reactionPickerOpen: boolean; menuOpen: boolean;
+  onOpenMenu: () => void; onTogglePin: () => void; onReply: () => void; onOpenReactionPicker: () => void;
   onPickReaction: (emoji: string) => void; onRetry: () => void;
 }) {
   // Deslizar el mensaje hacia la derecha para responder — como Signal, sin
   // depender del menú contextual. El ícono de responder aparece detrás
   // mientras se arrastra y la acción se dispara al soltar pasado el umbral
-  // (no se queda "abierto": es una acción, no un panel).
+  // (no se queda "abierto": es una acción, no un panel). Los mensajes
+  // eliminados no se deslizan: no tienen nada que responder.
   const { dx, dragging, bind } = useSwipeGesture({
     maxOffset: 56, threshold: 40, stayOpenOnComplete: false, onSwipeRightComplete: onReply,
   });
+  const deleted = !!m.deleted_at;
+
+  if (deleted) {
+    return (
+      <div className={`flex ${mine ? "justify-end" : "justify-start"} ${prevSameSender ? "mt-0.5" : "mt-2"}`}>
+        <div className="max-w-[78%] rounded-[9px] px-2.5 py-2" style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)" }}>
+          <p className="text-[12.5px] italic" style={{ color: "var(--text-3)" }}>🚫 Mensaje eliminado</p>
+          <div className="flex items-center justify-end gap-1 mt-0.5">
+            <span className="text-[10.5px] opacity-60 select-none">{timeOnly(m.created_at)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`group flex ${mine ? "justify-end" : "justify-start"} ${prevSameSender ? "mt-0.5" : "mt-2"} relative`}>
@@ -605,12 +985,40 @@ function MessageBubble({
                 <Icon name="pin" size={13} />
               </button>
             )}
+            <button
+              onClick={onOpenMenu}
+              title="Más opciones"
+              className={`shrink-0 p-1 order-2 transition-opacity ${menuOpen ? "!opacity-100" : "opacity-0 group-hover:opacity-50"} hover:!opacity-100`}
+              style={{ color: "var(--text-3)" }}
+            >
+              <Icon name="more" size={15} />
+            </button>
             <div className="relative">
+              {/* Cola real de WhatsApp — solo en la primera burbuja de un
+                  grupo, sobre la esquina aguda (radio 2) del mismo lado del
+                  emisor. Es un rombo del color de la burbuja que asoma por
+                  la esquina; la mitad que cae sobre la burbuja se funde. */}
+              {!prevSameSender && m.type !== "sticker" && (
+                <span
+                  aria-hidden
+                  className="absolute"
+                  style={{
+                    top: 0,
+                    ...(mine ? { right: 0 } : { left: 0 }),
+                    width: 8,
+                    height: 8,
+                    transform: "rotate(45deg)",
+                    background: mine ? "var(--chat-bubble-sent-bg)" : "var(--chat-bubble-received-bg)",
+                  }}
+                />
+              )}
               <div
-                className="rounded-[9px] shadow-sm overflow-hidden"
-                style={mine
-                  ? { background: "var(--chat-bubble-sent-bg)", color: "var(--chat-bubble-sent-fg)", borderTopRightRadius: prevSameSender ? 9 : 2 }
-                  : { background: "var(--chat-bubble-received-bg)", color: "var(--text-1)", border: "0.5px solid var(--border)", borderTopLeftRadius: prevSameSender ? 9 : 2 }}
+                className={m.type === "sticker" ? "rounded-[9px]" : "rounded-[9px] shadow-sm overflow-hidden"}
+                style={m.type === "sticker"
+                  ? { color: "var(--text-3)" }
+                  : mine
+                    ? { background: "var(--chat-bubble-sent-bg)", color: "var(--chat-bubble-sent-fg)", borderTopRightRadius: prevSameSender ? 9 : 2 }
+                    : { background: "var(--chat-bubble-received-bg)", color: "var(--text-1)", border: "0.5px solid var(--border)", borderTopLeftRadius: prevSameSender ? 9 : 2 }}
               >
                 <div className="px-2.5 pt-1.5 pb-1">
                   {!mine && showName && (
@@ -620,8 +1028,10 @@ function MessageBubble({
                   )}
 
                   {repliedTo && (
-                    <div className="rounded-[6px] px-2 py-1 mb-1 border-l-2" style={{ borderColor: "var(--accent)", background: "rgba(0,0,0,0.05)" }}>
-                      <p className="text-[11.5px] truncate opacity-80">{repliedTo.content ?? "Archivo adjunto"}</p>
+                    <div className="rounded-[6px] px-2 py-1 mb-1 border-l-2" style={{ borderColor: mine ? "rgba(255,255,255,0.7)" : "var(--accent)", background: mine ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.05)" }}>
+                      <p className="text-[11.5px] truncate opacity-80">
+                        {messagePreview(repliedTo)}
+                      </p>
                     </div>
                   )}
 
@@ -642,12 +1052,25 @@ function MessageBubble({
                     )
                   )}
 
-                  {m.type === "file" && attachment && (
+                  {m.type === "file" && attachment && signedUrl && attachment.mime_type.startsWith("audio/") && (
+                    <div className="rounded-[8px] px-2.5 py-2 mb-1 min-w-[220px]" style={{ background: mine ? "rgba(255,255,255,0.12)" : "var(--surface-2)" }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[18px] leading-none shrink-0" aria-hidden>{fileEmoji(attachment.mime_type)}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12px] font-semibold truncate">{attachment.file_name}</p>
+                          <p className="text-[10.5px] opacity-70">{fmtBytes(attachment.file_size)}</p>
+                        </div>
+                      </div>
+                      <audio controls preload="metadata" src={signedUrl} className="w-full h-9" />
+                    </div>
+                  )}
+
+                  {m.type === "file" && attachment && !(attachment.mime_type.startsWith("audio/") && signedUrl) && (
                     <a
                       href={signedUrl ?? undefined}
                       target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-2.5 rounded-[8px] px-2.5 py-2 mb-1"
-                      style={{ background: mine ? "rgba(0,0,0,0.06)" : "var(--surface-2)" }}
+                      style={{ background: mine ? "rgba(255,255,255,0.12)" : "var(--surface-2)" }}
                     >
                       <span className="text-[22px] leading-none shrink-0" aria-hidden>{fileEmoji(attachment.mime_type)}</span>
                       <div className="min-w-0 flex-1">
@@ -658,12 +1081,50 @@ function MessageBubble({
                     </a>
                   )}
 
+                  {m.type === "location" && m.lat != null && m.lng != null && (
+                    <div className="mb-1 min-w-[230px]">
+                      <div className="rounded-[7px] overflow-hidden border border-border mb-1.5" style={{ background: "var(--surface-2)" }}>
+                        <iframe
+                          title="Mapa de la ubicación compartida"
+                          loading="lazy"
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${m.lng - 0.004}%2C${m.lat - 0.004}%2C${m.lng + 0.004}%2C${m.lat + 0.004}&layer=mapnik&marker=${m.lat}%2C${m.lng}`}
+                          className="w-full h-[150px]"
+                        />
+                      </div>
+                      <p className="text-[11.5px] font-semibold mb-0.5" style={{ color: mine ? "#FFFFFF" : "var(--text-1)" }}>📍 Ubicación</p>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lng}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-[11.5px] font-semibold"
+                        style={{ color: mine ? "rgba(255,255,255,0.9)" : "var(--accent)" }}
+                      >
+                        Ver en Google Maps
+                      </a>
+                    </div>
+                  )}
+
+                  {m.type === "sticker" && (
+                    <div className="min-w-[84px] min-h-[84px] grid place-items-center px-1 py-0.5">
+                      <span
+                        className="text-[80px] leading-none select-none"
+                        style={{ filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.18))" }}
+                        aria-label="Sticker"
+                        role="img"
+                      >
+                        {m.content ?? "😀"}
+                      </span>
+                    </div>
+                  )}
+
                   {m.type === "text" && (
                     <p className="text-[14px] leading-snug whitespace-pre-wrap break-words">{m.content}</p>
                   )}
                   <div className="flex items-center justify-end gap-1 mt-0.5">
+                    {m.edited && (
+                      <span className="text-[10px] opacity-60 select-none" title="Mensaje editado">editado</span>
+                    )}
                     <span className="text-[10.5px] opacity-60 select-none">{timeOnly(m.created_at)}</span>
-                    {mine && <MessageStatusIcon status={m.status} onRetry={onRetry} />}
+                    {mine && <MessageStatusIcon status={m.status} onRetry={onRetry} tone={m.type === "sticker" ? undefined : "accent"} />}
                   </div>
                 </div>
               </div>
@@ -697,7 +1158,7 @@ function MessageBubble({
 }
 
 function InfoPanel({
-  conversation, participants, myId, muted, onToggleMuted, recentFiles, onClose,
+  conversation, participants, myId, muted, onToggleMuted, recentFiles, creatorName, otherProfile, onClose,
 }: {
   conversation: EnlaceConversation;
   participants: PersonLite[];
@@ -705,6 +1166,8 @@ function InfoPanel({
   muted: boolean;
   onToggleMuted: () => void;
   recentFiles: EnlaceAttachment[];
+  creatorName: string | null;
+  otherProfile: { area: string | null; phone: string | null; title: string | null } | null;
   onClose: () => void;
 }) {
   const [showAllFiles, setShowAllFiles] = useState(false);
@@ -742,6 +1205,48 @@ function InfoPanel({
               </div>
             );
           })}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Perfil</p>
+        <div className="rounded-[10px] p-3 space-y-2" style={{ background: "var(--surface-2)" }}>
+          {conversation.type === "direct" && otherProfile ? (
+            <>
+              {otherProfile.area && <MetaRow icon="building" label="Área" value={otherProfile.area} />}
+              {otherProfile.title && <MetaRow icon="idcard" label="Puesto" value={otherProfile.title} />}
+              {otherProfile.phone && <MetaRow icon="device" label="Teléfono" value={otherProfile.phone} />}
+              {!otherProfile.area && !otherProfile.title && !otherProfile.phone && (
+                <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin datos adicionales.</p>
+              )}
+            </>
+          ) : (
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
+              {conversation.type === "announcement" ? "Canal oficial de la empresa." : "Conversación de grupo entre colaboradores."}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Detalles</p>
+        <div className="rounded-[10px] p-3 space-y-1.5" style={{ background: "var(--surface-2)" }}>
+          <p className="text-[12.5px]" style={{ color: "var(--text-1)" }}>
+            <span className="font-semibold">Tipo: </span>
+            {conversation.type === "announcement" ? "Anuncios de la empresa"
+              : conversation.type === "group" ? "Grupo" : "Conversación directa"}
+          </p>
+          {conversation.created_at && (
+            <p className="text-[12.5px]" style={{ color: "var(--text-1)" }}>
+              <span className="font-semibold">Creada: </span>
+              {new Date(conversation.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}
+            </p>
+          )}
+          {creatorName && (
+            <p className="text-[12.5px]" style={{ color: "var(--text-1)" }}>
+              <span className="font-semibold">Creada por: </span>{creatorName}
+            </p>
+          )}
         </div>
       </div>
 
@@ -793,5 +1298,153 @@ function InfoPanel({
         )}
       </div>
     </div>
+  );
+}
+
+function MetaRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon name={icon} size={14} style={{ color: "var(--text-3)", flexShrink: 0 }} />
+      <span className="text-[12px] shrink-0" style={{ color: "var(--text-3)" }}>{label}:</span>
+      <span className="text-[12.5px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{value}</span>
+    </div>
+  );
+}
+
+/** Edición inline: reemplaza la burbuja mientras se edita, con su propio
+    textarea y guardado vía RPC (solo autor, solo texto). */
+function EditMessageInline({
+  draft, setDraft, onSave, onCancel, onKeyDown, mine, showName, senderName, senderColor,
+}: {
+  draft: string;
+  setDraft: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  mine: boolean;
+  showName: boolean;
+  senderName?: string;
+  senderColor?: string | null;
+}) {
+  return (
+    <div className={`flex ${mine ? "justify-end" : "justify-start"} ${showName ? "mt-2" : "mt-1"}`}>
+      <div className="w-full max-w-[78%] rounded-[12px] p-2.5" style={{ background: "var(--surface)", border: "1px solid var(--accent)", boxShadow: "var(--shadow-1)" }}>
+        {showName && (
+          <p className="text-[12px] font-semibold mb-1" style={{ color: senderColor ?? "var(--accent)" }}>
+            {senderName ?? "Alguien"}
+          </p>
+        )}
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={onKeyDown}
+          rows={Math.min(5, Math.max(2, draft.split("\n").length))}
+          className="w-full resize-none bg-transparent text-[14px] leading-snug focus:outline-none"
+          style={{ color: "var(--text-1)" }}
+        />
+        <div className="flex items-center justify-end gap-2 pt-1.5">
+          <span className="text-[10.5px] mr-auto hidden sm:block" style={{ color: "var(--text-3)" }}>
+            Enter para guardar · Esc para cancelar
+          </span>
+          <button
+            onClick={onCancel}
+            className="px-3 h-8 rounded-[8px] text-[12px] font-bold"
+            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onSave}
+            disabled={!draft.trim()}
+            className="px-3 h-8 rounded-[8px] text-[12px] font-bold text-white"
+            style={{ background: "var(--accent)", opacity: draft.trim() ? 1 : 0.45 }}
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Menú flotante del mensaje (⋯) — editar / reenviar / eliminar. El panel de
+    confirmación de borrado se muestra en su lugar (mismo popover), así el
+    clic que abre "Eliminar" está pegado a su confirmación. */
+function MessageMenu({
+  mine, editable, deletable, confirming, onEdit, onForward, onAskDelete, onCancelDelete, onDelete, onClose,
+}: {
+  mine: boolean;
+  editable: boolean;
+  deletable: boolean;
+  confirming: boolean;
+  onEdit: () => void;
+  onForward: () => void;
+  onAskDelete: () => void;
+  onCancelDelete: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-[8]" onClick={onClose} />
+      <div
+        className={`absolute z-10 top-full mt-1 min-w-[168px] rounded-[10px] p-1 ${mine ? "right-0" : "left-0"}`}
+        style={{ background: "var(--panel)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}
+      >
+        {confirming ? (
+          <div className="px-2 py-1.5 space-y-1">
+            <p className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar este mensaje?</p>
+            <p className="text-[10.5px]" style={{ color: "var(--text-3)" }}>Se borra para todos, sin posibilidad de deshacer.</p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={onDelete}
+                className="flex-1 h-8 rounded-[8px] text-[12px] font-bold text-white"
+                style={{ background: "var(--danger)" }}
+              >
+                Eliminar
+              </button>
+              <button
+                onClick={onCancelDelete}
+                className="flex-1 h-8 rounded-[8px] text-[12px] font-bold"
+                style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {editable && (
+              <button
+                onClick={onEdit}
+                className="w-full flex items-center gap-2.5 px-2.5 h-9 rounded-[8px] text-[12.5px] font-semibold text-left hover:bg-hover transition-colors"
+                style={{ color: "var(--text-1)" }}
+              >
+                <Icon name="pencil" size={14} style={{ color: "var(--text-3)", flexShrink: 0 }} /> Editar
+              </button>
+            )}
+            {deletable && (
+              <button
+                onClick={onForward}
+                className="w-full flex items-center gap-2.5 px-2.5 h-9 rounded-[8px] text-[12.5px] font-semibold text-left hover:bg-hover transition-colors"
+                style={{ color: "var(--text-1)" }}
+              >
+                <Icon name="send" size={14} style={{ color: "var(--text-3)", flexShrink: 0 }} /> Reenviar
+              </button>
+            )}
+            {mine && deletable && (
+              <button
+                onClick={onAskDelete}
+                className="w-full flex items-center gap-2.5 px-2.5 h-9 rounded-[8px] text-[12.5px] font-semibold text-left hover:bg-hover transition-colors"
+                style={{ color: "var(--danger)" }}
+              >
+                <Icon name="trash" size={14} style={{ color: "var(--danger)", flexShrink: 0 }} /> Eliminar
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { EnlaceAttachment, EnlaceMessage } from "@/lib/types";
+import { triggerChatPush } from "./push";
 
 const BUCKET = "chat-files";
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -61,13 +62,15 @@ export function useAttachmentUpload(conversationId: string, myId: string) {
         type: mime.startsWith("image/") ? "image" : "file",
         content: file.name,
       })
-      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id")
+      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
       .single();
     if (msgErr || !msgRow) {
       setStatus("error");
       setError("No se pudo enviar el archivo. Intenta de nuevo.");
       return null;
     }
+    // Push a receptores con la app cerrada (FASE 2) — best-effort.
+    void triggerChatPush(msgRow.id);
     setProgress(85);
 
     const { data: attRow, error: attErr } = await supabase

@@ -187,7 +187,7 @@ export interface EnlaceParticipant {
   users?: { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null } | null;
 }
 
-export type EnlaceMessageType = "text" | "image" | "file" | "system";
+export type EnlaceMessageType = "text" | "image" | "file" | "system" | "location" | "sticker";
 export type EnlaceMessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";
 
 export interface EnlaceMessage {
@@ -198,6 +198,14 @@ export interface EnlaceMessage {
   content: string | null;
   reply_to_id: string | null;
   edited: boolean;
+  /** Borrado suave (FASE 2) — la fila vive con content = null y la UI
+      muestra "Mensaje eliminado". Las consultas ya la excluyen vía
+      `.is("deleted_at", null)`; el flag llega por realtime para que el
+      resto de participantes vea el cambio en vivo. */
+  deleted_at: string | null;
+  /** Coordenadas del mensaje de tipo `location` (0022). */
+  lat?: number | null;
+  lng?: number | null;
   created_at: string;
   status: EnlaceMessageStatus;
   /** Solo existe en el cliente antes de que el insert confirme — se manda

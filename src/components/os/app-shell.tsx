@@ -6,10 +6,13 @@
  * lo que aún no existe simplemente no aparece (nada de datos/enlaces inventados).
  */
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ThemeProvider } from "@/lib/theme";
 import { Shell, type ShellUser } from "./shell";
 import { HeaderActionsProvider, useHeaderActionSlot } from "@/lib/header-actions";
+import { useChatUnread } from "@/lib/chat/use-unread-count";
+import { usePushNotifications } from "@/lib/use-push-notifications";
+import { initRipple } from "@/lib/ripple";
 import { navFor, domainViewsFor, HREF, type Role } from "@/lib/nav";
 export { roleLabel } from "@/lib/nav";
 
@@ -45,6 +48,7 @@ const SUBTITLES: Record<string, string> = {
   "/comunicacion/incidencias": "Tiempo · Incidencias",
   "/admin/nexus": "Tiempo · Asistencia",
   "/admin/dias-inhabiles": "Tiempo · Días inhábiles",
+  "/notificaciones": "Notificaciones",
 };
 
 export function AppShell({
@@ -61,6 +65,9 @@ export function AppShell({
   const router = useRouter();
   const map = HREF[role] ?? {};
   const items = useMemo(() => navFor(role).filter((i) => map[i.key]), [role, map]);
+
+  // Micro-interacción ripple (FASE 3): un solo listener para toda la app.
+  useEffect(() => { initRipple(); }, []);
 
   const active = useMemo(() => {
     let best = items[0]?.key ?? "hoy";
@@ -179,6 +186,14 @@ function AppShellBody({
   title: string; actions?: React.ReactNode; ficharAction: boolean; children: React.ReactNode;
 }) {
   const contextual = useHeaderActionSlot();
+  // Solo los roles con Chat (admin/empleado) montan el watcher de no-leídos;
+  // el resto no tiene acceso a la bandeja y no debe subscribir canales ni
+  // disparar sonidos/notificaciones por mensajes que no puede ver.
+  const hasChat = role === "admin" || role === "empleado";
+  const unreadChat = useChatUnread(user.id, hasChat);
+  // Suscripción Web Push (FASE 2): solo roles con chat, y solo registra si el
+  // permiso ya fue concedido (el banner de /chat llama a nudgePushRegistration()).
+  usePushNotifications(user.id, hasChat);
   return (
     <Shell
       role={role}
@@ -188,6 +203,7 @@ function AppShellBody({
       title={title}
       actions={<>{contextual}{actions}</>}
       ficharAction={ficharAction}
+      badge={{ chat: unreadChat }}
     >
       {children}
     </Shell>

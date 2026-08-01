@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { EnlaceMessage } from "@/lib/types";
 import { advance } from "./message-state";
+import { triggerChatPush } from "./push";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [800, 2500, 6000];
@@ -46,8 +47,10 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
         content: message.content,
         reply_to_id: message.reply_to_id,
         client_id: message.client_id,
+        lat: message.lat ?? null,
+        lng: message.lng ?? null,
       })
-      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id")
+      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
       .single();
 
     if (!error && data) {
@@ -56,6 +59,9 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
       // de servidor) — si el realtime INSERT también llega, el filtro por
       // id en el listener de arriba lo ignora porque ya existe.
       setMessages((cur) => cur.map((m) => (m.client_id === message.client_id ? { ...(data as EnlaceMessage) } : m)));
+      // Push a receptores con la app cerrada (FASE 2) — best-effort, nunca
+      // bloquea el envío; el Realtime cubre a quien tiene la app abierta.
+      void triggerChatPush(data.id);
       return;
     }
 
@@ -67,7 +73,7 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     if (error?.code === "23505") {
       const { data: existing } = await supabase
         .from("messages")
-        .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id")
+        .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
         .eq("client_id", message.client_id!)
         .maybeSingle();
       pendingRef.current.delete(message.client_id!);
@@ -86,26 +92,46 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     entry.timer = setTimeout(() => attemptInsert(entry), delay);
   }, [patchMessage]);
 
-  const send = useCallback((content: string, replyToId: string | null = null) => {
-    const clientId = crypto.randomUUID();
-    const optimistic: EnlaceMessage = {
-      id: `local-${clientId}`,
-      conversation_id: conversationId,
-      sender_id: myId,
-      type: "text",
-      content,
-      reply_to_id: replyToId,
-      edited: false,
-      created_at: new Date().toISOString(),
-      status: "pending",
-      client_id: clientId,
-    };
+  /** Encola cualquier mensaje optimista (texto/sticker/ubicación) con su
+      reintento — la única puerta al outbox. */
+  const enqueue = useCallback((optimistic: EnlaceMessage) => {
+    const clientId = optimistic.client_id!;
     setMessages((cur) => [...cur, optimistic]);
     const entry: PendingEntry = { message: optimistic, attempts: 0 };
     pendingRef.current.set(clientId, entry);
     attemptInsert(entry);
     return clientId;
-  }, [conversationId, myId, attemptInsert]);
+  }, [attemptInsert]);
+
+  const base = (clientId: string, content: string | null): EnlaceMessage => ({
+    id: `local-${clientId}`,
+    conversation_id: conversationId,
+    sender_id: myId,
+    content,
+    reply_to_id: null,
+    edited: false,
+    deleted_at: null,
+    created_at: new Date().toISOString(),
+    status: "pending",
+    client_id: clientId,
+  });
+
+  const send = useCallback((content: string, replyToId: string | null = null) => {
+    const clientId = crypto.randomUUID();
+    return enqueue({ ...base(clientId, content), type: "text", reply_to_id: replyToId });
+  }, [enqueue, base]);
+
+  /** Stickers (FASE cierre): emoji grande como mensaje, sin archivo. */
+  const sendSticker = useCallback((emoji: string, replyToId: string | null = null) => {
+    const clientId = crypto.randomUUID();
+    return enqueue({ ...base(clientId, emoji), type: "sticker", reply_to_id: replyToId });
+  }, [enqueue, base]);
+
+  /** Ubicación (FASE cierre): lat/lng en columnas, sin content. */
+  const sendLocation = useCallback((lat: number, lng: number, replyToId: string | null = null) => {
+    const clientId = crypto.randomUUID();
+    return enqueue({ ...base(clientId, null), type: "location", lat, lng, reply_to_id: replyToId });
+  }, [enqueue, base]);
 
   /** Reintento manual desde la UI (botón sobre un mensaje en `failed`). */
   const retry = useCallback((clientId: string) => {
@@ -145,5 +171,5 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     };
   }, []);
 
-  return { messages, setMessages, send, retry };
+  return { messages, setMessages, send, sendSticker, sendLocation, retry };
 }
