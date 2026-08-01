@@ -93,15 +93,26 @@ export default function EmpleadosClient({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   {/* En el header compartido (búsqueda/tema/notificaciones/avatar ya ocupan
-      esa fila en móvil), el botón con texto completo competía con los demás
-      íconos y se sentía dominante. En pantallas angostas queda solo el
-      ícono — sigue siendo el CTA principal, pero con el mismo peso visual
-      que sus vecinos — y el texto vuelve desde `sm:`. */}
+      esa fila en móvil), un solo botón que combina ícono+texto con la
+      sombra/gradiente permanente de `.btn-primary` se veía "inflado" al
+      lado de sus vecinos, que son planos (`IconButton`: 36×36, sin sombra,
+      solo `hover:bg-hover`). Dos renders independientes por breakpoint en
+      vez de mezclar clases condicionalmente: en móvil un ícono plano con el
+      mismo peso visual exacto que sus vecinos (mismo tamaño, sin relieve);
+      desde `sm:` el pill completo con texto, donde el peso de `.btn-primary`
+      sí tiene sentido porque ya no compite en una fila de puros íconos. */}
   useHeaderAction(() => (
-    <button onClick={() => { setAttemptedSave(false); setOpen(true); }} aria-label="Nuevo colaborador" title="Nuevo colaborador"
-      className="btn-primary h-8 px-2.5 sm:px-3.5 text-[13px] flex items-center gap-1.5 shrink-0">
-      <IconUserPlus className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Nuevo colaborador</span>
-    </button>
+    <>
+      <button onClick={() => { setAttemptedSave(false); setOpen(true); }} aria-label="Nuevo colaborador" title="Nuevo colaborador"
+        className="sm:hidden h-9 w-9 rounded-sm grid place-items-center shrink-0 transition-colors duration-150 hover:bg-[var(--accent-tint)]"
+        style={{ color: "var(--accent)" }}>
+        <IconUserPlus className="w-[18px] h-[18px]" />
+      </button>
+      <button onClick={() => { setAttemptedSave(false); setOpen(true); }} aria-label="Nuevo colaborador" title="Nuevo colaborador"
+        className="hidden sm:flex btn-primary h-8 px-3.5 text-[13px] items-center gap-1.5 shrink-0">
+        <IconUserPlus className="w-3.5 h-3.5 shrink-0" /> Nuevo colaborador
+      </button>
+    </>
   ));
   const usedLockedColors = [...areas.map((a) => a.color), rhColor];
   const availableColors = PALETTE.filter((c) => !usedLockedColors.some((u) => u?.toUpperCase() === c.toUpperCase()));
@@ -520,19 +531,23 @@ export default function EmpleadosClient({
             {g.label} <span style={{ color: "var(--text-3)", fontWeight: 600 }}>· {filtered.length}</span>
           </p>
         </button>
-        {/* Grid-rows 0fr/1fr: acordeón CSS-only, sin medir alturas — fade + slide suaves (punto 14) */}
+        {/* Grid-rows 0fr/1fr: acordeón CSS-only, sin medir alturas — fade + slide suaves (punto 14).
+            El overflow-hidden que oculta el contenido colapsado recortaba también
+            el lift+sombra del hover de las tarjetas más cercanas al borde — el
+            padding+margen negativo de abajo le da 6px de aire para respirar sin
+            mover nada del layout visible. */}
         <div className="grid transition-[grid-template-rows] duration-300 ease-out"
           style={{ gridTemplateRows: isCollapsed ? "0fr" : "1fr" }}>
-          <div className="overflow-hidden">
-            <div className="flex flex-col gap-2.5 transition-opacity duration-200"
+          <div className="overflow-hidden -m-1.5">
+            <div className="p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 transition-opacity duration-200 items-start"
               style={{ opacity: isCollapsed ? 0 : 1 }}>
               {filtered.length === 0 ? (
-                <p className="text-[13px] py-3" style={{ color: "var(--text-3)" }}>Sin registros</p>
+                <p className="text-[13px] py-3 sm:col-span-2" style={{ color: "var(--text-3)" }}>Sin registros</p>
               ) : toShow.map((u) => <Row key={u.id} u={u} />)}
               {hasMore && (
                 <button
                   onClick={() => setVisibleCounts((v) => ({ ...v, [g.label]: shown + PAGE_SIZE }))}
-                  className="btn-tertiary h-8 px-3 text-[12.5px] w-fit"
+                  className="btn-tertiary h-8 px-3 text-[12.5px] w-fit sm:col-span-2"
                 >
                   Mostrar más ({filtered.length - shown} restantes)
                 </button>

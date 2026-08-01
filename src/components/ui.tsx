@@ -203,29 +203,28 @@ export function Menu({ trigger, align = "right", width = 210, children }: {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  // Floating placement — se recalcula cada vez que se abre: mide el trigger
-  // y el propio panel contra el viewport y decide arriba/abajo + izquierda/
-  // derecha, en vez de asumir siempre "abajo, alineado a `align`" como antes
-  // (se cortaba en filas cerca del borde inferior o lateral de la pantalla).
-  // Sigue siendo position:absolute dentro del wrap, sin portal: el wrap ya
-  // resuelve stopPropagation/click-outside/mouseleave de forma probada —
-  // portar el panel a document.body obligaría a rehacer los tres contra el
-  // mismo bug de "backdrop fantasma" que ya se documentó y resolvió aquí.
-  const [placement, setPlacement] = useState<{ vertical: "down" | "up"; horizontal: "left" | "right" }>({
-    vertical: "down", horizontal: align,
-  });
+  // Portado a document.body (position:fixed), igual que Sheet — un ancestro
+  // con overflow:hidden (ej. el acordeón de Grupo en Directorio, que recorta
+  // el contenido colapsado) o con transform (el hover-lift de las tarjetas)
+  // podía atrapar el panel absolute de antes y dejarlo recortado o pintado
+  // DETRÁS de filas siguientes. Portar lo saca de ese árbol por completo.
+  // Se recalcula cada vez que se abre: mide el trigger y el propio panel
+  // contra el viewport y decide arriba/abajo + izquierda/derecha — nunca
+  // sale del viewport.
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left: number } | null>(null);
   useLayoutEffect(() => {
-    if (!open || !wrapRef.current || !panelRef.current) return;
+    if (!open || !wrapRef.current || !panelRef.current) { setCoords(null); return; }
     const triggerRect = wrapRef.current.getBoundingClientRect();
     const panelRect = panelRef.current.getBoundingClientRect();
     const margin = 8;
     const fitsBelow = triggerRect.bottom + panelRect.height + margin <= window.innerHeight;
     const fitsAbove = triggerRect.top - panelRect.height - margin >= 0;
     const vertical = fitsBelow || !fitsAbove ? "down" : "up";
-    let horizontal = align;
-    if (align === "right" && triggerRect.right - width < margin) horizontal = "left";
-    if (align === "left" && triggerRect.left + width > window.innerWidth - margin) horizontal = "right";
-    setPlacement({ vertical, horizontal });
+    let left = align === "right" ? triggerRect.right - width : triggerRect.left;
+    left = Math.min(Math.max(left, margin), window.innerWidth - width - margin);
+    setCoords(vertical === "down"
+      ? { top: triggerRect.bottom + 6, left }
+      : { bottom: window.innerHeight - triggerRect.top + 6, left });
   }, [open, align, width]);
 
   // Cierre por click-fuera/ESC vía listener del documento — NUNCA un backdrop
@@ -241,17 +240,24 @@ export function Menu({ trigger, align = "right", width = 210, children }: {
   // solo mientras open=true y se limpia siempre al cerrar/desmontar.
   useEffect(() => {
     if (!open) return;
-    const onDocPointer = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
+    const insideMenu = (node: Node) =>
+      !!(wrapRef.current?.contains(node) || panelRef.current?.contains(node));
+    const onDocPointer = (e: MouseEvent) => { if (!insideMenu(e.target as Node)) setOpen(false); };
     const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     // Cierre defensivo si el mouse sale del propio Menu (trigger + panel).
     // Cubre el caso de un Menu anidado dentro de una fila cuyas acciones
     // solo se revelan en :hover (Equipo, Proyectos): si el usuario abre el
     // menú y se va sin elegir nada, la fila vuelve a pointer-events:none y
     // el menú se queda "open" pero invisible — este listener lo cierra apenas
-    // el cursor abandona su propio recuadro, sin depender de la fila.
-    const onLeave = () => setOpen(false);
+    // el cursor abandona su propio recuadro, sin depender de la fila. Con el
+    // panel portado, "salir del wrap" ya no implica salir del menú (el mouse
+    // cruza al panel, que vive en otro punto del DOM) — se revisa a dónde
+    // entró (relatedTarget) antes de cerrar.
+    const onLeave = (e: MouseEvent) => {
+      const to = e.relatedTarget as Node | null;
+      if (to && panelRef.current?.contains(to)) return;
+      setOpen(false);
+    };
     const wrap = wrapRef.current;
     wrap?.addEventListener("mouseleave", onLeave);
     document.addEventListener("mousedown", onDocPointer);
@@ -264,23 +270,33 @@ export function Menu({ trigger, align = "right", width = 210, children }: {
   }, [open]);
 
   return (
-    // stopPropagation aquí: el trigger y el panel del menú viven a veces
-    // dentro de una fila con su propio onClick (abrir ficha) — sin esto,
-    // elegir una opción del menú (o solo abrirlo) también dispararía el
-    // clic de la fila por debajo.
+    // stopPropagation aquí: el trigger vive a veces dentro de una fila con
+    // su propio onClick (abrir ficha) — sin esto, solo abrir el menú también
+    // dispararía el clic de la fila por debajo. El panel está portado, pero
+    // React sigue burbujeando sus eventos por el árbol de React (no el DOM),
+    // así que un click dentro del panel también lo detiene aquí.
     <div className="relative inline-block" ref={wrapRef} onClick={(e) => e.stopPropagation()}>
       {trigger({ onClick: () => setOpen((v) => !v), open })}
-      {open && (
+      {open && createPortal(
         <div
           ref={panelRef}
-          className={`absolute ${placement.horizontal === "right" ? "right-0" : "left-0"} ${placement.vertical === "down" ? "top-full mt-1.5" : "bottom-full mb-1.5"} z-50 nx-pop`}
-          style={{ width }}
+          className="fixed z-50 nx-pop"
+          style={{
+            width, top: coords?.top, bottom: coords?.bottom, left: coords?.left ?? -9999,
+            visibility: coords ? "visible" : "hidden",
+          }}
           onClick={() => setOpen(false)}
+          onMouseLeave={(e) => {
+            const to = e.relatedTarget as Node | null;
+            if (to && wrapRef.current?.contains(to)) return;
+            setOpen(false);
+          }}
         >
           <div className="rounded-lg overflow-hidden shadow-nx" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
             {children}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
