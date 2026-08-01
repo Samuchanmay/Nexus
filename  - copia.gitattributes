@@ -1,4 +1,0 @@
-# Normaliza line endings a LF para todo el repo — evita que editores o
-# herramientas en Windows reintroduzcan CRLF y generen diffs fantasma
-# (visto en .gitignore, manifest.json, varios SVG y algunos .tsx).
-* text=auto eol=lf
