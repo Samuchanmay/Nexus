@@ -103,7 +103,7 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     return clientId;
   }, [attemptInsert]);
 
-  const base = (clientId: string, content: string | null): EnlaceMessage => ({
+  const base = (clientId: string, content: string | null): Omit<EnlaceMessage, "type"> => ({
     id: `local-${clientId}`,
     conversation_id: conversationId,
     sender_id: myId,
