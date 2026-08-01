@@ -628,15 +628,28 @@ export default function EnlaceConversationClient({
 
         <div
           onClick={() => setInfoOpen((v) => !v)}
-          className="flex items-center gap-3 pb-3 shrink-0 cursor-pointer"
-          style={{ background: "var(--bg)" }}
+          className="flex items-center gap-3 px-3 pt-2.5 pb-3 shrink-0 cursor-pointer"
+          style={{ background: "var(--chat-header-bg)" }}
         >
           <IconButton icon="chevron" label="Volver" onClick={(e) => { e?.stopPropagation(); router.push("/chat"); }} style={{ transform: "scaleX(-1)" }} className="md:hidden" />
-          <Avatar name={title} avatarUrl={other?.avatar_url ?? conversation.avatar_url} color={other?.nexus_color ?? "#5856D6"} size={38} />
+          <div className="relative shrink-0">
+            <Avatar name={title} avatarUrl={other?.avatar_url ?? conversation.avatar_url} color={other?.nexus_color ?? "#5856D6"} size={40} />
+            {conversation.type === "direct" && other?.last_seen_at && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
+                style={{
+                  background: "var(--ok)",
+                  borderColor: "var(--chat-header-bg)",
+                  opacity: Date.now() - new Date(other.last_seen_at).getTime() < 2 * 60 * 1000 ? 1 : 0,
+                }}
+                aria-label="En línea"
+              />
+            )}
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold truncate">{title}</p>
+            <p className="text-[17px] font-bold tracking-tight truncate">{title}</p>
             {subtitle && (
-              <p className="text-[12px] truncate" style={{ color: typingLabel ? "var(--accent)" : "var(--text-2)" }}>{subtitle}</p>
+              <p className="text-[12.5px] truncate" style={{ color: typingLabel ? "var(--accent)" : "var(--text-2)" }}>{subtitle}</p>
             )}
           </div>
           <IconButton
@@ -658,10 +671,10 @@ export default function EnlaceConversationClient({
             onClick={() => setInfoOpen(true)}
             role="button"
             tabIndex={0}
-            className="mb-2 shrink-0 flex items-center gap-2 rounded-[10px] px-3 py-2 text-left cursor-pointer"
-            style={{ background: "var(--accent-tint)" }}
+            className="mb-2 shrink-0 flex items-center gap-2.5 rounded-[14px] px-3.5 py-2.5 text-left cursor-pointer"
+            style={{ background: "var(--purple-tint)", border: "0.5px solid color-mix(in srgb, var(--purple) 28%, transparent)" }}
           >
-            <Icon name="pin" size={14} style={{ color: "var(--accent)", flexShrink: 0 }} />
+            <Icon name="pin" size={14} style={{ color: "var(--purple)", flexShrink: 0 }} />
             <span className="text-[12.5px] font-medium truncate flex-1" style={{ color: "var(--text-1)" }}>
               {messagePreview(pinnedMessage)}
             </span>
@@ -677,7 +690,7 @@ export default function EnlaceConversationClient({
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-3 rounded-[14px]"
+          className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-4"
           style={{ background: "var(--chat-bg)" }}
         >
           {loadingMore && (
@@ -728,7 +741,7 @@ export default function EnlaceConversationClient({
                   <div className="flex justify-center py-2.5" aria-hidden={false}>
                     <span
                       className="text-[11px] font-semibold px-3 py-1 rounded-full"
-                      style={{ background: "var(--surface)", border: "0.5px solid var(--border)", color: "var(--text-3)", boxShadow: "var(--shadow-1)" }}
+                      style={{ background: "var(--chat-pill-bg)", border: "0.5px solid var(--border)", color: "var(--text-3)", boxShadow: "var(--shadow-1)" }}
                     >
                       {dayLabel(m.created_at)}
                     </span>
@@ -819,7 +832,7 @@ export default function EnlaceConversationClient({
         <div className="pt-2 pb-1 shrink-0" style={{ background: "var(--bg)" }}>
           {puedoEscribir ? (
             recording ? (
-              <div className="flex items-center gap-1.5 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
+              <div className="flex items-center gap-1.5 rounded-[22px] border border-border p-1.5" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
                 <IconButton
                   icon="close"
                   label="Cancelar nota de audio"
@@ -843,7 +856,7 @@ export default function EnlaceConversationClient({
                 />
               </div>
             ) : (
-              <div className="flex items-end gap-1.5 rounded-[20px] border border-border p-1.5" style={{ background: "var(--surface)" }}>
+              <div className="flex items-end gap-1.5 rounded-[22px] border border-border p-1.5" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
                 <IconButton
                   icon="plus"
                   label="Adjuntar"
@@ -851,6 +864,7 @@ export default function EnlaceConversationClient({
                   disabled={upload.status === "uploading" || locating}
                   className="shrink-0"
                   data-ripple
+                  style={{ borderRadius: 999, background: "var(--surface-2)", color: "var(--text-2)" }}
                 />
                 <textarea
                   value={draft}
@@ -867,7 +881,7 @@ export default function EnlaceConversationClient({
                     onClick={sendMessage}
                     className="shrink-0"
                     data-ripple
-                    style={{ background: "var(--accent)", color: "#FFFFFF", borderRadius: 999 }}
+                    style={{ borderRadius: 999, background: "var(--accent)", color: "#FFFFFF" }}
                   />
                 ) : (
                   <IconButton
@@ -877,6 +891,7 @@ export default function EnlaceConversationClient({
                     disabled={upload.status === "uploading"}
                     className="shrink-0"
                     data-ripple
+                    style={{ borderRadius: 999, background: "var(--accent)", color: "#FFFFFF" }}
                   />
                 )}
               </div>
@@ -941,7 +956,7 @@ function MessageBubble({
   if (deleted) {
     return (
       <div className={`flex ${mine ? "justify-end" : "justify-start"} ${prevSameSender ? "mt-0.5" : "mt-2"}`}>
-        <div className="max-w-[78%] rounded-[9px] px-2.5 py-2" style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)" }}>
+        <div className="max-w-[78%] rounded-[14px] px-3 py-2" style={{ background: "var(--surface-2)", boxShadow: "var(--shadow-1)" }}>
           <p className="text-[12.5px] italic" style={{ color: "var(--text-3)" }}>🚫 Mensaje eliminado</p>
           <div className="flex items-center justify-end gap-1 mt-0.5">
             <span className="text-[10.5px] opacity-60 select-none">{timeOnly(m.created_at)}</span>
@@ -1013,14 +1028,14 @@ function MessageBubble({
                 />
               )}
               <div
-                className={m.type === "sticker" ? "rounded-[9px]" : "rounded-[9px] shadow-sm overflow-hidden"}
+                className={m.type === "sticker" ? "rounded-[16px]" : "rounded-[16px] shadow-sm overflow-hidden"}
                 style={m.type === "sticker"
                   ? { color: "var(--text-3)" }
                   : mine
-                    ? { background: "var(--chat-bubble-sent-bg)", color: "var(--chat-bubble-sent-fg)", borderTopRightRadius: prevSameSender ? 9 : 2 }
-                    : { background: "var(--chat-bubble-received-bg)", color: "var(--text-1)", border: "0.5px solid var(--border)", borderTopLeftRadius: prevSameSender ? 9 : 2 }}
+                    ? { background: "var(--chat-bubble-sent-bg)", color: "var(--chat-bubble-sent-fg)", borderTopRightRadius: prevSameSender ? 16 : 2 }
+                    : { background: "var(--chat-bubble-received-bg)", color: "var(--text-1)", borderTopLeftRadius: prevSameSender ? 16 : 2 }}
               >
-                <div className="px-2.5 pt-1.5 pb-1">
+                <div className="px-3.5 pt-2.5 pb-1.5">
                   {!mine && showName && (
                     <p className="text-[12px] font-semibold mb-0.5" style={{ color: sender?.nexus_color ?? "var(--accent)" }}>
                       {sender?.display_name ?? "Alguien"}
@@ -1028,7 +1043,7 @@ function MessageBubble({
                   )}
 
                   {repliedTo && (
-                    <div className="rounded-[6px] px-2 py-1 mb-1 border-l-2" style={{ borderColor: mine ? "rgba(255,255,255,0.7)" : "var(--accent)", background: mine ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.05)" }}>
+                    <div className="rounded-[6px] px-2 py-1 mb-1 border-l-2" style={{ borderColor: mine ? "rgba(255,255,255,0.7)" : "var(--accent)", background: mine ? "rgba(255,255,255,0.12)" : "var(--chat-card-inner)" }}>
                       <p className="text-[11.5px] truncate opacity-80">
                         {messagePreview(repliedTo)}
                       </p>
@@ -1046,14 +1061,14 @@ function MessageBubble({
                         />
                       </a>
                     ) : (
-                      <div className="w-[220px] h-[160px] rounded-[7px] mb-1 flex items-center justify-center" style={{ background: "var(--surface-2)" }}>
+                      <div className="w-[220px] h-[160px] rounded-[7px] mb-1 flex items-center justify-center" style={{ background: "var(--chat-card-inner)" }}>
                         <span className="text-[11px]" style={{ color: "var(--text-3)" }}>Cargando imagen…</span>
                       </div>
                     )
                   )}
 
                   {m.type === "file" && attachment && signedUrl && attachment.mime_type.startsWith("audio/") && (
-                    <div className="rounded-[8px] px-2.5 py-2 mb-1 min-w-[220px]" style={{ background: mine ? "rgba(255,255,255,0.12)" : "var(--surface-2)" }}>
+                    <div className="rounded-[8px] px-2.5 py-2 mb-1 min-w-[220px]" style={{ background: mine ? "rgba(255,255,255,0.12)" : "var(--chat-card-inner)" }}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[18px] leading-none shrink-0" aria-hidden>{fileEmoji(attachment.mime_type)}</span>
                         <div className="min-w-0 flex-1">
@@ -1070,7 +1085,7 @@ function MessageBubble({
                       href={signedUrl ?? undefined}
                       target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-2.5 rounded-[8px] px-2.5 py-2 mb-1"
-                      style={{ background: mine ? "rgba(255,255,255,0.12)" : "var(--surface-2)" }}
+                      style={{ background: mine ? "rgba(255,255,255,0.12)" : "var(--chat-card-inner)" }}
                     >
                       <span className="text-[22px] leading-none shrink-0" aria-hidden>{fileEmoji(attachment.mime_type)}</span>
                       <div className="min-w-0 flex-1">
@@ -1172,10 +1187,32 @@ function InfoPanel({
 }) {
   const [showAllFiles, setShowAllFiles] = useState(false);
   const shown = showAllFiles ? recentFiles : recentFiles.slice(0, 3);
+  const other = participants.find((p) => p.id !== myId);
+  const title = conversation.type === "announcement" ? (conversation.name ?? "Anuncios")
+    : conversation.type === "group" ? (conversation.name ?? "Grupo")
+    : (other?.display_name ?? "Conversación");
+  const avatarUrl = conversation.type === "direct" ? (other?.avatar_url ?? null) : conversation.avatar_url;
+  const avatarColor = conversation.type === "announcement" ? "#F59E0B"
+    : conversation.type === "group" ? "#5856D6"
+    : (other?.nexus_color ?? "#5856D6");
 
   return (
-    <div className="hidden md:flex w-[280px] shrink-0 h-full overflow-y-auto flex-col pl-4 ml-2 border-l border-border">
-      <div className="flex items-center justify-between pb-3">
+    <div className="hidden md:flex w-[300px] shrink-0 h-full overflow-y-auto flex-col pl-5 pr-1 py-4" style={{ background: "var(--chat-list-bg)" }}>
+      {/* Header con gradiente morado → azul — la pieza más "workspace" del panel */}
+      <div
+        className="rounded-[20px] p-5 mb-5 text-white relative overflow-hidden shrink-0"
+        style={{ background: "linear-gradient(160deg, var(--purple) 0%, var(--accent) 58%, #0B1A33 100%)", boxShadow: "var(--shadow-2)" }}
+      >
+        <Avatar name={title} avatarUrl={avatarUrl} color={avatarColor} size={72} />
+        <p className="mt-3 text-[22px] font-bold tracking-tight truncate">{title}</p>
+        <p className="text-[14px] opacity-80">
+          {conversation.type === "announcement" ? `Suscritos (${participants.length})`
+            : conversation.type === "group" ? `${participants.length} ${participants.length === 1 ? "integrante" : "integrantes"}`
+            : "Conversación directa"}
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between pb-3 shrink-0">
         <p className="text-[13px] font-bold" style={{ color: "var(--text-1)" }}>Información</p>
         <IconButton icon="close" label="Cerrar" size={15} onClick={onClose} />
       </div>
@@ -1185,12 +1222,12 @@ function InfoPanel({
           {conversation.type === "announcement" ? `Suscritos (${participants.length})`
             : conversation.type === "group" ? `Miembros (${participants.length})` : "Conversación directa"}
         </p>
-        <div className="space-y-1.5 mb-4">
+        <div className="rounded-[14px] p-3.5 space-y-2.5 mb-4" style={{ background: "var(--surface)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}>
           {participants.map((p) => {
             const presence = formatPresence(p.last_seen_at);
             return (
               <div key={p.id} className="flex items-center gap-2">
-                <Avatar name={p.display_name} avatarUrl={p.avatar_url} color={p.nexus_color} size={26} />
+                <Avatar name={p.display_name} avatarUrl={p.avatar_url} color={p.nexus_color} size={30} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--text-1)" }}>
                     {p.id === myId ? "Tú" : p.display_name}
@@ -1200,7 +1237,7 @@ function InfoPanel({
                   )}
                 </div>
                 {p.role === "admin" && (
-                  <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>Admin</span>
+                  <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>Admin</span>
                 )}
               </div>
             );
@@ -1210,7 +1247,7 @@ function InfoPanel({
 
       <div className="mb-4">
         <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Perfil</p>
-        <div className="rounded-[10px] p-3 space-y-2" style={{ background: "var(--surface-2)" }}>
+        <div className="rounded-[14px] p-3.5 space-y-2" style={{ background: "var(--surface)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}>
           {conversation.type === "direct" && otherProfile ? (
             <>
               {otherProfile.area && <MetaRow icon="building" label="Área" value={otherProfile.area} />}
@@ -1230,7 +1267,7 @@ function InfoPanel({
 
       <div className="mb-4">
         <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Detalles</p>
-        <div className="rounded-[10px] p-3 space-y-1.5" style={{ background: "var(--surface-2)" }}>
+        <div className="rounded-[14px] p-3.5 space-y-1.5" style={{ background: "var(--surface)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}>
           <p className="text-[12.5px]" style={{ color: "var(--text-1)" }}>
             <span className="font-semibold">Tipo: </span>
             {conversation.type === "announcement" ? "Anuncios de la empresa"
@@ -1254,8 +1291,8 @@ function InfoPanel({
         <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Notificaciones</p>
         <button
           onClick={onToggleMuted}
-          className="w-full flex items-center justify-between rounded-[10px] px-3 py-2.5"
-          style={{ background: "var(--surface-2)" }}
+          className="w-full flex items-center justify-between rounded-[14px] px-3.5 py-3"
+          style={{ background: "var(--surface)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}
         >
           <span className="text-[12.5px] font-medium" style={{ color: "var(--text-1)" }}>
             {muted ? "Silenciado" : "Notificaciones activas"}
@@ -1286,7 +1323,7 @@ function InfoPanel({
         ) : (
           <div className="space-y-1.5">
             {shown.map((f) => (
-              <div key={f.id} className="flex items-center gap-2 rounded-[8px] px-2 py-1.5" style={{ background: "var(--surface-2)" }}>
+              <div key={f.id} className="flex items-center gap-2 rounded-[12px] px-2.5 py-2" style={{ background: "var(--surface)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}>
                 <span className="text-[16px] leading-none shrink-0" aria-hidden>{fileEmoji(f.mime_type)}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11.5px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{f.file_name}</p>

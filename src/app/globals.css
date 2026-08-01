@@ -533,3 +533,121 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
   .nx-os main > div { max-width: none !important; }
   .card { break-inside: avoid; border: 1px solid #ccc !important; box-shadow: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Chat · Workspace premium (inspirado en Linear/Discord/Slack/Apple
+   Messages) — ronda de diseño sobre el rediseño WhatsApp.
+   El chat se trata como una pieza autocontenida: un scope (.chat-ws)
+   sobre sus contenedores raíz que remapea los tokens EMET a la paleta
+   del workspace. En OSCURO es exactamente la paleta premium del spec
+   (#05070B, burbujas #171D29, gradientes azules); en CLARO la misma
+   jerarquía con superficies claras y el mismo acento azul. Como son
+   custom properties, todo lo que vive dentro del chat usa var(--*)
+   y adopta la paleta automáticamente — sin reescribir cada componente.
+   Las hojas modales (AttachmentSheet, ForwardSheet, StickerPicker,
+   CameraCapture) se portalan al body, quedan fuera del scope y siguen
+   el tema global de la app, que es el comportamiento correcto.
+   ══════════════════════════════════════════════════════════════════ */
+.chat-ws {
+  /* Superficies del workspace */
+  --chat-ws-frame: #E6EBF2;          /* marco exterior del chat */
+  --chat-list-bg: #F0F4F9;           /* columna de conversaciones */
+  --chat-header-bg: #FFFFFF;         /* header de conversación + área del composer */
+  --chat-composer-bg: #FFFFFF;       /* caja del compositor */
+  --chat-bg: #E6EBF2;                /* panel de mensajes */
+  --chat-bubble-in: #FFFFFF;         /* burbuja entrante */
+  --chat-bubble-out: linear-gradient(180deg, #2970FF 0%, #185BFF 100%); /* saliente */
+  --chat-pill-bg: rgba(255,255,255,0.92);   /* pastilla de fecha */
+  --chat-card-inner: #F2F5F9;        /* tarjetas dentro de la burbuja entrante */
+  --chat-list-active: #E2EAF7;       /* conversación activa (azul tenue) */
+  --chat-hover-row: #F4F7FB;
+
+  /* Acento del workspace */
+  --accent: #2663FF;
+  --accent-tint: rgba(38,99,255,0.10);
+  --accent-tint-2: rgba(38,99,255,0.06);
+  --blue: #2663FF;
+  --blue-tint: rgba(38,99,255,0.10);
+  --ring: rgba(38,99,255,0.32);
+
+  /* Semánticos del workspace */
+  --ok: #16A34A; --ok-tint: rgba(22,163,74,0.10);
+  --warn: #D97706; --warn-tint: rgba(217,119,6,0.10);
+  --danger: #DC2626; --danger-tint: rgba(220,38,38,0.09);
+  --purple: #7D5CFF; --purple-tint: rgba(125,92,255,0.12);
+
+  /* Base remapeada para todo lo que vive dentro del scope */
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #E6EBF2;
+  --surface-3: #E0E6EF;
+  --panel: #FFFFFF;
+  --input: #FFFFFF;
+  --hover: #EFF3F8;
+  --text-1: #0F1522;
+  --text-2: #5B6B84;
+  --text-3: #8A94A8;
+  --border: rgba(15,21,34,0.08);
+  --border-2: rgba(15,21,34,0.12);
+  --shadow-1: 0 1px 2px rgba(15,21,34,0.05), 0 1px 1px rgba(15,21,34,0.03);
+  --shadow-2: 0 8px 24px rgba(15,21,34,0.08), 0 2px 8px rgba(15,21,34,0.05);
+  --shadow-3: 0 20px 60px rgba(15,21,34,0.16), 0 6px 20px rgba(15,21,34,0.08);
+
+  /* Burbujas del chat */
+  --chat-bubble-sent-bg: var(--chat-bubble-out);
+  --chat-bubble-sent-fg: #FFFFFF;
+  --chat-bubble-received-bg: var(--chat-bubble-in);
+}
+[data-theme="dark"] .chat-ws {
+  --chat-ws-frame: #05070B;
+  --chat-list-bg: #091321;
+  --chat-header-bg: #07111D;
+  --chat-composer-bg: #141C2B;
+  --chat-bg: #05070B;
+  --chat-bubble-in: #171D29;
+  --chat-bubble-out: linear-gradient(180deg, #2970FF 0%, #185BFF 100%);
+  --chat-pill-bg: #1C2433;
+  --chat-card-inner: #1C2433;
+  --chat-list-active: #122033;
+  --chat-hover-row: rgba(255,255,255,0.05);
+
+  --accent: #2663FF;
+  --accent-tint: rgba(38,99,255,0.18);
+  --accent-tint-2: rgba(38,99,255,0.10);
+  --blue: #2663FF;
+  --blue-tint: rgba(38,99,255,0.18);
+  --ring: rgba(38,99,255,0.42);
+
+  --ok: #2DD36F; --ok-tint: rgba(45,211,111,0.14);
+  --warn: #FFC542; --warn-tint: rgba(255,197,66,0.14);
+  --danger: #FF5B6E; --danger-tint: rgba(255,91,110,0.14);
+  --purple: #7D5CFF; --purple-tint: rgba(125,92,255,0.16);
+
+  --bg: #07111D;
+  --surface: #101827;
+  --surface-2: #171D29;
+  --surface-3: #1C2433;
+  --panel: #101827;
+  --input: #141C2B;
+  --hover: rgba(255,255,255,0.05);
+  --text-1: #FFFFFF;
+  --text-2: #C7D2E4;
+  --text-3: #8A94A8;
+  --border: rgba(255,255,255,0.07);
+  --border-2: rgba(255,255,255,0.10);
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.35), 0 1px 1px rgba(0,0,0,0.3);
+  --shadow-2: 0 8px 24px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.2);
+  --shadow-3: 0 20px 60px rgba(0,0,0,0.45), 0 6px 20px rgba(0,0,0,0.28);
+
+  --chat-bubble-sent-bg: var(--chat-bubble-out);
+  --chat-bubble-sent-fg: #FFFFFF;
+  --chat-bubble-received-bg: var(--chat-bubble-in);
+}
+
+/* Tarjeta de conversación en la lista — el fondo va en CSS (no inline)
+   para poder tener hover sobre la clase, con el estado activo por
+   atributo (lo pinta ConversationRow). */
+.chat-ws .conv-card { background: var(--surface); box-shadow: var(--shadow-1); }
+.chat-ws .conv-card:hover { background: var(--chat-hover-row); }
+.chat-ws .conv-card[data-active="true"],
+.chat-ws .conv-card[data-active="true"]:hover { background: var(--chat-list-active); box-shadow: none; }

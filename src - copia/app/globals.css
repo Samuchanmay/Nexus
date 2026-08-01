@@ -1,0 +1,535 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══ NEXUS design tokens (v6 aprobados) ══ */
+:root {
+  color-scheme: light;
+  --bg: #FBFBFD;
+  --surface: #FFFFFF;
+  --surface-2: #F0F0F2;
+  --surface-3: #E8E8EA;
+  --border: rgba(0,0,0,0.08);
+  --border-2: rgba(0,0,0,0.09);
+  --text-1: #1D1D1F;
+  --text-2: #6E6E73;
+  --text-3: #8A8A90;
+  --accent: #0066FF;
+  --accent-tint: rgba(0,102,255,0.08);
+  --ok: #2FB344;
+  --ok-tint: rgba(47,179,68,0.10);
+  --warn: #FF8A00;
+  --warn-tint: rgba(255,138,0,0.10);
+  --danger: #FF3B30;
+  --danger-tint: rgba(255,59,48,0.09);
+  --purple: #5856D6;
+  --purple-tint: rgba(88,86,214,0.09);
+  --ease: cubic-bezier(.22,.61,.36,1);
+  --spring: cubic-bezier(.34,1.4,.64,1);
+  --blue: #0066FF; --blue-tint: rgba(0,102,255,0.09);
+  --accent-tint-2: rgba(31,175,82,0.15);
+  --radius-l: 22px; --radius-m: 16px; --radius-s: 11px;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.025), 0 1px 1px rgba(0,0,0,0.02);
+  --shadow-2: 0 4px 16px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+  --shadow-3: 0 16px 48px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.05);
+
+  /* ══ Calendar Engine — paleta semántica de eventos (EMET-CALENDAR-ENGINE.md §7) ══
+     El azul queda como color de ACCIÓN (--accent). Cada tipo de tiempo tiene su
+     propio color: azul=trabajo, morado=vacaciones, verde=disponibilidad,
+     rojo=ausencias, naranja=pendientes, amarillo=cumpleaños, gris=inhábiles. */
+  --ev-blue: #0066FF;     --ev-blue-tint: rgba(0,102,255,0.10);
+  --ev-purple: #AF52DE;   --ev-purple-tint: rgba(175,82,222,0.12);
+  --ev-green: #30D158;    --ev-green-tint: rgba(48,209,88,0.12);
+  --ev-red: #FF3B30;      --ev-red-tint: rgba(255,59,48,0.10);
+  --ev-orange: #FF8A00;   --ev-orange-tint: rgba(255,138,0,0.12);
+  --ev-yellow: #B8860B;   --ev-yellow-tint: rgba(184,134,11,0.12);
+  --ev-gray: #8E8E93;     --ev-gray-tint: rgba(142,142,147,0.12);
+
+  /* Escala tipográfica canónica (AUDITORIA-DISENO.md M-01, ronda 4) — se
+     encontraron 14+ tamaños fraccionarios sueltos por toda la app (10px,
+     10.5px, 11.5px... hasta 42px) sin una escala que los explique, ajustados
+     "a ojo" pantalla por pantalla. Esta escala no inventa números nuevos:
+     toma los tamaños que YA existen y les da nombre, para que el próximo
+     componente nuevo tenga de dónde tomar en vez de escribir otro más.
+     Retrofit de lo existente a estos tokens queda para FASE W2/W3 — esta
+     ronda solo pone la base. */
+  --fs-2xs: 12px;
+  --fs-xs: 12px;
+  --fs-sm: 12px;
+  --fs-tag: 12.5px;
+  --fs-base: 13.5px;
+  --fs-md: 14px;
+  --fs-lg: 15px;
+  --fs-xl: 16px;
+  --fs-title: 19px;
+  --fs-2xl: 21px;
+  --fs-3xl: 24px;
+  --fs-display: 28px;
+  --fs-hero: 42px;
+
+  /* Chat — paleta nativa EMET (ronda de rediseño: se abandonó la paleta
+     tipo WhatsApp beige/verde en favor del --accent azul del resto de
+     la app, para que el chat se sienta parte de EMET y no un clon).
+     La burbuja propia es el acento SÓLIDO (como la burbuja de WhatsApp,
+     pero en azul EMET) con texto blanco: el tinte suave anterior se
+     confundía con el fondo del panel de mensajes, el sólido da la
+     lectura de "chat" y el contraste de una sola pasada. */
+  --chat-bg: var(--surface-2);
+  --chat-bubble-sent-bg: var(--accent);
+  --chat-bubble-sent-fg: #FFFFFF;
+  --chat-bubble-received-bg: var(--surface);
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #161617;
+  --surface-2: #1C1C1E;
+  --surface-3: #262628;
+  --border: rgba(255,255,255,0.12);
+  --border-2: rgba(255,255,255,0.10);
+  --text-1: #F5F5F7;
+  --text-2: #98989D;
+  --text-3: #67676C;
+  --accent: #0A84FF;
+  --accent-tint: rgba(10,132,255,0.14);
+  --ok: #32D74B;
+  --ok-tint: rgba(50,215,75,0.14);
+  --warn: #FF9F0A;
+  --warn-tint: rgba(255,159,10,0.14);
+  --danger: #FF453A;
+  --danger-tint: rgba(255,69,58,0.14);
+  --purple: #7B7AFF;
+  --purple-tint: rgba(123,122,255,0.16);
+  --blue: #0A84FF; --blue-tint: rgba(10,132,255,0.14);
+  --accent-tint-2: rgba(48,209,88,0.22);
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-2: 0 4px 16px rgba(0,0,0,0.28);
+  --shadow-3: 0 16px 48px rgba(0,0,0,0.55);
+
+  --ev-blue: #0A84FF;     --ev-blue-tint: rgba(10,132,255,0.16);
+  --ev-purple: #BF5AF2;   --ev-purple-tint: rgba(191,90,242,0.16);
+  --ev-green: #32D74B;    --ev-green-tint: rgba(50,215,75,0.16);
+  --ev-red: #FF453A;      --ev-red-tint: rgba(255,69,58,0.16);
+  --ev-orange: #FF9F0A;   --ev-orange-tint: rgba(255,159,10,0.16);
+  --ev-yellow: #FFD60A;   --ev-yellow-tint: rgba(255,214,10,0.16);
+  --ev-gray: #8E8E93;     --ev-gray-tint: rgba(142,142,147,0.18);
+
+  --chat-bg: var(--bg);
+  --chat-bubble-sent-bg: var(--accent);
+  --chat-bubble-sent-fg: #FFFFFF;
+  --chat-bubble-received-bg: var(--surface-2);
+}
+
+html, body { background: var(--bg); }
+html {
+  /* Toda la app ~10% más grande (como el navegador al 110%) — pedido explícito
+     para mejorar legibilidad sin saturar. Antes era `zoom: 1.1`, propiedad no
+     estándar (Firefox la ignora, distorsiona hit-testing de clicks y media
+     queries, y descoloca `position: fixed`) — se reemplaza por un escalado
+     real de font-size base, que sí es estándar y no tiene esos efectos. */
+  font-size: 110%;
+}
+@media (max-width: 767px) {
+  html {
+    /* En pantallas chicas se respeta el 100% (mismo motivo que antes con
+       zoom: ampliar el viewport móvil genera scroll horizontal). */
+    font-size: 100%;
+  }
+}
+body {
+  font-family: -apple-system, "SF Pro Display", "SF Pro Text", Inter, sans-serif;
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden; /* red de seguridad — ningún elemento debería poder generar scroll horizontal */
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+/* ── Mesh gradiente por app (data-mesh en <body>) ── */
+.mesh::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+[data-mesh="admin"].mesh::before {
+  background:
+    radial-gradient(ellipse 65% 50% at 6% 4%, rgba(0,102,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 92% 6%, rgba(88,86,214,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 50% at 6% 92%, rgba(139,92,246,0.055) 0%, transparent 52%);
+}
+[data-mesh="empleado"].mesh::before {
+  background:
+    radial-gradient(ellipse 70% 55% at 6% 4%, rgba(31,175,82,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 42% at 92% 8%, rgba(0,102,255,0.06) 0%, transparent 50%);
+}
+[data-mesh="rh"].mesh::before {
+  background:
+    radial-gradient(ellipse 65% 50% at 6% 4%, rgba(88,86,214,0.085) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 50% at 6% 90%, rgba(139,92,246,0.06) 0%, transparent 52%);
+}
+[data-mesh="coordinador"].mesh::before {
+  background:
+    radial-gradient(ellipse 70% 55% at 8% 4%, rgba(0,102,255,0.095) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 92% 8%, rgba(77,143,255,0.075) 0%, transparent 52%);
+}
+/* Antes 1.4× — el salto de color entre sidebar y contenido se notaba
+   demasiado (auditoría punto 12); mucho más sutil ahora, tipo Arc. */
+[data-theme="dark"][data-mesh].mesh::before { opacity: 1.05; }
+/* Ronda 5, elegido entre 3 opciones mostradas al usuario (A: igual que
+   antes / B: mismo blend, más alpha / C: mix-blend-mode:multiply — ganó
+   esta). El problema real nunca fue la opacidad (rondas 4-5 lo probaron:
+   0.45 lo dejó casi invisible) sino que "normal" blend sobre #FBFBFD
+   casi-blanco diluye el tinte a pastel lavado. "multiply" oscurece por
+   donde pasa en vez de aclarar, así que el mismo rgba se lee más profundo
+   y saturado — alpha subido ~2.5× porque multiply por sí solo, con el
+   alpha original, quedaba casi imperceptible sobre un fondo tan claro.
+   Reemplaza tanto el .mesh::before de admin/empleado/rh/coordinador como
+   la regla genérica de opacity — cada mesh define su propio degradado de
+   claro completo (blend + colores), en vez de solo un multiplicador. */
+[data-theme="light"][data-mesh="admin"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 65% 50% at 6% 4%, rgba(0,102,255,0.20) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 92% 6%, rgba(88,86,214,0.17) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 50% at 6% 92%, rgba(139,92,246,0.14) 0%, transparent 52%);
+}
+[data-theme="light"][data-mesh="empleado"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 70% 55% at 6% 4%, rgba(31,175,82,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 42% at 92% 8%, rgba(0,102,255,0.15) 0%, transparent 50%);
+}
+[data-theme="light"][data-mesh="rh"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 65% 50% at 6% 4%, rgba(88,86,214,0.21) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 50% at 6% 90%, rgba(139,92,246,0.15) 0%, transparent 52%);
+}
+[data-theme="light"][data-mesh="coordinador"].mesh::before {
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(ellipse 70% 55% at 8% 4%, rgba(0,102,255,0.24) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 92% 8%, rgba(77,143,255,0.19) 0%, transparent 52%);
+}
+
+/* ── Saludo animado (emoji 👋 en encabezados de Hoy/Mi Día) ── */
+.wave-emoji { display: inline-block; transform-origin: 70% 70%; animation: nx-wave 1.6s ease-in-out 1; }
+@keyframes nx-wave {
+  0% { transform: rotate(0deg); }
+  12% { transform: rotate(16deg); }
+  24% { transform: rotate(-10deg); }
+  36% { transform: rotate(16deg); }
+  48% { transform: rotate(-6deg); }
+  60% { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* ── Utilidades de superficie translúcida ── */
+.glass {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 0.5px solid var(--border);
+}
+.glass-bar {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+}
+.card {
+  @apply glass rounded-m;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.025), 0 1px 1px rgba(0,0,0,0.018);
+}
+.card-hover { transition: transform .22s var(--spring), box-shadow .22s var(--ease); }
+.card-hover:hover { transform: translateY(-3px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+
+/* ── Botones — 3 niveles ──
+   Primario: un solo protagonista por pantalla, glow discreto (no "anuncio").
+   Secundario: neutro, para acciones de apoyo junto al primario.
+   Terciario: texto/ghost, para acciones de bajo compromiso (cancelar, ver más). */
+.btn-primary {
+  @apply rounded-sm font-semibold text-white;
+  background: linear-gradient(155deg, #0A84FF, #0066FF);
+  box-shadow: 0 4px 12px rgba(0,102,255,.20);
+  transition: transform .25s var(--spring), box-shadow .25s var(--ease);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,102,255,.26); }
+.btn-primary:disabled { opacity: .45; transform: none; }
+.btn-ok { background: linear-gradient(155deg, #34D058, #2FB344); box-shadow: 0 4px 12px rgba(47,179,68,.20); }
+.btn-secondary {
+  @apply rounded-sm font-semibold;
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+  color: var(--text-2);
+  transition: background .18s var(--ease);
+}
+.btn-secondary:hover { background: var(--surface-2); }
+.btn-tertiary {
+  @apply rounded-sm font-semibold;
+  background: transparent;
+  color: var(--text-2);
+  transition: background .18s var(--ease), color .18s var(--ease);
+}
+.btn-tertiary:hover { background: var(--surface-2); color: var(--text-1); }
+.btn-tertiary:disabled { opacity: .45; }
+
+.pill { @apply text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap; }
+.field-input {
+  @apply w-full rounded-sm px-3.5 py-3 text-[15px] outline-none;
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+  color: var(--text-1);
+  transition: border-color .2s, box-shadow .2s;
+}
+.field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-tint); }
+.field-input::placeholder { color: var(--text-3); }
+/* Estados que faltaban en el sistema compartido — antes cada pantalla que
+   necesitaba un campo deshabilitado o con error tenía que inventar su propio
+   estilo suelto. aria-invalid duplica como gancho de accesibilidad (S16) y
+   de estilo (S12) en el mismo atributo — un lector de pantalla y el ojo
+   reciben la misma señal. */
+.field-input:disabled { opacity: .55; cursor: not-allowed; background: var(--surface-2); }
+.field-input[aria-invalid="true"] { border-color: var(--danger); }
+.field-input[aria-invalid="true"]:focus { border-color: var(--danger); box-shadow: 0 0 0 4px var(--danger-tint); }
+
+/* Selector deslizable (Semana/Mes/…) */
+.seg { position: relative; display: flex; background: var(--surface-2); border: .5px solid var(--border); border-radius: 100px; padding: 3px; overflow: hidden; }
+.seg-thumb { position: absolute; top: 3px; left: 0; height: calc(100% - 6px); border-radius: 100px; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.08); transition: transform .38s var(--spring), width .38s var(--spring); will-change: transform; }
+/* La pastilla deslizable ya marca la selección — el anillo de foco cuadrado del navegador se ve desfasado sobre la forma redonda, así que se suprime aquí. */
+.seg button:focus-visible { outline: none; }
+
+
+/* ═══ v6 · Empleado "Mi Día" — componentes fieles al mockup del cliente (U2) ═══ */
+.v6-hero{ padding:34px 0 26px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.v6-hero-eyebrow{ font-size:13px; color:var(--text-3); font-weight:500; margin-bottom:6px; text-transform:capitalize; }
+.v6-hero-h1{ font-size:clamp(26px,5vw,32px); font-weight:700; letter-spacing:-0.02em; line-height:1.1; }
+.v6-hero-sub{ font-size:13.5px; color:var(--text-2); margin-top:8px; }
+.v6-timer-box{ text-align:right; flex-shrink:0; }
+.v6-timer-lbl{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-3); margin-bottom:5px; }
+.v6-timer-val{ font-size:25px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:0.01em; transition:color .3s; }
+.v6-timer-val.paused{ color:var(--warn); }
+.v6-timer-val.idle{ color:var(--text-3); }
+
+.v6-week{ display:flex; gap:6px; margin-bottom:30px; }
+.v6-wd{ flex:1; background:color-mix(in srgb, var(--surface) 70%, transparent); backdrop-filter:blur(16px) saturate(1.5); -webkit-backdrop-filter:blur(16px) saturate(1.5); border:0.5px solid var(--border); border-radius:13px; padding:10px 4px; text-align:center; box-shadow:var(--shadow-1); transition:transform .22s var(--spring), box-shadow .22s; }
+.v6-wd:hover{ transform:translateY(-2px); box-shadow:var(--shadow-2); }
+.v6-wd.today{ background:linear-gradient(155deg,#30D158,#1FAF52); border-color:transparent; box-shadow:0 6px 18px rgba(31,175,82,0.30); }
+.v6-wd.today .v6-wl, .v6-wd.today .v6-wn{ color:#fff; }
+.v6-wd.whas::after{ content:''; display:block; width:4px; height:4px; background:var(--accent); border-radius:50%; margin:4px auto 0; }
+.v6-wd.today.whas::after{ background:rgba(255,255,255,.7); }
+.v6-wl{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-3); margin-bottom:4px; }
+.v6-wn{ font-size:15px; font-weight:650; }
+
+.v6-sec-title{ font-size:18px; font-weight:700; letter-spacing:-0.015em; margin-bottom:13px; }
+
+.v6-active-card{ background:color-mix(in srgb, var(--surface) 75%, transparent); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5); border:0.5px solid var(--border); border-radius:var(--radius-l); padding:22px; margin-bottom:28px; position:relative; overflow:hidden; box-shadow:var(--shadow-2); }
+.v6-active-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--accent),#30D158); }
+.v6-live{ display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:650; color:var(--accent); margin-bottom:11px; }
+.v6-live.paused{ color:var(--warn); }
+.v6-live-dot{ width:7px; height:7px; background:currentColor; border-radius:50%; animation:v6pulse 1.4s ease-in-out infinite; }
+@keyframes v6pulse{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.35; transform:scale(.7); } }
+.v6-active-card h3{ font-size:17px; font-weight:700; letter-spacing:-0.01em; margin-bottom:4px; }
+.v6-active-card .v6-meta{ font-size:13px; color:var(--text-2); margin-bottom:18px; }
+.v6-btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.v6-ac-btn{ display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:100px; border:0.5px solid var(--border-2); background:var(--surface-2); font-size:12.5px; font-weight:650; cursor:pointer; font-family:inherit; color:var(--text-1); transition:transform .2s var(--spring), background .2s; }
+.v6-ac-btn:hover{ transform:translateY(-2px); background:var(--surface-3); }
+.v6-ac-btn:active{ transform:scale(.96); }
+.v6-ac-btn svg{ width:14px; height:14px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.v6-ac-btn.pause{ color:var(--warn); }
+.v6-ac-btn.stop{ color:var(--danger); }
+.v6-ac-btn.play{ color:var(--accent); }
+
+.v6-agenda{ display:flex; flex-direction:column; gap:8px; margin-bottom:30px; }
+.v6-ag{ background:color-mix(in srgb, var(--surface) 72%, transparent); backdrop-filter:blur(18px) saturate(1.5); -webkit-backdrop-filter:blur(18px) saturate(1.5); border:0.5px solid var(--border); border-radius:var(--radius-m); display:flex; align-items:center; gap:13px; padding:14px 16px; box-shadow:var(--shadow-1); transition:transform .2s var(--spring), box-shadow .2s; }
+.v6-ag:hover{ transform:translateY(-2px); box-shadow:var(--shadow-2); }
+.v6-ag-stripe{ width:3px; height:34px; border-radius:2px; flex-shrink:0; }
+.v6-ag-time{ font-size:12px; color:var(--text-3); font-weight:600; min-width:38px; text-align:right; flex-shrink:0; }
+.v6-ag-ic{ width:36px; height:36px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.v6-ag-ic svg{ width:16px; height:16px; }
+.v6-ag-info{ flex:1; min-width:0; }
+.v6-ag-info h4{ font-size:14px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+.v6-ag-info p{ font-size:12px; color:var(--text-2); }
+.v6-status{ font-size:12px; font-weight:650; padding:4px 10px; border-radius:100px; flex-shrink:0; white-space:nowrap; }
+.v6-s-green{ background:var(--accent-tint); color:var(--accent); }
+.v6-s-blue{ background:var(--blue-tint); color:var(--blue); }
+.v6-s-muted{ background:var(--surface-3); color:var(--text-3); }
+.v6-s-purple{ background:var(--purple-tint); color:var(--purple); }
+.v6-s-warn{ background:var(--warn-tint); color:var(--warn); }
+
+.v6-pending{ display:flex; flex-direction:column; gap:8px; margin-bottom:30px; }
+.v6-pend{ background:color-mix(in srgb, var(--surface) 72%, transparent); backdrop-filter:blur(18px) saturate(1.5); -webkit-backdrop-filter:blur(18px) saturate(1.5); border:0.5px solid var(--border); border-radius:var(--radius-m); display:flex; align-items:center; gap:13px; padding:13px 16px; box-shadow:var(--shadow-1); transition:transform .18s var(--spring); }
+.v6-pend:hover{ transform:translateX(3px); }
+.v6-pchk{ width:23px; height:23px; border-radius:50%; border:1.5px solid var(--border-2); flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .22s var(--ease); background:transparent; }
+.v6-pchk:hover{ border-color:var(--accent); }
+.v6-pchk.done{ background:var(--accent); border-color:var(--accent); }
+.v6-pchk svg{ width:11px; height:11px; stroke:#fff; stroke-width:2.6; fill:none; stroke-linecap:round; stroke-linejoin:round; opacity:0; transition:opacity .15s; }
+.v6-pchk.done svg{ opacity:1; }
+.v6-pinfo{ flex:1; }
+.v6-pinfo h5{ font-size:13.5px; font-weight:600; transition:all .2s; }
+.v6-pinfo.done h5{ text-decoration:line-through; color:var(--text-3); }
+.v6-pinfo p{ font-size:12px; color:var(--text-2); margin-top:2px; }
+.v6-pri{ font-size:12px; color:var(--text-3); font-weight:600; flex-shrink:0; }
+
+.v6-add-act-btn{ display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:100px; border:1.5px dashed var(--border-2); background:transparent; color:var(--text-2); font-size:12.5px; font-weight:650; cursor:pointer; font-family:inherit; transition:all .2s var(--ease); }
+.v6-add-act-btn:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-tint); }
+.v6-add-act-btn svg{ width:14px; height:14px; stroke:currentColor; stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.v6-fab{ position:fixed; bottom:84px; right:20px; z-index:160; width:54px; height:54px; border-radius:50%; background:linear-gradient(150deg,#30D158,#1FAF52); display:none; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(31,175,82,.4); cursor:pointer; border:none; transition:transform .25s var(--spring); }
+.v6-fab:active{ transform:scale(.9); }
+.v6-fab svg{ width:24px; height:24px; stroke:#fff; stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+@media (max-width:720px){ .v6-fab{ display:flex; } .v6-add-act-btn{ display:none; } }
+
+.v6-act-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:18px; }
+@media (max-width:520px){ .v6-act-grid{ grid-template-columns:repeat(3,1fr); } }
+.v6-act-opt{ border:1.5px solid var(--border); border-radius:var(--radius-s); padding:13px 6px; text-align:center; cursor:pointer; transition:all .2s var(--ease); background:transparent; font-family:inherit; color:var(--text-1); }
+.v6-act-opt:hover{ border-color:var(--border-2); }
+.v6-act-opt.sel{ border-color:var(--accent); background:var(--accent-tint); }
+.v6-act-opt svg{ width:18px; height:18px; stroke:var(--text-2); margin:0 auto 6px; display:block; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.v6-act-opt.sel svg{ stroke:var(--accent); }
+.v6-act-opt span{ font-size:12px; font-weight:600; }
+.v6-notice{ border-radius:var(--radius-s); padding:12px 14px; font-size:12.5px; line-height:1.5; display:flex; gap:9px; margin-bottom:16px; background:var(--warn-tint); color:var(--warn); }
+.v6-notice svg{ width:15px; height:15px; flex-shrink:0; margin-top:1px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   NEXUS OS · Fundación de tema (oscuro + claro) · Sprint 0
+   Aditivo: re-mapea los tokens v6 a paleta oscura del PRD + tokens
+   nuevos para el shell. No altera los estilos v6 existentes.
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --panel:#FFFFFF;
+  --card:#FFFFFF;
+  --sidebar:#F6F7F9;
+  --input:#FFFFFF;
+  --hover:#F0F1F4;
+  --ring:rgba(0,102,255,.30);
+  --nx-shadow:0 1px 2px rgba(16,22,38,.05), 0 12px 30px rgba(16,22,38,.07);
+}
+:root[data-theme="dark"]{
+  --bg:#0F1115;
+  --surface:#151922;
+  --surface-2:#1A1F2B;
+  --surface-3:#202737;
+  --text-1:#F5F7FA;
+  --text-2:#B7C0D1;
+  --text-3:#7E8798;
+  --accent:#4F8CFF;
+  --blue:#4F8CFF;
+  --ok:#3ECF8E;
+  --warn:#F5A623;
+  --danger:#FF6B6B;
+  --purple:#8B7BFF;
+  --border: rgba(255,255,255,0.06);
+  --border-2: rgba(255,255,255,0.11);
+  --accent-tint:rgba(79,140,255,.14);
+  --accent-tint-2:rgba(79,140,255,.08);
+  --blue-tint:rgba(79,140,255,.14);
+  --ok-tint:rgba(62,207,142,.14);
+  --warn-tint:rgba(245,166,35,.14);
+  --danger-tint:rgba(255,107,107,.14);
+  --purple-tint:rgba(139,123,255,.16);
+  --shadow-1:0 1px 0 rgba(255,255,255,.02);
+  --shadow-2:0 10px 30px rgba(0,0,0,.22);
+  --shadow-3:0 24px 60px rgba(0,0,0,.32);
+  --panel:#151922;
+  --card:#1A1F2B;
+  --sidebar:#11151D;
+  --input:#202737;
+  --hover:#232B3B;
+  --ring:rgba(79,140,255,.45);
+  --nx-shadow:0 1px 0 rgba(255,255,255,.02), 0 18px 44px rgba(0,0,0,.28);
+}
+html{ background:var(--bg); }
+body{ transition: background .28s ease, color .28s ease; }
+
+/* Scrollbar propio EMET — antes era opt-in vía .nx-scroll y varias pantallas
+   (Directorio incluida) se quedaban con el scrollbar nativo del SO, que
+   rompía la estética. Ahora es el default global: 6px, radio completo,
+   color muy discreto, hover suave. En iOS/Android el navegador ignora estas
+   reglas y usa su propio overlay nativo — "mobile = nativo" se cumple solo. */
+html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+*::-webkit-scrollbar{ width:6px; height:6px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{ background:var(--border); border-radius:99px; }
+*::-webkit-scrollbar-thumb:hover{ background:var(--text-3); }
+
+/* Ámbito del nuevo shell (Nexus OS) */
+.nx-os{ font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", sans-serif; color:var(--text-1); -webkit-font-smoothing:antialiased; }
+.nx-os *{ box-sizing:border-box; }
+.nx-scroll{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.nx-scroll::-webkit-scrollbar{ width:6px; height:6px; }
+.nx-scroll::-webkit-scrollbar-thumb{ background:var(--border); border-radius:99px; border:3px solid transparent; background-clip:padding-box; }
+.nx-scroll::-webkit-scrollbar-thumb:hover{ background:var(--text-3); }
+@keyframes nx-pop{ from{ opacity:0; transform:translateY(8px) scale(.985);} to{ opacity:1; transform:none; } }
+@keyframes nx-datesheet{ from{ opacity:0; transform:translateY(-8px) scale(.96);} to{ opacity:1; transform:none; } }
+@keyframes nx-fade{ from{opacity:0} to{opacity:1} }
+@keyframes nx-slide{ from{opacity:0; transform:translateX(-6px)} to{opacity:1; transform:none} }
+@keyframes nx-chat-in{ from{ opacity:0; transform:translateY(6px) scale(.985);} to{ opacity:1; transform:none; } }
+.nx-pop{ animation:nx-pop .22s cubic-bezier(.34,1.4,.64,1) both; }
+.nx-datesheet-pop{ animation:nx-datesheet .22s cubic-bezier(.34,1.4,.64,1) both; transform-origin: top left; }
+.nx-fade{ animation:nx-fade .2s ease both; }
+
+/* ── Skeleton loading — reemplaza spinners/"Cargando…" ── */
+.nx-skel{
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: nx-shimmer 1.4s ease infinite;
+}
+@keyframes nx-shimmer{ 0%{ background-position: 100% 50%; } 100%{ background-position: 0 50%; } }
+
+/* ── Micro-interacción ripple (FASE 3) — el nodo se inyecta desde
+   src/lib/ripple.ts sobre elementos con [data-ripple]; el host recibe
+   position:relative + overflow:hidden al primer toque. currentColor hace
+   que la tinta siga el color del botón (acento en el CTA, neutro en el
+   resto) sin escribir color por elemento. */
+.nx-ripple{
+  position:absolute;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.24;
+  transform:scale(0);
+  pointer-events:none;
+  animation:nx-ripple-grow .55s var(--ease) forwards;
+}
+@keyframes nx-ripple-grow{ to{ transform:scale(1); opacity:0; } }
+
+/* ── Toast de error/atención: pequeño shake para diferenciar del éxito ── */
+.nx-toast-shake{ animation: nx-shake .42s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes nx-shake{
+  10%,90% { transform: translateX(-50%) translateX(-1px); }
+  20%,80% { transform: translateX(-50%) translateX(2px); }
+  30%,50%,70% { transform: translateX(-50%) translateX(-4px); }
+  40%,60% { transform: translateX(-50%) translateX(4px); }
+}
+
+/* ── Asistente Contextual — mensajes destacados (pausa activa, cumpleaños):
+   el ícono tiene un pequeño "wiggle" de vida propia, igual de espíritu al
+   wave-emoji del saludo, para que no se sientan como una fila más de lista. */
+.nx-msg-icon-bounce{ display:inline-flex; transform-origin:50% 80%; animation:nx-icon-bounce 1.8s ease-in-out infinite; }
+
+/* ── Pausa activa (rediseño) — ilustración propia sin emoji: taza respirando
+   muy lento (scale 1→1.03) + vapor que sube en dos hilos desfasados. Nada
+   de rebote — son animaciones "vivas" pero discretas, nunca distractoras. */
+@keyframes nx-breathe-soft{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.03); } }
+.nx-breathe-soft{ animation: nx-breathe-soft 3.2s ease-in-out infinite; }
+@keyframes nx-steam{ 0%,100%{ opacity:.35; transform:translateY(0); } 50%{ opacity:.75; transform:translateY(-2px); } }
+.nx-steam-1{ animation: nx-steam 2.6s ease-in-out infinite; }
+.nx-steam-2{ animation: nx-steam 2.6s ease-in-out infinite .55s; }
+
+@keyframes nx-icon-bounce{
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  15% { transform: rotate(-12deg) scale(1.08); }
+  30% { transform: rotate(10deg) scale(1.05); }
+  45% { transform: rotate(-6deg) scale(1.03); }
+  60% { transform: rotate(0deg) scale(1); }
+}
+
+/* ── Impresión (Reportes → "Guardar como PDF") ──
+   Oculta el chrome del shell (sidebar, topbar) y deja solo el
+   contenido del reporte, a ancho completo, en blanco y negro legible. */
+@media print {
+  .nx-os > aside, .nx-os header, .no-print { display: none !important; }
+  .nx-os { display: block !important; background: #fff !important; }
+  .nx-os main { overflow: visible !important; padding: 0 !important; }
+  .nx-os main > div { max-width: none !important; }
+  .card { break-inside: avoid; border: 1px solid #ccc !important; box-shadow: none !important; }
+}

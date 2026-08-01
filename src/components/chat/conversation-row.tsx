@@ -33,7 +33,7 @@ export function ConversationRow({
   const openSide: "left" | "right" | null = dx <= -8 ? "left" : dx >= 8 ? "right" : null;
 
   return (
-    <div className="relative overflow-hidden rounded-m select-none">
+    <div className="relative overflow-hidden rounded-[18px] select-none">
       {/* Franja izquierda — visible al deslizar hacia la izquierda (dx negativo) */}
       <div className="absolute inset-y-0 right-0 flex" style={{ width: ACTION_W }}>
         <button
@@ -76,37 +76,44 @@ export function ConversationRow({
         </button>
       </div>
 
-      {/* Contenido — se desplaza dx px, arrastra consigo el clic normal (abrir) */}
+      {/* Contenido — se desplaza dx px, arrastra consigo el clic normal (abrir).
+          El fondo vive en .chat-ws .conv-card (CSS) para tener hover, con el
+          estado activo por atributo data-active — inline no permite hover. */}
       <div
         {...bind}
         onClick={() => { if (openSide) { reset(); return; } onOpen(); }}
-        className="relative flex items-center gap-3 px-2 py-2.5 rounded-m cursor-pointer touch-pan-y"
+        data-active={active}
+        className="conv-card relative flex items-center gap-3 px-4 py-3 rounded-[18px] cursor-pointer touch-pan-y"
         style={{
-          background: active ? "var(--accent-tint)" : "var(--surface)",
           transform: `translateX(${dx}px)`,
           transition: dragging ? "none" : "transform .25s var(--spring)",
         }}
       >
-        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={44} />
+        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={48} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {pinned && <span className="text-[10px] leading-none" aria-hidden>📌</span>}
-            <p className={`text-[14px] truncate ${unread ? "font-bold" : "font-semibold"}`}>{name}</p>
+            <p className={`text-[15px] truncate ${unread ? "font-bold" : "font-semibold"}`}>{name}</p>
           </div>
-          <p className="text-[12.5px] truncate" style={{ color: unread ? "var(--text-1)" : "var(--text-3)" }}>{preview}</p>
+          <p
+            className="text-[13px] leading-snug line-clamp-2"
+            style={{ color: unread ? "var(--text-2)" : "var(--text-3)" }}
+          >
+            {preview}
+          </p>
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex flex-col items-end gap-1.5 shrink-0 self-start pt-0.5">
           <span className="text-[11.5px]" style={{ color: unread ? "var(--accent)" : "var(--text-3)" }}>{time}</span>
           {unread && (
             unreadCount > 0 ? (
               <span
-                className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[11px] font-bold text-white"
-                style={{ background: muted ? "var(--text-3)" : "var(--accent)" }}
+                className="min-w-[24px] h-6 px-2 grid place-items-center rounded-full text-[12px] font-bold text-white"
+                style={{ background: muted ? "var(--text-3)" : "var(--accent)", boxShadow: "0 4px 12px rgba(38,99,255,0.30)" }}
               >
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             ) : (
-              <span className="w-2 h-2 rounded-full" style={{ background: muted ? "var(--text-3)" : "var(--accent)" }} aria-label="No leído" />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: muted ? "var(--text-3)" : "var(--accent)" }} aria-label="No leído" />
             )
           )}
           {muted && !unread && <span className="text-[11px]" style={{ color: "var(--text-3)" }} aria-label="Silenciado">🔕</span>}

@@ -71,6 +71,7 @@ export default function ChatShell({
   const [myState, setMyState] = useState(myStateByConv);
   const [newOpen, setNewOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "unread" | "pinned">("all");
   const [showArchived, setShowArchived] = useState(false);
   const [messageHits, setMessageHits] = useState<MessageHit[]>([]);
 
@@ -230,12 +231,22 @@ export default function ChatShell({
     });
     // Fijadas primero, luego por actividad reciente — el punto de fijar es
     // exactamente que no se pierdan en el orden cronológico normal.
-    return [...matched].sort((a, b) => {
+    let list = matched;
+    if (filter === "unread") {
+      list = list.filter((c) =>
+        !!c.last_message_at &&
+        c.last_message_sender_id !== myId &&
+        new Date(c.last_message_at) > new Date(stateFor(c.id).last_read_at)
+      );
+    } else if (filter === "pinned") {
+      list = list.filter((c) => stateFor(c.id).pinned);
+    }
+    return [...list].sort((a, b) => {
       const pa = stateFor(a.id).pinned, pb = stateFor(b.id).pinned;
       if (pa !== pb) return pa ? -1 : 1;
       return (b.last_message_at ?? "").localeCompare(a.last_message_at ?? "");
     });
-  }, [conversations, participants, myId, search, stateFor]);
+  }, [conversations, participants, myId, search, stateFor, filter]);
 
   const archivedConversations = useMemo(
     () => conversations.filter((c) => stateFor(c.id).archived),
@@ -327,102 +338,139 @@ export default function ChatShell({
     // en celular) — la única franja de la app donde el layout normal de
     // Nexus se rompe a propósito: aquí ambos paneles (o el único visible en
     // celular) ocupan toda esa altura, sin que la página entera se desplace.
-    <div className="flex h-[calc(100dvh-12rem)] md:h-[calc(100dvh-8.5rem)] min-h-[420px] -mx-4 md:mx-0">
-      {/* Panel izquierdo — lista de conversaciones */}
-      <div className={`w-full md:w-[340px] shrink-0 md:border-r md:border-border flex-col ${atRoot ? "flex" : "hidden md:flex"}`}>
-        <div className="flex items-center justify-between gap-2 px-4 md:px-0 md:pr-4 pb-3 shrink-0">
-          <div>
-            <p className="text-[20px] font-bold tracking-tight">Chat</p>
-            <p className="text-[12px]" style={{ color: "var(--text-2)" }}>Mensajes con tu equipo</p>
-          </div>
-          <Button variant="primary" icon="plus" size="sm" onClick={() => setNewOpen(true)} data-ripple>Nuevo</Button>
-        </div>
-
-        {showNotifBanner && (
-          <div className="mb-3 shrink-0 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5"
-            style={{ background: "var(--surface-2)", border: "0.5px solid var(--border)" }}>
-            <Icon name="bell" size={14} style={{ color: "var(--accent)" }} />
-            <p className="text-[12px] flex-1 leading-snug" style={{ color: "var(--text-2)" }}>
-              Activa las notificaciones de escritorio para no perderte los mensajes en segundo plano.
-            </p>
-            <button
-              onClick={enableNotifs}
-              className="shrink-0 text-[12px] font-bold"
-              style={{ color: "var(--accent)" }}
-            >
-              Activar
-            </button>
-            <button
-              onClick={dismissNotifBanner}
-              aria-label="Descartar"
-              className="shrink-0 grid place-items-center h-6 w-6 rounded-full hover:bg-hover"
-            >
-              <Icon name="close" size={12} style={{ color: "var(--text-3)" }} />
-            </button>
-          </div>
-        )}
-
-        <div className="px-4 md:px-0 md:pr-4 pb-3 shrink-0">
-          <Input icon="search" placeholder="Buscar personas, grupos o mensajes..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-0 md:pr-2">
-          {conversations.length === 0 ? (
-            <div className="px-2 md:px-0">
-              <EmptyState
-                icon={<Icon name="message" size={22} />}
-                title="Sin conversaciones todavía"
-                hint="Escribe a un compañero o crea un grupo para empezar."
-                action={<Button variant="primary" onClick={() => setNewOpen(true)} data-ripple>Escribir a alguien</Button>}
-              />
-            </div>
-          ) : (
-            <div className="space-y-0.5">
-              {filteredConversations.map(renderRow)}
-
-              {filteredConversations.length === 0 && messageHits.length === 0 && (
-                <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
-                  Nadie coincide con &ldquo;{search}&rdquo;
-                </p>
-              )}
-
-              {messageHits.length > 0 && (
-                <div className="pt-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wide px-2 pb-1.5" style={{ color: "var(--text-3)" }}>Mensajes</p>
-                  {messageHits.map((hit) => (
-                    <button
-                      key={hit.id}
-                      onClick={() => router.push(`/chat/${hit.conversation_id}`)}
-                      className="w-full text-left px-2 py-2 rounded-m hover:bg-hover"
-                    >
-                      <p className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{hit.sender_name}</p>
-                      <p className="text-[12.5px] truncate">{hit.content}</p>
-                    </button>
-                  ))}
+    // .chat-ws aplica el scope del workspace premium (paleta, sombras,
+    // radios) a todo lo que vive dentro, sin tocar el resto de la app.
+    <div className="chat-ws h-[calc(100dvh-12rem)] md:h-[calc(100dvh-8.5rem)] min-h-[420px] -mx-4 md:mx-0">
+      <div
+        className="h-full flex flex-col overflow-hidden rounded-none md:rounded-[28px] md:border md:border-border"
+        style={{ background: "var(--chat-ws-frame)", boxShadow: "var(--shadow-3)" }}
+      >
+        <div className="flex flex-1 min-h-0">
+          {/* Panel izquierdo — lista de conversaciones */}
+          <div
+            className={`w-full md:w-[340px] shrink-0 md:border-r md:border-border flex-col ${atRoot ? "flex" : "hidden md:flex"}`}
+            style={{ background: "var(--chat-list-bg)" }}
+          >
+            <div className="px-4 md:px-5 pt-4 md:pt-5 pb-3 shrink-0 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-[20px] font-bold tracking-tight">Chat</p>
+                  <p className="text-[12px]" style={{ color: "var(--text-2)" }}>Mensajes con tu equipo</p>
                 </div>
-              )}
+              </div>
 
-              {!search && archivedConversations.length > 0 && (
-                <div className="pt-3">
+              <button
+                onClick={() => setNewOpen(true)}
+                data-ripple
+                className="w-full h-12 rounded-[16px] flex items-center justify-center gap-2 text-[14px] font-semibold text-white"
+                style={{ background: "var(--chat-bubble-out)", boxShadow: "0 8px 20px rgba(38,99,255,0.30)" }}
+              >
+                <Icon name="plus" size={18} /> Nuevo mensaje
+              </button>
+
+              <div className="flex gap-1.5" role="tablist" aria-label="Filtrar conversaciones">
+                {(([["all", "Todos"], ["unread", "No leídos"], ["pinned", "Fijados"]] as const).map(([k, label]) => (
                   <button
-                    onClick={() => setShowArchived((v) => !v)}
-                    className="w-full flex items-center justify-between px-2 py-2 text-[12.5px] font-semibold"
-                    style={{ color: "var(--text-3)" }}
+                    key={k}
+                    role="tab"
+                    aria-selected={filter === k}
+                    onClick={() => setFilter(k)}
+                    className="h-8 px-3.5 rounded-full text-[12.5px] font-semibold transition-colors"
+                    style={filter === k ? { background: "var(--accent)", color: "#FFFFFF" } : { color: "var(--text-3)" }}
                   >
-                    <span>Archivadas ({archivedConversations.length})</span>
-                    <span>{showArchived ? "▲" : "▼"}</span>
+                    {label}
                   </button>
-                  {showArchived && <div className="space-y-0.5">{archivedConversations.map(renderRow)}</div>}
+                )))}
+              </div>
+            </div>
+
+            {showNotifBanner && (
+              <div className="mx-4 md:mx-5 mb-3 shrink-0 flex items-center gap-2.5 rounded-[14px] px-3.5 py-2.5"
+                style={{ background: "var(--surface)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}>
+                <Icon name="bell" size={14} style={{ color: "var(--accent)" }} />
+                <p className="text-[12px] flex-1 leading-snug" style={{ color: "var(--text-2)" }}>
+                  Activa las notificaciones de escritorio para no perderte los mensajes en segundo plano.
+                </p>
+                <button
+                  onClick={enableNotifs}
+                  className="shrink-0 text-[12px] font-bold"
+                  style={{ color: "var(--accent)" }}
+                >
+                  Activar
+                </button>
+                <button
+                  onClick={dismissNotifBanner}
+                  aria-label="Descartar"
+                  className="shrink-0 grid place-items-center h-6 w-6 rounded-full hover:bg-hover"
+                >
+                  <Icon name="close" size={12} style={{ color: "var(--text-3)" }} />
+                </button>
+              </div>
+            )}
+
+            <div className="px-4 md:px-5 pb-3 shrink-0">
+              <Input icon="search" placeholder="Buscar personas, grupos o mensajes..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
+              {conversations.length === 0 ? (
+                <div className="px-2">
+                  <EmptyState
+                    icon={<Icon name="message" size={22} />}
+                    title="Sin conversaciones todavía"
+                    hint="Escribe a un compañero o crea un grupo para empezar."
+                    action={<Button variant="primary" onClick={() => setNewOpen(true)} data-ripple>Escribir a alguien</Button>}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {filteredConversations.map(renderRow)}
+
+                  {filteredConversations.length === 0 && messageHits.length === 0 && (
+                    <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
+                      {search ? `Nadie coincide con "${search}"` : "No hay conversaciones aquí."}
+                    </p>
+                  )}
+
+                  {messageHits.length > 0 && (
+                    <div className="pt-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide px-2 pb-1.5" style={{ color: "var(--text-3)" }}>Mensajes</p>
+                      {messageHits.map((hit) => (
+                        <button
+                          key={hit.id}
+                          onClick={() => router.push(`/chat/${hit.conversation_id}`)}
+                          className="w-full text-left px-2 py-2 rounded-m hover:bg-hover"
+                        >
+                          <p className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{hit.sender_name}</p>
+                          <p className="text-[12.5px] truncate">{hit.content}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!search && archivedConversations.length > 0 && (
+                    <div className="pt-3">
+                      <button
+                        onClick={() => setShowArchived((v) => !v)}
+                        className="w-full flex items-center justify-between px-2 py-2 text-[12.5px] font-semibold"
+                        style={{ color: "var(--text-3)" }}
+                      >
+                        <span>Archivadas ({archivedConversations.length})</span>
+                        <span>{showArchived ? "▲" : "▼"}</span>
+                      </button>
+                      {showArchived && <div className="space-y-2.5 mt-2.5">{archivedConversations.map(renderRow)}</div>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Panel derecho — conversación abierta (o estado vacío en /chat) */}
-      <div className={`flex-1 min-w-0 flex-col md:pl-4 ${atRoot ? "hidden md:flex" : "flex"}`}>
-        {children}
+          {/* Panel derecho — conversación abierta (o estado vacío en /chat) */}
+          <div className={`flex-1 min-w-0 flex-col md:pl-4 ${atRoot ? "hidden md:flex" : "flex"}`}>
+            {children}
+          </div>
+        </div>
       </div>
 
       <NewConversationSheet

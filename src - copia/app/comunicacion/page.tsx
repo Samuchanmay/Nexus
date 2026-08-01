@@ -1,0 +1,156 @@
+import { createClient } from "@/lib/supabase/server";
+import { summarizeDay, currentState, scheduleFor } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
+import type { AttendanceRow, Schedule, ActivityType } from "@/lib/types";
+import MiDiaClient from "./tasks";
+import { todayMerida, addDays, isoWeekday, nowMeridaMinutes } from "@/lib/tz";
+import { contextualMessages } from "@/lib/assistant";
+import type { AssistantTask } from "@/lib/assistant";
+
+/** Mi Día — server: junta los datos; el diseño v6 vive en el client (tasks.tsx). */
+export default async function MiDia({ searchParams }: { searchParams: Promise<{ task?: string }> }) {
+  const { task: highlightProjectId } = await searchParams;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("users").select("*").eq("auth_id", user!.id).single();
+
+  const today = todayMerida();
+  // Lunes de esta semana (para la tira semanal v6)
+  const dow = isoWeekday(today); // 0=Dom
+  const monday = addDays(today, dow === 0 ? -6 : 1 - dow);
+  const sunday = addDays(monday, 6);
+
+  const [
+    { data: att }, { data: weekAtt }, { data: sched }, { data: assignments }, { data: jornadaStates }, { data: actTypes },
+    { data: pausaFrases }, { data: pausaSettings }, { data: myVacs }, { data: holidayToday }, { data: myIncsToday },
+  ] = await Promise.all([
+    supabase.from("attendance").select("*").eq("user_id", profile.id).eq("date", today).order("time"),
+    supabase.from("attendance").select("date").eq("user_id", profile.id).gte("date", monday).lte("date", sunday),
+    supabase.from("schedules").select("*").eq("user_id", profile.id),
+    supabase.from("project_assignments")
+      .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, requester_name, event_date, event_time))")
+      .eq("user_id", profile.id),
+    supabase.from("jornada_states").select("*").eq("activo", true),
+    supabase.from("activity_types").select("*").eq("activo", true).order("orden"),
+    supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
+    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
+    // Vacaciones propias — para el Context Header (hoy / próximas / regreso reciente).
+    supabase.from("vacations").select("start_date, end_date").eq("user_id", profile.id).eq("status", "Aprobada").is("archived_at", null),
+    supabase.from("holidays").select("date").eq("date", today).maybeSingle(),
+    // Incidencia propia autorizada vigente hoy — sin esto "Mi jornada" decía
+    // "Sin iniciar" aunque la persona tuviera permiso/incapacidad aprobada y,
+    // correctamente, no hubiera fichado (FASE S).
+    supabase.from("incidents").select("id").eq("user_id", profile.id).eq("status", "Autorizado").lte("start_date", today).gte("end_date", today).limit(1),
+  ]);
+  const incidentToday = (myIncsToday ?? []).length > 0;
+  const vacToday = (myVacs ?? []).some((v) => v.start_date <= today && v.end_date >= today);
+  const vacSoonRow = (myVacs ?? [])
+    .filter((v) => v.start_date > today && v.start_date <= addDays(today, 3))
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+  const vacSoonDays = vacSoonRow
+    ? Math.round((new Date(vacSoonRow.start_date + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getTime()) / 86400000)
+    : null;
+  const vacReturnedRecently = (myVacs ?? []).some((v) => v.end_date < today && v.end_date >= addDays(today, -2));
+  const states = (jornadaStates ?? []) as JornadaState[];
+  const activityTypes = (actTypes ?? []) as ActivityType[];
+
+  // Dependencias entre actividades (Plano Maestro §04): qué bloquea a cada proyecto asignado.
+  const projectIds = [...new Set((assignments ?? [])
+    .map((a) => (a.projects as unknown as { id: string } | null)?.id)
+    .filter((id): id is string => !!id))];
+  const [{ data: deps }, { data: evidenceRows }] = await Promise.all([
+    projectIds.length
+      ? supabase.from("project_dependencies")
+          .select("project_id, projects!project_dependencies_depends_on_project_id_fkey(status, requests(title))")
+          .in("project_id", projectIds)
+      : Promise.resolve({ data: [] as { project_id: string; projects: { status: string; requests: { title: string } | null } | null }[] }),
+    projectIds.length
+      ? supabase.from("evidences").select("project_id").in("project_id", projectIds)
+      : Promise.resolve({ data: [] as { project_id: string }[] }),
+  ]);
+  const blockedByOf = new Map<string, string[]>();
+  for (const d of (deps ?? []) as unknown as { project_id: string; projects: { status: string; requests: { title: string } | null } | null }[]) {
+    if (!d.projects || d.projects.status === "completada") continue;
+    const list = blockedByOf.get(d.project_id) ?? [];
+    list.push(d.projects.requests?.title ?? "otra actividad");
+    blockedByOf.set(d.project_id, list);
+  }
+  // Asistente Contextual (Plano Maestro §11): qué proyectos ya tienen evidencia subida.
+  const projectsWithEvidence = new Set((evidenceRows ?? []).map((e) => e.project_id as string));
+
+  const schedule = scheduleFor((sched ?? []) as Schedule[], profile.id, today) ?? ({ target_min: 480, tolerance_min: 15, end_time: "18:00:00" } as Schedule);
+  const day = summarizeDay(today, (att ?? []) as AttendanceRow[], schedule, states);
+  const live = currentState((att ?? []) as AttendanceRow[], today, states);
+  // Inicio del tramo de trabajo continuo actual: la "Entrada" más reciente del
+  // día (la del arranque, o la de retomar tras un descanso) — así la pausa
+  // activa cuenta 2 horas desde que de verdad se reanudó, no desde medianoche.
+  const lastResume = [...day.movements].reverse().find((m) => m.type === "Entrada");
+  const workStartTime = lastResume?.time ?? day.firstIn ?? null;
+  const weekDates = [...new Set((weekAtt ?? []).map((r) => r.date as string))];
+
+  const tasks = (assignments ?? [])
+    .map((a) => {
+      const p = a.projects as unknown as {
+        id: string; status: string; priority: string; deadline: string | null;
+        requests: { title: string; type: string; requester_name: string | null; event_date: string | null; event_time: string | null } | null;
+      } | null;
+      if (!p) return null;
+      return {
+        assignmentId: a.id as string,
+        isLead: a.is_lead as boolean,
+        projectId: p.id,
+        title: p.requests?.title ?? "Proyecto",
+        type: p.requests?.type ?? (activityTypes[0]?.key ?? ""),
+        requester: p.requests?.requester_name ?? null,
+        status: p.status,
+        priority: p.priority,
+        deadline: p.deadline,
+        eventDate: p.requests?.event_date ?? null,
+        eventTime: p.requests?.event_time ?? null,
+        hasEvidence: projectsWithEvidence.has(p.id),
+        blockedBy: blockedByOf.get(p.id) ?? [],
+      };
+    })
+    .filter((t): t is NonNullable<typeof t> => t !== null && !["completada", "cancelada"].includes(t.status));
+
+  // El asistente observa TODAS las tareas asignadas (incluidas completada/cancelada
+  // recién cerradas no aplica — ya se filtraron arriba), calculado en cada carga,
+  // sin persistencia: siempre datos frescos.
+  const pausaSettingsMap = new Map((pausaSettings ?? []).map((s) => [s.key, s.value]));
+  const assistantMessages = contextualMessages({
+    today, nowMin: nowMeridaMinutes(),
+    tasks: tasks.map((t): AssistantTask => ({
+      projectId: t.projectId, title: t.title, status: t.status, deadline: t.deadline,
+      eventDate: t.eventDate, eventTime: t.eventTime, isLead: t.isLead, hasEvidence: t.hasEvidence,
+    })),
+    birthDate: profile.birth_date ?? null,
+    working: day.isOpen,
+    workStartTime,
+    pausaActivaFrases: (pausaFrases ?? []).map((f) => f.texto as string),
+    pausaActivaIntervalMin: Number(pausaSettingsMap.get("pausa_activa_interval_min")) || undefined,
+    pausaActivaWindowMin: Number(pausaSettingsMap.get("pausa_activa_window_min")) || undefined,
+    pausaActivaModo: (pausaSettingsMap.get("pausa_activa_modo") as "secuencial" | "aleatorio" | undefined) ?? undefined,
+  });
+
+  return (
+    <MiDiaClient
+      profile={{ id: profile.id, displayName: profile.display_name, birthDate: profile.birth_date ?? null }}
+      context={{
+        vacation: { today: vacToday, soonDays: vacSoonDays, returnedRecently: vacReturnedRecently },
+        isHoliday: !!holidayToday,
+        incidentToday,
+      }}
+      day={{
+        totalMin: day.totalMin, targetMin: day.targetMin, isOpen: day.isOpen, hasEntry: !!day.firstIn,
+        firstIn: day.firstIn ?? null, stateName: live?.nombre ?? null, stateColor: live?.color ?? null,
+        openSegmentStartsAt: day.openSegmentStartsAt,
+      }}
+      week={{ monday, today, datesWithActivity: weekDates }}
+      assignments={tasks}
+      activityTypes={activityTypes}
+      assistantMessages={assistantMessages}
+      highlightProjectId={highlightProjectId ?? null}
+    />
+  );
+}

@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST='{"app/admin/nexus/xlsx-weekly-report.tsx -> exceljs":{"id":9254,"files":["static/chunks/6edf0643.cd4f41ac6e07a75e.js"]}}';
