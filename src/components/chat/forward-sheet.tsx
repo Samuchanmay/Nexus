@@ -145,13 +145,32 @@ export function ForwardSheet({
       }
 
       if (attachment && (type === "image" || type === "file")) {
-        await supabase.from("message_attachments").insert({
+        const fwd: Record<string, unknown> = {
           message_id: msgRow.id,
           file_name: attachment.file_name,
           file_path: newPath,
           file_size: attachment.file_size,
           mime_type: attachment.mime_type,
-        });
+        };
+        // Reenvía también las variantes WebP (pipeline de imagen) si existen,
+        // para que el destino renderice thumb/medium y no solo el original.
+        if (type === "image") {
+          const store = supabase.storage.from("chat-files");
+          const copyVariant = async (src: string): Promise<string | null> => {
+            const dest = `${targetId}/${crypto.randomUUID()}.webp`;
+            const { error } = await store.copy(src, dest);
+            return error ? null : dest;
+          };
+          if (attachment.thumb_path) {
+            const p = await copyVariant(attachment.thumb_path);
+            if (p) { fwd.thumb_path = p; fwd.thumb_size = attachment.thumb_size ?? 0; fwd.thumb_mime = "image/webp"; }
+          }
+          if (attachment.medium_path) {
+            const p = await copyVariant(attachment.medium_path);
+            if (p) { fwd.medium_path = p; fwd.medium_size = attachment.medium_size ?? 0; fwd.medium_mime = "image/webp"; }
+          }
+        }
+        await supabase.from("message_attachments").insert(fwd);
       }
 
       void triggerChatPush(msgRow.id);

@@ -1,6 +1,7 @@
 "use client";
 import { useRef } from "react";
 import { Sheet } from "@/components/ui";
+import { Icon } from "@/components/os/icons";
 
 /**
  * Hoja inferior del botón "+" del compositor — reemplaza la fila de
@@ -13,6 +14,10 @@ import { Sheet } from "@/components/ui";
  * (Geolocation → mensaje type=location con mapa), Stickers (emoji grandes)
  * y Nota de audio (MediaRecorder) están todas funcionando. Cada una delega
  * en su propio flujo; esta hoja solo es el menú de entrada.
+ *
+ * Ronda V2 (diseño): las opciones pasan de emojis a iconos del set nativo
+ * de Nexus (mismo trazo Lucide del resto de la app), cada una en un círculo
+ * tintado del acento — patrón iOS/Signal, con estados hover/pressed/focus.
  */
 export function AttachmentSheet({
   open, onClose, onPickGallery, onPickDocument, onPickAudio, onPickCamera, onPickLocation, onPickSticker,
@@ -30,12 +35,12 @@ export function AttachmentSheet({
   const documentRef = useRef<HTMLInputElement>(null);
 
   const options: { key: string; icon: string; label: string; onClick?: () => void }[] = [
-    { key: "camera", icon: "📷", label: "Cámara", onClick: onPickCamera },
-    { key: "gallery", icon: "🖼️", label: "Galería", onClick: () => galleryRef.current?.click() },
-    { key: "document", icon: "📄", label: "Documento", onClick: () => documentRef.current?.click() },
-    { key: "location", icon: "📍", label: "Ubicación", onClick: onPickLocation },
-    { key: "sticker", icon: "🎨", label: "Stickers", onClick: onPickSticker },
-    { key: "audio", icon: "🎤", label: "Nota de audio", onClick: onPickAudio },
+    { key: "camera", icon: "camera", label: "Cámara", onClick: onPickCamera },
+    { key: "gallery", icon: "image", label: "Galería", onClick: () => galleryRef.current?.click() },
+    { key: "document", icon: "fileText", label: "Documento", onClick: () => documentRef.current?.click() },
+    { key: "location", icon: "pin", label: "Ubicación", onClick: onPickLocation },
+    { key: "sticker", icon: "smile", label: "Stickers", onClick: onPickSticker },
+    { key: "audio", icon: "mic", label: "Nota de audio", onClick: onPickAudio },
   ];
 
   return (
@@ -49,16 +54,21 @@ export function AttachmentSheet({
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { onPickDocument(f); onClose(); } }}
       />
       <Sheet open={open} onClose={onClose} title="Adjuntar">
-        <div className="grid grid-cols-3 gap-3 pb-2">
+        <div className="grid grid-cols-3 gap-1.5 pb-3">
           {options.map((opt) => (
             <button
               key={opt.key}
               onClick={opt.onClick}
-              className="flex flex-col items-center gap-1.5 rounded-[14px] py-4 transition-colors hover:bg-hover"
-              style={{ background: "var(--surface-2)", cursor: "pointer" }}
+              className="flex flex-col items-center gap-2.5 rounded-[18px] px-2 pt-5 pb-4 transition-all duration-150 hover:bg-hover active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              style={{ cursor: "pointer" }}
             >
-              <span className="text-[26px] leading-none" aria-hidden>{opt.icon}</span>
-              <span className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>{opt.label}</span>
+              <span
+                className="grid place-items-center h-12 w-12 rounded-full transition-colors duration-150"
+                style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+              >
+                <Icon name={opt.icon} size={22} aria-hidden />
+              </span>
+              <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{opt.label}</span>
             </button>
           ))}
         </div>

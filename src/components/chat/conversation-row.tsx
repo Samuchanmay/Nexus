@@ -1,106 +1,124 @@
 "use client";
 import { Avatar } from "@/components/ui";
+import { Icon } from "@/components/os/icons";
 import { useSwipeGesture } from "@/lib/chat/use-swipe-gesture";
+import { useTyping } from "@/lib/chat/use-typing";
 
-const ACTION_W = 84; // ancho de cada franja de acciones (izq/der)
+/** Ancho fijo de cada acción (spec Signal: 72–80 px). La franja completa
+    mide dos acciones; al deslizar la tarjeta se revela entera. */
+const ACTION_W = 78;
+const STRIP_W = ACTION_W * 2;
+
+/** Paleta de acciones — tonos apagados para que el contenido sea el
+    protagonista (spec: Leído gris azulado, Archivar gris medio, Fijar azul
+    institucional de Emet, Silenciar ámbar apagado). */
+const ACTION_COLORS = {
+  read: "#5B6B84",
+  archive: "#6E7681",
+  pin: "#2663FF",
+  mute: "#9A6B2F",
+} as const;
+
+/** Botón de acción en la franja inferior: icono SVG centrado + texto debajo,
+    ancho fijo (shrink-0) para que nunca se comprima ni corte el texto. */
+function ActionButton({ icon, label, background, onClick }: {
+  icon: string; label: string; background: string; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="flex shrink-0 flex-col items-center justify-center gap-1 text-white cursor-pointer"
+      style={{ width: ACTION_W, background }}
+    >
+      <Icon name={icon} size={20} aria-hidden />
+      <span className="text-[11px] font-semibold leading-tight select-none">{label}</span>
+    </button>
+  );
+}
 
 /**
- * Fila de conversación — deslizable como en Apple Mail. A la izquierda:
- * Silenciar / Fijar. A la derecha: Leído / Archivar. No dispara la acción
- * automáticamente al cruzar un umbral (eso es fácil de disparar sin
- * querer); revela la franja y el usuario toca el botón que quiere, o
- * toca la fila para cerrarla sin hacer nada.
+ * Fila de conversación — deslizable como Signal/Apple Mail. La tarjeta es
+ * una sola pieza que se traslada con `transform: translateX` (GPU) sobre
+ * una capa fija de acciones: nunca se superponen ni se deforman.
  *
- * Contenido de la fila en reposo: solo avatar, nombre, último mensaje,
- * hora y punto de no leído — nada más, por diseño (ver filosofía Signal
- * del documento de arquitectura).
+ * · Swipe a la derecha → Leído (borde) / Archivar.
+ * · Swipe a la izquierda → Fijar / Silenciar (borde).
+ * · Swipe completo pasado ~85% del límite ejecuta la acción del borde
+ *   (Leído al derecha, Silenciar a la izquierda) y la tarjeta regresa;
+ *   un swipe parcial deja la franja abierta y el usuario toca el botón.
+ * · Toque en la fila con la franja abierta la cierra sin hacer nada.
+ * · Resistencia (rubber band) al final del arrastre + retorno con resorte.
  */
 export function ConversationRow({
   name, avatarUrl, color, preview, time, unread, unreadCount = 0, active, muted, pinned,
-  onOpen, onToggleMute, onTogglePin, onMarkRead, onToggleArchive,
+  typingLabel, onOpen, onToggleMute, onTogglePin, onMarkRead, onToggleArchive,
 }: {
   name: string; avatarUrl: string | null; color: string | null; preview: string; time: string;
   unread: boolean; unreadCount?: number; active: boolean; muted: boolean; pinned: boolean;
+  typingLabel?: string | null;
   onOpen: () => void; onToggleMute: () => void; onTogglePin: () => void;
   onMarkRead: () => void; onToggleArchive: () => void;
 }) {
   const { dx, dragging, reset, bind } = useSwipeGesture({
-    maxOffset: ACTION_W,
-    threshold: ACTION_W * 0.4,
+    maxOffset: STRIP_W,
+    threshold: Math.round(STRIP_W * 0.45),
     stayOpenOnComplete: true,
+    executeOnFullSwipe: true,
+    onSwipeLeftComplete: onToggleMute,
+    onSwipeRightComplete: onMarkRead,
   });
 
   const openSide: "left" | "right" | null = dx <= -8 ? "left" : dx >= 8 ? "right" : null;
 
   return (
-    <div className="relative overflow-hidden rounded-[18px] select-none">
-      {/* Franja izquierda — visible al deslizar hacia la izquierda (dx negativo) */}
-      <div className="absolute inset-y-0 right-0 flex" style={{ width: ACTION_W }}>
-        <button
-          onClick={() => { onToggleMute(); reset(); }}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white text-[10.5px] font-semibold"
-          style={{ background: "var(--warn)" }}
-        >
-          <span className="text-[15px] leading-none">{muted ? "🔔" : "🔕"}</span>
-          {muted ? "Activar" : "Silenciar"}
-        </button>
-      </div>
-      <div className="absolute inset-y-0 right-0 flex" style={{ width: ACTION_W * 2, transform: `translateX(${ACTION_W}px)` }}>
-        <button
-          onClick={() => { onTogglePin(); reset(); }}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white text-[10.5px] font-semibold"
-          style={{ background: "var(--accent)" }}
-        >
-          <span className="text-[15px] leading-none">📌</span>
-          {pinned ? "Desfijar" : "Fijar"}
-        </button>
+    <div className="conv-card-shell relative overflow-hidden rounded-[18px] select-none">
+      {/* Capa de acciones — swipe a la derecha (dx>0) revela desde el borde
+          izquierdo: Leído primero, Archivar después. */
+      }
+      <div className="absolute inset-y-0 left-0 flex" style={{ width: STRIP_W }}>
+        <ActionButton icon="check" label="Leído" background={ACTION_COLORS.read} onClick={() => { onMarkRead(); reset(); }} />
+        <ActionButton icon="archive" label="Archivar" background={ACTION_COLORS.archive} onClick={() => { onToggleArchive(); reset(); }} />
       </div>
 
-      {/* Franja derecha — visible al deslizar hacia la derecha (dx positivo) */}
-      <div className="absolute inset-y-0 left-0 flex" style={{ width: ACTION_W * 2 }}>
-        <button
-          onClick={() => { onMarkRead(); reset(); }}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white text-[10.5px] font-semibold"
-          style={{ background: "var(--ok)" }}
-        >
-          <span className="text-[15px] leading-none">✓</span>
-          Leído
-        </button>
-        <button
-          onClick={() => { onToggleArchive(); reset(); }}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white text-[10.5px] font-semibold"
-          style={{ background: "var(--text-3)" }}
-        >
-          <span className="text-[15px] leading-none">🗂️</span>
-          Archivar
-        </button>
+      {/* Capa de acciones — swipe a la izquierda (dx<0) revela desde el borde
+          derecho: Silenciar (borde) y Fijar a su izquierda. */
+      }
+      <div className="absolute inset-y-0 right-0 flex" style={{ width: STRIP_W }}>
+        <ActionButton icon={pinned ? "pinOff" : "pin"} label={pinned ? "Desfijar" : "Fijar"} background={ACTION_COLORS.pin} onClick={() => { onTogglePin(); reset(); }} />
+        <ActionButton icon={muted ? "bell" : "bellOff"} label={muted ? "Activar" : "Silenciar"} background={ACTION_COLORS.mute} onClick={() => { onToggleMute(); reset(); }} />
       </div>
 
-      {/* Contenido — se desplaza dx px, arrastra consigo el clic normal (abrir).
-          El fondo vive en .chat-ws .conv-card (CSS) para tener hover, con el
-          estado activo por atributo data-active — inline no permite hover. */}
+      {/* Contenido — la tarjeta completa se desplaza dx px sobre la capa de
+          acciones. El fondo vive en .chat-ws .conv-card (CSS) para tener
+          hover, con el estado activo por atributo data-active. */
+      }
       <div
         {...bind}
         onClick={() => { if (openSide) { reset(); return; } onOpen(); }}
         data-active={active}
-        className="conv-card relative flex items-center gap-3 px-4 py-3 rounded-[18px] cursor-pointer touch-pan-y"
+        className="conv-card relative flex items-center gap-3 px-4 py-3.5 rounded-[18px] cursor-pointer touch-pan-y"
         style={{
           transform: `translateX(${dx}px)`,
-          transition: dragging ? "none" : "transform .25s var(--spring)",
+          transition: dragging ? "none" : "transform .3s var(--spring)",
         }}
       >
-        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={48} />
+        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={52} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            {pinned && <span className="text-[10px] leading-none" aria-hidden>📌</span>}
+            {pinned && <Icon name="pin" size={12} aria-hidden style={{ color: "var(--accent)", flexShrink: 0 }} />}
             <p className={`text-[15px] truncate ${unread ? "font-bold" : "font-semibold"}`}>{name}</p>
           </div>
-          <p
-            className="text-[13px] leading-snug line-clamp-2"
-            style={{ color: unread ? "var(--text-2)" : "var(--text-3)" }}
-          >
-            {preview}
-          </p>
+          {typingLabel ? (
+            <p className="text-[13px] leading-snug truncate" style={{ color: "var(--accent)" }}>{typingLabel}</p>
+          ) : (
+            <p
+              className="text-[13px] leading-snug truncate"
+              style={{ color: unread ? "var(--text-2)" : "var(--text-3)" }}
+            >
+              {preview}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0 self-start pt-0.5">
           <span className="text-[11.5px]" style={{ color: unread ? "var(--accent)" : "var(--text-3)" }}>{time}</span>
@@ -116,9 +134,25 @@ export function ConversationRow({
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: muted ? "var(--text-3)" : "var(--accent)" }} aria-label="No leído" />
             )
           )}
-          {muted && !unread && <span className="text-[11px]" style={{ color: "var(--text-3)" }} aria-label="Silenciado">🔕</span>}
+          {muted && !unread && (
+            <span className="grid place-items-center" style={{ color: "var(--text-3)" }} aria-label="Silenciado">
+              <Icon name="bellOff" size={13} />
+            </span>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+/**
+ * Wrapper de la lista: suscribe esta conversación al broadcast de "escribiendo…"
+ * (mismo canal efímero que usa la conversación abierta) y pinta el indicador
+ * en lugar del último mensaje mientras alguien más escribe.
+ */
+export function ConversationRowWithTyping({ conversationId, myId, ...props }: {
+  conversationId: string; myId: string;
+} & Parameters<typeof ConversationRow>[0]) {
+  const { typingLabel } = useTyping(conversationId, myId, "");
+  return <ConversationRow {...props} typingLabel={typingLabel} />;
 }

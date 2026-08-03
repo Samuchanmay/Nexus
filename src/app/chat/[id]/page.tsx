@@ -91,13 +91,13 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
 
   const [{ data: attachmentsRaw }, { data: pinnedRaw }, { data: recentFilesRaw }, { data: reactionsRaw }] = await Promise.all([
     messageIds.length > 0
-      ? supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at").in("message_id", messageIds)
+      ? supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, thumb_path, thumb_size, thumb_mime, medium_path, medium_size, medium_mime").in("message_id", messageIds)
       : Promise.resolve({ data: [] as EnlaceAttachment[] }),
     conversation.pinned_message_id
       ? supabase.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng").eq("id", conversation.pinned_message_id).maybeSingle()
       : Promise.resolve({ data: null }),
     // Archivos recientes de TODA la conversación (no solo la página cargada) — para el panel derecho.
-    supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, messages!inner(conversation_id)")
+    supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, thumb_path, thumb_size, thumb_mime, medium_path, medium_size, medium_mime, messages!inner(conversation_id)")
       .eq("messages.conversation_id", id).order("created_at", { ascending: false }).limit(20),
     messageIds.length > 0
       ? supabase.from("message_reactions").select("id, message_id, user_id, emoji, created_at").in("message_id", messageIds)

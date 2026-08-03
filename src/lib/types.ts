@@ -231,4 +231,12 @@ export interface EnlaceAttachment {
   file_size: number;
   mime_type: string;
   created_at: string;
+  /** Pipeline de imagen (0023): variantes WebP generadas en el cliente.
+      NULL en adjuntos antiguos o no-imagen — el render cae a `file_path`. */
+  thumb_path?: string | null;
+  thumb_size?: number | null;
+  thumb_mime?: string | null;
+  medium_path?: string | null;
+  medium_size?: number | null;
+  medium_mime?: string | null;
 }

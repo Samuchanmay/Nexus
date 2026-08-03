@@ -6,7 +6,7 @@ import { PersonRow, EmptyState } from "@/components/shared";
 import { useToast, Sheet, CheckBox } from "@/components/ui";
 import { Button, Input } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
-import { ConversationRow } from "@/components/chat/conversation-row";
+import { ConversationRowWithTyping } from "@/components/chat/conversation-row";
 import { chatNotificationsSupported, requestChatNotificationPermission } from "@/lib/chat/notify";
 import { nudgePushRegistration } from "@/lib/use-push-notifications";
 import type { EnlaceConversation } from "@/lib/types";
@@ -312,8 +312,10 @@ export default function ChatShell({
     const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
     const st = stateFor(c.id);
     return (
-      <ConversationRow
+      <ConversationRowWithTyping
         key={c.id}
+        conversationId={c.id}
+        myId={myId}
         name={name}
         avatarUrl={avatarUrl}
         color={color}
@@ -348,7 +350,7 @@ export default function ChatShell({
         <div className="flex flex-1 min-h-0">
           {/* Panel izquierdo — lista de conversaciones */}
           <div
-            className={`w-full md:w-[340px] shrink-0 md:border-r md:border-border flex-col ${atRoot ? "flex" : "hidden md:flex"}`}
+            className={`w-full md:w-[330px] shrink-0 md:border-r md:border-border flex-col ${atRoot ? "flex" : "hidden md:flex"}`}
             style={{ background: "var(--chat-list-bg)" }}
           >
             <div className="px-4 md:px-5 pt-4 md:pt-5 pb-3 shrink-0 space-y-3">
@@ -362,7 +364,7 @@ export default function ChatShell({
               <button
                 onClick={() => setNewOpen(true)}
                 data-ripple
-                className="w-full h-12 rounded-[16px] flex items-center justify-center gap-2 text-[14px] font-semibold text-white"
+                className="w-full h-12 rounded-[16px] flex items-center justify-center gap-2 text-[14px] font-semibold text-white transition-all duration-150 hover:brightness-110 active:scale-[.98]"
                 style={{ background: "var(--chat-bubble-out)", boxShadow: "0 8px 20px rgba(38,99,255,0.30)" }}
               >
                 <Icon name="plus" size={18} /> Nuevo mensaje
@@ -375,8 +377,10 @@ export default function ChatShell({
                     role="tab"
                     aria-selected={filter === k}
                     onClick={() => setFilter(k)}
-                    className="h-8 px-3.5 rounded-full text-[12.5px] font-semibold transition-colors"
-                    style={filter === k ? { background: "var(--accent)", color: "#FFFFFF" } : { color: "var(--text-3)" }}
+                    className="h-8 px-3.5 rounded-full text-[12.5px] font-semibold transition-all duration-150 bg-transparent hover:bg-hover active:scale-[.97]"
+                    style={filter === k
+                      ? { background: "var(--accent)", color: "#FFFFFF", boxShadow: "0 4px 14px rgba(38,99,255,0.35)" }
+                      : { color: "var(--text-3)" }}
                   >
                     {label}
                   </button>
@@ -456,7 +460,7 @@ export default function ChatShell({
                         style={{ color: "var(--text-3)" }}
                       >
                         <span>Archivadas ({archivedConversations.length})</span>
-                        <span>{showArchived ? "▲" : "▼"}</span>
+                        <Icon name={showArchived ? "chevronUp" : "chevronDown"} size={14} />
                       </button>
                       {showArchived && <div className="space-y-2.5 mt-2.5">{archivedConversations.map(renderRow)}</div>}
                     </div>

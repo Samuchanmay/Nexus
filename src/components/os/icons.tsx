@@ -59,13 +59,29 @@ const P: Record<string, React.ReactNode> = {
   more: <><circle cx="5" cy="12" r="1.1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.1" fill="currentColor" stroke="none" /></>,
   pencil: <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17l-1 4Z" />,
   trash: <><path d="M4 7h16M9 7V4h6v3" /><path d="M6 7l1 13h10l1-13" /><path d="M10 11v5M14 11v5" /></>,
+  bellOff: <><path d="M8.7 3.2A6 6 0 0 1 18 8c0 3.9 1.5 5.3 2 6H9" /><path d="M10 19a2 2 0 0 0 4 0" /><path d="m3 3 18 18" /></>,
+  smile: <><circle cx="12" cy="12" r="8.5" /><path d="M8.5 14.5a4.3 4.3 0 0 0 7 0" /><path d="M9 9.5h.01M15 9.5h.01" /></>,
+  reply: <><path d="M9 7 4 12l5 5" /><path d="M4 12h11a5 5 0 0 1 5 5v2" /></>,
+  image: <><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.6" /><path d="m20 16-3.4-3.4a1.6 1.6 0 0 0-2.2 0L8 19" /></>,
+  pinOff: <><path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.3" /><path d="m3.5 3.5 17 17" /></>,
+  file: <><path d="M6 3h8l5 5v13H6a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 6 3Z" /><path d="M14 3v5h5" /></>,
+  fileText: <><path d="M6 3h8l5 5v13H6a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 6 3Z" /><path d="M14 3v5h5" /><path d="M9 12.5h6M9 16h4" /></>,
+  fileVideo: <><path d="M6 3h8l5 5v13H6a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 6 3Z" /><path d="M14 3v5h5" /><path d="M10.5 13 15 15.3 10.5 17.5v-4.5Z" /></>,
+  fileAudio: <><path d="M6 3h8l5 5v13H6a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 6 3Z" /><path d="M14 3v5h5" /><circle cx="11" cy="16.5" r="1.8" /><path d="M12.8 16.5V11.5l2.7-.7" /></>,
+  fileArchive: <><path d="M6 3h8l5 5v13H6a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 6 3Z" /><path d="M14 3v5h5" /><path d="M9 12h6M9 15.5h4" /></>,
+  link: <><path d="M9.5 14.5l5-5" /><path d="M8 11.5 6 13.5a3.5 3.5 0 0 0 5 5l2-2" /><path d="M16 12.5l2-2a3.5 3.5 0 0 0-5-5l-2 2" /></>,
+  copy: <><rect x="9" y="9" width="11.5" height="11.5" rx="2" /><path d="M5.5 14.5h-1A1.5 1.5 0 0 1 3 13V5a1.5 1.5 0 0 1 1.5-1.5h8A1.5 1.5 0 0 1 14 5v1" /></>,
+  arrowDown: <path d="M12 5v14M6 13l6 6 6-6" />,
+  chevronUp: <path d="m6 15 6-6 6 6" />,
+  archive: <><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8" /><path d="M10 12.5h4" /></>,
+  slash: <><circle cx="12" cy="12" r="8.5" /><path d="m5.5 5.5 13 13" /></>,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {
   return (
     <svg
       width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"
+      stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
       aria-hidden {...rest}
     >
       {P[name] ?? P.dot}
