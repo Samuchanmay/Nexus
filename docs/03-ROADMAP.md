@@ -94,6 +94,118 @@ La dirección de diseño del chat NO es clonar una app: es sentirse como un clie
 - Integración con tareas/calendario/documentos desde el chat.
 - Resúmenes IA y búsqueda semántica IA de mensajes.
 
+### Chat · Requisitos de plataforma de mensajería moderna (checklist de terminado)
+
+Bloque de requisitos para que el chat deje de ser "un apartado de mensajería" y se convierta en una **plataforma de comunicación de nivel profesional** integrada a Emet (referencia: Slack/Teams/Signal/WhatsApp). Estado mapeado contra código real (`src/lib/chat/`, `src/app/chat/`). La sección §24 agrupa lo que se considera "terminado".
+
+**1 · Mensajería en tiempo real (CRÍTICO)** — sin recargas
+| Sub-punto | Estado | Notas |
+|---|---|---|
+| Aparece instantáneamente en el remitente | ✅ | `use-outbox` inserta en local antes que en el servidor |
+| Aparece instantáneamente en el destinatario | ✅ | Realtime Supabase (`postgres_changes` en `messages`) |
+| Actualiza la lista de conversaciones | ✅ | Realtime en `conversations` + `use-unread-count` |
+| Último mensaje, hora y contador | ✅ | Preview/hora/badge se refrescan en vivo |
+| Estado del mensaje | ✅ | `message-state.ts` (pending→sent→delivered→read→failed) |
+
+**2 · Notificaciones push**
+| Sub-punto | Estado | Notas |
+|---|---|---|
+| Navegador minimizado (notificación del SO) | ✅ | `public/sw.js` + VAPID + Edge `send-chat-push`; avatar/nombre/mensaje/hora/icono Emet |
+| PWA / Notification Center (Win/macOS/Linux) | ✅ | Emet ya es instalable (manifest + sw); el SO nativo entrega las notificaciones del navegador |
+| Móvil nativo (FCM Android / APNs iOS) | 🟢 | Requiere app nativa (Electron/Tauri/Flutter/RN); sonido, vibración, badge y abrir conversación quedan para esa fase |
+
+**3 · Configuración de notificaciones por conversación**
+| Opción | Estado | Notas |
+|---|---|---|
+| Silenciar (simple on/off) | ✅ | `nx_enlace_toggle_mute` |
+| Silenciar por duración (8 h / 1 semana / siempre) | 🟡 | Pendiente (ya anotado en N1) — requiere RPC con duración |
+| Sonido / vibración / vista previa / banner / contador | 🟢 | No existe toggle fino por conversación |
+| Notificar menciones únicamente | 🟢 | Requiere parser de menciones + RPC de preferencias |
+
+**4 · Sonidos** — propios de Emet, nunca los del navegador
+| Sonido | Estado |
+|---|---|
+| Recibido | ✅ `playMessageReceived()` (Web Audio, sintetizado — propio de Emet) |
+| Enviado / error / reacción / mención / nuevo grupo / archivo / llamada / videollamada | 🟢 |
+
+**5 · Vibración (móvil)**
+| Evento | Estado |
+|---|---|
+| Mensaje (20 ms) | 🟡 | Solo hay háptica del swipe (8 ms) hoy |
+| Llamada (patrón largo) / mención (doble) | 🟢 |
+
+**6 · Estados del mensaje** (Enviando → ✓ → ✓✓ gris → ✓✓ azul) — ✅ completo en `message-state.ts` + `MessageStatusIcon`.
+
+**7 · Confirmaciones de lectura**
+| Sub-punto | Estado | Notas |
+|---|---|---|
+| Enviado/entregado/leído por mensaje | ✅ | RPCs `nx_enlace_mark_*` |
+| Hora y dispositivo de la lectura | 🟡 | Se guarda `read_at`; falta exponer hora/dispositivo en UI |
+| "Leído por … (con hora)" en grupos | 🟢 | Requiere lectura de `message_reads` por participante |
+
+**8 · Escribiendo…** — ✅ `use-typing` (broadcast Realtime, auto-stop 2.5s, multi-usuario) con `TypingDots` animados en lista y header.
+
+**9 · Grabando un audio** — 🟢 No existe el indicador "X está grabando un audio" (la grabación como tal sí existe, `use-audio-recorder`).
+
+**10 · Subiendo archivo con progreso** — ✅ Porcentaje real + estado "Subiendo archivo… N%" en el composer; nunca "Cargando…" a secas.
+
+**11 · Editar mensajes**
+| Sub-punto | Estado | Notas |
+|---|---|---|
+| Solo mensajes propios, marca "editado" | ✅ | RPC `nx_enlace_edit_message` (0021) + `EditMessageInline` |
+| Ventana de edición configurable (15 min / 30 / 1 h / siempre) | 🟢 | |
+| Historial para administradores (si la empresa lo activa) | 🟢 | Requiere tabla de versiones |
+
+**12 · Eliminar mensajes**
+| Sub-punto | Estado | Notas |
+|---|---|---|
+| Eliminar (para todos), borrado suave + aviso en vivo | ✅ | RPC `nx_enlace_delete_message` (0021/0022); "Eliminaste este mensaje" / "X eliminó un mensaje" |
+| "Eliminar para mí" | 🟢 | Requiere estado por participante |
+| Ventana de eliminación configurable | 🟢 | |
+
+**13 · Responder con miniatura estilo Signal** — 🟡 El swipe-to-reply existe y cita el mensaje; falta la miniatura/preview rica del original.
+
+**14 · Reenviar** — ✅ `ForwardSheet` a 1 conversación; 🟢 selección múltiple (varias conversaciones, grupos, canales).
+
+**15 · Copiar (texto/imagen/link/código)** — ✅ Menú contextual → "Copiar" (texto). Copiar imagen/link/código 🟢.
+
+**16 · Buscar mensajes**
+| Sub-punto | Estado | Notas |
+|---|---|---|
+| Texto dentro de la conversación | ✅ | `ConversationSearch` (debounce, salto + resaltado) |
+| Cross-conversación | 🟡 | Pendiente (ya en tabla Fase 3) |
+| Por persona / archivo / fecha / reacción | 🟢 | Requiere filtros + índices |
+
+**17 · Mensajes fijados arriba** — ✅ `togglePin` + banner de pinned message en la conversación (con preview).
+
+**18 · Indicador online**
+| Estado | Status |
+|---|---|
+| "En línea" / "Hace N min" | ✅ `formatPresence` (header, InfoPanel, dot en lista desde N3) |
+| "Escribiendo…" | ✅ |
+| "Grabando…" | 🟢 |
+
+**19 · Sincronización multi-dispositivo (PC/móvil/tablet)** — 🟡 El estado llega por Realtime en vivo; el outbox es por pestaña (falta `BroadcastChannel` para sincronizar la cola entre pestañas — ya anotado en la auditoría del chat).
+
+**20 · Historial persistente (cerrar sesión / cambiar de dispositivo)** — ✅ Los mensajes viven en Supabase (RLS); nunca se pierden.
+
+**21 · Reconexión** — ✅ Pill "Sin conexión — reconectando…" en la lista cuando el navegador se va offline; 🟡 falta el estado "Conectado" explícito al volver.
+
+**22 · Cola offline (envío automático al reconectar)** — ✅ `use-outbox` con `client_id` idempotente; 🟢 retry automático con backoff (anotado en la tabla Fase 3).
+
+**23 · Estados de presencia (Activo/Ausente/No molestar/Fuera/Invisible)** — 🟢 No existen más allá de online/last_seen; requiere tabla `presence` + heartbeat por estado.
+
+**24 · Requisitos para que el chat se considere terminado**
+
+| Área | Estado |
+|---|---|
+| Mensajería (tiempo real, estados, escribiendo/grabando, editar, eliminar 1/1, responder/reenviar/reacciones, búsqueda) | 🟡 Faltan: "eliminar para mí", "grabando…", miniatura en responder, búsqueda cross/persona/archivo/fecha/reacción |
+| Notificaciones (push navegador, móvil, sonidos, vibración, badges, config por conversación) | 🟡 Push navegador ✅; móvil/APNs 🟢; sonidos/vibración/config 🟡🟢 |
+| Sincronización (realtime multi-dispositivo, cola offline, reconexión, sin pérdida) | 🟡 Realtime + outbox ✅; outbox multi-tab 🟢; retry backoff 🟢 |
+| Archivos (WebP/AVIF compresión, video transcodificado + miniaturas, docs con preview, audio player, stickers y GIF) | 🟡 Imágenes WebP + audio player + stickers ✅; video/GIF 🟢; docs con preview 🟢; AVIF 🟢 |
+
+Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación profesional integrada a Emet.
+
 ## Fase 4 · EMU (inteligencia contextual)
 
 | Item | Estado | Notas |
@@ -139,3 +251,5 @@ La dirección de diseño del chat NO es clonar una app: es sentirse como un clie
 ## Próximo hito sugerido
 
 Consolidar **Fase 2 (retrofit tipográfico W2/W3)** y **Fase 3 (búsqueda cross-conversación)**, que son los únicos items 🟡 con código ya existente a medias. Ambos son puramente de UX y no requieren cambios de esquema.
+
+Para elevar el chat a plataforma de comunicación profesional, el siguiente bloque de trabajo (todos 🟡/🟢 del checklist §Chat) sin cambios de esquema: **indicador "grabando…"**, **outbox multi-pestaña (BroadcastChannel)**, **silenciar por duración**, y **confirmaciones de lectura con hora**.

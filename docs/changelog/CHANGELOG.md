@@ -2,6 +2,12 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-03 · Roadmap del chat — checklist de plataforma de mensajería profesional (24 puntos)
+
+- **Nuevo bloque en `docs/03-ROADMAP.md` (Fase 3)**: "Requisitos de plataforma de mensajería moderna" — los 24 puntos del equipo mapeados contra código real (✅/🟡/🟢): tiempo real, push (navegador ✅ / móvil 🟢), configuración por conversación, sonidos, vibración, estados del mensaje, confirmaciones de lectura, escribiendo/grabando, progreso de subida, editar/eliminar, responder/reenviar/copiar, búsqueda, fijados, online, sincronización, historial, reconexión, cola offline, presencia y checklist de terminado por área.
+- **Confirmado contra el repo** (auditoría `src/app/chat/CHAT-DESIGN-SYSTEM-REVIEW.md`): tiempo real (Realtime Supabase), estados del mensaje (`message-state.ts`), escribiendo (`use-typing`), push VAPID, progreso de subida, editar/eliminar, reenviar, fijados, cola offline (`use-outbox`) y sonido de recibido ya existen.
+- **Próximo bloque sugerido** (todo sin cambios de esquema): indicador "grabando…", outbox multi-pestaña (BroadcastChannel), silenciar por duración y confirmaciones de lectura con hora.
+
 ## 2026-08-03 · Feedback N3 del chat — arquitectura visual y Design Language
 
 - **Layout de 4 columnas full-bleed** (patrón Signal Desktop): sin marco ni contenedor centrado — el módulo ocupa todo el ancho (`Shell` `wide` → `main md:p-0` + `max-w-none`). Sidebar 220 · Lista 380 · Conversación flexible · InfoPanel 340 como 3.ª columna SIEMPRE visible en desktop (antes overlay), colapsable en pantallas medianas. Altura del chat `calc(100dvh-3.5rem)`.
