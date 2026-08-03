@@ -91,7 +91,7 @@ export const HREF: Record<Role, Record<string, string>> = {
     jornada: "/comunicacion/jornada",
     vacaciones: "/admin/vacaciones",
     incidencias: "/admin/incidencias",
-    asistencia: "/admin/nexus",
+    asistencia: "/admin/asistencia",
     "dias-inhabiles": "/admin/dias-inhabiles",
     recorridos: "/preptour",
   },

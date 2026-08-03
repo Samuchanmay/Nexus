@@ -25,7 +25,7 @@ export interface ContextHeaderInput {
       el mensaje debe recalcularse (ver blockKeyOf en este mismo archivo). */
   todayISO: string;
   isBirthdayToday: boolean;
-  /** Estado de vacaciones — Nexus solo administra vacaciones de admin/empleado. */
+  /** Estado de vacaciones — Emet solo administra vacaciones de admin/empleado. */
   vacation: { today: boolean; soonDays: number | null; returnedRecently: boolean };
   /** Pendientes relevantes para el rol (solicitudes+vacaciones+incidencias en
       admin; tareas propias en empleado). */

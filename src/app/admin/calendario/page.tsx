@@ -9,7 +9,7 @@ import CalendarioClient, { type TeamMember, type ProjectDeadline, type VacationR
    L5 · Calendario del equipo — tres vistas (Asistencia / Actividades
    / Vacaciones) sobre el mismo mes, con días inhábiles como contexto
    compartido. La vista de Asistencia es el heatmap heredado de
-   cert_nexus; Actividades y Vacaciones son nuevas.
+   cert; Actividades y Vacaciones son nuevas.
    ═══════════════════════════════════════════════════════════════ */
 
 export default async function Calendario({ searchParams }: { searchParams: Promise<{ m?: string; d?: string }> }) {
@@ -47,7 +47,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
   const efemerides = efemSetting?.value ? await getTodayEfemerides(efemSetting.value) : [];
 
   // Eventos externos ya agendados en el calendario "Eventos CERT" (Google) —
-  // incluye eventos creados directamente en Google, no solo los de Nexus.
+  // incluye eventos creados directamente en Google, no solo los de Emet.
   // No bloquea la página si falla (calendario privado sin permiso conectado, etc.)
   // pero SÍ deja rastro visible del error — antes fallaba en silencio y no
   // había forma de saber por qué dejaban de aparecer los eventos.

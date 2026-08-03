@@ -1,6 +1,6 @@
 "use client";
 // ═══════════════════════════════════════════════════════════════
-//  L2 · Asistencia — Vista del día (fusión del legado cert_nexus)
+//  L2 · Asistencia — Vista del día (fusión del legado cert)
 //  Toggle Tabla ⇄ Gantt diario por persona con línea "Ahora" viva.
 //  Todo con tokens v6; datos 100 % Supabase (server page los junta).
 // ═══════════════════════════════════════════════════════════════

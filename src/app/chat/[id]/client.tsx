@@ -249,7 +249,7 @@ export default function EnlaceConversationClient({
     setMessages((cur) => {
       // No dejar crecer la lista sin límite en una sesión muy larga —
       // recorta las más viejas del lado contrario a donde se está
-      // navegando. A la escala real de Nexus esto casi nunca se alcanza.
+      // navegando. A la escala real de Emet esto casi nunca se alcanza.
       const combined = [...older, ...cur];
       return combined.length > MAX_MESSAGES_BEFORE_TRIM ? combined.slice(combined.length - MAX_MESSAGES_BEFORE_TRIM) : combined;
     });
@@ -640,7 +640,7 @@ export default function EnlaceConversationClient({
       />
 
       {/* Columna de conversación — permiso explícito del usuario para romper
-          aquí, solo aquí, el molde de página normal de Nexus. Vive dentro
+          aquí, solo aquí, el molde de página normal de Emet. Vive dentro
           del panel derecho de ChatShell, que reserva la altura fija bajo el
           header del Shell; aquí solo se llena ese panel (h-full) y solo la
           franja de mensajes tiene scroll propio, con encabezado y

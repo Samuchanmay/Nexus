@@ -1,6 +1,6 @@
 "use client";
 // ═══════════════════════════════════════════════════════════════
-//  Mi Día · rediseño sobre el sistema Nexus OS (Card/Badge/Button)
+//  Mi Día · rediseño sobre el sistema Emet OS (Card/Badge/Button)
 //  Misma lógica de siempre, solo cambia la piel visual:
 //  Time tracking real: iniciar · pausar · reanudar · finalizar
 //  (pausar = cerrar sesión de tiempo; reanudar = nueva sesión)

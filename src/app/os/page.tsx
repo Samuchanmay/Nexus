@@ -97,7 +97,7 @@ function Today() {
 
       {/* Galería del sistema de diseño */}
       <Card>
-        <SectionTitle hint="oscuro + claro">Sistema de diseño · Nexus OS</SectionTitle>
+        <SectionTitle hint="oscuro + claro">Sistema de diseño · Emet OS</SectionTitle>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <Row label="Botones">
@@ -132,7 +132,7 @@ function Today() {
             <div className="rounded-m border border-border overflow-hidden">
               <EmptyState
                 icon="sparkle" title="Estado vacío con propósito"
-                hint="Cuando no hay datos, Nexus guía en vez de mostrar una tabla vacía."
+                hint="Cuando no hay datos, Emet guía en vez de mostrar una tabla vacía."
                 action={<Button variant="primary" size="sm" icon="plus">Crear la primera</Button>}
               />
             </div>

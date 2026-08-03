@@ -1,4 +1,4 @@
-// NEXUS · Edge Function: send-chat-push
+// EMET · Edge Function: send-chat-push
 // Envía la notificación push (Web Push vía service worker) a los
 // participantes de una conversación del chat que tienen una suscripción
 // guardada — EXCEPTO el remitente y quien silenció la conversación. Se

@@ -7,7 +7,7 @@ type ThemeCtx = { theme: Theme; toggle: () => void; set: (t: Theme) => void };
 const Ctx = createContext<ThemeCtx>({ theme: "light", toggle: () => {}, set: () => {} });
 
 /**
- * Provider de tema de Nexus. El arranque real (evitar parpadeo) vive en
+ * Provider de tema de Emet. El arranque real (evitar parpadeo) vive en
  * layout.tsx, que ya aplica data-theme="dark" antes del render. Aquí solo
  * sincronizamos el estado de React con ese atributo y persistimos el cambio.
  */

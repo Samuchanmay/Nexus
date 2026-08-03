@@ -1,7 +1,7 @@
-// NEXUS · Edge Function: weekly-attendance-report
+// EMET · Edge Function: weekly-attendance-report
 // Arma un resumen semanal de asistencia por persona y lo envía a RRHH por
 // correo (Resend, mismo patrón que notify-vacation). Se puede invocar a mano
-// desde admin/nexus ("Enviar ahora") o vía pg_cron cada lunes.
+// desde admin/asistencia ("Enviar ahora") o vía pg_cron cada lunes.
 // Deploy con --no-verify-jwt: la invoca pg_cron sin sesión de usuario; usa el
 // service role internamente para todo, así que no necesita un JWT de
 // llamador y no expone nada sensible en su respuesta (solo agregados).
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     );
 
     // Body vacío (o no-JSON) = invocación de pg_cron; { manual: true } = botón
-    // "Enviar ahora" en admin/nexus. El switch de app_settings solo apaga el
+    // "Enviar ahora" en admin/asistencia. El switch de app_settings solo apaga el
     // envío automático — el botón manual siempre funciona.
     const body = await req.json().catch(() => ({}));
     const manual = (body as { manual?: boolean })?.manual === true;
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Nexus <nexus@cert.edu.mx>",
+        from: "Emet <nexus@cert.edu.mx>",
         to: [to],
         subject: `📊 Reporte semanal de asistencia — ${lastMonday} a ${lastSunday}`,
         html: `
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
               </thead>
               <tbody>${rowsHtml}</tbody>
             </table>
-            <p style="color:#A1A1A6;font-size:12px;margin-top:32px">Generado automáticamente por Nexus.</p>
+            <p style="color:#A1A1A6;font-size:12px;margin-top:32px">Generado automáticamente por Emet.</p>
           </div>`,
       }),
     });

@@ -10,7 +10,7 @@ const SEEN_KEY = "nx-assistant-popup-seen";
 const SNOOZE_KEY = "nx-pausa-activa-snooze-until";
 const SNOOZE_MIN = 10;
 
-/** Ilustración propia de Nexus — taza + vapor, estilo flat monolínea (mismo
+/** Ilustración propia de Emet — taza + vapor, estilo flat monolínea (mismo
     lenguaje que components/icons.tsx). Reemplaza el emoji ☕ unicode que
     tenía antes: este popup ya no usa ningún emoji (punto 2 del rediseño). */
 function CoffeeIllustration({ size = 24 }: { size?: number }) {

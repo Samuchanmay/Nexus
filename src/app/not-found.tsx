@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-/* 404 con la identidad visual de Nexus — antes se veía la página cruda de
+/* 404 con la identidad visual de Emet — antes se veía la página cruda de
    Next.js (fondo negro plano, tipografía default), rompiendo el Design
    System en cuanto alguien llegaba a un enlace roto o viejo. */
 export default function NotFound() {

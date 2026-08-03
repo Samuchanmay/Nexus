@@ -272,13 +272,13 @@ Deno.serve(async (req) => {
         </p>
 
         <p style="color:#A1A1A6;font-size:12px;margin-top:32px">
-          Revísala en <a href="https://nexus-samu09.vercel.app/admin/vacaciones">Nexus → Vacaciones</a> una vez que tengas el VoBo.<br/>
+          Revísala en <a href="https://emet.uno/admin/vacaciones">Emet → Vacaciones</a> una vez que tengas el VoBo.<br/>
           Hecho con ❤️ por Samu Chan
         </p>
       </div>`;
 
     const fromHeader = sender.email
-      ? `${encodeHeaderWord(sender.display_name ?? "Nexus")} <${sender.email}>`
+      ? `${encodeHeaderWord(sender.display_name ?? "Emet")} <${sender.email}>`
       : undefined;
     const subject = `Solicitud de vacaciones --- ${u.display_name}`;
     const mime = [

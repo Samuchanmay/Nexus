@@ -13,7 +13,7 @@
 
 ### "Sidebar colapsada 88-96px / expandida 240px"
 
-No aplica. EMET ya tiene un AppShell con sidebar (`Nexus OS`). El chat vive dentro de ese shell. No debe tener su propia sidebar — contradice la integración nativa que acabamos de hacer.
+No aplica. EMET ya tiene un AppShell con sidebar (`Emet OS`). El chat vive dentro de ese shell. No debe tener su propia sidebar — contradice la integración nativa que acabamos de hacer.
 
 ### "Llamada / Video en la cabecera"
 

@@ -19,7 +19,7 @@ type PendingEntry = {
  * reintento — la pieza central del comportamiento "nunca se pierde, nunca
  * se duplica" que pedía la referencia de Signal.
  *
- * No persiste en IndexedDB: a la escala real de Nexus (ver documento de
+ * No persiste en IndexedDB: a la escala real de Emet (ver documento de
  * arquitectura, ~20 usuarios) el estado en memoria + reintento al
  * reconectar cubre el caso real de "se cortó el wifi un momento". Si el
  * usuario cierra la pestaña con mensajes en `pending`, esos se pierden —

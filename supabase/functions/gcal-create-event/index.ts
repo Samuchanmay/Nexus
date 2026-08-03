@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: "faltan-datos" }, { status: 400, headers: cors });
     }
 
-    // allDay: start/end son "YYYY-MM-DD" (fin exclusivo, como el resto de Nexus).
+    // allDay: start/end son "YYYY-MM-DD" (fin exclusivo, como el resto de Emet).
     // Si no, start/end son "YYYY-MM-DDTHH:mm:ss" para un evento con hora.
     const startField = allDay ? { date: start } : { dateTime: start, timeZone: "America/Merida" };
     const endField = allDay ? { date: end } : { dateTime: end, timeZone: "America/Merida" };

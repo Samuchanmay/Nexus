@@ -28,7 +28,7 @@ const GROUPS: Group[] = [
       { href: "/admin/biblioteca", title: "Biblioteca", desc: "Archivo de actividades terminadas.", icon: "book" },
       { href: "/admin/equipo", title: "Carga del equipo", desc: "Distribución de trabajo activo.", icon: "users" },
       { href: "/admin/empleados", title: "Equipo (usuarios)", desc: "Invitar, dar de baja, roles.", icon: "users" },
-      { href: "/admin/nexus", title: "Asistencia", desc: "Tabla / Gantt / Semana + reporte por correo.", icon: "clock" },
+      { href: "/admin/asistencia", title: "Asistencia", desc: "Tabla / Gantt / Semana + reporte por correo.", icon: "clock" },
       { href: "/admin/dias-inhabiles", title: "Días inhábiles", desc: "Lista + vista de mes.", icon: "calendar" },
       { href: "/admin/vacaciones", title: "Vacaciones (aprobación)", desc: "Saldo, semáforo, cancelaciones.", icon: "plane" },
       { href: "/admin/incidencias", title: "Incidencias", desc: "Permisos, incapacidades, etc.", icon: "alert" },

@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════
-//  EMU · Tipos base — capa de inteligencia contextual de Nexus
+//  EMU · Tipos base — capa de inteligencia contextual de Emet
 //  Fase 1: motor de reglas deterministas, sin LLM (ver
 //  EMU-ARQUITECTURA.md). Context Engine → Decision Engine →
 //  Surface. La UI (Banner/Toast/Card) nunca decide POR SÍ SOLA

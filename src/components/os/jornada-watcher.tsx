@@ -5,7 +5,7 @@
 //  totalmente independientes entre sí (Samu, corrección de lógica
 //  de jornada — cronómetro / estado / recordatorios / heartbeat NO
 //  se mezclan):
-//   1. Heartbeat: si la persona sigue usando Nexus, sin afectar el
+//   1. Heartbeat: si la persona sigue usando Emet, sin afectar el
 //      cálculo de horas — solo referencia para RH si luego olvida
 //      registrar su salida.
 //   2. Recordatorios a los 30/60/120 min de pasar el objetivo,

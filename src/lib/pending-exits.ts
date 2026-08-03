@@ -123,7 +123,7 @@ export async function requestRhValidation(
     p_title: "Salida pendiente de validar",
     p_body: `Alguien del equipo pidió confirmar manualmente su salida del ${date}.`,
     p_kind: "incident",
-    p_link: "/admin/nexus",
+    p_link: "/admin/asistencia",
   });
   return { ok: true };
 }

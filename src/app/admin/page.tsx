@@ -202,7 +202,7 @@ export default async function AdminDashboard() {
       const start = toMin((s?.start_time ?? "09:00:00").slice(0, 5));
       const expected = start + (s?.tolerance_min ?? 15);
       if (nowMin > expected) {
-        alerts.push({ icon: "alarm", text: `${p.display_name} aún no inicia jornada (se esperaba a las ${hhmm(start)})`, tone: "warn", href: "/admin/nexus" });
+        alerts.push({ icon: "alarm", text: `${p.display_name} aún no inicia jornada (se esperaba a las ${hhmm(start)})`, tone: "warn", href: "/admin/asistencia" });
       }
     }
   }
@@ -343,7 +343,7 @@ export default async function AdminDashboard() {
         <div className="pt-4" style={{ borderTop: "1px solid var(--border)" }}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12.5px] font-bold" style={{ color: "var(--text-3)" }}>Equipo</span>
-            <Link href="/admin/nexus" className="text-[12.5px] font-semibold text-accent">Ver asistencia →</Link>
+            <Link href="/admin/asistencia" className="text-[12.5px] font-semibold text-accent">Ver asistencia →</Link>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3.5 pb-3.5 border-b border-border">
             <span className="flex items-center gap-1.5 text-[12px] font-semibold text-text-2"><Badge tone="ok" dot>{pulse.presentes}</Badge> presentes</span>

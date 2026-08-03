@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, error: "archivo-muy-grande" }, { status: 413, headers: cors });
     }
 
-    const boundary = "nexus-" + crypto.randomUUID();
+    const boundary = "emet-" + crypto.randomUUID();
     const metadata = JSON.stringify({ name: fileName });
     const body = new Blob([
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,

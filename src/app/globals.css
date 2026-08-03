@@ -452,7 +452,7 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 *::-webkit-scrollbar-thumb{ background:var(--border); border-radius:99px; }
 *::-webkit-scrollbar-thumb:hover{ background:var(--text-3); }
 
-/* Ámbito del nuevo shell (Nexus OS) */
+/* Ámbito del nuevo shell (Emet OS) */
 .nx-os{ font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", sans-serif; color:var(--text-1); -webkit-font-smoothing:antialiased; }
 .nx-os *{ box-sizing:border-box; }
 .nx-scroll{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }

@@ -1,6 +1,6 @@
 "use client";
 // RH · Solo lectura. RH ve horas laboradas y vacaciones aprobadas.
-// NUNCA ve retardos ni faltas — no existen en Nexus.
+// NUNCA ve retardos ni faltas — no existen en Emet.
 import { useMemo, useState } from "react";
 import { SlidingSegments, Avatar, Pill, Select } from "@/components/ui";
 import { summarizeDay, fmtMin, scheduleFor } from "@/lib/hours";
@@ -235,7 +235,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
     const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `nexus-rh-${period.toLowerCase()}-${todayMerida()}.csv`;
+    a.download = `emet-rh-${period.toLowerCase()}-${todayMerida()}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
   };

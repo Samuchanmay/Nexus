@@ -1,6 +1,6 @@
 "use client";
 /**
- * AppShell — conecta el Shell de Nexus OS (diseño/tema/spotlight, ya construido
+ * AppShell — conecta el Shell de Emet OS (diseño/tema/spotlight, ya construido
  * en /os) con la navegación real de la app (rutas de Next.js, sin estado local).
  * Cada rol solo ve los ítems de NAV que ya tienen una página real (HREF abajo);
  * lo que aún no existe simplemente no aparece (nada de datos/enlaces inventados).
@@ -46,7 +46,7 @@ const SUBTITLES: Record<string, string> = {
   "/comunicacion/vacaciones": "Tiempo · Vacaciones",
   "/admin/incidencias": "Tiempo · Incidencias",
   "/comunicacion/incidencias": "Tiempo · Incidencias",
-  "/admin/nexus": "Tiempo · Asistencia",
+  "/admin/asistencia": "Tiempo · Asistencia",
   "/admin/dias-inhabiles": "Tiempo · Días inhábiles",
   "/notificaciones": "Notificaciones",
 };

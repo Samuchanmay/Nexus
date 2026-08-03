@@ -6,7 +6,7 @@
  *
  * · Permisos: getUserMedia pide el permiso al abrir; si se deniega o no
  *   hay cámara, se muestra el error dentro de la hoja (nunca un throw).
- * · Requiere contexto seguro (https o localhost) — en la PWA de Nexus se
+ * · Requiere contexto seguro (https o localhost) — en la PWA de Emet se
  *   cumple; en un entorno de prueba http://LAN hay que usar la app con
  *   https para que el navegador permita el stream.
  * · El stream se libera (stop de tracks) al cerrar o desmontar.

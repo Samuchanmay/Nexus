@@ -1,6 +1,6 @@
 "use client";
 // ═══════════════════════════════════════════════════════════════
-//  L4 · Carga del equipo con panel contextual (legado cert_nexus)
+//  L4 · Carga del equipo con panel contextual (legado cert)
 //  Clic en una persona → Sheet deslizante con su detalle completo
 //  (jornada de hoy, tareas activas, vacaciones próximas, incidencias)
 //  sin salir de la vista.

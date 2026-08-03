@@ -1,7 +1,7 @@
-// NEXUS · Edge Function: gcal-list-events
+// EMET · Edge Function: gcal-list-events
 // Lee eventos de un Google Calendar privado (ej. "Eventos CERT") dentro de
 // un rango de fechas, usando el permiso guardado de quien esté viendo el
-// Calendario en Nexus. A diferencia de Efemérides (que es un calendario
+// Calendario en Emet. A diferencia de Efemérides (que es un calendario
 // público leído por ICS sin login), este calendario es privado y sólo se
 // puede leer con OAuth — por eso necesita esta función en vez de un fetch
 // directo al ICS público.
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
 
     const tokenResult = await getFreshAccessToken(admin, profile.id);
     if ("error" in tokenResult) {
-      // No bloquea: el calendario del equipo en Nexus sigue funcionando con
+      // No bloquea: el calendario del equipo en Emet sigue funcionando con
       // sus propios datos, solo no se agregan los eventos externos.
       return Response.json({ ok: false, error: tokenResult.error, events: [] }, { status: 200, headers: cors });
     }

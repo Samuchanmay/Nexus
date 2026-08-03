@@ -1,5 +1,5 @@
 "use client";
-// NEXUS · Descarga del reporte semanal de asistencia en Excel real (.xlsx),
+// EMET · Descarga del reporte semanal de asistencia en Excel real (.xlsx),
 // agrupado por empleado y semana — mismo formato que el checador legado
 // (Control_Asistencias_Semanal): un bloque de color por persona, con
 // Día/Fecha/Hora Entrada/Hora Salida/Hora Entrada/Hora Salida/Horas

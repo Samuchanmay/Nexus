@@ -88,13 +88,3 @@ export function Icon({ name, size = 20, ...rest }: { name: string; size?: number
     </svg>
   );
 }
-
-/** Marca de Nexus (isotipo). */
-export function NexusMark({ size = 26 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
-      <rect width="32" height="32" rx="9" fill="var(--accent)" />
-      <path d="M10 22V10l12 12V10" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}

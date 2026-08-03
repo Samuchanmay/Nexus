@@ -6,7 +6,7 @@ import { Icon } from "@/components/os/icons";
 /**
  * Hoja inferior del botón "+" del compositor — reemplaza la fila de
  * botones sueltos por un solo punto de entrada, como pedía la referencia
- * de Signal. Reusa el componente `Sheet` que ya existe en todo Nexus, no
+ * de Signal. Reusa el componente `Sheet` que ya existe en todo Emet, no
  * se inventó un overlay nuevo.
  *
  * FASE cierre (0022): ya NO hay opciones deshabilitadas — Cámara (foto en
@@ -16,7 +16,7 @@ import { Icon } from "@/components/os/icons";
  * en su propio flujo; esta hoja solo es el menú de entrada.
  *
  * Ronda V2 (diseño): las opciones pasan de emojis a iconos del set nativo
- * de Nexus (mismo trazo Lucide del resto de la app), cada una en un círculo
+ * de Emet (mismo trazo Lucide del resto de la app), cada una en un círculo
  * tintado del acento — patrón iOS/Signal, con estados hover/pressed/focus.
  */
 export function AttachmentSheet({

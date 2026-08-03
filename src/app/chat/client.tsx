@@ -338,7 +338,8 @@ export default function ChatShell({
   return (
     // Altura fija reservada bajo el header del Shell (y la tab bar inferior
     // en celular) — la única franja de la app donde el layout normal de
-    // Nexus se rompe a propósito: aquí ambos paneles (o el único visible en
+    // en celular) — la única franja de la app donde el layout normal de
+    // Emet se rompe a propósito: aquí ambos paneles (o el único visible en
     // celular) ocupan toda esa altura, sin que la página entera se desplace.
     // .chat-ws aplica el scope del workspace premium (paleta, sombras,
     // radios) a todo lo que vive dentro, sin tocar el resto de la app.

@@ -1,6 +1,6 @@
 "use client";
 /* ═══════════════════════════════════════════════════════════════
-   Date Sheet — el ÚNICO componente de selección de fechas en Nexus.
+   Date Sheet — el ÚNICO componente de selección de fechas en Emet.
    Un solo motor visual (CalendarGrid) + una sola cáscara de
    interacción (DateSheetShell), portados a document.body para que
    NUNCA queden detrás de un Card, Sheet o Modal por temas de
@@ -327,7 +327,7 @@ export function DateField({ value, onChange, className, placeholder = "dd/mm/aaa
   );
 }
 
-/* ── DatePicker: día único. Único selector de fecha simple de Nexus —
+/* ── DatePicker: día único. Único selector de fecha simple de Emet —
    Actividades, Solicitudes, Incidencias, Empleados, Proyectos, Días
    inhábiles, Horarios, o cualquier formulario futuro. ── */
 export function DatePicker({ value, onChange, placeholder = "dd/mm/aaaa", className, minDate, maxDate, disabled }: {
