@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, useToast } from "@/components/ui";
-import { IconButton, SkelRow } from "@/components/os/ui";
+import { IconButton, SkelRow, Skel } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { useOutbox } from "@/lib/chat/use-outbox";
 import { useAttachmentUpload } from "@/lib/chat/use-attachment-upload";
@@ -14,6 +14,7 @@ import { formatPresence } from "@/lib/chat/format-presence";
 import { playMessageReceived } from "@/lib/chat/sound";
 import { showIncomingChatNotification, messageNotificationBody } from "@/lib/chat/notify";
 import { MessageStatusIcon } from "@/components/chat/message-status";
+import { STATUS_LABEL, type MessageStatus } from "@/lib/chat/message-state";
 import { ReactionStrip, ReactionPicker } from "@/components/chat/reactions";
 import { AttachmentSheet } from "@/components/chat/attachment-sheet";
 import { ConversationSearch } from "@/components/chat/conversation-search";
@@ -21,6 +22,7 @@ import { ForwardSheet } from "@/components/chat/forward-sheet";
 import { StickerPicker } from "@/components/chat/sticker-picker";
 import { CameraCapture } from "@/components/chat/camera-capture";
 import { SmartImage } from "@/components/chat/smart-image";
+import { TypingDots } from "@/components/chat/typing-indicator";
 import type { EnlaceAttachment, EnlaceConversation, EnlaceMessage, EnlaceReaction } from "@/lib/types";
 import type { ParticipantLite } from "../client";
 
@@ -157,7 +159,7 @@ export default function EnlaceConversationClient({
   useEffect(() => {
     if (recorderError) toast(recorderError, "danger");
   }, [recorderError, toast]);
-  const { typingLabel, notifyTyping } = useTyping(conversation.id, myId, peopleById.get(myId)?.display_name ?? "Alguien");
+  const { typingText, notifyTyping } = useTyping(conversation.id, myId, peopleById.get(myId)?.display_name ?? "Alguien");
 
   const other = conversation.type === "direct" ? participants.find((p) => p.id !== myId) : null;
   const title = conversation.type === "announcement" ? (conversation.name ?? "Anuncios")
@@ -166,7 +168,7 @@ export default function EnlaceConversationClient({
   const presence = other ? formatPresence(other.last_seen_at) : null;
   const subtitle = conversation.type === "announcement"
     ? (myRole === "admin" ? "Solo tú y otros admins pueden publicar" : "Solo administradores pueden publicar")
-    : typingLabel
+    : typingText
     ?? (conversation.type === "group"
       ? `${participants.length} ${participants.length === 1 ? "integrante" : "integrantes"}`
       : presence ?? undefined);
@@ -605,6 +607,17 @@ export default function EnlaceConversationClient({
     setConfirmDelete(null);
   };
 
+  const copyMessage = async (m: EnlaceMessage) => {
+    const text = m.content ?? (m.type === "sticker" ? "Sticker" : "");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Mensaje copiado.", "ok");
+    } catch {
+      toast("No se pudo copiar el mensaje.", "danger");
+    }
+    setMenuFor(null);
+  };
+
   const openForward = (m: EnlaceMessage) => {
     setForwardMsg(m);
     setForwardAtt(attachmentsByMessage[m.id] ?? null);
@@ -655,12 +668,12 @@ export default function EnlaceConversationClient({
 
         <div
           onClick={() => setInfoOpen((v) => !v)}
-          className="flex items-center gap-2.5 px-4 h-[60px] shrink-0 cursor-pointer"
+          className="flex items-center gap-2.5 px-4 h-[52px] shrink-0 cursor-pointer"
           style={{ background: "var(--chat-header-bg)", borderBottom: "0.5px solid var(--border)" }}
         >
           <IconButton icon="chevron" label="Volver" onClick={(e) => { e?.stopPropagation(); router.push("/chat"); }} style={{ transform: "scaleX(-1)" }} className="md:hidden" />
           <div className="relative shrink-0">
-            <Avatar name={title} avatarUrl={other?.avatar_url ?? conversation.avatar_url} color={other?.nexus_color ?? "#5856D6"} size={40} />
+            <Avatar name={title} avatarUrl={other?.avatar_url ?? conversation.avatar_url} color={other?.nexus_color ?? "#5856D6"} size={36} />
             {conversation.type === "direct" && other?.last_seen_at && (
               <span
                 className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
@@ -674,9 +687,11 @@ export default function EnlaceConversationClient({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[17px] font-bold tracking-tight truncate">{title}</p>
+            <p className="text-[16px] font-bold tracking-tight truncate">{title}</p>
             {subtitle && (
-              <p className="text-[12.5px] truncate" style={{ color: typingLabel ? "var(--accent)" : "var(--text-2)" }}>{subtitle}</p>
+              <p className="text-[12.5px] truncate inline-flex items-center" style={{ color: typingText ? "var(--accent)" : "var(--text-2)" }}>
+                {subtitle}{typingText && <TypingDots />}
+              </p>
             )}
           </div>
           <IconButton
@@ -757,6 +772,7 @@ export default function EnlaceConversationClient({
                 key={m.id}
                 ref={(el) => { if (el) msgEls.current.set(m.id, el); else msgEls.current.delete(m.id); }}
                 className="relative"
+                onContextMenu={(e) => { if (!m.deleted_at) { e.preventDefault(); setConfirmDelete(null); setMenuFor((v) => (v === m.id ? null : m.id)); } }}
                 style={{
                   borderRadius: 10,
                   transition: "box-shadow .35s var(--ease)",
@@ -818,8 +834,17 @@ export default function EnlaceConversationClient({
                     mine={mine}
                     deletable
                     editable={mine && m.type === "text"}
+                    isPinned={isPinned}
+                    puedoFijar={puedoFijar}
                     confirming={confirmDelete === m.id}
+                    sentLabel={timeOnly(m.created_at)}
+                    statusLabel={STATUS_LABEL[m.status]}
+                    edited={!!m.edited}
+                    onReact={() => setReactionPickerFor(reactionPickerFor === m.id ? null : m.id)}
+                    onReply={() => setReplyTo(m)}
+                    onCopy={() => copyMessage(m)}
                     onEdit={() => beginEdit(m)}
+                    onTogglePin={() => togglePin(m.id)}
                     onForward={() => openForward(m)}
                     onAskDelete={() => setConfirmDelete(m.id)}
                     onCancelDelete={() => setConfirmDelete(null)}
@@ -872,7 +897,7 @@ export default function EnlaceConversationClient({
         <div className="pt-2 pb-1 shrink-0" style={{ background: "var(--bg)" }}>
           {puedoEscribir ? (
             recording ? (
-              <div className="flex items-center gap-1.5 rounded-[22px] border border-border px-2 py-1.5 min-h-[52px]" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
+              <div className="flex items-center gap-1.5 rounded-[20px] border border-border px-1.5 py-1 min-h-[46px] transition-all duration-150 focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--ring)]" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
                 <IconButton
                   icon="close"
                   label="Cancelar nota de audio"
@@ -896,7 +921,7 @@ export default function EnlaceConversationClient({
                 />
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 rounded-[22px] border border-border px-2 py-1.5 min-h-[52px]" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
+              <div className="flex items-center gap-1 rounded-[20px] border border-border px-1.5 py-1 min-h-[46px] transition-all duration-150 focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--ring)]" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
                 <IconButton
                   icon="plus"
                   label="Adjuntar"
@@ -912,7 +937,7 @@ export default function EnlaceConversationClient({
                   onKeyDown={onKeyDown}
                   placeholder={upload.status === "uploading" ? `Subiendo archivo… ${upload.progress}%` : "Escribe un mensaje..."}
                   rows={1}
-                  className="flex-1 resize-none bg-transparent px-1 py-2 text-[14px] focus:outline-none max-h-[120px]"
+                  className="flex-1 resize-none bg-transparent px-1 py-1.5 text-[14px] focus:outline-none max-h-[120px] placeholder:text-[var(--text-3)]"
                 />
                 {draft.trim() ? (
                   <IconButton
@@ -929,7 +954,7 @@ export default function EnlaceConversationClient({
                     label="Grabar nota de audio"
                     onClick={() => void startRecording()}
                     disabled={upload.status === "uploading"}
-                    className="shrink-0 !h-12 !w-12"
+                    className="shrink-0 !h-[46px] !w-[46px]"
                     data-ripple
                     style={{ borderRadius: 999, background: "var(--accent)", color: "#FFFFFF", boxShadow: "0 8px 20px rgba(38,99,255,0.30)" }}
                   />
@@ -1000,7 +1025,7 @@ function MessageBubble({
   if (deleted) {
     return (
       <div className={`flex ${mine ? "justify-end" : "justify-start"} ${prevSameSender ? "mt-0.5" : "mt-2"}`}>
-        <div className="max-w-[78%] rounded-[12px] px-3 py-2" style={{ background: "var(--surface-2)", boxShadow: "var(--shadow-1)" }}>
+        <div className="max-w-[72%] rounded-[18px] px-3 py-2" style={{ background: "var(--surface-2)", boxShadow: "var(--shadow-1)" }}>
           <p className="text-[12.5px] italic flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
             <Icon name="slash" size={13} aria-hidden /> Mensaje eliminado
           </p>
@@ -1025,7 +1050,7 @@ function MessageBubble({
       )}
       <div
         {...bind}
-        className={`flex items-end gap-1.5 max-w-[78%] touch-pan-y ${mine ? "flex-row-reverse" : ""}`}
+        className={`flex items-end gap-1.5 max-w-[72%] touch-pan-y ${mine ? "flex-row-reverse" : ""}`}
         style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .15s var(--spring)" }}
       >
         {!mine && showAvatar ? (
@@ -1055,8 +1080,23 @@ function MessageBubble({
               <Icon name="more" size={15} />
             </button>
             <div className="relative">
+              {/* Cola sutil al cambiar de remitente (Signal): triángulo
+                  recortado con clip-path del mismo color de la burbuja,
+                  pegado a la esquina inferior exterior. Solo en la primera
+                  burbuja del grupo, nunca en stickers ni eliminadas. */}
+              {!prevSameSender && m.type !== "sticker" && (
+                <span
+                  aria-hidden
+                  className="absolute -bottom-[2px] w-3.5 h-3.5"
+                  style={{
+                    [mine ? "right" : "left"]: -5,
+                    background: mine ? "var(--chat-bubble-sent-bg)" : "var(--chat-bubble-received-bg)",
+                    clipPath: mine ? "polygon(0 0, 100% 100%, 0 100%)" : "polygon(100% 0, 100% 100%, 0 100%)",
+                  }}
+                />
+              )}
               <div
-                className={m.type === "sticker" ? "rounded-[12px]" : "rounded-[12px] shadow-sm overflow-hidden"}
+                className={m.type === "sticker" ? "rounded-[16px]" : "rounded-[18px] shadow-sm overflow-hidden"}
                 style={m.type === "sticker"
                   ? { color: "var(--text-3)" }
                   : mine
@@ -1085,11 +1125,14 @@ function MessageBubble({
                         medium={mediumUrl}
                         original={originalUrl}
                         alt={attachment.file_name}
-                        className="block rounded-[12px] max-w-[280px] mb-1 relative overflow-hidden"
+                        className="block rounded-[14px] max-w-[280px] mb-1 relative overflow-hidden"
                       />
                     ) : (
-                      <div className="w-[240px] h-[170px] rounded-[12px] mb-1 flex items-center justify-center" style={{ background: "var(--chat-card-inner)" }}>
-                        <span className="text-[11px]" style={{ color: "var(--text-3)" }}>Cargando imagen…</span>
+                      <div className="w-[240px] h-[170px] rounded-[12px] mb-1 overflow-hidden" style={{ background: "var(--chat-card-inner)" }}>
+                        <div className="relative h-full w-full">
+                          <Skel className="absolute inset-0 !rounded-none" />
+                          <span className="absolute bottom-2.5 left-3 text-[11px]" style={{ color: "var(--text-3)" }}>Cargando imagen…</span>
+                        </div>
                       </div>
                     )
                   )}
@@ -1177,17 +1220,20 @@ function MessageBubble({
                 </div>
               </div>
 
-              {/* Botón de reacción — visible siempre a baja opacidad (no
-                  solo en hover) para que funcione igual en pantallas
-                  táctiles sin necesidad de un long-press separado. */}
-              <button
-                onClick={onOpenReactionPicker}
-                className="absolute -bottom-2.5 opacity-50 hover:!opacity-100 transition-all duration-150 rounded-full w-6 h-6 grid place-items-center hover:scale-110 active:scale-95"
-                style={{ [mine ? "left" : "right"]: -6, background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "var(--shadow-1)" } as React.CSSProperties}
-                title="Reaccionar"
-              >
-                <Icon name="smile" size={14} aria-hidden />
-              </button>
+              {/* Botón de reacción — Signal no permite reaccionar a tus
+                  propios mensajes, así que solo existe en mensajes de otros.
+                  Visible siempre a baja opacidad (no solo en hover) para que
+                  funcione igual en pantallas táctiles sin long-press. */}
+              {!mine && (
+                <button
+                  onClick={onOpenReactionPicker}
+                  className="absolute -bottom-2.5 opacity-50 hover:!opacity-100 transition-all duration-150 rounded-full w-6 h-6 grid place-items-center hover:scale-110 active:scale-95"
+                  style={{ [mine ? "left" : "right"]: -6, background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "var(--shadow-1)" } as React.CSSProperties}
+                  title="Reaccionar"
+                >
+                  <Icon name="smile" size={14} aria-hidden />
+                </button>
+              )}
 
               {reactionPickerOpen && (
                 <div className={`absolute z-10 top-full mt-2 ${mine ? "right-0" : "left-0"}`}>
@@ -1197,7 +1243,7 @@ function MessageBubble({
             </div>
           </div>
           <div className={mine ? "self-end" : "self-start"}>
-            <ReactionStrip reactions={reactions} myId={myId} onToggle={onPickReaction} />
+            <ReactionStrip reactions={reactions} myId={myId} onToggle={mine ? undefined : onPickReaction} />
           </div>
         </div>
       </div>
@@ -1249,7 +1295,9 @@ function InfoPanel({
           {conversation.type === "announcement" ? `Suscritos (${participants.length})`
             : conversation.type === "group" ? `Miembros (${participants.length})` : "Conversación directa"}
         </p>
-        <div className="rounded-[16px] p-4 space-y-3 mb-5" style={{ background: "var(--surface)" }}>
+        {/* Lista plana — sin tarjeta contenedora (spec chat §2: secciones
+            separadas, nunca tarjetas). */}
+        <div className="mb-5 px-1 space-y-3">
           {participants.map((p) => {
             const presence = formatPresence(p.last_seen_at);
             return (
@@ -1272,9 +1320,9 @@ function InfoPanel({
         </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-5 px-1">
         <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Perfil</p>
-        <div className="rounded-[16px] p-4 space-y-2.5" style={{ background: "var(--surface)" }}>
+        <div className="space-y-2.5">
           {conversation.type === "direct" && otherProfile ? (
             <>
               {otherProfile.area && <MetaRow icon="building" label="Área" value={otherProfile.area} />}
@@ -1292,9 +1340,9 @@ function InfoPanel({
         </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-5 px-1">
         <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Detalles</p>
-        <div className="rounded-[16px] p-4 space-y-2" style={{ background: "var(--surface)" }}>
+        <div className="space-y-2">
           <p className="text-[12.5px]" style={{ color: "var(--text-1)" }}>
             <span className="font-semibold">Tipo: </span>
             {conversation.type === "announcement" ? "Anuncios de la empresa"
@@ -1314,12 +1362,11 @@ function InfoPanel({
         </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-5 px-1">
         <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Notificaciones</p>
         <button
           onClick={onToggleMuted}
-          className="w-full flex items-center justify-between rounded-[16px] px-4 py-3"
-          style={{ background: "var(--surface)" }}
+          className="w-full flex items-center justify-between py-1.5 rounded-[10px] px-1 hover:bg-hover transition-colors"
         >
           <span className="text-[12.5px] font-medium" style={{ color: "var(--text-1)" }}>
             {muted ? "Silenciado" : "Notificaciones activas"}
@@ -1348,9 +1395,9 @@ function InfoPanel({
         {recentFiles.length === 0 ? (
           <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin archivos todavía.</p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-0.5">
             {shown.map((f) => (
-              <div key={f.id} className="flex items-center gap-2.5 rounded-[12px] px-2.5 py-2" style={{ background: "var(--surface)" }}>
+              <div key={f.id} className="flex items-center gap-2.5 rounded-[10px] px-2 py-2 hover:bg-hover transition-colors">
                 <span className="shrink-0" style={{ color: "var(--accent)" }} aria-hidden>
                   <Icon name={fileIcon(f.mime_type)} size={16} />
                 </span>
@@ -1434,28 +1481,49 @@ function EditMessageInline({
   );
 }
 
-/** Menú flotante del mensaje (⋯) — editar / reenviar / eliminar. El panel de
-    confirmación de borrado se muestra en su lugar (mismo popover), así el
-    clic que abre "Eliminar" está pegado a su confirmación. */
+/** Menú flotante del mensaje (⋯ o clic derecho) — estilo WhatsApp/Signal:
+    Reaccionar, Responder, Reenviar, Copiar, Fijar/Desfijar, Editar (solo
+    propios), ─, Eliminar, y al final una ficha informativa de envío/lectura.
+    El panel de confirmación de borrado se muestra en su lugar (mismo
+    popover), así el clic que abre "Eliminar" está pegado a su confirmación. */
 function MessageMenu({
-  mine, editable, deletable, confirming, onEdit, onForward, onAskDelete, onCancelDelete, onDelete, onClose,
+  mine, editable, deletable, isPinned, puedoFijar, confirming, sentLabel, statusLabel, edited,
+  onReact, onReply, onCopy, onEdit, onTogglePin, onForward, onAskDelete, onCancelDelete, onDelete, onClose,
 }: {
   mine: boolean;
   editable: boolean;
   deletable: boolean;
+  isPinned: boolean;
+  puedoFijar: boolean;
   confirming: boolean;
+  sentLabel: string;
+  statusLabel: string;
+  edited: boolean;
+  onReact: () => void;
+  onReply: () => void;
+  onCopy: () => void;
   onEdit: () => void;
+  onTogglePin: () => void;
   onForward: () => void;
   onAskDelete: () => void;
   onCancelDelete: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const Item = ({ icon, label, danger, onClick }: { icon: string; label: string; danger?: boolean; onClick: () => void }) => (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-2.5 h-9 rounded-[8px] text-[12.5px] font-semibold text-left hover:bg-hover transition-colors"
+      style={{ color: danger ? "var(--danger)" : "var(--text-1)" }}
+    >
+      <Icon name={icon} size={14} style={{ color: danger ? "var(--danger)" : "var(--text-3)", flexShrink: 0 }} /> {label}
+    </button>
+  );
   return (
     <>
       <div className="fixed inset-0 z-[8]" onClick={onClose} />
       <div
-        className={`absolute z-10 top-full mt-1 min-w-[168px] rounded-[14px] p-1 ${mine ? "right-0" : "left-0"}`}
+        className={`absolute z-10 top-full mt-1 min-w-[186px] rounded-[14px] p-1 ${mine ? "right-0" : "left-0"}`}
         style={{ background: "var(--panel)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-2)", animation: "nx-menu-in .16s var(--ease)" }}
       >
         {confirming ? (
@@ -1481,33 +1549,27 @@ function MessageMenu({
           </div>
         ) : (
           <>
-            {editable && (
-              <button
-                onClick={onEdit}
-                className="w-full flex items-center gap-2.5 px-2.5 h-9 rounded-[8px] text-[12.5px] font-semibold text-left hover:bg-hover transition-colors"
-                style={{ color: "var(--text-1)" }}
-              >
-                <Icon name="pencil" size={14} style={{ color: "var(--text-3)", flexShrink: 0 }} /> Editar
-              </button>
+            {!mine && (
+              <Item icon="smile" label="Reaccionar" onClick={() => { onReact(); onClose(); }} />
             )}
-            {deletable && (
-              <button
-                onClick={onForward}
-                className="w-full flex items-center gap-2.5 px-2.5 h-9 rounded-[8px] text-[12.5px] font-semibold text-left hover:bg-hover transition-colors"
-                style={{ color: "var(--text-1)" }}
-              >
-                <Icon name="send" size={14} style={{ color: "var(--text-3)", flexShrink: 0 }} /> Reenviar
-              </button>
+            <Item icon="reply" label="Responder" onClick={() => { onReply(); onClose(); }} />
+            {deletable && <Item icon="send" label="Reenviar" onClick={() => { onForward(); onClose(); }} />}
+            <Item icon="copy" label="Copiar" onClick={() => { onCopy(); }} />
+            {puedoFijar && (
+              <Item icon={isPinned ? "pinOff" : "pin"} label={isPinned ? "Desfijar mensaje" : "Fijar mensaje"} onClick={() => { onTogglePin(); onClose(); }} />
             )}
+            {editable && <Item icon="pencil" label="Editar" onClick={() => { onEdit(); onClose(); }} />}
             {mine && deletable && (
-              <button
-                onClick={onAskDelete}
-                className="w-full flex items-center gap-2.5 px-2.5 h-9 rounded-[8px] text-[12.5px] font-semibold text-left hover:bg-hover transition-colors"
-                style={{ color: "var(--danger)" }}
-              >
-                <Icon name="trash" size={14} style={{ color: "var(--danger)", flexShrink: 0 }} /> Eliminar
-              </button>
+              <>
+                <div className="h-px my-1 mx-1" style={{ background: "var(--border)" }} />
+                <Item icon="trash" label="Eliminar" danger onClick={onAskDelete} />
+              </>
             )}
+            <div className="h-px my-1 mx-1" style={{ background: "var(--border)" }} />
+            <div className="px-2.5 py-1.5 space-y-0.5">
+              <p className="text-[10.5px] font-bold" style={{ color: "var(--text-2)" }}>Enviado {sentLabel}</p>
+              <p className="text-[10.5px]" style={{ color: "var(--text-3)" }}>{statusLabel}{edited ? " · editado" : ""}</p>
+            </div>
           </>
         )}
       </div>

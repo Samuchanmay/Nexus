@@ -215,7 +215,7 @@ function DateSheetShell({
     };
     return createPortal(
       <div className="fixed inset-0 z-[900] flex items-end justify-center"
-        style={{ background: "rgba(0,0,0,.4)", backdropFilter: "blur(12px)" }}
+        style={{ background: "rgba(0,0,0,.42)", backdropFilter: "blur(18px) saturate(.75) brightness(.72)", WebkitBackdropFilter: "blur(18px) saturate(.75) brightness(.72)" }}
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div ref={panelRef} tabIndex={-1} onKeyDown={handleKeyDown} className="w-full max-w-[520px] flex flex-col outline-none"
           style={{
@@ -252,8 +252,10 @@ function DateSheetShell({
     <div
       className="fixed inset-0 z-[900] flex items-center justify-center px-4"
       style={{
-        background: visible ? "rgba(0,0,0,.35)" : "rgba(0,0,0,0)",
-        backdropFilter: visible ? "blur(6px)" : "blur(0px)",
+        // Scrim Signal (spec chat §1) — igual que CenteredOverlay.
+        background: visible ? "rgba(0,0,0,.42)" : "rgba(0,0,0,0)",
+        backdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
+        WebkitBackdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
         // Misma causa raíz que overlay.tsx::CenteredOverlay — ver esa nota.
         // DateSheetShell es el DatePicker/DateRangeField de escritorio, el
         // control más usado dentro del Drawer de Equipo (fecha de ingreso +

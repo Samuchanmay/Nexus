@@ -649,15 +649,16 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 /* Tarjeta de conversación en la lista — el fondo va en CSS (no inline)
    para poder tener hover sobre la clase, con el estado activo por
    atributo (lo pinta ConversationRow). */
-.chat-ws .conv-card { background: var(--surface); box-shadow: var(--shadow-1); }
+/* Filas planas estilo Signal — sin tarjeta, sin sombra, sin división:
+   solo el fondo hover/activo marca la fila (spec chat §1: la lista debe
+   tener "menos sombras, bordes y divisiones, más aire"). */
+.chat-ws .conv-card { background: transparent; box-shadow: none; }
 .chat-ws .conv-card:hover { background: var(--chat-hover-row); }
 .chat-ws .conv-card[data-active="true"],
-.chat-ws .conv-card[data-active="true"]:hover { background: var(--chat-list-active); box-shadow: none; }
+.chat-ws .conv-card[data-active="true"]:hover { background: var(--chat-list-active); }
 
-/* Elevación al hover — la fila "levanta" 2px sobre su sombra (el swipe
-   interno conserva su propio transform inline para deslizar). */
-.chat-ws .conv-card-shell { transition: transform .18s var(--ease); }
-.chat-ws .conv-card-shell:hover { transform: translateY(-2px); }
+/* Sin elevación al hover — las filas planas no levantan, solo se tiñen. */
+.chat-ws .conv-card-shell { transition: none; }
 
 /* Scrollbar fina (2px, casi invisible) dentro del workspace — solo se
    insinúa al pasar el ratón sobre el contenedor que hace scroll. */
@@ -678,6 +679,13 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 
 /* Entrada de menús y popovers: scale + fade */
 @keyframes nx-menu-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* Ondulación del indicador "está escribiendo…": el punto sube y gana
+   opacidad; cada uno desfasa 150ms (spec chat §1: micro, ≤220ms). */
+@keyframes nx-typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
 
 /* Movimiento reducido — el chat respeta la preferencia del sistema
    (accesibilidad): sin animaciones ni transiciones cuando el usuario

@@ -405,8 +405,11 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: {
   return createPortal(
     <div className="fixed inset-0 z-[500] flex items-end justify-center"
       style={{
-        background: visible ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
-        backdropFilter: visible ? "blur(14px)" : "blur(0px)",
+        // Scrim Signal: oscurece + desenfoca + baja saturación y contraste
+        // de lo que hay detrás (spec chat §1) — no es solo un overlay negro.
+        background: visible ? "rgba(0,0,0,.42)" : "rgba(0,0,0,0)",
+        backdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
+        WebkitBackdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
         pointerEvents: visible ? "all" : "none",
         transition: "background .35s var(--ease), backdrop-filter .35s var(--ease)",
       }}

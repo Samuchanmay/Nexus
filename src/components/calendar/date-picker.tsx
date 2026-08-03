@@ -84,7 +84,7 @@ export function CalendarDatePicker({
       {mounted && createPortal(
         <div
           className="fixed inset-0 z-[600] grid place-items-center px-4 transition-opacity"
-          style={{ background: "rgba(0,0,0,.32)", backdropFilter: "blur(6px)", opacity: visible ? 1 : 0 }}
+          style={{ background: "rgba(0,0,0,.42)", backdropFilter: "blur(18px) saturate(.75) brightness(.72)", WebkitBackdropFilter: "blur(18px) saturate(.75) brightness(.72)", opacity: visible ? 1 : 0 }}
           onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
           <div

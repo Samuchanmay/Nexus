@@ -196,8 +196,10 @@ export function NotificationBell({ userId }: { userId: string }) {
             isDesktop
               ? { background: "transparent", pointerEvents: visible ? "all" : "none" }
               : {
-                  background: visible ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
-                  backdropFilter: visible ? "blur(14px)" : "blur(0px)",
+                  // Scrim Signal (spec chat §1) — fondo del bottom sheet móvil.
+                  background: visible ? "rgba(0,0,0,.42)" : "rgba(0,0,0,0)",
+                  backdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
+                  WebkitBackdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
                   pointerEvents: visible ? "all" : "none",
                   transition: "background .35s var(--ease), backdrop-filter .35s var(--ease)",
                 }

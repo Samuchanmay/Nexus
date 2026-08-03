@@ -2,6 +2,20 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-03 · Polaco N1 del chat (Signal + WhatsApp Desktop + Apple Messages)
+
+- **Scrim Signal unificado** en todos los overlays (Sheet, Dialog, CenteredOverlay, DateSheet, Notificaciones móviles, PausaActiva, calendario): `rgba(0,0,0,.42)` + `blur(18px) saturate(.75) brightness(.72)`. Corrige la clase completa de clics fantasma (`pointer-events`) en overlays que faltaban (Dialog, PausaActiva, date-sheet móvil). ADR-0016.
+- **Burbujas premium**: máx 72%, radio 18px, cola sutil al cambiar de remitente, imágenes 14px sin sombras pesadas, gap reducido.
+- **Reacciones estilo Signal**: solo a mensajes de OTROS; la franja es de solo lectura en mensajes propios (`ReactionStrip` con `onToggle` opcional).
+- **Skeletons en imágenes**: el fallback "Cargando imagen…" ahora es `Skel` con shimmer + fade de carga en `SmartImage`.
+- **Compositor compacto**: 46px, padding reducido, focus ring, micrófono 2px menor que enviar, placeholder tenue.
+- **Lista de conversaciones**: filas planas (sin tarjetas/sombras/elevación), avatars 48px, separación 2px, buscador pastilla estilo Signal (icono 14, placeholder gris).
+- **Header compacto** (52px, avatar 36) y **panel informativo por secciones sin tarjetas** (miembros, perfil, detalles, notificaciones, archivos).
+- **Animaciones**: ticks de leído con pop (220ms), indicador de escritura con tres puntos animados (`typing-indicator.tsx`, keyframe `nx-typing-dot`) en lista y header.
+- **Menús contextuales de clic derecho**: mensaje (Reaccionar/Responder/Reenviar/Copiar/Fijar/Editar/Eliminar/Info) y conversación (Fijar/Silenciar/Archivar/Marcar leído/Abrir), vía `context-menu.tsx` (portal, recorte a viewport, Esc/scroll cierra).
+- **SPEC-004**: emojis Apple únicamente (canon), reacciones solo a otros.
+- Docs: ROADMAP con Niveles 1/2/3, DECISIONES-PENDIENTES P-008/P-009, ADR-0016, EMOJIS.md, EMET_CANON.md, CHANGELOG.
+
 ## 2026-08-03 · Rebrand completo Nexus → Emet (`be31144`)
 
 - Rename de ruta visible `/admin/nexus` → `/admin/asistencia` (10 edits de rutas/textos).

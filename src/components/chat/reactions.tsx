@@ -9,7 +9,7 @@ const REACTION_SET = ["👍", "❤️", "😂", "😮", "😢", "👏", "🎉"];
     parte del mensaje, no como una fila aparte. */
 export function ReactionStrip({
   reactions, myId, onToggle,
-}: { reactions: EnlaceReaction[]; myId: string; onToggle: (emoji: string) => void }) {
+}: { reactions: EnlaceReaction[]; myId: string; onToggle?: (emoji: string) => void }) {
   if (reactions.length === 0) return null;
   const byEmoji = new Map<string, EnlaceReaction[]>();
   for (const r of reactions) {
@@ -17,24 +17,38 @@ export function ReactionStrip({
     list.push(r);
     byEmoji.set(r.emoji, list);
   }
+  const readOnly = !onToggle;
   return (
     <div className="relative z-[2] flex flex-wrap gap-1 -mt-2">
       {Array.from(byEmoji.entries()).map(([emoji, list]) => {
         const mine = list.some((r) => r.user_id === myId);
+        const inner = (
+          <>
+            <span className="text-[16px] leading-none" aria-hidden>{emoji}</span>
+            {list.length > 1 && <span style={{ color: mine ? "var(--accent)" : "var(--text-3)" }}>{list.length}</span>}
+          </>
+        );
+        const style = {
+          background: mine ? "var(--accent-tint)" : "var(--panel)",
+          border: mine ? "1px solid var(--accent)" : "1px solid var(--border)",
+          boxShadow: mine ? "0 4px 12px rgba(38,99,255,0.25)" : "0 2px 8px rgba(0,0,0,0.18)",
+          color: "var(--text-1)",
+        };
+        if (readOnly) {
+          return (
+            <span key={emoji} className="flex items-center gap-1 h-7 px-2 rounded-full text-[11px] font-semibold leading-none" style={style}>
+              {inner}
+            </span>
+          );
+        }
         return (
           <button
             key={emoji}
             onClick={() => onToggle(emoji)}
             className="flex items-center gap-1 h-7 px-2 rounded-full text-[11px] font-semibold leading-none transition-all duration-150 hover:scale-105 active:scale-95"
-            style={{
-              background: mine ? "var(--accent-tint)" : "var(--panel)",
-              border: mine ? "1px solid var(--accent)" : "1px solid var(--border)",
-              boxShadow: mine ? "0 4px 12px rgba(38,99,255,0.25)" : "0 2px 8px rgba(0,0,0,0.18)",
-              color: "var(--text-1)",
-            }}
+            style={style}
           >
-            <span className="text-[16px] leading-none" aria-hidden>{emoji}</span>
-            {list.length > 1 && <span style={{ color: mine ? "var(--accent)" : "var(--text-3)" }}>{list.length}</span>}
+            {inner}
           </button>
         );
       })}

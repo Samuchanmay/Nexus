@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { useSwipeGesture } from "@/lib/chat/use-swipe-gesture";
 import { useTyping } from "@/lib/chat/use-typing";
+import { TypingDots } from "@/components/chat/typing-indicator";
 
 /** Ancho fijo de cada acción (spec Signal: 72–80 px). La franja completa
     mide dos acciones; al deslizar la tarjeta se revela entera. */
@@ -72,7 +73,7 @@ export function ConversationRow({
   const openSide: "left" | "right" | null = dx <= -8 ? "left" : dx >= 8 ? "right" : null;
 
   return (
-    <div className="conv-card-shell relative overflow-hidden rounded-[18px] select-none">
+    <div className="conv-card-shell relative overflow-hidden rounded-[14px] select-none">
       {/* Capa de acciones — swipe a la derecha (dx>0) revela desde el borde
           izquierdo: Leído primero, Archivar después. */
       }
@@ -97,20 +98,20 @@ export function ConversationRow({
         {...bind}
         onClick={() => { if (openSide) { reset(); return; } onOpen(); }}
         data-active={active}
-        className="conv-card relative flex items-center gap-3 px-4 py-3.5 rounded-[18px] cursor-pointer touch-pan-y"
+        className="conv-card relative flex items-center gap-3 px-4 py-3 rounded-[14px] cursor-pointer touch-pan-y"
         style={{
           transform: `translateX(${dx}px)`,
           transition: dragging ? "none" : "transform .3s var(--spring)",
         }}
       >
-        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={52} />
+        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={48} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {pinned && <Icon name="pin" size={12} aria-hidden style={{ color: "var(--accent)", flexShrink: 0 }} />}
             <p className={`text-[15px] truncate ${unread ? "font-bold" : "font-semibold"}`}>{name}</p>
           </div>
           {typingLabel ? (
-            <p className="text-[13px] leading-snug truncate" style={{ color: "var(--accent)" }}>{typingLabel}</p>
+            <p className="text-[13px] leading-snug truncate inline-flex items-center" style={{ color: "var(--accent)" }}>{typingLabel}<TypingDots /></p>
           ) : (
             <p
               className="text-[13px] leading-snug truncate"
@@ -153,6 +154,6 @@ export function ConversationRow({
 export function ConversationRowWithTyping({ conversationId, myId, ...props }: {
   conversationId: string; myId: string;
 } & Parameters<typeof ConversationRow>[0]) {
-  const { typingLabel } = useTyping(conversationId, myId, "");
-  return <ConversationRow {...props} typingLabel={typingLabel} />;
+  const { typingText } = useTyping(conversationId, myId, "");
+  return <ConversationRow {...props} typingLabel={typingText} />;
 }

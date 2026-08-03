@@ -343,8 +343,11 @@ export function Dialog({
     <div
       className="fixed inset-0 z-[600] flex items-center justify-center px-4"
       style={{
-        background: visible ? "rgba(0,0,0,.38)" : "rgba(0,0,0,0)",
-        backdropFilter: visible ? "blur(14px)" : "blur(0px)",
+        // Scrim Signal (spec chat §1): oscurece + blur + baja saturación/
+        // contraste del fondo; el contenido detrás nunca compite visualmente.
+        background: visible ? "rgba(0,0,0,.42)" : "rgba(0,0,0,0)",
+        backdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
+        WebkitBackdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
         pointerEvents: visible ? "all" : "none",
         transition: "background .28s var(--ease), backdrop-filter .28s var(--ease)",
       }}

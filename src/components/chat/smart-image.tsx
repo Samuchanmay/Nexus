@@ -46,7 +46,11 @@ export function SmartImage({
         loading="lazy"
         onLoad={() => setLoaded(true)}
         className="relative h-full w-full object-cover"
-        style={loaded ? undefined : { opacity: 0 }}
+        style={{
+          opacity: loaded ? 1 : 0,
+          transform: loaded ? "none" : "scale(.995)",
+          transition: "opacity .22s ease-out, transform .22s ease-out",
+        }}
       />
     </a>
   );

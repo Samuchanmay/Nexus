@@ -28,6 +28,9 @@ export function MessageStatusIcon({ status, onRetry, tone }: {
       style={{
         color: tone === "accent" ? "#FFFFFF" : status === "read" ? "var(--accent)" : "currentColor",
         opacity: status === "pending" ? (tone === "accent" ? 0.6 : 0.55) : 0.75,
+        // Micro-animación al llegar al estado (spec chat §1: 120–220ms,
+        // nunca más de 300): los ✓✓ de leído hacen pop al confirmarse.
+        animation: status === "read" ? "nx-pop .22s var(--ease)" : status === "pending" ? "nx-breathe-soft 1.6s ease-in-out infinite" : undefined,
       }}
       title={STATUS_LABEL[status]}
     >

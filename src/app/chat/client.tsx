@@ -7,6 +7,7 @@ import { useToast, Sheet, CheckBox } from "@/components/ui";
 import { Button, Input } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { ConversationRowWithTyping } from "@/components/chat/conversation-row";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/chat/context-menu";
 import { chatNotificationsSupported, requestChatNotificationPermission } from "@/lib/chat/notify";
 import { nudgePushRegistration } from "@/lib/use-push-notifications";
 import type { EnlaceConversation } from "@/lib/types";
@@ -74,6 +75,7 @@ export default function ChatShell({
   const [filter, setFilter] = useState<"all" | "unread" | "pinned">("all");
   const [showArchived, setShowArchived] = useState(false);
   const [messageHits, setMessageHits] = useState<MessageHit[]>([]);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; id: string } | null>(null);
 
   // No-leídos por conversación: conteo exacto (no solo un punto), actualizado
   // por realtime al llegar mensajes o al marcarse leído en cualquier lugar.
@@ -312,26 +314,30 @@ export default function ChatShell({
     const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
     const st = stateFor(c.id);
     return (
-      <ConversationRowWithTyping
+      <div
         key={c.id}
-        conversationId={c.id}
-        myId={myId}
-        name={name}
-        avatarUrl={avatarUrl}
-        color={color}
-        preview={preview}
-        time={timeAgo(c.last_message_at)}
-        unread={isUnread(c)}
-        unreadCount={unreadCounts[c.id] ?? 0}
-        active={c.id === selectedId}
-        muted={st.muted}
-        pinned={st.pinned}
-        onOpen={() => { if (isUnread(c)) markRead(c.id); router.push(`/chat/${c.id}`); }}
-        onToggleMute={() => toggleMute(c.id)}
-        onTogglePin={() => togglePin(c.id)}
-        onMarkRead={() => markRead(c.id)}
-        onToggleArchive={() => toggleArchive(c.id)}
-      />
+        onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: c.id }); }}
+      >
+        <ConversationRowWithTyping
+          conversationId={c.id}
+          myId={myId}
+          name={name}
+          avatarUrl={avatarUrl}
+          color={color}
+          preview={preview}
+          time={timeAgo(c.last_message_at)}
+          unread={isUnread(c)}
+          unreadCount={unreadCounts[c.id] ?? 0}
+          active={c.id === selectedId}
+          muted={st.muted}
+          pinned={st.pinned}
+          onOpen={() => { if (isUnread(c)) markRead(c.id); router.push(`/chat/${c.id}`); }}
+          onToggleMute={() => toggleMute(c.id)}
+          onTogglePin={() => togglePin(c.id)}
+          onMarkRead={() => markRead(c.id)}
+          onToggleArchive={() => toggleArchive(c.id)}
+        />
+      </div>
     );
   };
 
@@ -414,10 +420,23 @@ export default function ChatShell({
             )}
 
             <div className="px-4 md:px-5 pb-3 shrink-0">
-              <Input icon="search" placeholder="Buscar personas, grupos o mensajes..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              {/* Buscador estilo Signal: bajo, pastilla redondeada, icono
+                  discreto y placeholder gris tenue (spec chat §1). */}
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[length:var(--text-3)] pointer-events-none">
+                  <Icon name="search" size={14} aria-hidden />
+                </span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar…"
+                  className="w-full h-9 rounded-full pl-9 pr-3 text-[13.5px] border border-transparent placeholder:text-[var(--text-3)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)] transition-all duration-150"
+                  style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
+                />
+              </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
+            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3">
               {conversations.length === 0 ? (
                 <div className="px-2">
                   <EmptyState
@@ -428,7 +447,7 @@ export default function ChatShell({
                   />
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-0.5">
                   {filteredConversations.map(renderRow)}
 
                   {filteredConversations.length === 0 && messageHits.length === 0 && (
@@ -463,7 +482,7 @@ export default function ChatShell({
                         <span>Archivadas ({archivedConversations.length})</span>
                         <Icon name={showArchived ? "chevronUp" : "chevronDown"} size={14} />
                       </button>
-                      {showArchived && <div className="space-y-2.5 mt-2.5">{archivedConversations.map(renderRow)}</div>}
+                      {showArchived && <div className="space-y-0.5 mt-1">{archivedConversations.map(renderRow)}</div>}
                     </div>
                   )}
                 </div>
@@ -485,6 +504,25 @@ export default function ChatShell({
         myId={myId}
         onToast={(msg) => toast(msg, "danger")}
       />
+
+      {ctxMenu && (() => {
+        const c = conversations.find((x) => x.id === ctxMenu.id);
+        if (!c) return null;
+        const st = stateFor(c.id);
+        const close = () => setCtxMenu(null);
+        return (
+          <ContextMenu x={ctxMenu.x} y={ctxMenu.y} onClose={close}>
+            <ContextMenuItem icon={st.pinned ? "pinOff" : "pin"} label={st.pinned ? "Desfijar" : "Fijar"} onClick={() => { togglePin(c.id); close(); }} />
+            <ContextMenuItem icon={st.muted ? "bell" : "bellOff"} label={st.muted ? "Activar notificaciones" : "Silenciar"} onClick={() => { toggleMute(c.id); close(); }} />
+            <ContextMenuItem icon="archive" label={st.archived ? "Desarchivar" : "Archivar"} onClick={() => { toggleArchive(c.id); close(); }} />
+            {isUnread(c) && (
+              <ContextMenuItem icon="check" label="Marcar como leído" onClick={() => { markRead(c.id); close(); }} />
+            )}
+            <ContextMenuSeparator />
+            <ContextMenuItem icon="arrow" label="Abrir conversación" onClick={() => { close(); router.push(`/chat/${c.id}`); }} />
+          </ContextMenu>
+        );
+      })()}
     </div>
   );
 }

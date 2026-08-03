@@ -33,6 +33,14 @@
 - Superficies glass: `color-mix(in srgb, var(--surface) 72%, transparent)` + `blur(20px)`.
 - Detalle completo: `docs/design/`.
 
+### SPEC-004 · Emojis — SIEMPRE Apple, nunca otro estilo
+
+1. **El único diseño emoji oficial es el de Apple** (`Apple Color Emoji`). Es el primero de la pila de fuentes en todo el app: `font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif`.
+2. **Prohibidos como assets**: cualquier librería, sprite, font o set de imágenes con estilo Google (Noto), Twemoji/Mozilla, EmojiOne, JoyPixels o Microsoft. Ese estilo no se usa ni como fallback intencional.
+3. **En plataformas sin `Apple Color Emoji`** (ej. Windows), el sistema muestra su emoji nativo por la pila de fuentes: comportamiento aceptable y documentado — **nunca** se empaqueta un font emoji alternativo ni se reemplaza el emoji por imagen.
+4. **Los emojis de reacciones/stickers son contenido del usuario**, no UI del sistema: se renderizan con esta pila y su estilo debe ser Apple en macOS/iOS; la paleta de reacciones se acota en `reactions.tsx`.
+5. El resto de reglas de emoji (dónde está permitido, cero emojis en copy de sistema) vive en `docs/design/EMOJIS.md`.
+
 ## 4. Tecnologías oficiales
 
 | Capa | Tecnología | Nota |
@@ -57,7 +65,7 @@
 - **Carga**: skeletons (`Skel`, `SkelList`, `SkelStatCard`) o `DelayedFallback` — nunca "Cargando…" como texto suelto.
 - **Notificaciones y toasts**: `notifications` (campana) + toasts (con shake en error) + `PausaActivaPopup` + `EmuBanner`.
 - **Formularios**: `Field` + `Input` + `Button` de `os/ui.tsx`; `aria-invalid` para errores.
-- **Chat**: workspace `.chat-ws`, burbujas sólidas, estados, swipe, reacciones, outbox offline.
+- **Chat**: workspace `.chat-ws`, burbujas sólidas, estados, swipe, reacciones, outbox offline. Menús contextuales de clic derecho (`context-menu.tsx`), indicador de escritura con puntos animados (`typing-indicator.tsx`), scrim Signal unificado en todos los overlays (ADR-0016).
 
 **Nada fuera de esta lista sin ADR.** Si necesitas un patrón nuevo: documéntalo (ADR + doc de diseño) y luego impleméntalo en el sistema de diseño; nunca "de una vez" en una pantalla.
 
@@ -68,7 +76,7 @@ Ubicación canónica: `src/components/os/ui.tsx` (kit base) y `src/components/ui
 - `Button`, `IconButton`, `Card`, `SectionTitle`, `Skel*`, `Field`, `Input`, `Badge`, `SegmentPill`, `Kbd`, `EmptyState`, `StatCard`, `Dialog` — en `os/ui.tsx`.
 - `ToastProvider`/`useToast`, `ThemeToggle`, `SlidingSegments`, `Avatar`, `Menu`/`MenuItem`, `CheckBox`, `Sheet`, `Pill` — en `components/ui.tsx`.
 - `Icon` (set interno), `AppShell`, `DomainTabs`, `NotificationBell`, `ProfileModal`, `EmuBanner`, `PausaActivaPopup`, `JornadaWatcher`, `RouteError`, `ResolvePendingExit` — en `components/os/`.
-- Chat: `conversation-row`, `attachment-sheet`, `camera-capture`, `sticker-picker`, `reactions`, `message-status`, `forward-sheet`, `conversation-search`, `smart-image` — en `components/chat/`.
+- Chat: `conversation-row`, `attachment-sheet`, `camera-capture`, `sticker-picker`, `reactions`, `message-status`, `forward-sheet`, `conversation-search`, `smart-image`, `context-menu`, `typing-indicator` — en `components/chat/`.
 
 > **Nunca duplicar componentes.** Si el que necesitas no existe, se crea en el kit oficial y se reutiliza. El kit es la única fuente de verdad visual.
 

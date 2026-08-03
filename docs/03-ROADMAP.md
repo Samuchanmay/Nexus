@@ -64,6 +64,36 @@ Documento vivo. Cada fila responde a código real: ✅ existe en el repo, 🟡 e
 | Outbox: retry automático con backoff | 🟢 | Existe la cola; pulir reintentos programados |
 | Búsqueda global de mensajes | 🟡 | Hay `conversation-search`; falta búsqueda cross-conversación |
 
+### Chat · Niveles de pulido (dirección: mezcla Signal + WhatsApp Desktop + Apple Messages)
+
+La dirección de diseño del chat NO es clonar una app: es sentirse como un cliente de mensajería **nativo de macOS/Windows** — mecánica de Signal, densidad y panel informativo de WhatsApp Desktop, pulido de Apple Messages. Los niveles marcan qué se considera "imprescindible" (N1), "premium" (N2) y "identidad" (N3).
+
+**N1 · Imprescindible (previo a lanzamiento)** — implementado en la entrega del 2026-08-03:
+- ✅ Scrim Signal unificado en TODOS los overlays (Sheet/Dialog/CenteredOverlay/DateSheet/Notificaciones/PausaActiva/calendario): `rgba(0,0,0,.42)` + `blur(18px) saturate(.75) brightness(.72)`, scroll bloqueado, `pointer-events` corregido (causa raíz de clics fantasma).
+- ✅ Burbujas 72% máx., radio 18px, cola sutil al cambiar de remitente, espaciado 4–6px, imágenes 14px sin sombras pesadas.
+- ✅ Reacciones solo a mensajes de OTROS (Signal); franja de reacciones de solo lectura en propios.
+- ✅ Skeleton con shimmer en imágenes (nunca "Cargando imagen…" a secas) + fade en `SmartImage`.
+- ✅ Estados de envío (pendiente/enviado/entregado/leído/error) con ticks animados.
+- ✅ Indicador "está escribiendo…" con tres puntos animados (lista + header).
+- ✅ Menús contextuales de clic derecho: mensaje (Reaccionar/Responder/Reenviar/Copiar/Fijar/Editar/Eliminar/Info) y conversación (Fijar/Silenciar/Archivar/Marcar leído/Abrir).
+- ✅ Lista plana estilo Signal (sin tarjetas/sombras), buscador pastilla, compositor compacto con focus ring, header compacto.
+- ✅ Panel informativo por secciones SIN tarjetas (avatar grande, miembros, perfil, detalles, notificaciones, archivos).
+- ✅ Micro-animaciones 120–220ms (nunca >300ms), solo ease-out/ease-in-out/spring.
+- ✅ SPEC-004: emojis Apple en todo el app (ver `EMET_CANON.md`).
+- 🟡 Pendientes menores: silenciar por duración (8h/semana/siempre), "marcar como no leído" y vaciar/eliminar conversación (requieren RPCs nuevos), acciones solo-hover en escritorio.
+
+**N2 · Premium** (decidir post-lanzamiento):
+- Gestor/tienda de stickers con packs (Recientes/Favoritos/Empresa/Memes/Trabajo/Animados/GIF/Buscar); WebP 512×512 transparente <100KB; APNG/WebP animado.
+- **Creador de stickers (diferenciador)**: subir PNG → quitar fondo con IA → recortar → borde → sombra → texto → guardar/añadir a paquete; paquetes privados/compartidos/empresa.
+- Encuestas, eventos, mensajes temporales, archivos compartidos filtrables (Fotos/Videos/PDF/Excel/Word/ZIP/Audio/Links).
+- Drag & drop de archivos, pegado de portapapeles y de capturas de pantalla.
+- Compresión perceptual ~90% (HEIC→JPEG→WebP→AVIF), EXIF solo si el usuario lo pide.
+
+**N3 · Identidad Emet** (visión de producto):
+- Temas por conversación (fondos, colores de burbuja por organización), packs corporativos.
+- Integración con tareas/calendario/documentos desde el chat.
+- Resúmenes IA y búsqueda semántica IA de mensajes.
+
 ## Fase 4 · EMU (inteligencia contextual)
 
 | Item | Estado | Notas |

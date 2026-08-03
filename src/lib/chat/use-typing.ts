@@ -53,12 +53,12 @@ export function useTyping(conversationId: string, myId: string, myName: string) 
     stopTimerRef.current = setTimeout(() => {}, STOP_TYPING_MS);
   }, [myId, myName]);
 
-  const typingLabel = (() => {
+  const typingText = (() => {
     const names = Array.from(typingUsers.values());
     if (names.length === 0) return null;
-    if (names.length === 1) return `${names[0]} está escribiendo…`;
-    return `${names.slice(0, 2).join(", ")} están escribiendo…`;
+    if (names.length === 1) return `${names[0]} está escribiendo`;
+    return `${names.slice(0, 2).join(", ")} están escribiendo`;
   })();
 
-  return { typingLabel, notifyTyping };
+  return { typingText, notifyTyping };
 }

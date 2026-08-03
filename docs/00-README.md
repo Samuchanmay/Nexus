@@ -31,7 +31,7 @@
 
 ### Decisiones · `decisions/`
 
-`ADR-0001.md` … `ADR-0015.md` (Architecture Decision Records en orden cronológico)
+`ADR-0001.md` … `ADR-0016.md` (Architecture Decision Records en orden cronológico)
 
 ### Historial · `changelog/`
 

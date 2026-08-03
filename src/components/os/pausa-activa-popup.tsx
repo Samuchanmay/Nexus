@@ -102,8 +102,10 @@ export function PausaActivaPopup({ messages }: { messages: AssistantMessage[] })
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center px-4"
       style={{
-        background: visible ? "rgba(0,0,0,.5)" : "rgba(0,0,0,0)",
-        backdropFilter: visible ? "blur(4px)" : "blur(0px)",
+        // Scrim Signal (spec chat §1) — popup sobre cualquier pantalla.
+        background: visible ? "rgba(0,0,0,.42)" : "rgba(0,0,0,0)",
+        backdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
+        WebkitBackdropFilter: visible ? "blur(18px) saturate(.75) brightness(.72)" : "blur(0px) saturate(1) brightness(1)",
         // Mismo patrón de causa raíz que overlay.tsx/date-sheet.tsx — sin
         // esto, los ~220ms de salida dejaban un overlay de página completa
         // invisible pero clickeable (este popup puede aparecer en CUALQUIER

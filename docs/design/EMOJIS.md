@@ -15,6 +15,7 @@ Emet usa emojis de forma **deliberada y contenida**: dan calidez (el producto na
 
 ## Principios
 
+0. **Diseño Apple únicamente (SPEC-004, `EMET_CANON.md`)**: el estilo de emoji es siempre `Apple Color Emoji`; prohibido empaquetar o usar assets Twemoji/Noto/EmojiOne/JoyPixels. En plataformas sin el font de Apple se usa el emoji nativo del sistema vía la pila de fuentes, nunca un font/imagen alternativo.
 1. **Nunca** emojis como botones de acción de negocio (aprovechar → no, usar el set de iconos).
 2. **Nunca** emojis en títulos de tarjetas o headers de sección (ensucian la jerarquía).
 3. Los emojis de estado (⚠️ en vacío, etc.) se reemplazan por iconos del set + copy.
@@ -23,7 +24,7 @@ Emet usa emojis de forma **deliberada y contenida**: dan calidez (el producto na
 
 ## Chat
 
-- Reacciones: pop animado (0.9→1.1→1.0), el emoji es contenido del usuario, no UI.
+- Reacciones: pop animado (0.9→1.1→1.0), el emoji es contenido del usuario, no UI. Solo se puede reaccionar a mensajes de **otros** (Signal no permite reacciones propias).
 - Stickers: se suben como assets y se muestran como imágenes (`message_attachments`), no como texto emoji.
 
 ## Regla general

@@ -6,13 +6,15 @@ Rutas: `/chat` (lista) · `/chat/[id]` (conversación) · Roles: admin, empleado
 
 El chat de Emet es un **módulo del sistema** (no una app aparte): comparte login, tema y estética, y su paleta remapea los tokens dentro de un scope propio `.chat-ws` (workspace premium inspirado en Linear/Discord/Slack/Apple Messages). En oscuro es la paleta `#05070B → #08111E → #101827 → #151D2B`; en claro, superficies frías con el mismo acento azul.
 
+**Dirección de diseño (2026-08-03):** mezcla de **Signal + WhatsApp Desktop + Apple Messages** — mecánica de Signal (swipe, menús, reacciones), densidad y panel informativo de WhatsApp Desktop, pulido de Apple Messages. No es un clon. Ver los Niveles 1/2/3 en `docs/03-ROADMAP.md`.
+
 ## Capacidades
 
 | Feature | Detalle |
 |---|---|
 | Conversaciones 1:1 y en grupo | Tablas `conversations` + `conversation_participants` (RLS + Realtime) |
-| Estados de mensaje | `sent → delivered → read` (RPC `nx_enlace_mark_*`; ticks en `MessageStatus`) |
-| Reacciones | `message_reactions`, pop animado (0.9→1.1→1.0) |
+| Estados de mensaje | `sent → delivered → read` (RPC `nx_enlace_mark_*`; ticks en `MessageStatus`, pop al confirmar leído) |
+| Reacciones | `message_reactions`, pop animado (0.9→1.1→1.0). **Solo a mensajes de otros** (Signal); la franja es de solo lectura en propios |
 | Editar / eliminar | Migración 0021 |
 | Fijar / silenciar / archivar | `nx_enlace_toggle_*` + pinned message en la conversación |
 | Adjuntos e imágenes | `message_attachments`; pipeline WebP thumb/medium/original en bucket privado `chat-files` |
@@ -21,10 +23,12 @@ El chat de Emet es un **módulo del sistema** (no una app aparte): comparte logi
 | Ubicación | Envío de punto de mapa |
 | Push | Web Push (VAPID) vía Edge `send-chat-push` a destinatarios inactivos |
 | Offline | `use-outbox`: cola con `client_id` idempotente; estados de envío visibles |
-| Swipe | `use-swipe-gesture` (estilo Signal): revela acciones en la fila |
-| Búsqueda | `ConversationSearch` dentro de la conversación |
-| Presencia/typing | `use-typing`, `format-presence` |
+| Swipe | `use-swipe-gesture` (estilo Signal): revela acciones en la fila sin comprimir la tarjeta |
+| Búsqueda | `ConversationSearch` dentro de la conversación (overlay en la columna, salto con resaltado) |
+| Presencia/typing | `use-typing` (broadcast Realtime), `TypingDots` animados, `format-presence` |
 | Sonido | `sound.ts` (notificaciones suaves) |
+| Menús contextuales | `context-menu.tsx` (clic derecho): mensaje y conversación |
+| Scrim unificado | Todos los overlays con `rgba(0,0,0,.42)` + `blur(18px) saturate(.75) brightness(.72)` (ADR-0016) |
 
 ## Modelo de datos (resumen)
 
@@ -54,12 +58,15 @@ El chat de Emet es un **módulo del sistema** (no una app aparte): comparte logi
 
 ## Convenciones de UI
 
-- Burbuja propia: acento sólido + texto blanco. Burbuja recibida: superficie del panel.
+- Burbuja propia: acento sólido + texto blanco. Burbuja recibida: superficie del panel. Radio 18px, máx. 72%, cola sutil al cambiar de remitente, espaciado 4–6px.
 - Pastilla de fecha centrada; tarjetas dentro de burbujas entrantes (`--chat-card-inner`).
-- Lista de conversaciones: `conv-card` con hover/activo (`data-active`).
+- Lista de conversaciones: filas **planas** (`conv-card`) con hover/activo (`data-active`), sin tarjetas ni sombras (spec N1).
+- Header compacto (52px) y panel informativo por secciones **sin tarjetas**.
+- Compositor compacto (46px) con focus ring al escribir.
 - Scrollbar fina dentro del workspace (se insinúa al hover).
 - `prefers-reduced-motion` respetado dentro del workspace.
 - Sheets modales (adjuntos, reenvío, stickers, cámara) se portalan al body y usan el tema global (fuera del scope).
+- Emojis: siempre diseño Apple (SPEC-004).
 
 ## Ver también
 

@@ -41,7 +41,7 @@ export function DayPopover({
 
   return createPortal(
     <div className="fixed inset-0 z-[600] grid place-items-center px-4"
-      style={{ background: "rgba(0,0,0,.32)", backdropFilter: "blur(6px)" }}>
+      style={{ background: "rgba(0,0,0,.42)", backdropFilter: "blur(18px) saturate(.75) brightness(.72)", WebkitBackdropFilter: "blur(18px) saturate(.75) brightness(.72)" }}>
       <div data-day-popover
         className="w-full max-w-[380px] max-h-[78vh] overflow-y-auto nx-pop"
         style={{ background: "var(--surface)", border: "0.5px solid var(--border-2)", borderRadius: "var(--radius-l)", boxShadow: "var(--shadow-3)" }}

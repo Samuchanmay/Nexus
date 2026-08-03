@@ -55,6 +55,19 @@ Documento vivo. Se registra **lo que aún no está decidido** para que ninguna d
 **Estado:** Cerrado (documentado)
 **Contexto:** El nombre `nexus-theme` persiste en localStorage por compatibilidad de tema entre sesiones. Renombrarlo perdería el tema de los usuarios actuales. Decisión: **mantener**, con migración de clave leída+escrita en el próximo toque del `ThemeToggle` (ver P-005).
 
+### P-008 · Acciones de conversación que requieren RPCs nuevos
+
+**Estado:** En discusión
+**Contexto:** El menú contextual de conversación (N1) expone hoy lo que ya tienen RPC (`nx_enlace_toggle_*`, `nx_enlace_mark_conversation_read`). El spec pide además: **silenciar por duración** (8h / 1 semana / siempre), **marcar como no leído**, **vaciar conversación** y **eliminar conversación**. Ninguno tiene RPC/migración todavía.
+**En juego:** silenciar por duración cambia el esquema (`conversation_participants.muted` es booleano → fecha/hasta); vaciar/eliminar necesita política RLS de borrado y decisión sobre el preview de la lista. 
+**Camino sugerido:** N1 considera "imprescindibles" los pendientes menores; estos cuatro son N2 (ver ROADMAP) porque cambian esquema. Decidir con migración planeada, no en caliente.
+
+### P-009 · Emoji Apple: pila de fuentes en Windows
+
+**Estado:** En discusión
+**Contexto:** SPEC-004 (ver `EMET_CANON.md`) fija `Apple Color Emoji` como único diseño oficial. En Windows no existe ese font: el sistema renderiza con `Segoe UI Emoji` vía la pila de fuentes.
+**En juego:** ¿el fallback nativo de Windows es aceptable (postura actual: sí, documentado) o se empaqueta un font Apple-style redistribuible? Empaquetar agrega dependencia y peso; el canon prefiere cero dependencias cuando el estándar alcanza.
+
 ---
 
 ## Historial de cierre
