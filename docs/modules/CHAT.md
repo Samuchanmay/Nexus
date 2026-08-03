@@ -4,9 +4,9 @@ Rutas: `/chat` (lista) · `/chat/[id]` (conversación) · Roles: admin, empleado
 
 ## Qué es
 
-El chat de Emet es un **módulo del sistema** (no una app aparte): comparte login, tema y estética, y su paleta remapea los tokens dentro de un scope propio `.chat-ws` (workspace premium inspirado en Linear/Discord/Slack/Apple Messages). En oscuro es la paleta `#05070B → #08111E → #101827 → #151D2B`; en claro, superficies frías con el mismo acento azul.
+El chat de Emet es un **módulo del sistema** (no una app aparte): comparte login, tema y estética, y su paleta remapea los tokens dentro de un scope propio `.chat-ws` (workspace premium). En oscuro es la paleta `#0A121F → #0C1626 → #151D2B → #1A2434` (azul-negro, nunca negro puro); en claro, superficies frías con el mismo acento azul.
 
-**Dirección de diseño (2026-08-03):** mezcla de **Signal + WhatsApp Desktop + Apple Messages** — mecánica de Signal (swipe, menús, reacciones), densidad y panel informativo de WhatsApp Desktop, pulido de Apple Messages. No es un clon. Ver los Niveles 1/2/3 en `docs/03-ROADMAP.md`.
+**Design Language del chat (2026-08-03):** arquitectura de 4 columnas a ancho completo (Sin margen externo) — Sidebar 220px · Lista 360–380px · Conversación flexible · InfoPanel 340–380px — inspirada en **Signal Desktop** para resolver cada problema: jerarquía de Apple HIG, refinamiento de Linear/Notion, pulido de Stripe. No es un clon: se copia la *resolución del problema* (espacio, estados, detalle), nunca el look de otra marca. Ver `docs/design/CHAT-DESIGN-LANGUAGE.md`.
 
 ## Capacidades
 
@@ -58,11 +58,15 @@ El chat de Emet es un **módulo del sistema** (no una app aparte): comparte logi
 
 ## Convenciones de UI
 
-- Burbuja propia: acento sólido + texto blanco. Burbuja recibida: superficie del panel. Radio 18px, máx. 72%, cola sutil al cambiar de remitente, espaciado 4–6px.
-- Pastilla de fecha centrada; tarjetas dentro de burbujas entrantes (`--chat-card-inner`).
-- Lista de conversaciones: filas **planas** (`conv-card`) con hover/activo (`data-active`), sin tarjetas ni sombras (spec N1).
+- **Layout**: 4 columnas a ancho completo (sin contenedor centrado con márgenes) — Sidebar 220px · Lista 380px · Conversación flexible · InfoPanel 340px como 3.ª columna SIEMPRE visible en desktop (patrón Signal), no como overlay. En pantallas medianas el InfoPanel colapsa.
+- **Iconos**: Lucide unificado — 24px, stroke 2, esquinas redondeadas — en todo el chat, sin excepciones (`Icon` en `os/icons.tsx`). Header: Avatar/Nombre/Estado → búsqueda, llamada, video, info, menú "more" (`Menu`/`MenuItem`).
+- **Compositor**: todos los botones con el MISMO peso visual (34px, mismo radio, sin círculo azul protagonista): `+` adjuntar, input, emoji/stickers, adjuntar archivo, y envío/grabar al final.
+- **Burbujas**: radio 18px, máx. 72%, borde hairline (sombra `inset 0 0 0 0.5px`) + sombra 1px sutil, padding `px-3.5 pt-2 pb-1.5`, cola sutil al cambiar de remitente. Imágenes `rounded-[14px]` dentro de la burbuja.
+- **Reacciones**: cápsulas PEGADAS a la burbuja (`-mt-2.5`, solapan su borde inferior) estilo Signal; solo a mensajes de otros; solo lectura en propios.
+- **Lista de conversaciones**: filas planas (`conv-card`) de 64–68px (avatar 48), con estados vivos — hover, activo (`data-active`), no leído (pill de conteo), fijado (pin), silenciado (bellOff), escribiendo (TypingDots), en línea (dot de presencia en directas).
+- **Fondo del panel de mensajes**: color base + patrón de puntos sutil (2–4% de opacidad, `nx-msg-panel`) para que la conversación respire sin caer en plano.
+- **Swipe**: la tarjeta se traslada solo con `transform` (GPU) sobre franjas de acciones con `z-index` por debajo (`z-[1]` vs `z-0`), fondo opaco y `will-change` durante el arrastre — el texto jamás asoma sobre las acciones.
 - Header compacto (52px) y panel informativo por secciones **sin tarjetas**.
-- Compositor compacto (46px) con focus ring al escribir.
 - Scrollbar fina dentro del workspace (se insinúa al hover).
 - `prefers-reduced-motion` respetado dentro del workspace.
 - Sheets modales (adjuntos, reenvío, stickers, cámara) se portalan al body y usan el tema global (fuera del scope).
@@ -74,3 +78,4 @@ El chat de Emet es un **módulo del sistema** (no una app aparte): comparte logi
 - `docs/decisions/ADR-0012.md` — pipeline de imágenes (bucket privado)
 - `docs/architecture/STATE.md` — outbox y estado offline
 - `docs/design/MOTION.md` — swipe y pops
+- `docs/design/CHAT-DESIGN-LANGUAGE.md` — lenguaje de diseño del chat (N3)

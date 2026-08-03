@@ -599,12 +599,12 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
   --chat-bubble-received-bg: var(--chat-bubble-in);
 }
 [data-theme="dark"] .chat-ws {
-  /* Capas del workspace — #05070B → #08111E → #101827 → #151D2B */
-  --chat-ws-frame: #05070B;
-  --chat-list-bg: #08111E;
-  --chat-header-bg: #08111E;
+  /* Capas del workspace — #0A121F → #0E1828 → #151D2B → #1A2434 */
+  --chat-ws-frame: #0A121F;
+  --chat-list-bg: #0C1626;
+  --chat-header-bg: #0C1626;
   --chat-composer-bg: #151D2B;
-  --chat-bg: #05070B;
+  --chat-bg: #0A121F;
   --chat-bubble-in: #171D29;
   --chat-bubble-out: linear-gradient(180deg, #2663FF 0%, #195BFF 100%);
   --chat-pill-bg: #151D2B;
@@ -659,6 +659,26 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 .chat-ws .conv-card:hover { background: var(--chat-hover-row); }
 .chat-ws .conv-card[data-active="true"],
 .chat-ws .conv-card[data-active="true"]:hover { background: var(--chat-list-active); }
+
+/* Blindaje del swipe: las franjas de acción SIEMPRE detrás de la tarjeta.
+   La tarjeta sube con z-index sobre ellas y, durante el arrastre, se fija
+   en la capa de composición (will-change inline) para que el texto nunca
+   asome sobre las acciones aunque el navegador recomponga capas. */
+.chat-ws .conv-card-shell > div[class*="absolute"] { z-index: 0; }
+.chat-ws .conv-card { z-index: 1; }
+
+/* Panel de mensajes — fondo base + patrón de puntos sutil (2–4% de
+   opacidad, como el patrón de Signal) para que la conversación respire
+   sin caer en negro plano ni distraer del contenido. */
+.chat-ws .nx-msg-panel {
+  background-color: var(--chat-bg);
+  background-image: radial-gradient(rgba(15,21,34,0.05) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-position: 0 0;
+}
+[data-theme="dark"] .chat-ws .nx-msg-panel {
+  background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1.5px);
+}
 
 /* Profundidad sutil al hover de la fila (spec chat §2: fondo → elevación
    2px → borde hairline; sin sombras fuertes). Se eleva el shell completo

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, useToast } from "@/components/ui";
+import { Avatar, useToast, Menu, MenuItem } from "@/components/ui";
 import { IconButton, SkelRow, Skel } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { useOutbox } from "@/lib/chat/use-outbox";
@@ -106,7 +106,7 @@ export default function EnlaceConversationClient({
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [pinnedMessage, setPinnedMessage] = useState(initialPinnedMessage);
   const [muted, setMuted] = useState(initialMuted);
-  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(true);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<EnlaceMessage | null>(null);
   const [attachSheetOpen, setAttachSheetOpen] = useState(false);
@@ -658,7 +658,7 @@ export default function EnlaceConversationClient({
           header del Shell; aquí solo se llena ese panel (h-full) y solo la
           franja de mensajes tiene scroll propio, con encabezado y
           compositor fijos, como en WhatsApp/Signal. */}
-      <div className="flex-1 min-w-0 h-full flex flex-col relative">
+      <div className="flex-1 min-w-0 h-full flex flex-col relative" style={{ animation: "nx-panel-in .2s var(--ease)" }}>
         <ConversationSearch
           open={searchOpen}
           onClose={() => setSearchOpen(false)}
@@ -695,6 +695,16 @@ export default function EnlaceConversationClient({
             )}
           </div>
           <IconButton
+            icon="phone"
+            label="Llamar"
+            onClick={(e) => { e?.stopPropagation(); toast("Las llamadas llegan pronto"); }}
+          />
+          <IconButton
+            icon="video"
+            label="Videollamada"
+            onClick={(e) => { e?.stopPropagation(); toast("Las videollamadas llegan pronto"); }}
+          />
+          <IconButton
             icon="search"
             label="Buscar en la conversación"
             onClick={(e) => { e?.stopPropagation(); setSearchOpen(true); }}
@@ -706,6 +716,26 @@ export default function EnlaceConversationClient({
             className="hidden md:flex"
             style={infoOpen ? { background: "var(--accent-tint)", color: "var(--accent)" } : undefined}
           />
+          <Menu
+            trigger={({ onClick, open }) => (
+              <IconButton
+                icon="more"
+                label="Más opciones"
+                onClick={(e) => { e?.stopPropagation(); onClick(); }}
+                style={open ? { background: "var(--accent-tint)", color: "var(--accent)" } : undefined}
+              />
+            )}
+          >
+            <MenuItem icon={<Icon name="info" size={15} />} onClick={() => { setInfoOpen(true); }}>
+              Información de la conversación
+            </MenuItem>
+            <MenuItem icon={<Icon name={muted ? "bell" : "bellOff"} size={15} />} onClick={toggleMuted}>
+              {muted ? "Activar notificaciones" : "Silenciar conversación"}
+            </MenuItem>
+            <MenuItem icon={<Icon name="archive" size={15} />} onClick={() => { router.push("/chat"); }}>
+              Cerrar conversación
+            </MenuItem>
+          </Menu>
         </div>
 
         {pinnedMessage && (
@@ -732,8 +762,7 @@ export default function EnlaceConversationClient({
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex-1 min-h-0 overflow-y-auto relative flex flex-col gap-1 px-4 py-4"
-          style={{ background: "var(--chat-bg)" }}
+          className="nx-msg-panel flex-1 min-h-0 overflow-y-auto relative flex flex-col gap-1 px-4 py-4"
         >
           {loadingMore && (
             <div className="space-y-1.5 py-1" aria-label="Cargando mensajes anteriores">
@@ -921,15 +950,15 @@ export default function EnlaceConversationClient({
                 />
               </div>
             ) : (
-              <div className="flex items-center gap-1 rounded-[20px] border border-border px-1.5 py-1 min-h-[46px] transition-all duration-150 focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--ring)]" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
+              <div className="flex items-center gap-0.5 rounded-[22px] border border-border px-2 py-1 min-h-[46px] transition-all duration-150 focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--ring)]" style={{ background: "var(--chat-composer-bg)", boxShadow: "var(--shadow-1)" }}>
                 <IconButton
                   icon="plus"
                   label="Adjuntar"
                   onClick={() => setAttachSheetOpen(true)}
                   disabled={upload.status === "uploading" || locating}
-                  className="shrink-0"
+                  className="shrink-0 !h-[34px] !w-[34px]"
                   data-ripple
-                  style={{ borderRadius: 999, background: "var(--surface-2)", color: "var(--text-2)" }}
+                  style={{ borderRadius: 999, color: "var(--text-2)" }}
                 />
                 <textarea
                   value={draft}
@@ -939,14 +968,29 @@ export default function EnlaceConversationClient({
                   rows={1}
                   className="flex-1 resize-none bg-transparent px-1 py-1.5 text-[14px] focus:outline-none max-h-[120px] placeholder:text-[var(--text-3)]"
                 />
+                <IconButton
+                  icon="smile"
+                  label="Emojis y stickers"
+                  onClick={() => setStickerOpen((v) => !v)}
+                  className="shrink-0 !h-[34px] !w-[34px]"
+                  style={{ borderRadius: 999, color: "var(--text-2)", ...(stickerOpen ? { background: "var(--accent-tint)", color: "var(--accent)" } : {}) }}
+                />
+                <IconButton
+                  icon="paperclip"
+                  label="Adjuntar archivo"
+                  onClick={() => setAttachSheetOpen(true)}
+                  disabled={upload.status === "uploading" || locating}
+                  className="shrink-0 !h-[34px] !w-[34px]"
+                  style={{ borderRadius: 999, color: "var(--text-2)" }}
+                />
                 {draft.trim() ? (
                   <IconButton
                     icon="send"
                     label="Enviar"
                     onClick={sendMessage}
-                    className="shrink-0 !h-12 !w-12"
+                    className="shrink-0 !h-[34px] !w-[34px]"
                     data-ripple
-                    style={{ background: "var(--accent)", color: "#FFFFFF", borderRadius: 999, boxShadow: "0 8px 20px rgba(38,99,255,0.30)" }}
+                    style={{ borderRadius: 999, background: "var(--accent)", color: "#FFFFFF" }}
                   />
                 ) : (
                   <IconButton
@@ -954,9 +998,9 @@ export default function EnlaceConversationClient({
                     label="Grabar nota de audio"
                     onClick={() => void startRecording()}
                     disabled={upload.status === "uploading"}
-                    className="shrink-0 !h-[46px] !w-[46px]"
+                    className="shrink-0 !h-[34px] !w-[34px]"
                     data-ripple
-                    style={{ borderRadius: 999, background: "var(--accent)", color: "#FFFFFF", boxShadow: "0 8px 20px rgba(38,99,255,0.30)" }}
+                    style={{ borderRadius: 999, color: "var(--text-2)" }}
                   />
                 )}
               </div>
@@ -969,20 +1013,6 @@ export default function EnlaceConversationClient({
         </div>
       </div>
 
-      {infoOpen && (
-        <InfoPanel
-          conversation={conversation}
-          participants={participants}
-          myId={myId}
-          muted={muted}
-          onToggleMuted={toggleMuted}
-          recentFiles={recentFiles}
-          creatorName={creatorName}
-          otherProfile={otherProfile}
-          onClose={() => setInfoOpen(false)}
-        />
-      )}
-
       <ForwardSheet
         open={forwardMsg !== null}
         onClose={() => setForwardMsg(null)}
@@ -993,6 +1023,22 @@ export default function EnlaceConversationClient({
         currentConversationId={conversation.id}
         onToast={toast}
       />
+
+      {infoOpen && (
+        <aside className="hidden md:block w-[340px] shrink-0 border-l border-border min-h-0">
+          <InfoPanel
+            conversation={conversation}
+            participants={participants}
+            myId={myId}
+            muted={muted}
+            onToggleMuted={toggleMuted}
+            recentFiles={recentFiles}
+            creatorName={creatorName}
+            otherProfile={otherProfile}
+            onClose={() => setInfoOpen(false)}
+          />
+        </aside>
+      )}
     </div>
   );
 }
@@ -1050,7 +1096,7 @@ function MessageBubble({
       )}
       <div
         {...bind}
-        className={`flex items-end gap-1.5 max-w-[72%] touch-pan-y ${mine ? "flex-row-reverse" : ""}`}
+        className={`flex items-end gap-2 max-w-[72%] touch-pan-y ${mine ? "flex-row-reverse" : ""}`}
         style={{ transform: `translateX(${dx}px)`, transition: dragging ? "none" : "transform .15s var(--spring)" }}
       >
         {!mine && showAvatar ? (
@@ -1096,14 +1142,14 @@ function MessageBubble({
                 />
               )}
               <div
-                className={m.type === "sticker" ? "rounded-[16px]" : "rounded-[18px] shadow-sm overflow-hidden"}
+                className={m.type === "sticker" ? "rounded-[16px]" : "rounded-[18px] overflow-hidden"}
                 style={m.type === "sticker"
                   ? { color: "var(--text-3)" }
                   : mine
-                    ? { background: "var(--chat-bubble-sent-bg)", color: "var(--chat-bubble-sent-fg)" }
-                    : { background: "var(--chat-bubble-received-bg)", color: "var(--text-1)" }}
+                    ? { background: "var(--chat-bubble-sent-bg)", color: "var(--chat-bubble-sent-fg)", boxShadow: "0 1px 2px rgba(0,0,0,0.12), inset 0 0 0 0.5px rgba(255,255,255,0.10)" }
+                    : { background: "var(--chat-bubble-received-bg)", color: "var(--text-1)", boxShadow: "0 1px 2px rgba(0,0,0,0.06), inset 0 0 0 0.5px rgba(127,127,127,0.14)" }}
               >
-                <div className="px-3 pt-2 pb-1.5">
+                <div className="px-3.5 pt-2 pb-1.5">
                   {!mine && showName && (
                     <p className="text-[12px] font-semibold mb-0.5" style={{ color: sender?.nexus_color ?? "var(--accent)" }}>
                       {sender?.display_name ?? "Alguien"}
@@ -1276,7 +1322,7 @@ function InfoPanel({
     : (other?.nexus_color ?? "#5856D6");
 
   return (
-    <div className="hidden md:flex w-[360px] shrink-0 h-full overflow-y-auto flex-col pl-5 pr-1 py-4" style={{ background: "var(--chat-list-bg)", animation: "nx-menu-in .18s var(--ease)" }}>
+    <div className="w-full h-full overflow-y-auto flex flex-col pl-5 pr-1 py-4" style={{ background: "var(--chat-list-bg)", animation: "nx-menu-in .18s var(--ease)" }}>
       {/* Cabecera tranquila — avatar, título y conteo sobre el fondo del panel,
           sin gradiente: la identidad la pone el contenido, no un bloque de color. */}
       <div className="relative flex flex-col items-center shrink-0 pt-2 pb-6">

@@ -12,7 +12,7 @@ import { chatNotificationsSupported, requestChatNotificationPermission } from "@
 import { nudgePushRegistration } from "@/lib/use-push-notifications";
 import type { EnlaceConversation } from "@/lib/types";
 
-export type ParticipantLite = { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null };
+export type ParticipantLite = { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null; last_seen_at?: string | null };
 export type MyConvState = { muted: boolean; pinned: boolean; archived: boolean; last_read_at: string };
 
 type MessageHit = { id: string; conversation_id: string; content: string | null; sender_name: string };
@@ -350,6 +350,9 @@ export default function ChatShell({
     const mine = c.last_message_sender_id === myId;
     const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
     const st = stateFor(c.id);
+    const other = (participants[c.id] ?? []).find((p) => p.id !== myId);
+    const online = c.type === "direct" && !!other?.last_seen_at &&
+      Date.now() - new Date(other.last_seen_at).getTime() < 2 * 60 * 1000;
     return (
       <div
         key={c.id}
@@ -368,6 +371,7 @@ export default function ChatShell({
           active={c.id === selectedId}
           muted={st.muted}
           pinned={st.pinned}
+          online={online}
           onOpen={() => { if (isUnread(c)) markRead(c.id); router.push(`/chat/${c.id}`); }}
           onToggleMute={() => toggleMute(c.id)}
           onTogglePin={() => togglePin(c.id)}
@@ -386,11 +390,8 @@ export default function ChatShell({
     // celular) ocupan toda esa altura, sin que la página entera se desplace.
     // .chat-ws aplica el scope del workspace premium (paleta, sombras,
     // radios) a todo lo que vive dentro, sin tocar el resto de la app.
-    <div className="chat-ws h-[calc(100dvh-12rem)] md:h-[calc(100dvh-8.5rem)] min-h-[420px] -mx-4 md:mx-0">
-      <div
-        className="h-full flex flex-col overflow-hidden rounded-none md:rounded-[28px] md:border md:border-border"
-        style={{ background: "var(--chat-ws-frame)", boxShadow: "var(--shadow-3)" }}
-      >
+    <div className="chat-ws h-[calc(100dvh-12rem)] md:h-[calc(100dvh-3.5rem)] min-h-[420px] -mx-4 md:mx-0">
+      <div className="h-full flex flex-col overflow-hidden">
         <div className="flex flex-1 min-h-0">
           {/* Panel izquierdo — lista de conversaciones */}
           <div
@@ -563,7 +564,7 @@ export default function ChatShell({
           {/* Panel derecho — conversación abierta (o estado vacío en /chat) */}
           <div
             key={atRoot ? "root" : selectedId}
-            className={`flex-1 min-w-0 flex-col md:pl-4 ${atRoot ? "hidden md:flex" : "flex"}`}
+            className={`flex-1 min-w-0 flex-col ${atRoot ? "hidden md:flex" : "flex"}`}
             style={{ animation: "nx-panel-in .2s var(--ease)" }}
           >
             {atRoot ? (

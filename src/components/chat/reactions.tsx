@@ -19,7 +19,7 @@ export function ReactionStrip({
   }
   const readOnly = !onToggle;
   return (
-    <div className="relative z-[2] flex flex-wrap gap-1 -mt-2">
+    <div className="relative z-[2] flex flex-wrap gap-1 -mt-2.5">
       {Array.from(byEmoji.entries()).map(([emoji, list]) => {
         const mine = list.some((r) => r.user_id === myId);
         const inner = (

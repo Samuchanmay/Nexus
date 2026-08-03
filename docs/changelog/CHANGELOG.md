@@ -2,6 +2,20 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-03 · Feedback N3 del chat — arquitectura visual y Design Language
+
+- **Layout de 4 columnas full-bleed** (patrón Signal Desktop): sin marco ni contenedor centrado — el módulo ocupa todo el ancho (`Shell` `wide` → `main md:p-0` + `max-w-none`). Sidebar 220 · Lista 380 · Conversación flexible · InfoPanel 340 como 3.ª columna SIEMPRE visible en desktop (antes overlay), colapsable en pantallas medianas. Altura del chat `calc(100dvh-3.5rem)`.
+- **Header completo**: Avatar · Nombre · Estado + acciones búsqueda, llamada, videollamada y menú "more" (`Menu`/`MenuItem` de `os/ui`) con Información / Silenciar / Cerrar.
+- **Iconos unificados Lucide**: stroke 2 (antes 1.75) en todo el chat; nuevos `phone` y `video` en `os/icons.tsx`.
+- **Compositor con pesos iguales**: todos los botones a 34px, mismo radio y sin el círculo azul protagonista del micrófono/enviar; se agrega el botón de emoji/stickers al mismo nivel que `+`/adjuntar.
+- **Burbujas premium**: borde hairline (`inset 0 0 0 0.5px`), sombra exterior sutil, padding `px-3.5 pt-2 pb-1.5`, gap avatar→burbuja 8px.
+- **Reacciones literalmente pegadas** a la burbuja (`-mt-2.5`, solapan su borde inferior) estilo Signal.
+- **Lista densa**: filas ~66px (avatar 48, `py-2.5`), dot de presencia "en línea" en conversaciones directas (heartbeats desde el layout).
+- **Fondo con patrón**: `nx-msg-panel` — base + puntos a 2–4% de opacidad (como Signal); tema oscuro menos negro (`#0A121F → #0C1626 → #151D2B → #1A2434`, nunca negro puro).
+- **Swipe blindado**: franjas de acciones con `z-index: 0`, tarjeta `z-[1]`, `will-change: transform` durante el arrastre — el texto nunca asoma sobre las acciones.
+- **Animación nativa** de entrada de la conversación (`nx-panel-in`, 200ms).
+- Docs: nuevo `docs/design/CHAT-DESIGN-LANGUAGE.md` (principios Apple HIG + Signal + Linear/Notion + Stripe), `docs/modules/CHAT.md` actualizado, CHANGELOG.
+
 ## 2026-08-03 · Feedback N2 del chat — swipe estructural, aire y estados visibles
 
 - **Root cause del swipe corregido**: la tarjeta era `transparent`, así que las dos franjas de acciones (Leído/Archivar + Fijar/Silenciar, 312px en total) se veían SIEMPRE a través del texto. Ahora `.conv-card` tiene fondo opaco igual al de la lista: las acciones quedan ocultas detrás y la fila se ve plana; durante el gesto la tarjeta solo se traslada con `transform` (GPU), nunca se comprime ni refluja. Avatar 56×56 `object-cover` `shrink-0`.

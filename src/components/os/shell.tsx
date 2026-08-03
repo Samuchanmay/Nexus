@@ -129,8 +129,8 @@ export function Shell({
           onClose={() => setAvatarMenu(false)}
         />
 
-        <main className="flex-1 nx-scroll overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 flex flex-col">
-          <div className={`mx-auto w-full flex-1 ${wide ? "max-w-[1700px]" : "max-w-[1140px]"}`}>{children}</div>
+        <main className={`flex-1 nx-scroll overflow-y-auto overflow-x-hidden p-4 pb-24 flex flex-col ${wide ? "md:p-0" : "md:p-6"}`}>
+          <div className={`mx-auto w-full flex-1 ${wide ? "max-w-none" : "max-w-[1140px]"}`}>{children}</div>
           {/* Solo en móvil — en escritorio no aporta y compite con el contenido real (punto 11 de la auditoría). */}
           <footer className="md:hidden max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[12px]"
             style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>

@@ -75,13 +75,15 @@ const P: Record<string, React.ReactNode> = {
   chevronUp: <path d="m6 15 6-6 6 6" />,
   archive: <><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8" /><path d="M10 12.5h4" /></>,
   slash: <><circle cx="12" cy="12" r="8.5" /><path d="m5.5 5.5 13 13" /></>,
+  phone: <path d="M5 4h3.5l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5L16 14l4 1.5V19a2 2 0 0 1-2.2 2A16.8 16.8 0 0 1 3 6.2 2 2 0 0 1 5 4Z" />,
+  video: <><path d="m22 8.5-5.5 3.5 5.5 3.5v-7Z" /><rect x="2.5" y="6.5" width="13.5" height="11" rx="2.5" /></>,
 };
 
 export function Icon({ name, size = 20, ...rest }: { name: string; size?: number } & SVGProps<SVGSVGElement>) {
   return (
     <svg
       width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
       aria-hidden {...rest}
     >
       {P[name] ?? P.dot}

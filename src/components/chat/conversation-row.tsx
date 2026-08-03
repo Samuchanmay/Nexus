@@ -52,11 +52,12 @@ function ActionButton({ icon, label, background, onClick }: {
  * · Resistencia (rubber band) al final del arrastre + retorno con resorte.
  */
 export function ConversationRow({
-  name, avatarUrl, color, preview, time, unread, unreadCount = 0, active, muted, pinned,
+  name, avatarUrl, color, preview, time, unread, unreadCount = 0, active, muted, pinned, online,
   typingLabel, onOpen, onToggleMute, onTogglePin, onMarkRead, onToggleArchive,
 }: {
   name: string; avatarUrl: string | null; color: string | null; preview: string; time: string;
   unread: boolean; unreadCount?: number; active: boolean; muted: boolean; pinned: boolean;
+  online?: boolean;
   typingLabel?: string | null;
   onOpen: () => void; onToggleMute: () => void; onTogglePin: () => void;
   onMarkRead: () => void; onToggleArchive: () => void;
@@ -98,13 +99,23 @@ export function ConversationRow({
         {...bind}
         onClick={() => { if (openSide) { reset(); return; } onOpen(); }}
         data-active={active}
-        className="conv-card relative flex items-center gap-3 px-4 py-3 rounded-[14px] cursor-pointer touch-pan-y"
+        className="conv-card relative z-[1] flex items-center gap-3 px-4 py-2.5 rounded-[14px] cursor-pointer touch-pan-y"
         style={{
           transform: `translateX(${dx}px)`,
           transition: dragging ? "none" : "transform .2s var(--spring)",
+          willChange: dragging ? "transform" : "auto",
         }}
       >
-        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={56} />
+        <div className="relative shrink-0">
+          <Avatar name={name} avatarUrl={avatarUrl} color={color} size={48} />
+          {online && (
+            <span
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2"
+              style={{ background: "var(--ok)", borderColor: "var(--chat-list-bg)" }}
+              aria-label="En línea"
+            />
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {pinned && <Icon name="pin" size={12} aria-hidden style={{ color: "var(--accent)", flexShrink: 0 }} />}

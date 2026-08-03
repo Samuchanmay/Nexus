@@ -60,13 +60,17 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
     const { data: people } = userIds.length > 0
       ? await supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color").in("id", userIds)
       : { data: [] as ParticipantLite[] };
+    const { data: heartbeats } = userIds.length > 0
+      ? await supabase.from("user_heartbeats").select("user_id, last_seen_at").in("user_id", userIds)
+      : { data: [] as { user_id: string; last_seen_at: string }[] };
+    const lastSeenByUser = new Map((heartbeats ?? []).map((h) => [h.user_id, h.last_seen_at]));
     const peopleById = new Map((people ?? []).map((p) => [p.id, p]));
 
     participantsByConv = {};
     for (const p of participants ?? []) {
       const person = peopleById.get(p.user_id);
       if (!person) continue;
-      (participantsByConv[p.conversation_id] ??= []).push(person);
+      (participantsByConv[p.conversation_id] ??= []).push({ ...person, last_seen_at: lastSeenByUser.get(person.id) ?? null });
     }
   }
 
