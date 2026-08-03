@@ -52,7 +52,7 @@ const SUBTITLES: Record<string, string> = {
 };
 
 export function AppShell({
-  role, user, children, actions, ficharAction = false,
+  role, user, children, actions, ficharAction = false, wide = false,
 }: {
   role: Role;
   user: ShellUser;
@@ -60,6 +60,8 @@ export function AppShell({
   actions?: React.ReactNode;
   /** Muestra el acceso rápido a /fichar (Comenzar/terminar jornada) en la barra superior. */
   ficharAction?: boolean;
+  /** Permite al módulo usar más ancho que el estándar de 1140px (el chat usa 1700px). */
+  wide?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -167,7 +169,7 @@ export function AppShell({
       <HeaderActionsProvider>
         <AppShellBody
           role={role} user={user} active={active} onNavigate={go}
-          title={SUBTITLES[pathname] ?? TITLES[active] ?? "Emet"} actions={actions} ficharAction={ficharAction}
+          title={SUBTITLES[pathname] ?? TITLES[active] ?? "Emet"} actions={actions} ficharAction={ficharAction} wide={wide}
         >
           {children}
         </AppShellBody>
@@ -180,10 +182,11 @@ export function AppShell({
     (useHeaderAction, ej. "Exportar CSV" en Asistencia) con cualquier acción
     explícita que ya venga del layout — sin duplicar botones (punto 11). */
 function AppShellBody({
-  role, user, active, onNavigate, title, actions, ficharAction, children,
+  role, user, active, onNavigate, title, actions, ficharAction, children, wide = false,
 }: {
   role: Role; user: ShellUser; active: string; onNavigate: (key: string) => void;
   title: string; actions?: React.ReactNode; ficharAction: boolean; children: React.ReactNode;
+  wide?: boolean;
 }) {
   const contextual = useHeaderActionSlot();
   // Solo los roles con Chat (admin/empleado) montan el watcher de no-leídos;
@@ -203,6 +206,7 @@ function AppShellBody({
       title={title}
       actions={<>{contextual}{actions}</>}
       ficharAction={ficharAction}
+      wide={wide}
       badge={{ chat: unreadChat }}
     >
       {children}

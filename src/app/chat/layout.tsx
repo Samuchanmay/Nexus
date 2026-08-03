@@ -102,6 +102,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
           color: profile.nexus_color ?? "#0066FF",
           roleLabel: roleLabel(role),
         }}
+        wide
       >
         <ChatShell
           myId={myId}

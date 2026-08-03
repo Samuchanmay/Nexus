@@ -2,6 +2,19 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-03 · Feedback N2 del chat — swipe estructural, aire y estados visibles
+
+- **Root cause del swipe corregido**: la tarjeta era `transparent`, así que las dos franjas de acciones (Leído/Archivar + Fijar/Silenciar, 312px en total) se veían SIEMPRE a través del texto. Ahora `.conv-card` tiene fondo opaco igual al de la lista: las acciones quedan ocultas detrás y la fila se ve plana; durante el gesto la tarjeta solo se traslada con `transform` (GPU), nunca se comprime ni refluja. Avatar 56×56 `object-cover` `shrink-0`.
+- **Acciones 72–84px** (se mantienen a 78px cada una), esquinas conservadas por el shell `rounded-[14px] overflow-hidden`.
+- **Profundidad hover sutil**: la fila se eleva 2px con borde hairline y sombra ligera (spec: sin sombras fuertes), transición 180ms.
+- **Ancho**: lista de conversaciones 330→380px; el módulo chat ahora llega a **1700px** vía prop `wide` nueva en `Shell`/`AppShell` (el resto de la app conserva 1140px).
+- **Estado vacío del panel derecho**: ilustración SVG propia, "No hay conversación seleccionada", subtítulo y 3 accesos rápidos (Crear chat / Buscar compañero / Crear grupo) — el de grupo abre el sheet en modo grupo.
+- **Buscador completo**: Ctrl+K/⌘K lo enfoca (el Shell cede el atajo en `/chat`), botón de limpiar, hint ⌘K, pulso del icono mientras busca mensajes.
+- **Botón "Nuevo mensaje" estilo Signal**: gradiente con brillo superior, hover elevado, active con presión (`nx-new-btn`).
+- **Estados visibles**: pill "Sin conexión — reconectando…" en la lista cuando el navegador está offline (suma al no-leído/silenciado/fijado/escribiendo/en línea/subiendo/error ya presentes).
+- **Aire/spacing**: más separación entre título/botón/tabs/buscador/conversaciones y en la lista.
+- **Animación** de apertura del panel derecho (`nx-panel-in`, 200ms) al abrir una conversación.
+
 ## 2026-08-03 · Polaco N1 del chat (Signal + WhatsApp Desktop + Apple Messages)
 
 - **Scrim Signal unificado** en todos los overlays (Sheet, Dialog, CenteredOverlay, DateSheet, Notificaciones móviles, PausaActiva, calendario): `rgba(0,0,0,.42)` + `blur(18px) saturate(.75) brightness(.72)`. Corrige la clase completa de clics fantasma (`pointer-events`) en overlays que faltaban (Dialog, PausaActiva, date-sheet móvil). ADR-0016.

@@ -610,7 +610,7 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
   --chat-pill-bg: #151D2B;
   --chat-card-inner: #1A2434;
   --chat-list-active: #12203A;
-  --chat-hover-row: rgba(255,255,255,0.04);
+  --chat-hover-row: #0C1626;
 
   --accent: #2663FF;
   --accent-tint: rgba(38,99,255,0.18);
@@ -648,17 +648,46 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 
 /* Tarjeta de conversación en la lista — el fondo va en CSS (no inline)
    para poder tener hover sobre la clase, con el estado activo por
-   atributo (lo pinta ConversationRow). */
-/* Filas planas estilo Signal — sin tarjeta, sin sombra, sin división:
-   solo el fondo hover/activo marca la fila (spec chat §1: la lista debe
-   tener "menos sombras, bordes y divisiones, más aire"). */
-.chat-ws .conv-card { background: transparent; box-shadow: none; }
+   atributo (lo pinta ConversationRow).
+   IMPORTANTE: el fondo es OPACO e igual al fondo de la lista. Así la capa
+   de acciones del swipe queda SIEMPRE oculta detrás de la tarjeta
+   mientras esta se traslada (texto nunca sobre acciones); al reposar la
+   fila se ve plana porque el fondo coincide con el panel. El hover y el
+   estado activo solo cambian el color — jamás el tamaño: durante el swipe
+   la tarjeta únicamente se mueve con transform (GPU), sin comprimirse. */
+.chat-ws .conv-card { background: var(--chat-list-bg); box-shadow: none; transition: background .18s var(--ease); }
 .chat-ws .conv-card:hover { background: var(--chat-hover-row); }
 .chat-ws .conv-card[data-active="true"],
 .chat-ws .conv-card[data-active="true"]:hover { background: var(--chat-list-active); }
 
-/* Sin elevación al hover — las filas planas no levantan, solo se tiñen. */
-.chat-ws .conv-card-shell { transition: none; }
+/* Profundidad sutil al hover de la fila (spec chat §2: fondo → elevación
+   2px → borde hairline; sin sombras fuertes). Se eleva el shell completo
+   para que la tarjeta y sus acciones se muevan juntas como una sola pieza. */
+.chat-ws .conv-card-shell { transition: transform .18s var(--spring), box-shadow .18s var(--ease); }
+.chat-ws .conv-card-shell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--border-2), 0 6px 16px rgba(15,21,34,0.08);
+}
+[data-theme="dark"] .chat-ws .conv-card-shell:hover {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 8px 20px rgba(0,0,0,0.35);
+}
+
+/* Botón "Nuevo mensaje" estilo Signal: gradiente sutil con brillo superior,
+   hover elegante (elevación + sombra que respira), active con presión. */
+.chat-ws .nx-new-btn {
+  background: linear-gradient(180deg, #3B6EFF 0%, #2663FF 45%, #195BFF 100%);
+  box-shadow: 0 6px 16px rgba(38,99,255,0.28), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: transform .2s var(--spring), box-shadow .2s var(--ease), filter .2s var(--ease);
+}
+.chat-ws .nx-new-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 10px 26px rgba(38,99,255,0.40), inset 0 1px 0 rgba(255,255,255,0.24);
+}
+.chat-ws .nx-new-btn:active {
+  transform: translateY(0) scale(.985);
+  box-shadow: 0 3px 10px rgba(38,99,255,0.30), inset 0 1px 0 rgba(255,255,255,0.14);
+}
 
 /* Scrollbar fina (2px, casi invisible) dentro del workspace — solo se
    insinúa al pasar el ratón sobre el contenedor que hace scroll. */
@@ -686,6 +715,12 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
   0%, 60%, 100% { transform: translateY(0); opacity: .4; }
   30% { transform: translateY(-3px); opacity: 1; }
 }
+
+/* Entrada del panel de conversación al abrir (spec: 140–200ms, sutil) */
+@keyframes nx-panel-in { from { opacity: 0; transform: translateY(6px) scale(.995); } to { opacity: 1; transform: none; } }
+
+/* Pulso del icono de búsqueda mientras se buscan mensajes */
+@keyframes nx-search-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
 /* Movimiento reducido — el chat respeta la preferencia del sistema
    (accesibilidad): sin animaciones ni transiciones cuando el usuario

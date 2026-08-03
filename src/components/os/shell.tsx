@@ -16,7 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 export type ShellUser = { id: string; name: string; area: string; color: string; roleLabel: string; avatarUrl?: string | null; birthDate?: string | null };
 
 export function Shell({
-  role, user, active, onNavigate, title, actions, children, ficharAction = false, badge,
+  role, user, active, onNavigate, title, actions, children, ficharAction = false, badge, wide = false,
 }: {
   role: Role;
   user: ShellUser;
@@ -29,6 +29,9 @@ export function Shell({
   ficharAction?: boolean;
   /** Contadores por key de navegación (ej. { chat: 3 }) — badges en sidebar, tab bar y spotlight. */
   badge?: Record<string, number>;
+  /** Módulos que necesitan más espacio que el estándar de 1140px (ej. el
+      chat estilo Signal, que ocupa hasta 1700px como WhatsApp/Signal Desktop). */
+  wide?: boolean;
 }) {
   const items = useMemo(() => navFor(role), [role]);
   const [drawer, setDrawer] = useState(false);
@@ -43,10 +46,12 @@ export function Shell({
   };
   const { theme, toggle } = useTheme();
 
-  // ⌘K / Ctrl+K abre el Spotlight
+  // ⌘K / Ctrl+K abre el Spotlight — excepto en /chat, donde el buscador de
+  // conversaciones se queda con el atajo (ver ChatShell en chat/client.tsx).
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        if (window.location.pathname.startsWith("/chat")) return;
         e.preventDefault();
         setSpot((s) => !s);
       }
@@ -125,7 +130,7 @@ export function Shell({
         />
 
         <main className="flex-1 nx-scroll overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 flex flex-col">
-          <div className="max-w-[1140px] mx-auto w-full flex-1">{children}</div>
+          <div className={`mx-auto w-full flex-1 ${wide ? "max-w-[1700px]" : "max-w-[1140px]"}`}>{children}</div>
           {/* Solo en móvil — en escritorio no aporta y compite con el contenido real (punto 11 de la auditoría). */}
           <footer className="md:hidden max-w-[1140px] mx-auto w-full mt-10 pt-4 text-center text-[12px]"
             style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>

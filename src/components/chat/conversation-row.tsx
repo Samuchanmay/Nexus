@@ -101,10 +101,10 @@ export function ConversationRow({
         className="conv-card relative flex items-center gap-3 px-4 py-3 rounded-[14px] cursor-pointer touch-pan-y"
         style={{
           transform: `translateX(${dx}px)`,
-          transition: dragging ? "none" : "transform .3s var(--spring)",
+          transition: dragging ? "none" : "transform .2s var(--spring)",
         }}
       >
-        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={48} />
+        <Avatar name={name} avatarUrl={avatarUrl} color={color} size={56} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {pinned && <Icon name="pin" size={12} aria-hidden style={{ color: "var(--accent)", flexShrink: 0 }} />}

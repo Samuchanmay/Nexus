@@ -70,8 +70,11 @@ export default function ChatShell({
   const [conversations, setConversations] = useState(initialConversations);
   const [participants, setParticipants] = useState(participantsByConv);
   const [myState, setMyState] = useState(myStateByConv);
-  const [newOpen, setNewOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState<"direct" | "group" | null>(null);
   const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [searching, setSearching] = useState(false);
+  const [online, setOnline] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread" | "pinned">("all");
   const [showArchived, setShowArchived] = useState(false);
   const [messageHits, setMessageHits] = useState<MessageHit[]>([]);
@@ -191,33 +194,67 @@ export default function ChatShell({
     setShowNotifBanner(true);
   }, []);
 
+  // ⌘K / Ctrl+K enfoca el buscador de conversaciones (el Shell cede el
+  // atajo en /chat para no abrir el Spotlight — ver shell.tsx).
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        const target = e.target as HTMLElement | null;
+        const tag = target?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  // Estado de conexión — el indicador "reconectando" es un estado visible
+  // de la lista (spec chat §2), aparte del envío de mensajes.
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    setOnline(navigator.onLine);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
   // Búsqueda unificada — personas/grupos por nombre (en memoria, ya
   // cargados) + mensajes (consulta a Supabase, con un pequeño debounce).
   // Todo desde la misma caja, como pedía la referencia de Signal.
   useEffect(() => {
     const q = search.trim();
-    if (q.length < 2) { setMessageHits([]); return; }
+    if (q.length < 2) { setMessageHits([]); setSearching(false); return; }
+    setSearching(true);
     let active = true;
     const t = setTimeout(async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("messages")
-        .select("id, conversation_id, content, sender_id")
-        .ilike("content", `%${q}%`)
-        .eq("type", "text")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(8);
-      if (!active || !data) return;
-      const senderIds = Array.from(new Set(data.map((m) => m.sender_id)));
-      const { data: senders } = senderIds.length
-        ? await supabase.from("users_directory").select("id, display_name").in("id", senderIds)
-        : { data: [] as { id: string; display_name: string }[] };
-      const nameById = new Map((senders ?? []).map((s) => [s.id, s.display_name]));
-      setMessageHits(data.map((m) => ({
-        id: m.id, conversation_id: m.conversation_id, content: m.content,
-        sender_name: nameById.get(m.sender_id) ?? "Alguien",
-      })));
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("messages")
+          .select("id, conversation_id, content, sender_id")
+          .ilike("content", `%${q}%`)
+          .eq("type", "text")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(8);
+        if (!active) return;
+        const senderIds = Array.from(new Set((data ?? []).map((m) => m.sender_id)));
+        const { data: senders } = senderIds.length
+          ? await supabase.from("users_directory").select("id, display_name").in("id", senderIds)
+          : { data: [] as { id: string; display_name: string }[] };
+        if (!active) return;
+        const nameById = new Map((senders ?? []).map((s) => [s.id, s.display_name]));
+        setMessageHits((data ?? []).map((m) => ({
+          id: m.id, conversation_id: m.conversation_id, content: m.content,
+          sender_name: nameById.get(m.sender_id) ?? "Alguien",
+        })));
+      } finally {
+        if (active) setSearching(false);
+      }
     }, 250);
     return () => { active = false; clearTimeout(t); };
   }, [search]);
@@ -357,10 +394,10 @@ export default function ChatShell({
         <div className="flex flex-1 min-h-0">
           {/* Panel izquierdo — lista de conversaciones */}
           <div
-            className={`w-full md:w-[330px] shrink-0 md:border-r md:border-border flex-col ${atRoot ? "flex" : "hidden md:flex"}`}
+            className={`w-full md:w-[380px] shrink-0 md:border-r md:border-border flex-col ${atRoot ? "flex" : "hidden md:flex"}`}
             style={{ background: "var(--chat-list-bg)" }}
           >
-            <div className="px-4 md:px-5 pt-4 md:pt-5 pb-3 shrink-0 space-y-3">
+            <div className="px-4 md:px-5 pt-4 md:pt-6 pb-4 shrink-0 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <p className="text-[20px] font-bold tracking-tight">Chat</p>
@@ -369,12 +406,11 @@ export default function ChatShell({
               </div>
 
               <button
-                onClick={() => setNewOpen(true)}
+                onClick={() => setNewOpen("direct")}
                 data-ripple
-                className="w-full h-12 rounded-[16px] flex items-center justify-center gap-2 text-[14px] font-semibold text-white transition-all duration-150 hover:brightness-110 active:scale-[.98]"
-                style={{ background: "var(--chat-bubble-out)", boxShadow: "0 8px 20px rgba(38,99,255,0.30)" }}
+                className="nx-new-btn w-full h-12 rounded-[14px] flex items-center justify-center gap-2 text-[14px] font-semibold text-white cursor-pointer"
               >
-                <Icon name="plus" size={18} /> Nuevo mensaje
+                <Icon name="plus" size={18} aria-hidden /> Nuevo mensaje
               </button>
 
               <div className="flex gap-1.5" role="tablist" aria-label="Filtrar conversaciones">
@@ -393,10 +429,20 @@ export default function ChatShell({
                   </button>
                 )))}
               </div>
+
+              {!online && (
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-full text-[12px] font-semibold"
+                  style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ background: "var(--warn)" }} />
+                  Sin conexión — reconectando…
+                </div>
+              )}
             </div>
 
             {showNotifBanner && (
-              <div className="mx-4 md:mx-5 mb-3 shrink-0 flex items-center gap-2.5 rounded-[14px] px-3.5 py-2.5"
+              <div className="mx-4 md:mx-5 mb-4 shrink-0 flex items-center gap-2.5 rounded-[14px] px-3.5 py-2.5"
                 style={{ background: "var(--surface)", border: "0.5px solid var(--border)", boxShadow: "var(--shadow-1)" }}>
                 <Icon name="bell" size={14} style={{ color: "var(--accent)" }} />
                 <p className="text-[12px] flex-1 leading-snug" style={{ color: "var(--text-2)" }}>
@@ -419,31 +465,55 @@ export default function ChatShell({
               </div>
             )}
 
-            <div className="px-4 md:px-5 pb-3 shrink-0">
-              {/* Buscador estilo Signal: bajo, pastilla redondeada, icono
-                  discreto y placeholder gris tenue (spec chat §1). */}
+            <div className="px-4 md:px-5 pb-4 shrink-0">
+              {/* Buscador estilo Signal (spec chat §2): pastilla redondeada,
+                  icono SVG, placeholder gris tenue, Ctrl+K lo enfoca, botón
+                  de limpiar y pulso del icono mientras se buscan mensajes. */}
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[length:var(--text-3)] pointer-events-none">
+                <span
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: "var(--text-3)", animation: searching ? "nx-search-pulse 1.1s ease-in-out infinite" : undefined }}
+                >
                   <Icon name="search" size={14} aria-hidden />
                 </span>
                 <input
+                  ref={searchRef}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar…"
-                  className="w-full h-9 rounded-full pl-9 pr-3 text-[13.5px] border border-transparent placeholder:text-[var(--text-3)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)] transition-all duration-150"
+                  placeholder="Buscar conversaciones y mensajes…"
+                  aria-label="Buscar conversaciones"
+                  className="w-full h-9 rounded-full pl-9 pr-10 text-[13.5px] border border-transparent placeholder:text-[var(--text-3)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)] transition-all duration-150"
                   style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
                 />
+                {search ? (
+                  <button
+                    onClick={() => setSearch("")}
+                    aria-label="Limpiar búsqueda"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center w-5 h-5 rounded-full hover:bg-hover transition-colors duration-150"
+                    style={{ color: "var(--text-3)" }}
+                  >
+                    <Icon name="close" size={11} aria-hidden />
+                  </button>
+                ) : (
+                  <span
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] border pointer-events-none"
+                    style={{ color: "var(--text-3)", borderColor: "var(--border-2)" }}
+                    title="Ctrl + K"
+                  >
+                    ⌘K
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3">
+            <div className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-4">
               {conversations.length === 0 ? (
                 <div className="px-2">
                   <EmptyState
                     icon={<Icon name="message" size={22} />}
                     title="Sin conversaciones todavía"
                     hint="Escribe a un compañero o crea un grupo para empezar."
-                    action={<Button variant="primary" onClick={() => setNewOpen(true)} data-ripple>Escribir a alguien</Button>}
+                    action={<Button variant="primary" onClick={() => setNewOpen("direct")} data-ripple>Escribir a alguien</Button>}
                   />
                 </div>
               ) : (
@@ -491,16 +561,27 @@ export default function ChatShell({
           </div>
 
           {/* Panel derecho — conversación abierta (o estado vacío en /chat) */}
-          <div className={`flex-1 min-w-0 flex-col md:pl-4 ${atRoot ? "hidden md:flex" : "flex"}`}>
-            {children}
+          <div
+            key={atRoot ? "root" : selectedId}
+            className={`flex-1 min-w-0 flex-col md:pl-4 ${atRoot ? "hidden md:flex" : "flex"}`}
+            style={{ animation: "nx-panel-in .2s var(--ease)" }}
+          >
+            {atRoot ? (
+              <ChatEmptyState
+                onNew={() => setNewOpen("direct")}
+                onNewGroup={() => setNewOpen("group")}
+                onFocusSearch={() => { searchRef.current?.focus(); searchRef.current?.select(); }}
+              />
+            ) : children}
           </div>
         </div>
       </div>
 
       <NewConversationSheet
-        open={newOpen}
-        onClose={() => setNewOpen(false)}
-        onCreated={(id) => { setNewOpen(false); router.push(`/chat/${id}`); }}
+        open={newOpen !== null}
+        initialMode={newOpen ?? "direct"}
+        onClose={() => setNewOpen(null)}
+        onCreated={(id) => { setNewOpen(null); router.push(`/chat/${id}`); }}
         myId={myId}
         onToast={(msg) => toast(msg, "danger")}
       />
@@ -527,14 +608,71 @@ export default function ChatShell({
   );
 }
 
+/* Estado vacío del panel derecho en escritorio (spec chat §2): ilustración
+   SVG propia de Emet, título, subtítulo y accesos rápidos para empezar.
+   En celular este panel nunca se ve — solo la lista. */
+function ChatEmptyState({ onNew, onNewGroup, onFocusSearch }: {
+  onNew: () => void; onNewGroup: () => void; onFocusSearch: () => void;
+}) {
+  return (
+    <div className="h-full flex items-center justify-center p-8">
+      <div className="flex flex-col items-center text-center max-w-[360px]">
+        <svg width="176" height="136" viewBox="0 0 176 136" fill="none" aria-hidden>
+          <defs>
+            <linearGradient id="nx-empty-chat" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#3B6EFF" />
+              <stop offset="1" stopColor="#195BFF" />
+            </linearGradient>
+          </defs>
+          <circle cx="150" cy="22" r="9" fill="var(--accent)" opacity="0.16" />
+          <circle cx="22" cy="108" r="6" fill="var(--accent)" opacity="0.16" />
+          <rect x="28" y="30" width="116" height="82" rx="24" fill="url(#nx-empty-chat)" opacity="0.16" />
+          <rect x="44" y="50" width="54" height="8" rx="4" fill="var(--accent)" opacity="0.85" />
+          <rect x="44" y="68" width="76" height="8" rx="4" fill="var(--accent)" opacity="0.45" />
+          <rect x="44" y="86" width="42" height="8" rx="4" fill="var(--accent)" opacity="0.45" />
+          <path d="M84 112 l9 10 9 -10 z" fill="url(#nx-empty-chat)" opacity="0.5" />
+        </svg>
+        <h2 className="mt-5 text-[19px] font-bold tracking-tight">No hay conversación seleccionada</h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed" style={{ color: "var(--text-2)" }}>
+          Elige un chat de la lista o empieza una conversación con tu equipo.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <button
+            onClick={onNew}
+            data-ripple
+            className="nx-new-btn h-10 px-4 rounded-full flex items-center gap-2 text-[13px] font-semibold text-white cursor-pointer"
+          >
+            <Icon name="plus" size={15} aria-hidden /> Crear chat
+          </button>
+          <button
+            onClick={onFocusSearch}
+            className="h-10 px-4 rounded-full flex items-center gap-2 text-[13px] font-semibold cursor-pointer transition-all duration-150 hover:bg-hover active:scale-[.97]"
+            style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
+          >
+            <Icon name="search" size={14} aria-hidden /> Buscar compañero
+          </button>
+          <button
+            onClick={onNewGroup}
+            className="h-10 px-4 rounded-full flex items-center gap-2 text-[13px] font-semibold cursor-pointer transition-all duration-150 hover:bg-hover active:scale-[.97]"
+            style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
+          >
+            <Icon name="users" size={14} aria-hidden /> Crear grupo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NewConversationSheet({
-  open, onClose, onCreated, myId, onToast,
+  open, onClose, onCreated, myId, onToast, initialMode = "direct",
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: (id: string) => void;
   myId: string;
   onToast: (msg: string) => void;
+  initialMode?: "direct" | "group";
 }) {
   const [mode, setMode] = useState<"direct" | "group">("direct");
   const [people, setPeople] = useState<ParticipantLite[]>([]);
@@ -545,7 +683,7 @@ function NewConversationSheet({
 
   useEffect(() => {
     if (!open) return;
-    setMode("direct"); setSearch(""); setSelected(new Set()); setGroupName("");
+    setMode(initialMode); setSearch(""); setSelected(new Set()); setGroupName("");
     const supabase = createClient();
     // Solo equipo interno (admin/empleado) — coordinador/departamento/rh no
     // deben aparecer como destino de chat. El filtro real (que no se puede
@@ -559,7 +697,7 @@ function NewConversationSheet({
       .neq("id", myId)
       .order("display_name")
       .then(({ data }) => setPeople((data ?? []) as ParticipantLite[]));
-  }, [open, myId]);
+  }, [open, myId, initialMode]);
 
   const filtered = useMemo(
     () => people.filter((p) => p.display_name.toLowerCase().includes(search.toLowerCase())),
