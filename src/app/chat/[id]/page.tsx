@@ -31,12 +31,13 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
 
   const { data: participantRows } = await supabase
     .from("conversation_participants")
-    .select("user_id, role, muted")
+    .select("user_id, role, muted, muted_until")
     .eq("conversation_id", id);
 
   const mine = (participantRows ?? []).find((p) => p.user_id === myId);
   const myRole = (mine?.role ?? "member") as "admin" | "member";
   const myMuted = mine?.muted ?? false;
+  const myMutedUntil = (mine?.muted_until as string | null) ?? null;
 
   const userIds = (participantRows ?? []).map((p) => p.user_id);
   const otherUserId = conversation.type === "direct"
@@ -80,7 +81,7 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
   // eliminado" para todos (borrado suave, no desaparición).
   const { data: messagesDesc } = await supabase
     .from("messages")
-    .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
+    .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at")
     .eq("conversation_id", id)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE + 1);
@@ -94,7 +95,7 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
       ? supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, thumb_path, thumb_size, thumb_mime, medium_path, medium_size, medium_mime").in("message_id", messageIds)
       : Promise.resolve({ data: [] as EnlaceAttachment[] }),
     conversation.pinned_message_id
-      ? supabase.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng").eq("id", conversation.pinned_message_id).maybeSingle()
+      ? supabase.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at").eq("id", conversation.pinned_message_id).maybeSingle()
       : Promise.resolve({ data: null }),
     // Archivos recientes de TODA la conversación (no solo la página cargada) — para el panel derecho.
     supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, thumb_path, thumb_size, thumb_mime, medium_path, medium_size, medium_mime, messages!inner(conversation_id)")
@@ -121,6 +122,7 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
       myId={myId}
       myRole={myRole}
       initialMuted={myMuted}
+      initialMutedUntil={myMutedUntil}
       conversation={conversation as EnlaceConversation}
       participants={peopleWithRole}
       initialMessages={messages}

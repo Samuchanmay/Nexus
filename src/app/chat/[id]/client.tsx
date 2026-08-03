@@ -81,13 +81,14 @@ function messagePreview(m?: EnlaceMessage | null): string {
 type PersonLite = ParticipantLite & { role?: "admin" | "member"; muted?: boolean; last_seen_at?: string | null };
 
 export default function EnlaceConversationClient({
-  myId, myRole, initialMuted, conversation, participants, initialMessages, hasMoreOlder,
+  myId, myRole, initialMuted, initialMutedUntil, conversation, participants, initialMessages, hasMoreOlder,
   attachmentsByMessage: initialAttachments, reactionsByMessage: initialReactions,
   initialPinnedMessage, recentFiles, creatorName, otherProfile,
 }: {
   myId: string;
   myRole: "admin" | "member";
   initialMuted: boolean;
+  initialMutedUntil: string | null;
   conversation: EnlaceConversation;
   participants: PersonLite[];
   initialMessages: EnlaceMessage[];
@@ -105,7 +106,13 @@ export default function EnlaceConversationClient({
   const [reactionsByMessage, setReactionsByMessage] = useState(initialReactions);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [pinnedMessage, setPinnedMessage] = useState(initialPinnedMessage);
-  const [muted, setMuted] = useState(initialMuted);
+  // Silencio: un booleano (siempre) + una fecha de vencimiento (por duración).
+  // Efectivo = muted OR (mutedUntil en el futuro) — mismo criterio que el
+  // push y el watcher de no-leídos.
+  const [mute, setMute] = useState<{ muted: boolean; mutedUntil: string | null }>({
+    muted: initialMuted, mutedUntil: initialMutedUntil,
+  });
+  const muted = mute.muted || (!!mute.mutedUntil && new Date(mute.mutedUntil).getTime() > Date.now());
   const [infoOpen, setInfoOpen] = useState(true);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<EnlaceMessage | null>(null);
@@ -159,7 +166,14 @@ export default function EnlaceConversationClient({
   useEffect(() => {
     if (recorderError) toast(recorderError, "danger");
   }, [recorderError, toast]);
-  const { typingText, notifyTyping } = useTyping(conversation.id, myId, peopleById.get(myId)?.display_name ?? "Alguien");
+  const { typingText, recordingText, notifyTyping, notifyRecording } = useTyping(conversation.id, myId, peopleById.get(myId)?.display_name ?? "Alguien");
+  // El indicador "grabando un audio" es efímero (broadcast) y tiene fin
+  // explícito: al iniciar la nota se anuncia `on: true` y al soltar/cancelar
+  // `on: false`, para que los demás lo vean aparecer y desaparecer en vivo.
+  useEffect(() => {
+    notifyRecording(recording);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording]);
 
   const other = conversation.type === "direct" ? participants.find((p) => p.id !== myId) : null;
   const title = conversation.type === "announcement" ? (conversation.name ?? "Anuncios")
@@ -168,7 +182,8 @@ export default function EnlaceConversationClient({
   const presence = other ? formatPresence(other.last_seen_at) : null;
   const subtitle = conversation.type === "announcement"
     ? (myRole === "admin" ? "Solo tú y otros admins pueden publicar" : "Solo administradores pueden publicar")
-    : typingText
+    : recordingText
+    ?? typingText
     ?? (conversation.type === "group"
       ? `${participants.length} ${participants.length === 1 ? "integrante" : "integrantes"}`
       : presence ?? undefined);
@@ -219,7 +234,7 @@ export default function EnlaceConversationClient({
     const supabase = createClient();
     const { data } = await supabase
       .from("messages")
-      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
+      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at")
       .eq("conversation_id", conversation.id)
       .lt("created_at", oldest)
       .order("created_at", { ascending: false })
@@ -352,7 +367,7 @@ export default function EnlaceConversationClient({
         (payload) => {
           const row = payload.new as EnlaceMessage;
           setMessages((cur) => cur.map((m) =>
-            m.id === row.id ? { ...m, status: row.status, content: row.content, edited: row.edited, deleted_at: row.deleted_at } : m
+            m.id === row.id ? { ...m, status: row.status, content: row.content, edited: row.edited, deleted_at: row.deleted_at, read_at: row.read_at } : m
           ));
           // Si el fijado se editó/eliminó, reflejarlo en el banner superior.
           setPinnedMessage((cur) => (cur?.id === row.id ? { ...cur, content: row.content, deleted_at: row.deleted_at } : cur));
@@ -501,8 +516,24 @@ export default function EnlaceConversationClient({
 
   const toggleMuted = async () => {
     const supabase = createClient();
-    const { data, error } = await supabase.rpc("nx_enlace_toggle_mute", { p_conversation_id: conversation.id });
-    if (!error && typeof data === "boolean") setMuted(data);
+    // "Activar notificaciones" sobre un silencio por duración debe limpiar
+    // ambos campos — el toggle histórico solo voltea `muted` y dejaría el
+    // vencimiento colgando. Por eso: silenciado → unmute (limpia todo);
+    // no silenciado → silencio indefinido (set_mute con vencimiento null).
+    const { error } = muted
+      ? await supabase.rpc("nx_enlace_unmute", { p_conversation_id: conversation.id })
+      : await supabase.rpc("nx_enlace_set_mute", { p_conversation_id: conversation.id, p_until: null });
+    if (!error) setMute({ muted: !muted, mutedUntil: null });
+  };
+
+  // Silencio por duración (FASE "plataforma de mensajería moderna"): 8h /
+  // 1 semana / siempre. Un solo RPC (nx_enlace_set_mute) que recibe el
+  // vencimiento; null = para siempre (mismo efecto que el toggle histórico).
+  const setMutedFor = async (until: string | null) => {
+    const supabase = createClient();
+    const { error } = await supabase.rpc("nx_enlace_set_mute", { p_conversation_id: conversation.id, p_until: until });
+    if (error) return;
+    setMute({ muted: until === null, mutedUntil: until });
   };
 
   const flashMessage = useCallback((id: string) => {
@@ -689,8 +720,15 @@ export default function EnlaceConversationClient({
           <div className="min-w-0 flex-1">
             <p className="text-[16px] font-bold tracking-tight truncate">{title}</p>
             {subtitle && (
-              <p className="text-[12.5px] truncate inline-flex items-center" style={{ color: typingText ? "var(--accent)" : "var(--text-2)" }}>
-                {subtitle}{typingText && <TypingDots />}
+              <p className="text-[12.5px] truncate inline-flex items-center" style={{ color: (typingText || recordingText) ? "var(--accent)" : "var(--text-2)" }}>
+                {subtitle}
+                {recordingText ? (
+                  <span className="inline-flex items-center ml-1.5" aria-hidden>
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--danger)", animation: "nx-breathe-soft 1s ease-in-out infinite" }} />
+                  </span>
+                ) : typingText ? (
+                  <TypingDots />
+                ) : null}
               </p>
             )}
           </div>
@@ -729,9 +767,23 @@ export default function EnlaceConversationClient({
             <MenuItem icon={<Icon name="info" size={15} />} onClick={() => { setInfoOpen(true); }}>
               Información de la conversación
             </MenuItem>
-            <MenuItem icon={<Icon name={muted ? "bell" : "bellOff"} size={15} />} onClick={toggleMuted}>
-              {muted ? "Activar notificaciones" : "Silenciar conversación"}
-            </MenuItem>
+            {muted ? (
+              <MenuItem icon={<Icon name="bell" size={15} />} onClick={toggleMuted}>
+                Activar notificaciones
+              </MenuItem>
+            ) : (
+              <>
+                <MenuItem icon={<Icon name="bellOff" size={15} />} onClick={() => setMutedFor(new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString())}>
+                  Silenciar por 8 horas
+                </MenuItem>
+                <MenuItem icon={<Icon name="bellOff" size={15} />} onClick={() => setMutedFor(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())}>
+                  Silenciar por 1 semana
+                </MenuItem>
+                <MenuItem icon={<Icon name="bellOff" size={15} />} onClick={() => setMutedFor(null)}>
+                  Silenciar siempre
+                </MenuItem>
+              </>
+            )}
             <MenuItem icon={<Icon name="archive" size={15} />} onClick={() => { router.push("/chat"); }}>
               Cerrar conversación
             </MenuItem>
@@ -1031,7 +1083,9 @@ export default function EnlaceConversationClient({
             participants={participants}
             myId={myId}
             muted={muted}
+            mutedUntil={mute.mutedUntil}
             onToggleMuted={toggleMuted}
+            onSetMutedFor={setMutedFor}
             recentFiles={recentFiles}
             creatorName={creatorName}
             otherProfile={otherProfile}
@@ -1261,7 +1315,7 @@ function MessageBubble({
                       <span className="text-[10px] opacity-60 select-none" title="Mensaje editado">editado</span>
                     )}
                     <span className="text-[10.5px] opacity-60 select-none">{timeOnly(m.created_at)}</span>
-                    {mine && <MessageStatusIcon status={m.status} onRetry={onRetry} tone={m.type === "sticker" ? undefined : "accent"} />}
+                    {mine && <MessageStatusIcon status={m.status} readAt={m.read_at} onRetry={onRetry} tone={m.type === "sticker" ? undefined : "accent"} />}
                   </div>
                 </div>
               </div>
@@ -1298,13 +1352,15 @@ function MessageBubble({
 }
 
 function InfoPanel({
-  conversation, participants, myId, muted, onToggleMuted, recentFiles, creatorName, otherProfile, onClose,
+  conversation, participants, myId, muted, mutedUntil, onToggleMuted, onSetMutedFor, recentFiles, creatorName, otherProfile, onClose,
 }: {
   conversation: EnlaceConversation;
   participants: PersonLite[];
   myId: string;
   muted: boolean;
+  mutedUntil: string | null;
   onToggleMuted: () => void;
+  onSetMutedFor: (until: string | null) => void;
   recentFiles: EnlaceAttachment[];
   creatorName: string | null;
   otherProfile: { area: string | null; phone: string | null; title: string | null } | null;
@@ -1415,7 +1471,7 @@ function InfoPanel({
           className="w-full flex items-center justify-between py-1.5 rounded-[10px] px-1 hover:bg-hover transition-colors"
         >
           <span className="text-[12.5px] font-medium" style={{ color: "var(--text-1)" }}>
-            {muted ? "Silenciado" : "Notificaciones activas"}
+            {muted ? (mutedUntil ? `Silenciado hasta ${new Date(mutedUntil).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}` : "Silenciado para siempre") : "Notificaciones activas"}
           </span>
           <span
             className="w-9 h-5 rounded-full relative transition-colors"
@@ -1427,6 +1483,33 @@ function InfoPanel({
             />
           </span>
         </button>
+        {!muted && (
+          <div className="mt-2 flex gap-1.5 flex-wrap">
+            {([
+              ["8 horas", new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()],
+              ["1 semana", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()],
+              ["Siempre", null],
+            ] as const).map(([label, until]) => (
+              <button
+                key={label}
+                onClick={() => onSetMutedFor(until)}
+                className="h-8 px-3 rounded-full text-[11.5px] font-semibold transition-all duration-150 hover:bg-hover active:scale-[.97]"
+                style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {muted && (
+          <button
+            onClick={onToggleMuted}
+            className="mt-1.5 text-[11.5px] font-semibold"
+            style={{ color: "var(--accent)" }}
+          >
+            Activar notificaciones
+          </button>
+        )}
       </div>
 
       <div>

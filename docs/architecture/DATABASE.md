@@ -49,8 +49,8 @@ Supabase (Postgres). Esquema canónico: `supabase/schema.sql`. Evolución increm
 | Tabla | Descripción |
 |---|---|
 | `conversations` | 1:1 y grupo (`created_by`, `last_message_*`, `pinned_message_id/pinned_by/pinned_at`) |
-| `conversation_participants` | Miembros (`muted`, `pinned`, `archived`, `last_read_at`) |
-| `messages` | `status` (sent/delivered/read), `client_id` (idempotencia de outbox), tipo (text/image/…) |
+| `conversation_participants` | Miembros (`muted`, `muted_until`, `pinned`, `archived`, `last_read_at`) |
+| `messages` | `status` (sent/delivered/read), `read_at`, `client_id` (idempotencia de outbox), tipo (text/image/…) |
 | `message_attachments` | Adjuntos (thumb/medium/original, bucket `chat-files`) |
 | `message_reactions` | Emoji por usuario |
 | `push_subscriptions` | Suscripciones Web Push por usuario |

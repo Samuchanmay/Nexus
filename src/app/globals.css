@@ -739,6 +739,24 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 /* Entrada del panel de conversación al abrir (spec: 140–200ms, sutil) */
 @keyframes nx-panel-in { from { opacity: 0; transform: translateY(6px) scale(.995); } to { opacity: 1; transform: none; } }
 
+/* Cambio de mes en el motor de grilla del Scheduling System: deslizamiento
+   horizontal sutil + fade, 240ms ease-out (brief EMET: meses cambian suave). */
+@keyframes emet-month-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+
+/* Movimiento reducido — EMET Scheduling System (overlays, grillas y ruedas)
+   respeta la preferencia del sistema igual que el resto del Design System:
+   sin animaciones ni transiciones cuando el usuario las pide desactivadas. */
+@media (prefers-reduced-motion: reduce) {
+  .nx-scheduling,
+  .nx-scheduling *,
+  .nx-scheduling *::before,
+  .nx-scheduling *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Pulso del icono de búsqueda mientras se buscan mensajes */
 @keyframes nx-search-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 

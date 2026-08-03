@@ -80,7 +80,7 @@ La dirección de diseño del chat NO es clonar una app: es sentirse como un clie
 - ✅ Panel informativo por secciones SIN tarjetas (avatar grande, miembros, perfil, detalles, notificaciones, archivos).
 - ✅ Micro-animaciones 120–220ms (nunca >300ms), solo ease-out/ease-in-out/spring.
 - ✅ SPEC-004: emojis Apple en todo el app (ver `EMET_CANON.md`).
-- 🟡 Pendientes menores: silenciar por duración (8h/semana/siempre), "marcar como no leído" y vaciar/eliminar conversación (requieren RPCs nuevos), acciones solo-hover en escritorio.
+- ✅ Silenciar por duración (8h/semana/siempre) en menú del header + panel de notificaciones (`nx_enlace_set_mute`/`nx_enlace_unmute`, migración 0025); pendientes: "marcar como no leído" y vaciar/eliminar conversación (requieren RPCs nuevos), acciones solo-hover en escritorio.
 
 **N2 · Premium** (decidir post-lanzamiento):
 - Gestor/tienda de stickers con packs (Recientes/Favoritos/Empresa/Memes/Trabajo/Animados/GIF/Buscar); WebP 512×512 transparente <100KB; APNG/WebP animado.
@@ -140,12 +140,12 @@ Bloque de requisitos para que el chat deje de ser "un apartado de mensajería" y
 | Sub-punto | Estado | Notas |
 |---|---|---|
 | Enviado/entregado/leído por mensaje | ✅ | RPCs `nx_enlace_mark_*` |
-| Hora y dispositivo de la lectura | 🟡 | Se guarda `read_at`; falta exponer hora/dispositivo en UI |
+| Hora de la lectura | ✅ | `read_at` (0025) + "✓✓ Leído · HH:MM" en burbujas propias |
 | "Leído por … (con hora)" en grupos | 🟢 | Requiere lectura de `message_reads` por participante |
 
 **8 · Escribiendo…** — ✅ `use-typing` (broadcast Realtime, auto-stop 2.5s, multi-usuario) con `TypingDots` animados en lista y header.
 
-**9 · Grabando un audio** — 🟢 No existe el indicador "X está grabando un audio" (la grabación como tal sí existe, `use-audio-recorder`).
+**9 · Grabando un audio** — ✅ `use-typing` extendido con evento `recording` (mismo broadcast Realtime, auto-stop 3s): "X está grabando un audio" + punto rojo pulsante en lista y header, disparado por `use-audio-recorder`.
 
 **10 · Subiendo archivo con progreso** — ✅ Porcentaje real + estado "Subiendo archivo… N%" en el composer; nunca "Cargando…" a secas.
 
@@ -183,9 +183,9 @@ Bloque de requisitos para que el chat deje de ser "un apartado de mensajería" y
 |---|---|
 | "En línea" / "Hace N min" | ✅ `formatPresence` (header, InfoPanel, dot en lista desde N3) |
 | "Escribiendo…" | ✅ |
-| "Grabando…" | 🟢 |
+| "Grabando…" | ✅ |
 
-**19 · Sincronización multi-dispositivo (PC/móvil/tablet)** — 🟡 El estado llega por Realtime en vivo; el outbox es por pestaña (falta `BroadcastChannel` para sincronizar la cola entre pestañas — ya anotado en la auditoría del chat).
+**19 · Sincronización multi-dispositivo (PC/móvil/tablet)** — ✅ El estado llega por Realtime en vivo; el outbox usa `BroadcastChannel` (`emet-chat-outbox`) para que enqueue/fallo de una pestaña se refleje en las demás de la misma conversación.
 
 **20 · Historial persistente (cerrar sesión / cambiar de dispositivo)** — ✅ Los mensajes viven en Supabase (RLS); nunca se pierden.
 
@@ -199,9 +199,9 @@ Bloque de requisitos para que el chat deje de ser "un apartado de mensajería" y
 
 | Área | Estado |
 |---|---|
-| Mensajería (tiempo real, estados, escribiendo/grabando, editar, eliminar 1/1, responder/reenviar/reacciones, búsqueda) | 🟡 Faltan: "eliminar para mí", "grabando…", miniatura en responder, búsqueda cross/persona/archivo/fecha/reacción |
-| Notificaciones (push navegador, móvil, sonidos, vibración, badges, config por conversación) | 🟡 Push navegador ✅; móvil/APNs 🟢; sonidos/vibración/config 🟡🟢 |
-| Sincronización (realtime multi-dispositivo, cola offline, reconexión, sin pérdida) | 🟡 Realtime + outbox ✅; outbox multi-tab 🟢; retry backoff 🟢 |
+| Mensajería (tiempo real, estados, escribiendo/grabando, editar, eliminar 1/1, responder/reenviar/reacciones, búsqueda) | 🟡 Faltan: "eliminar para mí", miniatura en responder, búsqueda cross/persona/archivo/fecha/reacción |
+| Notificaciones (push navegador, móvil, sonidos, vibración, badges, config por conversación) | 🟡 Push navegador ✅; silencio por duración ✅ (0025); móvil/APNs 🟢; sonidos/vibración/config 🟡🟢 |
+| Sincronización (realtime multi-dispositivo, cola offline, reconexión, sin pérdida) | 🟡 Realtime + outbox ✅; outbox multi-tab ✅ (BroadcastChannel); retry backoff 🟢 |
 | Archivos (WebP/AVIF compresión, video transcodificado + miniaturas, docs con preview, audio player, stickers y GIF) | 🟡 Imágenes WebP + audio player + stickers ✅; video/GIF 🟢; docs con preview 🟢; AVIF 🟢 |
 
 Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación profesional integrada a Emet.
@@ -252,4 +252,4 @@ Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación
 
 Consolidar **Fase 2 (retrofit tipográfico W2/W3)** y **Fase 3 (búsqueda cross-conversación)**, que son los únicos items 🟡 con código ya existente a medias. Ambos son puramente de UX y no requieren cambios de esquema.
 
-Para elevar el chat a plataforma de comunicación profesional, el siguiente bloque de trabajo (todos 🟡/🟢 del checklist §Chat) sin cambios de esquema: **indicador "grabando…"**, **outbox multi-pestaña (BroadcastChannel)**, **silenciar por duración**, y **confirmaciones de lectura con hora**.
+Para elevar el chat a plataforma de comunicación profesional, el siguiente bloque de trabajo (todos 🟡/🟢 del checklist §Chat): **"Leído por …" en grupos** (requiere tabla `message_reads`), **búsqueda cross-conversación**, y **"eliminar para mí"** (estado por participante).

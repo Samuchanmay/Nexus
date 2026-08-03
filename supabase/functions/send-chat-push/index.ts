@@ -113,10 +113,15 @@ Deno.serve(async (req) => {
 
     const { data: participants } = await admin
       .from("conversation_participants")
-      .select("user_id, muted")
+      .select("user_id, muted, muted_until")
       .eq("conversation_id", msg.conversation_id);
     const targets = (participants ?? [])
-      .filter((p) => p.user_id !== msg.sender_id && !p.muted)
+      .filter((p) => {
+        if (p.user_id === msg.sender_id || p.muted) return false;
+        // Silencio por duración: vencido = vuelve a notificar.
+        if (p.muted_until && new Date(p.muted_until).getTime() <= Date.now()) return true;
+        return !p.muted_until;
+      })
       .map((p) => p.user_id);
     if (targets.length === 0) {
       return Response.json({ ok: true, delivered: 0, failed: 0, note: "sin-destinatarios" }, { headers: cors });

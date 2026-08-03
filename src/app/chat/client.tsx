@@ -13,7 +13,7 @@ import { nudgePushRegistration } from "@/lib/use-push-notifications";
 import type { EnlaceConversation } from "@/lib/types";
 
 export type ParticipantLite = { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null; last_seen_at?: string | null };
-export type MyConvState = { muted: boolean; pinned: boolean; archived: boolean; last_read_at: string };
+export type MyConvState = { muted: boolean; muted_until: string | null; pinned: boolean; archived: boolean; last_read_at: string };
 
 type MessageHit = { id: string; conversation_id: string; content: string | null; sender_name: string };
 
@@ -41,7 +41,14 @@ function conversationDisplay(c: EnlaceConversation, myId: string, participants: 
   return { name: other?.display_name ?? "Conversación", avatarUrl: other?.avatar_url ?? null, color: other?.nexus_color ?? "#0066FF" };
 }
 
-const DEFAULT_STATE: MyConvState = { muted: false, pinned: false, archived: false, last_read_at: new Date(0).toISOString() };
+const DEFAULT_STATE: MyConvState = { muted: false, muted_until: null, pinned: false, archived: false, last_read_at: new Date(0).toISOString() };
+
+/** Silenciado efectivo = muted (siempre) OR muted_until aún en el futuro
+    (por duración) — mismo criterio que el push, el watcher de no-leídos y
+    la conversación abierta. */
+function isMuted(st: MyConvState): boolean {
+  return st.muted || (!!st.muted_until && new Date(st.muted_until).getTime() > Date.now());
+}
 
 // Banner "activa notificaciones de escritorio" — se muestra una sola vez si
 // el permiso sigue en "default" y el usuario no lo ha descartado.
@@ -298,9 +305,16 @@ export default function ChatShell({
 
   const toggleMute = async (id: string) => {
     const supabase = createClient();
-    patchState(id, { muted: !stateFor(id).muted });
-    const { error } = await supabase.rpc("nx_enlace_toggle_mute", { p_conversation_id: id });
-    if (error) { patchState(id, { muted: stateFor(id).muted }); toast(error.message, "danger"); }
+    const st = stateFor(id);
+    // Si el silencio vigente vino por duración (muted_until en futuro),
+    // "Activar notificaciones" debe limpiar ambos campos — el toggle
+    // histórico solo voltea `muted` y dejaría el vencimiento colgando.
+    const currentlyMuted = isMuted(st);
+    patchState(id, { muted: !currentlyMuted, muted_until: null });
+    const { error } = currentlyMuted
+      ? await supabase.rpc("nx_enlace_unmute", { p_conversation_id: id })
+      : await supabase.rpc("nx_enlace_toggle_mute", { p_conversation_id: id });
+    if (error) { patchState(id, { muted: stateFor(id).muted, muted_until: stateFor(id).muted_until }); toast(error.message, "danger"); }
   };
   const togglePin = async (id: string) => {
     const supabase = createClient();
@@ -369,7 +383,7 @@ export default function ChatShell({
           unread={isUnread(c)}
           unreadCount={unreadCounts[c.id] ?? 0}
           active={c.id === selectedId}
-          muted={st.muted}
+          muted={isMuted(st)}
           pinned={st.pinned}
           online={online}
           onOpen={() => { if (isUnread(c)) markRead(c.id); router.push(`/chat/${c.id}`); }}
@@ -595,7 +609,7 @@ export default function ChatShell({
         return (
           <ContextMenu x={ctxMenu.x} y={ctxMenu.y} onClose={close}>
             <ContextMenuItem icon={st.pinned ? "pinOff" : "pin"} label={st.pinned ? "Desfijar" : "Fijar"} onClick={() => { togglePin(c.id); close(); }} />
-            <ContextMenuItem icon={st.muted ? "bell" : "bellOff"} label={st.muted ? "Activar notificaciones" : "Silenciar"} onClick={() => { toggleMute(c.id); close(); }} />
+            <ContextMenuItem icon={isMuted(st) ? "bell" : "bellOff"} label={isMuted(st) ? "Activar notificaciones" : "Silenciar"} onClick={() => { toggleMute(c.id); close(); }} />
             <ContextMenuItem icon="archive" label={st.archived ? "Desarchivar" : "Archivar"} onClick={() => { toggleArchive(c.id); close(); }} />
             {isUnread(c) && (
               <ContextMenuItem icon="check" label="Marcar como leído" onClick={() => { markRead(c.id); close(); }} />

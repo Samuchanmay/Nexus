@@ -31,6 +31,7 @@
 - Si no hay red, el mensaje se encola con estado `sending`/`failed` y `MessageStatus` lo muestra (✓, ✓✓, reloj).
 - Al reconectar, la cola reenvía; el server ignora duplicados por `client_id`.
 - Reacciones/adjuntos también pasan por la cola para no perder trabajo.
+- **Multi-pestaña**: `BroadcastChannel` (`emet-chat-outbox`) — cuando una pestaña encola un optimista o lo lleva a `failed`, las demás pestañas de la misma conversación lo reflejan al instante (el INSERT confirmado lo cubre Realtime con dedupe por `client_id`).
 
 ## Tema (sin FOUC)
 

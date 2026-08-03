@@ -50,11 +50,16 @@ export function useChatUnread(userId: string | undefined, enabled = true) {
 
       const { data: mine } = await supabase
         .from("conversation_participants")
-        .select("conversation_id, last_read_at, muted")
+        .select("conversation_id, last_read_at, muted, muted_until")
         .eq("user_id", userId)
         .in("conversation_id", ids);
 
-      mutedRef.current = new Set((mine ?? []).filter((r) => r.muted).map((r) => r.conversation_id));
+      // Silencio efectivo: muted (siempre) OR muted_until en el futuro
+      // (por duración) — el badge de no-leídos NO se oculta, solo se calla
+      // el sonido/la notificación (mismo criterio que el push).
+      mutedRef.current = new Set((mine ?? [])
+        .filter((r) => r.muted || (!!r.muted_until && new Date(r.muted_until).getTime() > Date.now()))
+        .map((r) => r.conversation_id));
 
       const readMap = new Map((mine ?? []).map((r) => [r.conversation_id, r.last_read_at]));
 

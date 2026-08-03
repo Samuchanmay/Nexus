@@ -178,6 +178,10 @@ export interface EnlaceParticipant {
   role: "admin" | "member";
   joined_at: string;
   muted: boolean;
+  /** Silencio por duración (FASE "plataforma de mensajería moderna"):
+      si está en el futuro, la conversación está silenciada hasta esa
+      fecha; null = silencio indefinido (lo cubre `muted`) o sin silencio. */
+  muted_until?: string | null;
   /** Fijado/archivado por usuario — cada participante tiene su propio
       estado, no es una propiedad de la conversación (ver migración
       chat_signal_style_foundations). */
@@ -208,6 +212,10 @@ export interface EnlaceMessage {
   lng?: number | null;
   created_at: string;
   status: EnlaceMessageStatus;
+  /** Cuándo un destinatario abrió la conversación viendo este mensaje
+      (lecturas con hora — migración 0025). El tick "✓✓ Leído · HH:MM" de
+      las burbujas propias lo usa cuando status === "read". */
+  read_at?: string | null;
   /** Solo existe en el cliente antes de que el insert confirme — se manda
       como columna `client_id` para que el outbox pueda reconciliar sin
       duplicar si un reintento sí había llegado la primera vez. */

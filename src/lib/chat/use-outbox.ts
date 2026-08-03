@@ -15,6 +15,21 @@ type PendingEntry = {
 };
 
 /**
+ * Canal entre pestañas para el outbox (FASE "plataforma de mensajería
+ * moderna"): cuando una pestaña encola un mensaje optimista o lo lleva a
+ * `failed`, las demás pestañas de la misma conversación lo reflejan al
+ * instante. El caso feliz (INSERT confirmado) ya lo cubre Realtime con su
+ * dedupe por client_id; esto cubre el estado INTERMEDIO — que el mensaje
+ * optimista exista y que el fallo se pinte sin esperar a que Realtime
+ * reconcilie.
+ */
+const OUTBOX_CHANNEL = "emet-chat-outbox";
+
+type OutboxMessage =
+  | { kind: "enqueue"; conversationId: string; message: EnlaceMessage }
+  | { kind: "fail"; conversationId: string; clientId: string };
+
+/**
  * Reemplaza el `send()` optimista simple por una cola local con estados y
  * reintento — la pieza central del comportamiento "nunca se pierde, nunca
  * se duplica" que pedía la referencia de Signal.
@@ -30,6 +45,13 @@ type PendingEntry = {
 export function useOutbox(conversationId: string, myId: string, initialMessages: EnlaceMessage[]) {
   const [messages, setMessages] = useState<EnlaceMessage[]>(initialMessages);
   const pendingRef = useRef<Map<string, PendingEntry>>(new Map());
+  // Mismo proveedor de estado en todas las pestañas: al broadcastear usamos
+  // el objeto por defecto ("" name) y al recibir escribimos sobre el mismo
+  // objeto, así un envío en una pestaña refresca las demás sin duplicar.
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const post = useCallback((msg: OutboxMessage) => {
+    channelRef.current?.postMessage(msg);
+  }, []);
 
   const patchMessage = useCallback((clientId: string, patch: Partial<EnlaceMessage>) => {
     setMessages((cur) => cur.map((m) => (m.client_id === clientId ? { ...m, ...patch } : m)));
@@ -50,7 +72,7 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
         lat: message.lat ?? null,
         lng: message.lng ?? null,
       })
-      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
+      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at")
       .single();
 
     if (!error && data) {
@@ -73,7 +95,7 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     if (error?.code === "23505") {
       const { data: existing } = await supabase
         .from("messages")
-        .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng")
+        .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at")
         .eq("client_id", message.client_id!)
         .maybeSingle();
       pendingRef.current.delete(message.client_id!);
@@ -86,11 +108,13 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     entry.attempts += 1;
     if (entry.attempts > MAX_RETRIES) {
       patchMessage(message.client_id!, { status: advance(message.status, "failed") });
+      // Propaga el fallo a las demás pestañas de la misma conversación.
+      post({ kind: "fail", conversationId, clientId: message.client_id! });
       return;
     }
     const delay = RETRY_DELAYS_MS[Math.min(entry.attempts - 1, RETRY_DELAYS_MS.length - 1)];
     entry.timer = setTimeout(() => attemptInsert(entry), delay);
-  }, [patchMessage]);
+  }, [patchMessage, post, conversationId]);
 
   /** Encola cualquier mensaje optimista (texto/sticker/ubicación) con su
       reintento — la única puerta al outbox. */
@@ -100,8 +124,11 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     const entry: PendingEntry = { message: optimistic, attempts: 0 };
     pendingRef.current.set(clientId, entry);
     attemptInsert(entry);
+    // Anuncia el optimista a las demás pestañas (Realtime aún no lo ve —
+    // no existe fila todavía).
+    post({ kind: "enqueue", conversationId, message: optimistic });
     return clientId;
-  }, [attemptInsert]);
+  }, [attemptInsert, conversationId, post]);
 
   const base = (clientId: string, content: string | null): Omit<EnlaceMessage, "type"> => ({
     id: `local-${clientId}`,
@@ -170,6 +197,31 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
       for (const entry of pendingRef.current.values()) clearTimeout(entry.timer);
     };
   }, []);
+
+  // Escucha los mensajes del outbox de otras pestañas de la misma
+  // conversación: encola el optimista que ellas anunciaron (si este tab no
+  // lo tiene) y pinta los fallos. El dedupe por client_id evita duplicados
+  // tanto con el realtime como con un enqueue simultáneo de dos pestañas.
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(OUTBOX_CHANNEL);
+    channelRef.current = channel;
+    channel.onmessage = (e: MessageEvent<OutboxMessage>) => {
+      const data = e.data;
+      if (!data || data.conversationId !== conversationId) return;
+      if (data.kind === "enqueue") {
+        const { client_id } = data.message;
+        if (!client_id) return;
+        setMessages((cur) => (cur.some((m) => m.client_id === client_id) ? cur : [...cur, data.message]));
+      } else if (data.kind === "fail") {
+        setMessages((cur) => cur.map((m) => (m.client_id === data.clientId ? { ...m, status: "failed" as const } : m)));
+      }
+    };
+    return () => {
+      channel.close();
+      if (channelRef.current === channel) channelRef.current = null;
+    };
+  }, [conversationId]);
 
   return { messages, setMessages, send, sendSticker, sendLocation, retry };
 }

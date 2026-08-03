@@ -17,15 +17,18 @@ El chat de Emet es un **módulo del sistema** (no una app aparte): comparte logi
 | Reacciones | `message_reactions`, pop animado (0.9→1.1→1.0). **Solo a mensajes de otros** (Signal); la franja es de solo lectura en propios |
 | Editar / eliminar | Migración 0021 |
 | Fijar / silenciar / archivar | `nx_enlace_toggle_*` + pinned message en la conversación |
+| Silencio por duración | 8h / 1 semana / siempre — RPCs `nx_enlace_set_mute`/`nx_enlace_unmute`, columna `muted_until` (0025) |
 | Adjuntos e imágenes | `message_attachments`; pipeline WebP thumb/medium/original en bucket privado `chat-files` |
 | Cámara | `CameraCapture` con recorte (`ImageCropper`) |
 | Stickers | Pack propio (migración 0022) |
 | Ubicación | Envío de punto de mapa |
 | Push | Web Push (VAPID) vía Edge `send-chat-push` a destinatarios inactivos |
 | Offline | `use-outbox`: cola con `client_id` idempotente; estados de envío visibles |
+| Outbox multi-pestaña | `BroadcastChannel` (`emet-chat-outbox`): optimista/fallo de una pestaña reflejado en las demás |
 | Swipe | `use-swipe-gesture` (estilo Signal): revela acciones en la fila sin comprimir la tarjeta |
 | Búsqueda | `ConversationSearch` dentro de la conversación (overlay en la columna, salto con resaltado) |
-| Presencia/typing | `use-typing` (broadcast Realtime), `TypingDots` animados, `format-presence` |
+| Presencia/typing/grabando | `use-typing` (broadcast Realtime; eventos `typing` y `recording`), `TypingDots`, punto rojo de grabación, `format-presence` |
+| Lectura con hora | `messages.read_at` (0025); ticks propios "✓✓ Leído · HH:MM" |
 | Sonido | `sound.ts` (notificaciones suaves) |
 | Menús contextuales | `context-menu.tsx` (clic derecho): mensaje y conversación |
 | Scrim unificado | Todos los overlays con `rgba(0,0,0,.42)` + `blur(18px) saturate(.75) brightness(.72)` (ADR-0016) |
@@ -33,8 +36,8 @@ El chat de Emet es un **módulo del sistema** (no una app aparte): comparte logi
 ## Modelo de datos (resumen)
 
 - `conversations` — cabecera, último mensaje, mensaje fijado.
-- `conversation_participants` — `muted/pinned/archived/last_read_at` por usuario.
-- `messages` — `status`, `client_id` (idempotencia), tipo de contenido, `sender_id`.
+- `conversation_participants` — `muted/muted_until/pinned/archived/last_read_at` por usuario.
+- `messages` — `status`, `read_at`, `client_id` (idempotencia), tipo de contenido, `sender_id`.
 - `message_attachments` — `thumb/medium/original` del pipeline.
 - `message_reactions` — emoji + user.
 - `push_subscriptions` — suscripciones Web Push.
@@ -42,7 +45,7 @@ El chat de Emet es un **módulo del sistema** (no una app aparte): comparte logi
 ## RLS y RPC
 
 - Lectura: solo participantes (RLS en `conversation_participants`).
-- Mutaciones vía RPC `nx_enlace_*` (atómicas y validadas server-side): `toggle_mute`, `toggle_conversation_pin`, `toggle_conversation_archived`, `mark_conversation_read`, `mark_delivered`, `mark_read`, `toggle_pin` (mensaje), `toggle_reaction`.
+- Mutaciones vía RPC `nx_enlace_*` (atómicas y validadas server-side): `toggle_mute`, `set_mute` (con vencimiento), `unmute`, `toggle_conversation_pin`, `toggle_conversation_archived`, `mark_conversation_read`, `mark_delivered`, `mark_read`, `toggle_pin` (mensaje), `toggle_reaction`.
 
 ## Flujo de un mensaje
 

@@ -13,8 +13,6 @@ export { AgendaView } from "./agenda";
 export { YearView } from "./year";
 export { DayPopover } from "./event-popover";
 export { CalendarLegend } from "./legend";
-export { MiniCalendar } from "./mini-calendar";
-export { CalendarDatePicker } from "./date-picker";
 export { CalendarRightPanel } from "./right-panel";
 export { CalendarFilterBar } from "./filter-bar";
 export type {

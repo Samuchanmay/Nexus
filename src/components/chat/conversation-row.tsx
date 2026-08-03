@@ -53,12 +53,13 @@ function ActionButton({ icon, label, background, onClick }: {
  */
 export function ConversationRow({
   name, avatarUrl, color, preview, time, unread, unreadCount = 0, active, muted, pinned, online,
-  typingLabel, onOpen, onToggleMute, onTogglePin, onMarkRead, onToggleArchive,
+  typingLabel, recording = false, onOpen, onToggleMute, onTogglePin, onMarkRead, onToggleArchive,
 }: {
   name: string; avatarUrl: string | null; color: string | null; preview: string; time: string;
   unread: boolean; unreadCount?: number; active: boolean; muted: boolean; pinned: boolean;
   online?: boolean;
   typingLabel?: string | null;
+  recording?: boolean;
   onOpen: () => void; onToggleMute: () => void; onTogglePin: () => void;
   onMarkRead: () => void; onToggleArchive: () => void;
 }) {
@@ -122,7 +123,9 @@ export function ConversationRow({
             <p className={`text-[15px] truncate ${unread ? "font-bold" : "font-semibold"}`}>{name}</p>
           </div>
           {typingLabel ? (
-            <p className="text-[13px] leading-snug truncate inline-flex items-center" style={{ color: "var(--accent)" }}>{typingLabel}<TypingDots /></p>
+            <p className="text-[13px] leading-snug truncate inline-flex items-center" style={{ color: "var(--accent)" }}>{typingLabel}
+              {recording ? <RecordingDot /> : <TypingDots />}
+            </p>
           ) : (
             <p
               className="text-[13px] leading-snug truncate"
@@ -157,14 +160,25 @@ export function ConversationRow({
   );
 }
 
+/** Punto rojo pulsante del indicador "grabando un audio" — mismo lenguaje de
+    micro-animación que TypingDots pero con el semáforo de grabación. */
+function RecordingDot() {
+  return (
+    <span className="inline-flex items-center gap-1 ml-1.5" aria-hidden>
+      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--danger)", animation: "nx-breathe-soft 1s ease-in-out infinite" }} />
+    </span>
+  );
+}
+
 /**
  * Wrapper de la lista: suscribe esta conversación al broadcast de "escribiendo…"
- * (mismo canal efímero que usa la conversación abierta) y pinta el indicador
- * en lugar del último mensaje mientras alguien más escribe.
+ * y "grabando un audio" (mismo canal efímero que usa la conversación abierta)
+ * y pinta el indicador en lugar del último mensaje mientras alguien más escribe.
+ * El "grabando" tiene prioridad: es un estado más intenso que un texto en curso.
  */
 export function ConversationRowWithTyping({ conversationId, myId, ...props }: {
   conversationId: string; myId: string;
 } & Parameters<typeof ConversationRow>[0]) {
-  const { typingText } = useTyping(conversationId, myId, "");
-  return <ConversationRow {...props} typingLabel={typingText} />;
+  const { typingText, recordingText } = useTyping(conversationId, myId, "");
+  return <ConversationRow {...props} typingLabel={recordingText ?? typingText} recording={!!recordingText} />;
 }

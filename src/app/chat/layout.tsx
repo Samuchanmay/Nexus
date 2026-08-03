@@ -78,16 +78,17 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
   // archivado/último leído son por usuario (ver migración
   // chat_signal_style_foundations), así que se leen aparte de la lista de
   // "quién más está en la conversación" de arriba.
-  let myStateByConv: Record<string, { muted: boolean; pinned: boolean; archived: boolean; last_read_at: string }> = {};
+  let myStateByConv: Record<string, { muted: boolean; muted_until: string | null; pinned: boolean; archived: boolean; last_read_at: string }> = {};
   if (convIds.length > 0) {
     const { data: mine } = await supabase
       .from("conversation_participants")
-      .select("conversation_id, muted, pinned, archived, last_read_at")
+      .select("conversation_id, muted, muted_until, pinned, archived, last_read_at")
       .eq("user_id", myId)
       .in("conversation_id", convIds);
     for (const row of mine ?? []) {
       myStateByConv[row.conversation_id] = {
-        muted: row.muted, pinned: row.pinned, archived: row.archived, last_read_at: row.last_read_at,
+        muted: row.muted, muted_until: (row.muted_until as string | null) ?? null,
+        pinned: row.pinned, archived: row.archived, last_read_at: row.last_read_at,
       };
     }
   }
