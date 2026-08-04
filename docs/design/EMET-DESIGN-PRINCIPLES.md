@@ -708,6 +708,105 @@ Si alguna falla, la pantalla debe simplificarse antes de mergear.
 
 ---
 
+### 10.6.2 Directorio de Personas con Buscador Spotlight
+**Principio**: El buscador debe ser el protagonista en directorios y listas.
+
+**Implementación**:
+```
+┌─────────────────────────────────────────────┐
+│ Directorio                                  │
+│                                             │
+│ 🟢 18 activos · 20 colaboradores            │
+├─────────────────────────────────────────────┤
+│ 🔍 Buscar personas, cargos o departamentos │
+├─────────────────────────────────────────────┤
+│ [Todos (20)] [Equipo (15)] [Admin (2)] ... │
+├─────────────────────────────────────────────┤
+│ Equipo · 15                                 │
+│ ┌─────────────────────────────────────────┐│
+│ │ 👤 Jorge Martínez                       ││
+│ │    Diseñador · Comunicación             ││
+│ │                                    ⋯ ◉  ││
+│ └─────────────────────────────────────────┘│
+│ ┌─────────────────────────────────────────┐│
+│ │ 👤 Angélica Ramírez                     ││
+│ │    Fotógrafa · Comunicación             ││
+│ │                                    ⋯ ◉  ││
+│ └─────────────────────────────────────────┘│
+└─────────────────────────────────────────────┘
+```
+
+**Reglas**:
+- Título de página: 32px, bold
+- Contadores con iconos de estado (🟢 activo, 🟡 incompleto)
+- Buscador: 44px alto, icono de lupa, placeholder descriptivo
+- Filtros: pills con contador, activo con fondo sólido y sombra
+- Tarjetas: padding 20px, border-radius 16px, avatar 48px
+- Nombre: 16px, bold, domina visualmente
+- Metadata: 13px, color secundario
+- Grupos: 32px de espaciado entre grupos
+- Acciones: menú ⋯ + switch de estado
+
+**Ejemplo de código**:
+```jsx
+{/* Buscador estilo Spotlight */}
+<div className="relative mb-5">
+  <svg className="absolute left-4 top-1/2 -translate-y-1/2" ...>
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+  <input
+    className="w-full h-11 pl-11 pr-4 rounded-xl text-[14px]"
+    style={{ background: "var(--surface-2)", border: "1.5px solid var(--border)" }}
+    placeholder="Buscar personas, cargos o departamentos..."
+  />
+</div>
+```
+
+---
+
+### 10.6.3 Biblioteca con Lista Tipo Notion
+**Principio**: Las listas de documentos/actividades deben ser escaneables, no tarjetas grandes.
+
+**Implementación**:
+```
+┌─────────────────────────────────────────────┐
+│ Biblioteca                                  │
+│ Todo el conocimiento generado por el equipo │
+├─────────────────────────────────────────────┤
+│ 🔍 Buscar actividades, documentos...        │
+├─────────────────────────────────────────────┤
+│ [Todos (12)] [Cobertura (5)] [Video (4)]   │
+├─────────────────────────────────────────────┤
+│ Actividad        │ Tipo      │ Responsable  │
+│ ─────────────────────────────────────────── │
+│ Cobertura CERT   │ Completado│ Jorge        │
+│ Comunicación     │           │ 7 Ago        │
+│ ─────────────────────────────────────────── │
+│ Diseño lonas     │ Completado│ Angélica     │
+│ Admisiones       │           │ 5 Ago        │
+└─────────────────────────────────────────────┘
+```
+
+**Reglas**:
+- Título: 32px, bold
+- Subtítulo descriptivo: 15px, color secundario
+- Buscador: 44px alto, icono de lupa
+- Filtros: pills discretos con contadores
+- Lista tipo tabla: columnas con ancho fijo
+- Hover: cambio de fondo sutil
+- Título de actividad: 15px, semibold, hover cambia a color de acento
+- Metadata: 12px, color terciario
+- Badges de tipo: color semántico (verde para completado)
+
+**Estado vacío**:
+- Icono: 64px en contenedor redondeado
+- Mensaje humano: "Aún no hay actividades archivadas"
+- Descripción: max-width 360px
+- Sin tarjetas innecesarias
+
+---
+
 ### 10.7 Tarjetas con Hover Elevado
 **Principio**: Las tarjetas deben responder al hover de forma sutil.
 
