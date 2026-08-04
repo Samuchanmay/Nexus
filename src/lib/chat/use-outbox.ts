@@ -44,6 +44,8 @@ type OutboxMessage =
  */
 export function useOutbox(conversationId: string, myId: string, initialMessages: EnlaceMessage[]) {
   const [messages, setMessages] = useState<EnlaceMessage[]>(initialMessages);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const pendingRef = useRef<Map<string, PendingEntry>>(new Map());
   // Mismo proveedor de estado en todas las pestañas: al broadcastear usamos
   // el objeto por defecto ("" name) y al recibir escribimos sobre el mismo
@@ -172,6 +174,16 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
   }, [messages, patchMessage, attemptInsert]);
 
   // Al recuperar conexión, reintenta todo lo que quedó en pending/failed.
+  //
+  // Bug previo: este listener se registra una sola vez (deps solo
+  // [attemptInsert], que no cambia) y el segundo bucle leía `messages`
+  // directamente del closure — quedaba congelado en el valor del primer
+  // render. Un mensaje que fallara por el "fail" de OTRA pestaña (vía
+  // BroadcastChannel, sin PendingEntry local) nunca se reintentaba al
+  // reconectar porque ese `messages` nunca veía el mensaje agregado
+  // después. Se usa `messagesRef` (siempre actualizado) en su lugar; los
+  // mensajes fallidos que sí tienen PendingEntry local (el caso normal) ya
+  // se reintentaban bien por el primer bucle, que usa la ref de pendientes.
   useEffect(() => {
     const onOnline = () => {
       for (const [clientId, entry] of pendingRef.current) {
@@ -179,7 +191,7 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
         attemptInsert(entry);
       }
       setMessages((cur) => cur.map((m) => (m.status === "failed" ? { ...m, status: "pending" as const } : m)));
-      for (const m of messages) {
+      for (const m of messagesRef.current) {
         if (m.status === "failed" && m.client_id && !pendingRef.current.has(m.client_id)) {
           const entry: PendingEntry = { message: { ...m, status: "pending" }, attempts: 0 };
           pendingRef.current.set(m.client_id, entry);
@@ -189,7 +201,6 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attemptInsert]);
 
   useEffect(() => {

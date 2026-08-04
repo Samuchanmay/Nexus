@@ -310,23 +310,31 @@ export default function ChatShell({
     // "Activar notificaciones" debe limpiar ambos campos — el toggle
     // histórico solo voltea `muted` y dejaría el vencimiento colgando.
     const currentlyMuted = isMuted(st);
+    const prevMuted = st.muted;
+    const prevMutedUntil = st.muted_until;
     patchState(id, { muted: !currentlyMuted, muted_until: null });
     const { error } = currentlyMuted
       ? await supabase.rpc("nx_enlace_unmute", { p_conversation_id: id })
       : await supabase.rpc("nx_enlace_toggle_mute", { p_conversation_id: id });
-    if (error) { patchState(id, { muted: stateFor(id).muted, muted_until: stateFor(id).muted_until }); toast(error.message, "danger"); }
+    // Bug previo: el rollback leía stateFor(id) DESPUÉS del patch optimista
+    // de arriba, así que "revertía" al mismo valor ya cambiado (no-op) — el
+    // UI se quedaba mostrando el estado equivocado si el RPC fallaba. Ahora
+    // se captura el valor original ANTES del patch.
+    if (error) { patchState(id, { muted: prevMuted, muted_until: prevMutedUntil }); toast(error.message, "danger"); }
   };
   const togglePin = async (id: string) => {
     const supabase = createClient();
-    patchState(id, { pinned: !stateFor(id).pinned });
+    const prevPinned = stateFor(id).pinned;
+    patchState(id, { pinned: !prevPinned });
     const { error } = await supabase.rpc("nx_enlace_toggle_conversation_pin", { p_conversation_id: id });
-    if (error) { patchState(id, { pinned: stateFor(id).pinned }); toast(error.message, "danger"); }
+    if (error) { patchState(id, { pinned: prevPinned }); toast(error.message, "danger"); }
   };
   const toggleArchive = async (id: string) => {
     const supabase = createClient();
-    patchState(id, { archived: !stateFor(id).archived });
+    const prevArchived = stateFor(id).archived;
+    patchState(id, { archived: !prevArchived });
     const { error } = await supabase.rpc("nx_enlace_toggle_conversation_archived", { p_conversation_id: id });
-    if (error) { patchState(id, { archived: stateFor(id).archived }); toast(error.message, "danger"); }
+    if (error) { patchState(id, { archived: prevArchived }); toast(error.message, "danger"); }
   };
   const markRead = async (id: string) => {
     const supabase = createClient();
@@ -398,7 +406,6 @@ export default function ChatShell({
 
   return (
     // Altura fija reservada bajo el header del Shell (y la tab bar inferior
-    // en celular) — la única franja de la app donde el layout normal de
     // en celular) — la única franja de la app donde el layout normal de
     // Emet se rompe a propósito: aquí ambos paneles (o el único visible en
     // celular) ocupan toda esa altura, sin que la página entera se desplace.

@@ -502,17 +502,25 @@ export default function EnlaceConversationClient({
 
   const toggleReaction = useCallback(async (messageId: string, emoji: string) => {
     const supabase = createClient();
+    let prevList: EnlaceReaction[] = [];
     setReactionsByMessage((cur) => {
-      const list = cur[messageId] ?? [];
-      const mine = list.find((r) => r.user_id === myId && r.emoji === emoji);
+      prevList = cur[messageId] ?? [];
+      const mine = prevList.find((r) => r.user_id === myId && r.emoji === emoji);
       const next = mine
-        ? list.filter((r) => r !== mine)
-        : [...list, { id: `local-${crypto.randomUUID()}`, message_id: messageId, user_id: myId, emoji, created_at: new Date().toISOString() }];
+        ? prevList.filter((r) => r !== mine)
+        : [...prevList, { id: `local-${crypto.randomUUID()}`, message_id: messageId, user_id: myId, emoji, created_at: new Date().toISOString() }];
       return { ...cur, [messageId]: next };
     });
     setReactionPickerFor(null);
-    await supabase.rpc("nx_enlace_toggle_reaction", { p_message_id: messageId, p_emoji: emoji });
-  }, [myId]);
+    // Bug previo: no se revisaba el error del RPC — si fallaba, la reacción
+    // optimista se quedaba mostrada como si se hubiera guardado. Ahora se
+    // revierte al valor previo (capturado antes del update optimista).
+    const { error } = await supabase.rpc("nx_enlace_toggle_reaction", { p_message_id: messageId, p_emoji: emoji });
+    if (error) {
+      setReactionsByMessage((cur) => ({ ...cur, [messageId]: prevList }));
+      toast("No se pudo guardar la reacción.", "danger");
+    }
+  }, [myId, toast]);
 
   const toggleMuted = async () => {
     const supabase = createClient();

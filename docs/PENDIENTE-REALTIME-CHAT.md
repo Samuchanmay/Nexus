@@ -1,4 +1,12 @@
-# Emet · Pendiente: Realtime del chat no entrega en vivo
+# Emet · Realtime del chat — RESUELTO (4 agosto 2026)
+
+> ✅ Fix aplicado directamente en la nube (proyecto `yunpghcdckwanfdunrsj`) vía
+> el fix 0026. Verificado: `conversation_participants` y `message_reactions`
+> ya están en la publicación `supabase_realtime`, y las 5 tablas del chat
+> (`messages`, `conversations`, `conversation_participants`,
+> `message_attachments`, `message_reactions`) tienen `REPLICA IDENTITY FULL`.
+> `push_subscriptions` no existe todavía en este proyecto (ver sección
+> "Pendiente aparte" abajo) — se omitió del fix.
 
 Documento vivo. Registra el diagnóstico y los pasos pendientes del problema de
 **Realtime en el chat** (los mensajes y estados solo llegan al recargar la
@@ -105,10 +113,46 @@ Aditivo e idempotente. Depende de las migraciones 0011 y 0016.
 
 ## Estado
 
-- [ ] Diagnóstico SQL corrido en la nube (publicación + toggle Realtime).
-- [ ] Toggle **Settings → Realtime** verificado en ON.
-- [ ] Fix 0026 aplicado en el SQL Editor de emet.uno.
-- [ ] Mensajes llegan en vivo entre dos cuentas.
-- [ ] Ticks de lectura / mute / pin / archivar llegan en vivo.
-- [ ] Contador de no-leídos se actualiza en vivo.
-- [ ] (Opcional) Commit + push de 0025 y 0026.
+- [x] Diagnóstico SQL corrido en la nube (publicación + toggle Realtime).
+      Antes del fix la publicación solo tenía `conversations`,
+      `message_attachments`, `messages`, `notifications` — faltaban
+      `conversation_participants` (causa raíz documentada arriba) y también
+      `message_reactions` (no estaba en el diagnóstico original, se encontró
+      en esta pasada).
+- [x] Fix 0026 aplicado directo en la nube vía MCP de Supabase (agrega las 2
+      tablas a la publicación + `REPLICA IDENTITY FULL` en las 5 reales).
+      `push_subscriptions` se omitió porque la tabla no existe todavía.
+- [ ] Mensajes llegan en vivo entre dos cuentas — **pendiente de que el
+      usuario lo confirme probando con dos sesiones reales.**
+- [ ] Ticks de lectura / mute / pin / archivar llegan en vivo — mismo,
+      pendiente de confirmación manual.
+- [ ] Contador de no-leídos se actualiza en vivo — mismo.
+- [ ] Commit + push de 0025 y 0026 (los archivos `.sql` ya existen en el
+      repo local, faltaba commitear — verificar en el próximo commit).
+
+## Pendiente aparte: notificaciones push (app cerrada)
+
+Esto es un problema DISTINTO al de arriba. Realtime (`postgres_changes`)
+solo entrega a pestañas ABIERTAS — ya arreglado. Para notificar con la app
+totalmente cerrada hace falta Web Push (`src/lib/chat/push.ts` →
+Edge Function `send-chat-push`), que depende de una tabla
+`push_subscriptions` que **no existe en este proyecto de Supabase** y de las
+llaves `VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` (pendiente de configurar, ver
+`docs/03-ROADMAP.md`/notas previas). Es best-effort y falla en silencio
+adrede, así que hoy simplemente no hace nada — no rompe el chat, pero
+tampoco notifica con la pestaña cerrada. Fuera de alcance de este fix.
+
+## Bugs encontrados y corregidos en esta pasada (4 agosto 2026)
+
+Además del fix de Realtime, se auditó el código del módulo y se corrigieron:
+
+- `src/app/chat/client.tsx` — `toggleMute`/`togglePin`/`toggleArchive` hacían
+  mal el rollback ante error del RPC: leían el estado ya sobreescrito por el
+  propio update optimista, así que el "rollback" no revertía nada.
+- `src/app/chat/[id]/client.tsx` — `toggleReaction` no revisaba el error del
+  RPC `nx_enlace_toggle_reaction`: si fallaba, la reacción optimista se
+  quedaba mostrada como guardada para siempre.
+- `src/lib/chat/use-outbox.ts` — el listener de reconexión (`online`) leía
+  `messages` de un closure congelado en el primer render; un mensaje fallido
+  llegado por BroadcastChannel desde OTRA pestaña nunca se reintentaba al
+  recuperar conexión. Se cambió a una ref siempre actualizada.
