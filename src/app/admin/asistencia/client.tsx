@@ -21,6 +21,7 @@ import { logAdminAction } from "@/lib/admin-log";
 import { adminResolvePendingExit, adminMarkNoRegistro } from "@/lib/pending-exits";
 import { TimePicker } from "@/components/select";
 import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
+import { EditAttendanceSheet } from "@/components/os/edit-attendance-sheet";
 
 export interface PendingValidation {
   id: string; userId: string; date: string; note: string | null;
@@ -170,6 +171,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolveTime, setResolveTime] = useState("");
   const [savingResolve, setSavingResolve] = useState(false);
+
+  // Estado para edición de asistencia (solo cuando falta entrada o salida)
+  const [editingPerson, setEditingPerson] = useState<PersonDay | null>(null);
 
   const confirmExit = async (p: PendingValidation) => {
     if (!resolveTime) { toast("Elige la hora antes de confirmar", "danger"); return; }
@@ -381,6 +385,16 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 </div>
                 {estadoPill(day, states, u.vacation, u.incident, isHoliday, u.restDay)}
               </div>
+              {/* Botón de edición — solo cuando falta entrada o salida */}
+              {!u.vacation?.today && (!day.firstIn || !day.lastOut) && (
+                <button
+                  onClick={() => setEditingPerson({ user: u, schedule: day.targetMin ? { start_time: "", end_time: "", target_min: day.targetMin } : { start_time: "", end_time: "", target_min: 480 }, day })}
+                  className="text-[12px] font-semibold px-2.5 py-1.5 rounded-full transition-colors"
+                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+                >
+                  Corregir
+                </button>
+              )}
               {u.vacation?.today ? (
                 <div className="flex items-center gap-2.5 rounded-m px-3.5 py-3" style={{ background: "var(--purple-tint)" }}>
                   <span style={{ color: "var(--purple)" }}>🏖</span>
@@ -652,6 +666,24 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             </div>
           )}
         </div>
+      )}
+
+      {/* Modal de edición de asistencia */}
+      {editingPerson && (
+        <EditAttendanceSheet
+          open={!!editingPerson}
+          onClose={() => setEditingPerson(null)}
+          userId={editingPerson.user.id}
+          userName={editingPerson.user.display_name}
+          date={today}
+          firstIn={editingPerson.day.firstIn}
+          lastOut={editingPerson.day.lastOut}
+          adminId={adminId}
+          onSuccess={() => {
+            setEditingPerson(null);
+            window.location.reload();
+          }}
+        />
       )}
     </>
   );

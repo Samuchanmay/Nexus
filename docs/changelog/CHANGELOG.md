@@ -2,6 +2,20 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Asistencia — edición de horarios por admin (solo cuando falta entrada o salida)
+
+- **Nueva funcionalidad**: el admin puede corregir entrada/salida cuando el empleado olvidó marcar.
+- **Restricción**: solo se puede editar cuando **falta entrada o falta salida**. Si ya marcó ambas, no hay botón de edición.
+- **Componente**: `EditAttendanceSheet` con TimePicker estilo Apple (hora/minutos/AM-PM).
+- **Validaciones inteligentes en tiempo real**:
+  - Detecta si la salida es anterior a la entrada
+  - Alerta si la jornada es mayor a 16 horas
+  - Alerta si la jornada es menor a 15 minutos
+  - Muestra el total trabajado en tiempo real mientras se edita
+- **Historial de correcciones**: tabla `attendance_corrections` registra quién corrigió, cuándo, qué cambió y el motivo.
+- **Migración**: `supabase/migrations/0027_attendance_corrections_history.sql` (aditiva, idempotente).
+- **Archivos**: `src/components/os/edit-attendance-sheet.tsx`, `src/app/admin/asistencia/client.tsx`, `supabase/migrations/0027_attendance_corrections_history.sql`.
+
 ## 2026-08-04 · Design System — Emet Design Principles v1 (especificación oficial)
 
 - **Nuevo documento**: `docs/design/EMET-DESIGN-PRINCIPLES.md` — especificación obligatoria para todo el proyecto basada en Apple HIG + Linear + Notion + Stripe.
