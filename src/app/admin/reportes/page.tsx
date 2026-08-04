@@ -278,216 +278,215 @@ export default async function Reportes() {
 
   return (
     <>
-      <header className="pt-8 pb-6 flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight">Reportes</h1>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            {totalReqs} solicitud{totalReqs === 1 ? "" : "es"} en total, agregadas en tiempo real.
-          </p>
+      {/* Header compacto */}
+      <header className="pt-6 pb-5">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Reportes</h1>
+            <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
+              {totalReqs} solicitud{totalReqs === 1 ? "" : "es"} en total
+            </p>
+          </div>
+          <PrintButton />
         </div>
-        <PrintButton />
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{totalReqs}</p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Solicitudes totales</p>
+      {/* Métrica protagonista + KPIs secundarios */}
+      <div className="mb-8">
+        <div className="flex items-baseline gap-3 mb-2">
+          <span className="text-[56px] font-bold tabular-nums leading-none text-text-1">{totalReqs}</span>
+          <span className="text-[18px] font-medium" style={{ color: "var(--text-2)" }}>solicitudes</span>
         </div>
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{projs.length}</p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Actividades creadas</p>
+        <div className="flex items-center gap-2 text-[14px]">
+          <span style={{ color: trendUp ? "var(--ok)" : "var(--warn)" }}>
+            {trendUp ? "↑" : "↓"} {trendPct == null ? "nuevo" : `${trendPct > 0 ? "+" : ""}${trendPct}%`}
+          </span>
+          <span style={{ color: "var(--text-3)" }}>vs periodo anterior</span>
         </div>
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">
+      </div>
+
+      {/* KPIs secundarios en línea */}
+      <div className="flex items-center gap-8 mb-8 pb-8" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div>
+          <p className="text-[24px] font-bold tabular-nums text-text-1">{projs.length}</p>
+          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Actividades creadas</p>
+        </div>
+        <div>
+          <p className="text-[24px] font-bold tabular-nums text-text-1">
             {avgApprovalHours == null ? "—" : avgApprovalHours < 24
-              ? `${avgApprovalHours.toFixed(1)} h`
-              : `${(avgApprovalHours / 24).toFixed(1)} d`}
+              ? `${avgApprovalHours.toFixed(1)}h`
+              : `${(avgApprovalHours / 24).toFixed(1)}d`}
           </p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo prom. de aprobación</p>
+          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Tiempo prom. aprobación</p>
+        </div>
+        <div>
+          <p className="text-[24px] font-bold tabular-nums text-text-1">{topAreas.length}</p>
+          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Áreas solicitantes</p>
         </div>
       </div>
 
-      {/* Tendencia ejecutiva: sparkline de solicitudes por semana — da "sensación"
-          de momentum sin tener que leer una tabla de números. */}
-      <div className="card p-5 mb-4 flex items-center gap-5 flex-wrap">
-        <div className="flex-1 min-w-[180px]">
-          <h2 className="text-[13px] font-bold mb-1" style={{ color: "var(--text-3)" }}>Solicitudes — últimas {weeksBack} semanas</h2>
-          <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>
-            {trendTotal} en total ·{" "}
-            <span style={{ color: trendUp ? "var(--ok)" : "var(--warn)" }}>
-              {trendUp ? "↑" : "↓"} {trendPct == null ? "nuevo esta mitad" : `${trendPct > 0 ? "+" : ""}${trendPct}%`}
-            </span>{" "}
-            vs. la primera mitad del periodo
-          </p>
-        </div>
-        <Sparkline values={trendValues} color={trendUp ? "var(--ok)" : "var(--warn)"} />
-      </div>
-
-      {/* Insights ejecutivos — lo que el admin necesita saber sin leer tablas:
-          quién más ha aportado horas, qué área concentra más solicitudes, y
-          dónde se está atorando el proceso (aprobación más lenta). */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-        <div className="card p-4">
-          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Top empleado (horas)</p>
-          {topEmployee ? (
-            <>
-              <p className="text-[15px] font-bold mt-1 truncate">{topEmployee.name}</p>
-              <p className="text-[12px] tabular-nums" style={{ color: "var(--ok)" }}>{topEmployee.hours} h registradas</p>
-            </>
-          ) : (
-            <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Aún sin registros.</p>
-          )}
-        </div>
-        <div className="card p-4">
-          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Área con más carga</p>
-          {topAreas.length > 0 ? (
-            <>
-              <p className="text-[15px] font-bold mt-1 truncate">{topAreas[0][0]}</p>
-              <p className="text-[12px] tabular-nums" style={{ color: "var(--accent)" }}>{topAreas[0][1]} solicitudes</p>
-            </>
-          ) : (
-            <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Sin datos todavía.</p>
-          )}
-        </div>
-        <div className="card p-4">
-          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Cuello de botella</p>
-          {bottleneck ? (
-            <>
-              <p className="text-[15px] font-bold mt-1 truncate">{bottleneck.area}</p>
-              <p className="text-[12px] tabular-nums" style={{ color: "var(--warn)" }}>
-                {bottleneck.hours < 24 ? `${bottleneck.hours} h` : `${(bottleneck.hours / 24).toFixed(1)} d`} prom. de aprobación
-              </p>
-            </>
-          ) : (
-            <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Sin suficientes datos todavía.</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-4">
-        <div className="card p-5">
-          <CardHeader title="Solicitudes por estado"
-            rows={[["Estado", "Cantidad"], ...STATUS_ORDER.filter((s) => byStatus[s]).map((s) => [STATUS_LABEL[s] ?? s, byStatus[s]])]}
-            filename="solicitudes-por-estado.csv" adminId={adminId} />
-          {totalStatus === 0 ? (
-            <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
-          ) : (
-            <div className="flex items-center gap-5 flex-wrap">
-              <Donut segments={STATUS_ORDER.filter((s) => byStatus[s]).map((s) => ({ value: byStatus[s], color: TONE_COLOR[STATUS_TONE[s]] }))} />
-              <div className="flex-1 min-w-0">
-                {STATUS_ORDER.filter((s) => byStatus[s]).map((s) => (
-                  <Bar key={s} label={STATUS_LABEL[s] ?? s} count={byStatus[s]} total={totalStatus} color={TONE_COLOR[STATUS_TONE[s]]} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="card p-5">
-          <CardHeader title="Por tipo de apoyo"
-            rows={[["Tipo", "Cantidad"], ...byTypeSorted.map(([t, n]) => [TYPE_LABEL[t] ?? t, n])]}
-            filename="solicitudes-por-tipo.csv" adminId={adminId} />
-          {totalType === 0 ? (
-            <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
-          ) : (
-            <div className="flex items-center gap-5 flex-wrap">
-              <Donut segments={byTypeSorted.map(([t, n]) => ({ value: n, color: typeColorOf[t] ?? "var(--accent)" }))} />
-              <div className="flex-1 min-w-0">
-                {byTypeSorted.map(([t, n]) => (
-                  <Bar key={t} label={TYPE_LABEL[t] ?? t} count={n} total={totalType} color={typeColorOf[t] ?? "var(--accent)"} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>
-              Coordinaciones/departamentos que más solicitan
-              {Object.keys(byArea).length > 0 && (
-                <span className="font-semibold ml-1.5" style={{ color: "var(--text-3)" }}>
-                  · {Object.keys(byArea).length} en total
-                </span>
-              )}
-            </h2>
-            <CsvLink rows={[["Área", "Cantidad"], ...topAreas.map(([area, n]) => [area, n])]}
-              filename="solicitudes-por-area.csv" adminId={adminId} />
+      {/* Tendencia - Sparkline más grande */}
+      <div className="mb-8">
+        <h2 className="text-[18px] font-bold text-text-1 mb-4">Tendencia</h2>
+        <div className="flex items-center gap-6">
+          <Sparkline values={trendValues} width={240} height={60} color={trendUp ? "var(--ok)" : "var(--warn)"} />
+          <div>
+            <p className="text-[14px]" style={{ color: "var(--text-2)" }}>
+              {trendTotal} solicitudes en las últimas {weeksBack} semanas
+            </p>
           </div>
-          {topAreas.map(([area, n], i) => (
-            <Bar key={area} label={area} count={n} total={maxArea} color={COLORS[i % COLORS.length]} />
-          ))}
-          {topAreas.length === 0 && <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin datos todavía.</p>}
-        </div>
-
-        <div className="card p-5">
-          <CardHeader title="Horas registradas por tipo"
-            rows={[["Tipo", "Horas"], ...minutesByTypeSorted.map(([t, min]) => [TYPE_LABEL[t] ?? t, Math.round(min / 6) / 10])]}
-            filename="horas-por-tipo.csv" adminId={adminId} />
-          {minutesByTypeSorted.length === 0 ? (
-            <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Aún no hay registros de tiempo.</p>
-          ) : (
-            <div className="flex items-center gap-5 flex-wrap">
-              <Donut segments={minutesByTypeSorted.map(([t, min]) => ({ value: min, color: typeColorOf[t] ?? "var(--accent)" }))} />
-              <div className="flex-1 min-w-0">
-                {minutesByTypeSorted.map(([t, min]) => (
-                  <Bar key={t} label={TYPE_LABEL[t] ?? t} count={Math.round(min / 6) / 10}
-                    total={maxMinutes / 60}
-                    color={typeColorOf[t] ?? "var(--accent)"} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="card p-5 mt-4">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>
-              Vacaciones por persona
-            </h2>
-            {vacTotalDays > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
-                <Donut size={20} thickness={4}
-                  segments={[
-                    { value: vacUsedDays, color: vacPctUsed < 50 ? "var(--ok)" : vacPctUsed < 80 ? "var(--warn)" : "var(--danger)" },
-                    { value: vacTotalDays - vacUsedDays, color: "var(--surface-3)" },
-                  ]} />
-                {vacPctUsed}% del total usado
-              </span>
+      {/* Insights ejecutivos */}
+      <div className="mb-8">
+        <h2 className="text-[18px] font-bold text-text-1 mb-4">Resumen</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+            <p className="text-[12px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
+              Top empleado
+            </p>
+            {topEmployee ? (
+              <>
+                <p className="text-[16px] font-bold text-text-1 truncate">{topEmployee.name}</p>
+                <p className="text-[14px] tabular-nums mt-1" style={{ color: "var(--ok)" }}>{topEmployee.hours}h registradas</p>
+              </>
+            ) : (
+              <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
             )}
           </div>
-          <CsvLink
-            rows={[["Persona", "Saldo", "Días asignados", "% usado", "Antigüedad", "Próxima vacación"],
-              ...vacRows.map((r) => [r.name, r.balance, r.total, `${r.pctUsed}%`, r.seniority, r.next])]}
-            filename="vacaciones.csv" adminId={adminId} label="Exportar CSV" />
+          <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+            <p className="text-[12px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
+              Área con más carga
+            </p>
+            {topAreas.length > 0 ? (
+              <>
+                <p className="text-[16px] font-bold text-text-1 truncate">{topAreas[0][0]}</p>
+                <p className="text-[14px] tabular-nums mt-1" style={{ color: "var(--accent)" }}>{topAreas[0][1]} solicitudes</p>
+              </>
+            ) : (
+              <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos</p>
+            )}
+          </div>
+          <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+            <p className="text-[12px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
+              Cuello de botella
+            </p>
+            {bottleneck ? (
+              <>
+                <p className="text-[16px] font-bold text-text-1 truncate">{bottleneck.area}</p>
+                <p className="text-[14px] tabular-nums mt-1" style={{ color: "var(--warn)" }}>
+                  {bottleneck.hours < 24 ? `${bottleneck.hours}h` : `${(bottleneck.hours / 24).toFixed(1)}d`} prom. aprobación
+                </p>
+              </>
+            ) : (
+              <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos suficientes</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Distribuciones - Solo barras, sin donuts */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+        <div>
+          <h2 className="text-[18px] font-bold text-text-1 mb-4">Solicitudes por estado</h2>
+          {totalStatus === 0 ? (
+            <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
+          ) : (
+            <div className="space-y-3">
+              {STATUS_ORDER.filter((s) => byStatus[s]).map((s) => (
+                <Bar key={s} label={STATUS_LABEL[s] ?? s} count={byStatus[s]} total={totalStatus} color={TONE_COLOR[STATUS_TONE[s]]} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h2 className="text-[18px] font-bold text-text-1 mb-4">Por tipo de apoyo</h2>
+          {totalType === 0 ? (
+            <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
+          ) : (
+            <div className="space-y-3">
+              {byTypeSorted.slice(0, 6).map(([t, n]) => (
+                <Bar key={t} label={TYPE_LABEL[t] ?? t} count={n} total={totalType} color={typeColorOf[t] ?? "var(--accent)"} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Áreas que más solicitan */}
+      <div className="mb-8">
+        <h2 className="text-[18px] font-bold text-text-1 mb-4">
+          Áreas que más solicitan
+          {Object.keys(byArea).length > 0 && (
+            <span className="text-[14px] font-medium ml-2" style={{ color: "var(--text-3)" }}>
+              · {Object.keys(byArea).length} en total
+            </span>
+          )}
+        </h2>
+        {topAreas.length === 0 ? (
+          <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos todavía.</p>
+        ) : (
+          <div className="space-y-3">
+            {topAreas.map(([area, n], i) => (
+              <Bar key={area} label={area} count={n} total={maxArea} color={COLORS[i % COLORS.length]} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Horas registradas por tipo */}
+      <div className="mb-8">
+        <h2 className="text-[18px] font-bold text-text-1 mb-4">Horas registradas por tipo</h2>
+        {minutesByTypeSorted.length === 0 ? (
+          <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Aún no hay registros de tiempo.</p>
+        ) : (
+          <div className="space-y-3">
+            {minutesByTypeSorted.slice(0, 6).map(([t, min]) => (
+              <Bar key={t} label={TYPE_LABEL[t] ?? t} count={Math.round(min / 6) / 10}
+                total={maxMinutes / 60}
+                color={typeColorOf[t] ?? "var(--accent)"} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Vacaciones por persona */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[18px] font-bold text-text-1">Vacaciones por persona</h2>
+          {vacTotalDays > 0 && (
+            <span className="text-[13px] font-semibold" style={{ color: "var(--text-3)" }}>
+              {vacPctUsed}% del total usado
+            </span>
+          )}
         </div>
         {vacRows.length === 0 ? (
-          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>
+          <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[12.5px]">
+            <table className="w-full text-[13px]">
               <thead>
                 <tr style={{ color: "var(--text-3)" }} className="text-left">
-                  <th className="font-semibold pb-2 pr-4">Persona</th>
-                  <th className="font-semibold pb-2 pr-4">Saldo</th>
-                  <th className="font-semibold pb-2 pr-4">% usado</th>
-                  <th className="font-semibold pb-2 pr-4">Antigüedad</th>
-                  <th className="font-semibold pb-2">Próxima vacación</th>
+                  <th className="font-semibold pb-3 pr-4">Persona</th>
+                  <th className="font-semibold pb-3 pr-4">Saldo</th>
+                  <th className="font-semibold pb-3 pr-4">% usado</th>
+                  <th className="font-semibold pb-3 pr-4">Antigüedad</th>
+                  <th className="font-semibold pb-3">Próxima vacación</th>
                 </tr>
               </thead>
               <tbody>
                 {vacRows.map((r) => (
                   <tr key={r.name} className="border-t transition-colors hover:bg-hover" style={{ borderColor: "var(--border)" }}>
-                    <td className="py-2 pr-4 font-semibold">{r.name}</td>
-                    <td className="py-2 pr-4 tabular-nums">{r.balance}/{r.total}</td>
-                    <td className="py-2 pr-4 tabular-nums"
+                    <td className="py-3 pr-4 font-semibold">{r.name}</td>
+                    <td className="py-3 pr-4 tabular-nums">{r.balance}/{r.total}</td>
+                    <td className="py-3 pr-4 tabular-nums"
                       style={{ color: r.pctUsed < 50 ? "var(--ok)" : r.pctUsed < 80 ? "var(--warn)" : "var(--danger)" }}>
                       {r.pctUsed}%
                     </td>
-                    <td className="py-2 pr-4" style={{ color: "var(--text-2)" }}>{r.seniority}</td>
-                    <td className="py-2" style={{ color: "var(--text-2)" }}>{r.next}</td>
+                    <td className="py-3 pr-4" style={{ color: "var(--text-2)" }}>{r.seniority}</td>
+                    <td className="py-3" style={{ color: "var(--text-2)" }}>{r.next}</td>
                   </tr>
                 ))}
               </tbody>
