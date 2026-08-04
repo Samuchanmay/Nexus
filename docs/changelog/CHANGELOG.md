@@ -2,6 +2,24 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Rediseño UI/UX: Módulo de Actividades estilo Linear/Plane/Notion
+
+### Mejoras de jerarquía visual y experiencia
+- **Encabezado rediseñado**: Título "Actividades" a 40px con subtítulo descriptivo, contadores separados visualmente.
+- **Botones mejorados**: Un botón principal azul con sombra y hover elevado, botones secundarios ghost más discretos.
+- **Selector Lista/Pipeline**: Rediseñado estilo Apple con animación deslizante y padding mejorado.
+- **Vista Lista tipo Notion**: Convertida de tarjetas grandes a filas compactas con columnas (Actividad, Estado, Responsable, Entrega, Prioridad).
+- **Colores por estado**: Solicitada (gris), Aprobada (azul), En progreso (morado), En revisión (amarillo), Completada (verde).
+- **Hover states**: Filas con hover sutil, tarjetas con elevación y sombra en hover.
+- **Acciones en hover**: Botón de menú (⋯) aparece solo al pasar el cursor.
+- **Pipeline rediseñado**: Inspirado en Plane, columnas más anchas (300px), tarjetas con padding 16px y bordes redondeados 16px.
+- **Tarjetas Pipeline mejoradas**: Padding interno aumentado, avatares de 24px, fechas con icono de calendario.
+- **Scroll horizontal invisible**: Pipeline con scroll suave sin scrollbar visible.
+- **Animaciones sutiles**: Transiciones de 200ms en hover, elevación de tarjetas, escalas en botones.
+- **Tipografía con contraste**: Títulos de 15px en filas, 14px en tarjetas, mejor jerarquía visual.
+- **Eliminadas líneas divisorias**: Reemplazadas con espacio y hover states.
+- **Archivos**: `src/app/admin/proyectos/client.tsx`.
+
 ## 2026-08-04 · Rediseño UI/UX: Dashboard principal estilo Linear/Apple
 
 ### Mejoras de jerarquía visual y experiencia

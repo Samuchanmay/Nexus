@@ -282,215 +282,118 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     router.refresh();
   };
 
-  const Card = ({ p }: { p: ProjectRow }) => {
-    const asgs = p.project_assignments ?? [];
-    const myDeps = depsOf.get(p.id) ?? [];
-    const pending = myDeps.filter((d) => d.projects && d.projects.status !== "completada");
-    const otherOptions = projects.filter((o) => o.id !== p.id && !myDeps.some((d) => d.depends_on_project_id === o.id));
-    const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
-    const checklistItems = asgs.flatMap((a) => a.project_checklist ?? []);
-    const pct = checklistItems.length ? Math.round((checklistItems.filter((i) => i.done).length / checklistItems.length) * 100) : 0;
-
-    const badges = (
-      <>
-        <Pill tone="muted">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
-        <Pill tone={STATUS_TONE[p.status as RequestStatus] ?? "muted"}>{STATUS_LABELS[p.status as RequestStatus] ?? p.status}</Pill>
-        {(p.priority as Priority) !== "normal" && <Pill tone={PRIORITY_TONE[p.priority as Priority]}>{p.priority}</Pill>}
-        {pending.length > 0 && <Pill tone="danger"><span className="inline-flex items-center gap-1"><Icon name="lock" size={11} /> Bloqueada</span></Pill>}
-      </>
-    );
-
-    const depsBlock = (
-      <div className="mt-3 pt-3" style={{ borderTop: "0.5px solid var(--border)" }}>
-        <p className="text-[12px] font-bold mb-1.5" style={{ color: "var(--text-3)" }}>Depende de</p>
-        {myDeps.length === 0 && open !== p.id && (
-          <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Sin dependencias</p>
-        )}
-        <div className="flex flex-col gap-1.5">
-          {myDeps.map((d) => {
-            const blocked = d.projects && d.projects.status !== "completada";
-            return (
-              <div key={d.id} className="flex items-center justify-between gap-2 text-[12.5px]">
-                <span className="truncate flex items-center gap-1" style={{ color: blocked ? "var(--danger)" : "var(--ok)" }}>
-                  <Icon name={blocked ? "lock" : "check"} size={11} /> {d.projects?.requests?.title ?? "Actividad"}
-                </span>
-                <button className="text-[12px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}
-                  onClick={() => removeDependency(d.id)}>
-                  Quitar
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {open === p.id ? (
-          <div className="flex items-center gap-2 mt-2">
-            <Select
-              className="field-input flex-1 flex items-center justify-between gap-2 text-left"
-              value={picked} onChange={setPicked} title="Elegir actividad" placeholder="— elige una actividad —"
-              options={otherOptions.map((o) => ({ value: o.id, label: titleOf(o) }))}
-            />
-            <button className="btn-secondary text-[12px] px-2.5 py-1.5" disabled={saving} onClick={() => addDependency(p.id)}>
-              Agregar
-            </button>
-            <button className="text-[12px]" style={{ color: "var(--text-3)" }} onClick={() => { setOpen(null); setPicked(""); }}>
-              <Icon name="close" size={13} />
-            </button>
-          </div>
-        ) : (
-          <button className="text-[12px] font-semibold mt-2" style={{ color: "var(--accent)" }}
-            onClick={() => setOpen(p.id)}>
-            + Agregar dependencia
-          </button>
-        )}
-      </div>
-    );
-
-    return (
-      <div className="card card-hover p-3.5 md:p-5">
-        {/* Móvil — jerarquía: título → badges → responsable → entrega → progreso → dependencias → acciones */}
-        <div className="flex md:hidden flex-col">
-          <h3 className="text-[14px] font-bold leading-snug">{titleOf(p)}</h3>
-          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">{badges}</div>
-
-          <div className="flex items-center gap-2 mt-2.5">
-            <div className="flex -space-x-2 shrink-0">
-              {asgs.map((a, i) => (
-                <div key={i} title={a.users.display_name + (a.is_lead ? " (responsable)" : "")}
-                  style={{ border: "2px solid var(--surface)", borderRadius: "100px" }}>
-                  <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={24} birthday={isBirthdayToday(a.users.birth_date, todayISO())} />
-                </div>
-              ))}
-            </div>
-            <span className="text-[12.5px] font-semibold truncate" style={{ color: "var(--text-2)" }}>{lead?.display_name ?? "Sin asignar"}</span>
-          </div>
-
-          {p.deadline && (
-            <span className="inline-flex items-center gap-1 text-[12px] font-medium mt-1.5" style={{ color: "var(--text-3)" }}>
-              <Icon name="calendar" size={12} /> entrega {dmy(p.deadline)}
-            </span>
-          )}
-
-          <div className="flex items-center gap-2 mt-2.5">
-            <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--accent)" }} />
-            </div>
-            <span className="text-[12px] font-bold tabular-nums shrink-0" style={{ color: "var(--text-3)" }}>{pct}%</span>
-          </div>
-
-          {p.status === "en_revision" && (
-            <button className="btn-primary text-[12.5px] px-3 py-2 mt-2.5 flex items-center justify-center gap-1.5"
-              onClick={() => markCompleted(p.id, titleOf(p))}>
-              <Icon name="check" size={13} /> Marcar completada
-            </button>
-          )}
-
-          {depsBlock}
-        </div>
-
-        {/* Escritorio — sin cambios */}
-        <div className="hidden md:block">
-          <div className="flex items-center gap-2 flex-wrap mb-1.5">
-            {badges}
-            {p.status === "en_revision" && (
-              <button className="text-[12px] font-semibold ml-auto flex items-center gap-1" style={{ color: "var(--ok)" }}
-                onClick={() => markCompleted(p.id, titleOf(p))}>
-                <Icon name="check" size={12} /> Marcar completada
-              </button>
-            )}
-          </div>
-          <h3 className="text-[15px] font-bold leading-snug">{titleOf(p)}</h3>
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex -space-x-2">
-              {asgs.map((a, i) => (
-                <div key={i} title={a.users.display_name + (a.is_lead ? " (responsable)" : "")}
-                  style={{ border: "2px solid var(--surface)", borderRadius: "100px" }}>
-                  <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={28} birthday={isBirthdayToday(a.users.birth_date, todayISO())} />
-                </div>
-              ))}
-            </div>
-            {p.deadline && (
-              <span className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
-                entrega {dmy(p.deadline)}
-              </span>
-            )}
-          </div>
-          {depsBlock}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
-      <header className="pt-4 pb-4 md:pt-8 md:pb-6 flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[22px] md:text-[28px] font-bold tracking-tight">Proyectos</h1>
-          <p className="text-[13px] md:text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            {active.length} activos · {done.length} cerrados
-          </p>
-        </div>
+      {/* Encabezado con mejor jerarquía */}
+      <header className="pt-4 pb-6 md:pt-8 md:pb-8">
+        <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+          <div>
+            <h1 className="text-[32px] md:text-[40px] font-bold tracking-tight text-text-1 leading-none">Actividades</h1>
+            <p className="text-[15px] md:text-[16px] mt-2" style={{ color: "var(--text-2)" }}>
+              Gestiona las actividades y proyectos del equipo
+            </p>
+          </div>
 
-        {/* Móvil — fila compacta: menú "Acciones" (reportes) + Proyecto */}
-        <div className="flex md:hidden items-center gap-2 w-full justify-end">
-          <Menu
-            align="right"
-            trigger={({ onClick }) => (
-              <button className="btn-secondary text-[13px] px-3 py-2 flex items-center gap-1" onClick={onClick}>
-                Acciones <Icon name="chevronDown" size={13} />
+          {/* Botones: uno principal, otros ghost */}
+          <div className="flex items-center gap-2">
+            {/* Móvil */}
+            <div className="flex md:hidden items-center gap-2">
+              <Menu
+                align="right"
+                trigger={({ onClick }) => (
+                  <button className="h-9 w-9 rounded-lg grid place-items-center hover:bg-hover transition-colors" onClick={onClick}>
+                    <Icon name="more" size={18} />
+                  </button>
+                )}
+              >
+                <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} href={activitiesCsvHref} download="actividades.csv"
+                  onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
+                  Exportar CSV
+                </MenuItem>
+                <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
+                    printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
+                  }}>
+                  Por empleado
+                </MenuItem>
+                <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} onClick={() => window.print()}>
+                  Guardar como PDF
+                </MenuItem>
+              </Menu>
+            </div>
+
+            {/* Escritorio */}
+            <div className="hidden md:flex items-center gap-2">
+              <button className="h-9 px-3 rounded-lg text-[13px] font-medium text-text-2 hover:bg-hover transition-colors flex items-center gap-1.5"
+                onClick={() => {
+                  if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv");
+                  const link = document.createElement('a');
+                  link.href = activitiesCsvHref;
+                  link.download = 'actividades.csv';
+                  link.click();
+                }}>
+                <IconDownload className="w-3.5 h-3.5" /> Exportar
               </button>
-            )}
-          >
-            <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} href={activitiesCsvHref} download="actividades.csv"
-              onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
-              Exportar CSV
-            </MenuItem>
-            <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />}
-              onClick={() => {
-                if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
-                printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
-              }}>
-              Por empleado
-            </MenuItem>
-            <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} onClick={() => window.print()}>
-              Guardar como PDF
-            </MenuItem>
-          </Menu>
-          <button className="btn-primary text-[13px] px-3.5 py-2 flex items-center gap-1 shrink-0" onClick={openAdd}>
-            <Icon name="plus" size={14} /> Proyecto
-          </button>
+            </div>
+
+            {/* Botón principal */}
+            <button 
+              className="h-10 px-5 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
+              onClick={openAdd}
+            >
+              <Icon name="plus" size={16} />
+              <span className="hidden sm:inline">Añadir proyecto</span>
+              <span className="sm:hidden">Nuevo</span>
+            </button>
+          </div>
         </div>
 
-        {/* Escritorio — sin cambios */}
-        <div className="hidden md:flex items-center gap-2">
-          <a href={activitiesCsvHref} download="actividades.csv" className="btn-secondary text-[13px] px-4 py-2 flex items-center gap-1.5"
-            onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
-            <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
-          </a>
-          <button className="btn-secondary text-[13px] px-4 py-2 flex items-center gap-1.5"
-            onClick={() => {
-              if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades-por-empleado.html");
-              printByEmployeeReport(team, projects, hoursByUserMin, typeLabel);
-            }}>
-            <IconDownload className="w-3.5 h-3.5" /> Por empleado
-          </button>
-          <PrintButton />
-          <button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>
-            + Añadir proyecto
-          </button>
+        {/* Contadores y selector de vista */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <span className="text-[14px] font-semibold" style={{ color: "var(--text-2)" }}>
+              {active.length} <span style={{ color: "var(--text-3)" }}>activos</span>
+            </span>
+            <span className="w-px h-4" style={{ background: "var(--border)" }} />
+            <span className="text-[14px] font-semibold" style={{ color: "var(--text-2)" }}>
+              {done.length} <span style={{ color: "var(--text-3)" }}>cerrados</span>
+            </span>
+          </div>
+
+          {/* Selector Lista/Pipeline estilo Apple */}
+          <div className="relative inline-flex rounded-xl p-1" style={{ background: "var(--surface-2)" }}>
+            <div 
+              className="absolute top-1 bottom-1 rounded-lg transition-all duration-300 ease-out"
+              style={{ 
+                background: "var(--surface)",
+                width: "calc(50% - 4px)",
+                left: view === "Lista" ? "4px" : "calc(50% + 0px)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+              }}
+            />
+            <button
+              className="relative z-10 h-8 px-4 rounded-lg text-[13px] font-semibold transition-colors"
+              style={{ color: view === "Lista" ? "var(--text-1)" : "var(--text-3)" }}
+              onClick={() => setView("Lista")}
+            >
+              Lista
+            </button>
+            <button
+              className="relative z-10 h-8 px-4 rounded-lg text-[13px] font-semibold transition-colors"
+              style={{ color: view === "Pipeline" ? "var(--text-1)" : "var(--text-3)" }}
+              onClick={() => setView("Pipeline")}
+            >
+              Pipeline
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Fase 3: Lista (comportamiento original, sin cambios) vs Pipeline
-          (las etapas Solicitud→Actividad en un solo lugar). */}
-      <div className="mb-5">
-        <SlidingSegments options={["Lista", "Pipeline"]} value={view} onChange={(v) => setView(v as "Lista" | "Pipeline")} />
-      </div>
-
       {view === "Lista" ? (
         <>
-          <h2 className="text-[15px] font-bold mb-2 md:mb-3">Activos</h2>
-          {active.length === 0 && (
+          {/* Vista Lista tipo Notion - filas compactas */}
+          {active.length === 0 ? (
             <div className="mb-6">
               <EmptyState
                 icon={<Icon name="layers" size={22} />}
@@ -499,13 +402,35 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                 action={<button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>+ Añadir proyecto</button>}
               />
             </div>
+          ) : (
+            <div className="mb-8">
+              {/* Header de tabla */}
+              <div className="hidden md:grid grid-cols-[1fr_120px_140px_100px_80px_40px] gap-4 px-4 py-2 text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+                <span>Actividad</span>
+                <span>Estado</span>
+                <span>Responsable</span>
+                <span>Entrega</span>
+                <span>Prioridad</span>
+                <span></span>
+              </div>
+
+              {/* Filas de actividades */}
+              <div className="flex flex-col">
+                {active.map((p) => (
+                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} />
+                ))}
+              </div>
+            </div>
           )}
-          <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 mb-6 md:mb-8">{active.map((p) => <Card key={p.id} p={p} />)}</div>
 
           {done.length > 0 && (
             <>
-              <h2 className="text-[15px] font-bold mb-2 md:mb-3">Cerrados</h2>
-              <div className="grid md:grid-cols-2 gap-2.5 md:gap-3.5 opacity-70">{done.map((p) => <Card key={p.id} p={p} />)}</div>
+              <h2 className="text-[18px] font-bold mb-3" style={{ color: "var(--text-2)" }}>Cerrados</h2>
+              <div className="flex flex-col opacity-60">
+                {done.map((p) => (
+                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} />
+                ))}
+              </div>
             </>
           )}
         </>
@@ -583,11 +508,132 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PipelineBoard — Fase 3. Las mismas Solicitudes/Actividades de
-   siempre, agrupadas por etapa en vez de por dos pantallas sueltas.
-   No duplica lógica: la columna "Solicitada" es solo lectura y
-   enlaza a Solicitudes para aprobar/rechazar (esa cadena de efectos
-   — checklist, evento de calendario, log — sigue viviendo ahí).
+   ProjectRow — Fila tipo Notion para la vista Lista
+   ═══════════════════════════════════════════════════════════════ */
+function ProjectRow({ p, deps, typeLabel, onMarkCompleted }: { 
+  p: ProjectRow; deps: DepRow[]; typeLabel: Record<string, string>;
+  onMarkCompleted: (id: string, title: string) => void;
+}) {
+  const asgs = p.project_assignments ?? [];
+  const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
+  const pending = deps.filter((d) => d.projects && d.projects.status !== "completada");
+  const title = p.requests?.title ?? "Actividad";
+
+  // Colores por estado
+  const statusColors: Record<string, { bg: string; fg: string }> = {
+    solicitada: { bg: "#F1F5F9", fg: "#475569" },
+    aprobada: { bg: "#DBEAFE", fg: "#1D4ED8" },
+    en_progreso: { bg: "#E9D5FF", fg: "#6B21A8" },
+    en_revision: { bg: "#FEF3C7", fg: "#92400E" },
+    completada: { bg: "#D1FAE5", fg: "#065F46" },
+    cancelada: { bg: "#FEE2E2", fg: "#991B1B" },
+    pausada: { bg: "#F1F5F9", fg: "#475569" },
+  };
+
+  const statusColor = statusColors[p.status] || { bg: "#F1F5F9", fg: "#475569" };
+  const statusLabel = STATUS_LABELS[p.status as RequestStatus] ?? p.status;
+
+  const priorityColors: Record<string, string> = {
+    baja: "var(--text-3)",
+    normal: "var(--text-2)",
+    alta: "var(--warn)",
+    urgente: "var(--danger)",
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr + "T12:00:00Z");
+    const day = date.getUTCDate();
+    const month = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][date.getUTCMonth()];
+    return `${day} ${month}`;
+  };
+
+  return (
+    <div className="group grid grid-cols-1 md:grid-cols-[1fr_120px_140px_100px_80px_40px] gap-2 md:gap-4 px-4 py-3 rounded-xl hover:bg-hover transition-all duration-200 cursor-pointer border border-transparent hover:border-border">
+      {/* Título + badges */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-[15px] font-semibold text-text-1 truncate group-hover:text-accent transition-colors">{title}</h3>
+            {pending.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+                <Icon name="lock" size={10} /> Bloqueada
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[12px] text-text-3">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</span>
+            {asgs.length > 1 && (
+              <span className="text-[11px] text-text-3">+{asgs.length - 1}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Estado */}
+      <div className="flex items-center">
+        <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: statusColor.bg, color: statusColor.fg }}>
+          {statusLabel}
+        </span>
+      </div>
+
+      {/* Responsable */}
+      <div className="flex items-center gap-2">
+        {lead ? (
+          <>
+            <Avatar name={lead.display_name} color={lead.nexus_color} avatarUrl={lead.avatar_url} size={24} birthday={isBirthdayToday(lead.birth_date, todayISO())} />
+            <span className="text-[13px] font-medium text-text-2 truncate hidden lg:block">{lead.display_name}</span>
+          </>
+        ) : (
+          <span className="text-[13px] text-text-3">Sin asignar</span>
+        )}
+      </div>
+
+      {/* Entrega */}
+      <div className="flex items-center gap-1.5">
+        {p.deadline ? (
+          <>
+            <Icon name="calendar" size={13} className="text-text-3" />
+            <span className="text-[13px] font-medium text-text-2">{formatDate(p.deadline)}</span>
+          </>
+        ) : (
+          <span className="text-[13px] text-text-3">—</span>
+        )}
+      </div>
+
+      {/* Prioridad */}
+      <div className="flex items-center">
+        {(p.priority as Priority) !== "normal" && (
+          <span className="text-[12px] font-semibold capitalize" style={{ color: priorityColors[p.priority] || "var(--text-2)" }}>
+            {p.priority}
+          </span>
+        )}
+      </div>
+
+      {/* Acciones en hover */}
+      <div className="hidden md:flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+        <button className="h-7 w-7 rounded-lg grid place-items-center hover:bg-surface-2 transition-colors">
+          <Icon name="more" size={14} className="text-text-3" />
+        </button>
+      </div>
+
+      {/* Acciones rápidas para "En revisión" */}
+      {p.status === "en_revision" && (
+        <div className="md:col-span-6 flex justify-end">
+          <button 
+            className="text-[12px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-200 hover:scale-105"
+            style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
+            onClick={(e) => { e.stopPropagation(); onMarkCompleted(p.id, title); }}
+          >
+            <Icon name="check" size={12} /> Marcar completada
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PipelineBoard — Inspirado en Plane, con colores por estado
    ═══════════════════════════════════════════════════════════════ */
 const COMPLETADA_VISIBLE = 8;
 
@@ -604,20 +650,47 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
     .slice()
     .sort((a, b) => (b.completed_at ?? b.created_at).localeCompare(a.completed_at ?? a.created_at));
 
-  const PriorityPill = ({ priority }: { priority: string }) =>
-    (priority as Priority) !== "normal"
-      ? <Pill tone={PRIORITY_TONE[priority as Priority]}>{priority}</Pill>
-      : null;
+  // Colores por columna
+  const columnColors: Record<string, string> = {
+    solicitada: "var(--text-3)",
+    aprobada: "var(--accent)",
+    en_progreso: "var(--purple)",
+    en_revision: "var(--warn)",
+    completada: "var(--ok)",
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr + "T12:00:00Z");
+    const day = date.getUTCDate();
+    const month = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][date.getUTCMonth()];
+    return `${day} ${month}`;
+  };
+
+  const PriorityPill = ({ priority }: { priority: string }) => {
+    const colors: Record<string, string> = {
+      baja: "var(--text-3)",
+      normal: "var(--text-2)",
+      alta: "var(--warn)",
+      urgente: "var(--danger)",
+    };
+    return (priority as Priority) !== "normal" ? (
+      <span className="text-[11px] font-semibold capitalize" style={{ color: colors[priority] || "var(--text-2)" }}>
+        {priority}
+      </span>
+    ) : null;
+  };
 
   const RequestCard = ({ r }: { r: PendingRequestRow }) => (
-    <Link href="/admin/solicitudes" className="card card-hover p-3 flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <Pill tone="muted">{typeLabel[r.type] ?? r.type}</Pill>
+    <Link href="/admin/solicitudes" className="group block p-4 rounded-2xl bg-surface hover:bg-surface-2 border border-border hover:border-border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="flex items-center gap-2 flex-wrap mb-2">
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+          {typeLabel[r.type] ?? r.type}
+        </span>
         <PriorityPill priority={r.priority} />
       </div>
-      <p className="text-[13px] font-bold leading-snug truncate">{r.title}</p>
-      <p className="text-[12px] truncate" style={{ color: "var(--text-3)" }}>{r.requester_name ?? "—"}</p>
-      <span className="text-[11.5px] font-semibold mt-0.5" style={{ color: "var(--accent)" }}>Revisar en Solicitudes →</span>
+      <p className="text-[14px] font-semibold text-text-1 leading-snug truncate group-hover:text-accent transition-colors">{r.title}</p>
+      <p className="text-[12px] text-text-3 truncate mt-1">{r.requester_name ?? "—"}</p>
+      <span className="text-[12px] font-semibold mt-2 inline-block" style={{ color: "var(--accent)" }}>Revisar en Solicitudes →</span>
     </Link>
   );
 
@@ -625,24 +698,35 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
     const asgs = p.project_assignments ?? [];
     const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
     return (
-      <div className="card p-3 flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Pill tone="muted">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</Pill>
+      <div className="group p-4 rounded-2xl bg-surface hover:bg-surface-2 border border-border hover:border-border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer">
+        <div className="flex items-center gap-2 flex-wrap mb-2">
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+            {p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}
+          </span>
           <PriorityPill priority={p.priority} />
         </div>
-        <p className="text-[13px] font-bold leading-snug truncate">{p.requests?.title ?? "Actividad"}</p>
-        <div className="flex items-center justify-between mt-0.5">
+        <p className="text-[15px] font-semibold text-text-1 leading-snug truncate group-hover:text-accent transition-colors">{p.requests?.title ?? "Actividad"}</p>
+        
+        <div className="flex items-center justify-between mt-3">
           {lead ? (
-            <span className="inline-flex items-center gap-1.5 min-w-0">
-              <Avatar name={lead.display_name} color={lead.nexus_color} avatarUrl={lead.avatar_url} size={18} birthday={isBirthdayToday(lead.birth_date, todayISO())} />
-              <span className="text-[12px] font-semibold truncate" style={{ color: "var(--text-2)" }}>{lead.display_name}</span>
+            <span className="inline-flex items-center gap-2 min-w-0">
+              <Avatar name={lead.display_name} color={lead.nexus_color} avatarUrl={lead.avatar_url} size={24} birthday={isBirthdayToday(lead.birth_date, todayISO())} />
+              <span className="text-[12px] font-medium text-text-2 truncate">{lead.display_name}</span>
             </span>
-          ) : <span className="text-[12px]" style={{ color: "var(--text-3)" }}>Sin asignar</span>}
-          {p.deadline && <span className="text-[11.5px] font-semibold shrink-0" style={{ color: "var(--text-3)" }}>{dmy(p.deadline)}</span>}
+          ) : <span className="text-[12px] text-text-3">Sin asignar</span>}
+          {p.deadline && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-text-3">
+              <Icon name="calendar" size={11} /> {formatDate(p.deadline)}
+            </span>
+          )}
         </div>
+
         {p.status === "en_revision" && (
-          <button className="text-[12px] font-semibold mt-1 flex items-center gap-1 self-start" style={{ color: "var(--ok)" }}
-            onClick={() => onMarkCompleted(p.id, p.requests?.title ?? "Actividad")}>
+          <button 
+            className="w-full mt-3 text-[12px] font-semibold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02]"
+            style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
+            onClick={() => onMarkCompleted(p.id, p.requests?.title ?? "Actividad")}
+          >
             <Icon name="check" size={12} /> Marcar completada
           </button>
         )}
@@ -651,7 +735,8 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
   };
 
   return (
-    <div className="flex gap-3 overflow-x-auto nx-scroll pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+    <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
       {PIPELINE_STAGES.map((stage) => {
         const items = stage.key === "solicitada" ? pendingRequests
           : stage.key === "completada" ? completadas.slice(0, COMPLETADA_VISIBLE)
@@ -659,23 +744,35 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
         const total = stage.key === "solicitada" ? pendingRequests.length
           : stage.key === "completada" ? completadas.length
           : (byStage.get(stage.key) ?? []).length;
+        
+        const color = columnColors[stage.key] || "var(--text-3)";
+
         return (
-          <div key={stage.key} className="flex flex-col shrink-0 w-[260px] md:w-[280px]">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[12.5px] font-bold" style={{ color: "var(--text-2)" }}>{stage.label}</span>
-              <span className="text-[11.5px] font-bold tabular-nums px-1.5 py-0.5 rounded-full"
-                style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>{total}</span>
+          <div key={stage.key} className="flex flex-col shrink-0 w-[280px] md:w-[300px]">
+            {/* Header de columna */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+                <span className="text-[13px] font-semibold text-text-1">{stage.label}</span>
+              </div>
+              <span className="text-[12px] font-bold tabular-nums px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
+                {total}
+              </span>
             </div>
-            <div className="flex flex-col gap-2 min-h-[60px]">
+
+            {/* Cards */}
+            <div className="flex flex-col gap-2 min-h-[100px]">
               {items.length === 0 ? (
-                <div className="text-[12px] text-center py-6" style={{ color: "var(--text-3)" }}>Vacío</div>
+                <div className="text-[12px] text-center py-8 text-text-3">
+                  Sin actividades
+                </div>
               ) : stage.key === "solicitada" ? (
                 (items as PendingRequestRow[]).map((r) => <RequestCard key={r.id} r={r} />)
               ) : (
                 (items as ProjectRow[]).map((p) => <ProjectCard key={p.id} p={p} />)
               )}
               {stage.key === "completada" && total > COMPLETADA_VISIBLE && (
-                <button className="text-[12px] font-semibold text-center py-2" style={{ color: "var(--accent)" }} onClick={onGoToList}>
+                <button className="text-[12px] font-semibold text-center py-2 hover:text-accent transition-colors" style={{ color: "var(--accent)" }} onClick={onGoToList}>
                   Ver las {total} en Lista →
                 </button>
               )}
