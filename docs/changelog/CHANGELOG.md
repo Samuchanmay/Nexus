@@ -2,6 +2,21 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Rediseño UI/UX: Módulo de Solicitudes estilo Linear/Notion
+
+### Mejoras de jerarquía visual y experiencia
+- **Header compacto**: Título "Solicitudes" a 40px con espaciado optimizado (8px título-subtítulo, 24px subtítulo-contenido).
+- **Tabs rediseñados**: Segmented control estilo Linear con contadores animados y transición suave.
+- **Estado vacío mejorado**: Icono de 64px, mensajes más humanos ("Todo está al día"), ancho máximo de 360px.
+- **Tarjetas informativas**: Dos tarjetas auxiliares en estado vacío ("Responde rápido" y "Trabajo colaborativo").
+- **Tarjetas de solicitudes**: Radio de 24px, padding de 32px, hover con elevación y sombra.
+- **Badges mejorados**: Colores semánticos más suaves, padding y radios consistentes.
+- **Metadata con iconos**: Fechas y ubicaciones con iconos de calendario y mapa.
+- **Animaciones de entrada**: Fade + slide desde arriba (200ms) al cargar solicitudes.
+- **Tipografía con contraste**: Títulos de 18px, metadata de 13px, mejor jerarquía visual.
+- **Estados de hover**: Tarjetas con elevación y cambio de color en título.
+- **Archivos**: `src/app/admin/solicitudes/client.tsx`.
+
 ## 2026-08-04 · Rediseño UI/UX: Módulo de Actividades estilo Linear/Plane/Notion
 
 ### Mejoras de jerarquía visual y experiencia

@@ -165,60 +165,225 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
     router.refresh();
   };
 
+  const counts = useMemo(() => ({
+    review: requests.filter((r) => r.status === "solicitada").length,
+    approved: requests.filter((r) => !["solicitada", "cancelada"].includes(r.status)).length,
+    rejected: requests.filter((r) => r.status === "cancelada").length,
+  }), [requests]);
+
   return (
     <>
-      <header className="pt-8 pb-5 flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight">Solicitudes</h1>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-            Aprueba, asigna y prioriza el trabajo de comunicación
-          </p>
+      {/* Header compacto */}
+      <header className="pt-6 pb-6">
+        <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+          <div>
+            <h1 className="text-[40px] font-bold tracking-tight text-text-1 leading-none">Solicitudes</h1>
+            <p className="text-[16px] font-medium mt-2" style={{ color: "var(--text-2)" }}>
+              Aprueba, asigna y prioriza el trabajo
+            </p>
+          </div>
         </div>
-        <SlidingSegments
-          options={["Por revisar", "Aprobadas", "Rechazadas"]}
-          value={tab}
-          onChange={(v) => setTab(v as "Por revisar" | "Aprobadas" | "Rechazadas")}
-        />
+
+        {/* Tabs estilo Linear con contadores */}
+        <div className="relative inline-flex rounded-2xl p-1.5" style={{ background: "var(--surface-2)" }}>
+          <div 
+            className="absolute top-1.5 bottom-1.5 rounded-xl transition-all duration-200 ease-out"
+            style={{ 
+              background: "var(--surface)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+            }}
+          />
+          {(["Por revisar", "Aprobadas", "Rechazadas"] as const).map((t, i) => {
+            const count = i === 0 ? counts.review : i === 1 ? counts.approved : counts.rejected;
+            const isActive = tab === t;
+            return (
+              <button
+                key={t}
+                className="relative z-10 h-9 px-5 rounded-xl text-[14px] font-semibold transition-colors flex items-center gap-2"
+                style={{ 
+                  color: isActive ? "var(--text-1)" : "var(--text-3)",
+                  background: isActive ? "var(--surface)" : "transparent"
+                }}
+                onClick={() => setTab(t)}
+              >
+                {t}
+                <span 
+                  className="text-[12px] font-bold tabular-nums px-2 py-0.5 rounded-full"
+                  style={{ 
+                    background: isActive ? "var(--accent-tint)" : "var(--surface-3)",
+                    color: isActive ? "var(--accent)" : "var(--text-3)"
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </header>
 
-      {shown.length === 0 && (
-        <EmptyState
-          icon={<Icon name="inbox" size={22} />}
-          title={tab === "Por revisar" ? "Bandeja en cero" : tab === "Aprobadas" ? "Sin solicitudes aprobadas" : "Sin solicitudes rechazadas"}
-          hint={tab === "Por revisar" ? "Las nuevas solicitudes de coordinadores aparecerán aquí." : "Aparecerán aquí cuando cambien de estado."}
-        />
-      )}
-
-      <div className="flex flex-col gap-3">
-        {shown.map((r) => (
-          <div key={r.id} className="card card-hover p-5">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <Pill tone="muted">{typeLabel[r.type] ?? r.type}</Pill>
-                  <Pill tone={STATUS_TONE[r.status]}>{STATUS_LABELS[r.status]}</Pill>
-                  {r.priority !== "normal" && <Pill tone={PRIORITY_TONE[r.priority]}>{r.priority}</Pill>}
-                </div>
-                <h3 className="text-[15.5px] font-bold leading-snug">{r.title}</h3>
-                <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
-                  {(r.users?.honorific ? r.users.honorific + " " : "") + (r.users?.full_name ?? r.requester_name ?? "Solicitante")}
-                  {r.event_date && ` · evento ${dmy(r.event_date)}${r.event_time ? " " + fmtTime(r.event_time) : ""}`}
-                  {r.event_location && ` · ${r.event_location}`}
-                </p>
-                {r.subtype.length > 0 && (
-                  <p className="text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>{r.subtype.join(" · ")}</p>
-                )}
-                {r.notes && <p className="text-[12.5px] mt-1.5" style={{ color: "var(--text-2)" }}>{r.notes}</p>}
-              </div>
-              {r.status === "solicitada" && (
-                <button onClick={() => openApproval(r)} className="btn-primary px-5 py-2.5 text-[13px] shrink-0">
-                  Revisar
-                </button>
-              )}
-            </div>
+      {/* Contenido */}
+      {shown.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16">
+          {/* Icono grande */}
+          <div 
+            className="w-16 h-16 rounded-2xl grid place-items-center mb-4"
+            style={{ background: "var(--surface-2)" }}
+          >
+            <Icon name="inbox" size={32} className="text-text-3" />
           </div>
-        ))}
-      </div>
+          
+          {/* Mensaje */}
+          <h2 className="text-[18px] font-semibold text-text-1 mb-1">
+            {tab === "Por revisar" ? "Todo está al día" : tab === "Aprobadas" ? "Sin solicitudes aprobadas" : "Sin solicitudes rechazadas"}
+          </h2>
+          <p className="text-[14px] text-text-3 text-center max-w-[360px] mb-8">
+            {tab === "Por revisar" 
+              ? "Las nuevas solicitudes aparecerán aquí cuando los coordinadores las envíen."
+              : "Las solicitudes aparecerán aquí cuando cambien de estado."}
+          </p>
+
+          {/* Tarjetas informativas */}
+          {tab === "Por revisar" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-[600px]">
+              <div 
+                className="p-6 rounded-3xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ 
+                  background: "var(--surface)",
+                  borderColor: "var(--border)"
+                }}
+              >
+                <div 
+                  className="w-10 h-10 rounded-xl grid place-items-center mb-3"
+                  style={{ background: "var(--accent-tint)" }}
+                >
+                  <Icon name="clock" size={20} className="text-accent" />
+                </div>
+                <h3 className="text-[15px] font-semibold text-text-1 mb-1">Responde rápido</h3>
+                <p className="text-[13px] text-text-3">
+                  Mantén el flujo del equipo revisando las solicitudes a tiempo.
+                </p>
+              </div>
+
+              <div 
+                className="p-6 rounded-3xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ 
+                  background: "var(--surface)",
+                  borderColor: "var(--border)"
+                }}
+              >
+                <div 
+                  className="w-10 h-10 rounded-xl grid place-items-center mb-3"
+                  style={{ background: "var(--purple-tint)" }}
+                >
+                  <Icon name="users" size={20} className="text-purple" />
+                </div>
+                <h3 className="text-[15px] font-semibold text-text-1 mb-1">Trabajo colaborativo</h3>
+                <p className="text-[13px] text-text-3">
+                  Asigna solicitudes según la disponibilidad y especialidad del equipo.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          {shown.map((r) => (
+            <div 
+              key={r.id} 
+              className="group p-8 rounded-3xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer"
+              style={{ 
+                background: "var(--surface)",
+                borderColor: "var(--border)"
+              }}
+              onClick={() => r.status === "solicitada" && openApproval(r)}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  {/* Badges */}
+                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                    <span 
+                      className="text-[12px] font-semibold px-3 py-1 rounded-full"
+                      style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+                    >
+                      {typeLabel[r.type] ?? r.type}
+                    </span>
+                    <span 
+                      className="text-[12px] font-semibold px-3 py-1 rounded-full"
+                      style={{ 
+                        background: r.status === "solicitada" ? "var(--warn-tint)" : 
+                                   r.status === "cancelada" ? "var(--surface-2)" : "var(--ok-tint)",
+                        color: r.status === "solicitada" ? "var(--warn)" : 
+                               r.status === "cancelada" ? "var(--text-3)" : "var(--ok)"
+                      }}
+                    >
+                      {STATUS_LABELS[r.status]}
+                    </span>
+                    {r.priority !== "normal" && (
+                      <span 
+                        className="text-[12px] font-semibold px-3 py-1 rounded-full capitalize"
+                        style={{ 
+                          background: r.priority === "urgente" ? "var(--danger-tint)" : 
+                                     r.priority === "alta" ? "var(--warn-tint)" : "var(--surface-2)",
+                          color: r.priority === "urgente" ? "var(--danger)" : 
+                                 r.priority === "alta" ? "var(--warn)" : "var(--text-2)"
+                        }}
+                      >
+                        {r.priority}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Título */}
+                  <h3 className="text-[18px] font-semibold text-text-1 leading-snug mb-2 group-hover:text-accent transition-colors">
+                    {r.title}
+                  </h3>
+
+                  {/* Metadata */}
+                  <div className="flex items-center gap-3 flex-wrap text-[13px] text-text-3">
+                    <span className="font-medium">
+                      {(r.users?.honorific ? r.users.honorific + " " : "") + (r.users?.full_name ?? r.requester_name ?? "Solicitante")}
+                    </span>
+                    {r.event_date && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Icon name="calendar" size={12} />
+                          {dmy(r.event_date)}{r.event_time ? " " + fmtTime(r.event_time) : ""}
+                        </span>
+                      </>
+                    )}
+                    {r.event_location && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Icon name="map" size={12} />
+                          {r.event_location}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Notas */}
+                  {r.notes && (
+                    <p className="text-[13px] text-text-2 mt-3 line-clamp-2">{r.notes}</p>
+                  )}
+                </div>
+
+                {/* Acción */}
+                {r.status === "solicitada" && (
+                  <button 
+                    className="h-10 px-6 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5 shrink-0"
+                    onClick={(e) => { e.stopPropagation(); openApproval(r); }}
+                  >
+                    Revisar
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Sheet de aprobación */}
       <Sheet open={!!sel} onClose={() => setSel(null)} title={rejecting ? "Rechazar solicitud" : "Aprobar y asignar"}>
