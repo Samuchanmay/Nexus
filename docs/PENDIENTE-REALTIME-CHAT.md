@@ -130,17 +130,58 @@ Aditivo e idempotente. Depende de las migraciones 0011 y 0016.
 - [ ] Commit + push de 0025 y 0026 (los archivos `.sql` ya existen en el
       repo local, faltaba commitear — verificar en el próximo commit).
 
-## Pendiente aparte: notificaciones push (app cerrada)
+## Push con app cerrada — CONSTRUIDO (4 agosto 2026), falta 1 paso manual
 
-Esto es un problema DISTINTO al de arriba. Realtime (`postgres_changes`)
-solo entrega a pestañas ABIERTAS — ya arreglado. Para notificar con la app
-totalmente cerrada hace falta Web Push (`src/lib/chat/push.ts` →
-Edge Function `send-chat-push`), que depende de una tabla
-`push_subscriptions` que **no existe en este proyecto de Supabase** y de las
-llaves `VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` (pendiente de configurar, ver
-`docs/03-ROADMAP.md`/notas previas). Es best-effort y falla en silencio
-adrede, así que hoy simplemente no hace nada — no rompe el chat, pero
-tampoco notifica con la pestaña cerrada. Fuera de alcance de este fix.
+> ✅ Ya no es un gap de feature — se construyó completo. Solo falta que el
+> usuario pegue 3 secrets en el dashboard de Supabase (no hay tool de MCP
+> para setearlos, es lo único que quedó fuera de alcance de automatizar).
+
+Lo que se agregó:
+
+- **`supabase/migrations/0033_chat_push_subscriptions.sql`** — tabla
+  `push_subscriptions` (aplicada ya en la nube) con RLS: cada usuario
+  administra sus propias filas vía `my_user_id()`. `subscription` es texto
+  (JSON.stringify del PushSubscription), no jsonb — así lo espera
+  `send-chat-push` tal cual venía escrito.
+- **`src/app/api/push/subscribe/route.ts`** — existía un borrador roto (nunca
+  funcionó: comparaba el `userId` del body contra el UID de `auth.users` en
+  vez del id interno de `public.users`, y hacía `onConflict: "user_id"`
+  contra una tabla que ni siquiera tenía esa columna única). Reescrito:
+  resuelve el id interno del lado del servidor a partir de la sesión (mismo
+  criterio que el guard de propiedad de `event_check_in`/`event_check_out`,
+  0032) y hace upsert por `endpoint` (un usuario puede tener varios
+  dispositivos suscritos).
+- **Par VAPID nuevo, generado con la librería oficial `web-push`** — el que
+  ya estaba hardcodeado en el cliente (`BKcd5c...`) nunca tuvo su privada
+  configurada en ningún lado, así que era irrecuperable; se generó un par
+  nuevo y se actualizó la constante en `src/lib/use-push-notifications.ts` y
+  el fallback en `supabase/functions/send-chat-push/index.ts` (ya
+  redesplegada, versión 2, con la clave pública nueva).
+
+### Único paso que falta — manual, en el dashboard de Supabase
+
+Project Settings → Edge Functions → `send-chat-push` → Secrets, agregar:
+
+```
+VAPID_PUBLIC_KEY  = BCBYW7jMiV4B0oCdSDyiC2wUuXMlXA4ecKt4jNpjEs8zohScS3glxfmYxr3UkS1SyEBOSmk-OIbonYBcP1RLWIA
+VAPID_PRIVATE_KEY = MDXX8BSzXWr4CMMcMmenB09cx60rL5cgaarnlNAuinU
+VAPID_SUBJECT     = mailto:macgenio55@gmail.com
+```
+
+(`VAPID_SUBJECT` puede ser cualquier `mailto:` de contacto real — se usa
+solo para que los push services identifiquen al remitente si hay abuso.)
+Sin este paso, `send-chat-push` sigue respondiendo 500 "VAPID no
+configurado" — best-effort, no rompe el envío de mensajes, solo significa
+que el push con la app cerrada sigue sin salir. En cuanto se guarden los 3
+secrets, funciona sin necesidad de otro deploy.
+
+- [x] Tabla `push_subscriptions` + RLS.
+- [x] `/api/push/subscribe` reescrito y funcional.
+- [x] Par VAPID nuevo generado y sincronizado (cliente + Edge Function).
+- [x] `send-chat-push` redesplegado con la clave pública nueva.
+- [ ] **Secrets VAPID pegados en el dashboard — falta que el usuario lo haga.**
+- [ ] Verificar en vivo: cerrar la app del todo, enviar un mensaje desde otra
+      cuenta, confirmar que llega la notificación del sistema.
 
 ## Bugs encontrados y corregidos en esta pasada (4 agosto 2026)
 

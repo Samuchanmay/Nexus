@@ -22,7 +22,8 @@ import webpush from "npm:web-push@3.6.7";
 // Misma clave pública que src/lib/use-push-notifications.ts — si algún día
 // se regenera el par VAPID, cambiar ambas (la del cliente va en env
 // NEXT_PUBLIC si se prefiere; aquí el fallback mantiene el contrato viejo).
-const VAPID_PUBLIC_KEY_FALLBACK = "BKcd5cuYmT5NnzqvXgPGhNRHRsfFTGg43jjDEqDNV-FaQ3CcfEql0i9htNBPBXPELzEqDQoFnFn_WlTBQ5sFnVU";
+// Par generado el 4 ago 2026 — ver nota en use-push-notifications.ts.
+const VAPID_PUBLIC_KEY_FALLBACK = "BCBYW7jMiV4B0oCdSDyiC2wUuXMlXA4ecKt4jNpjEs8zohScS3glxfmYxr3UkS1SyEBOSmk-OIbonYBcP1RLWIA";
 
 const ALLOWED_ORIGINS = [
   "https://nexus-cert01.vercel.app",

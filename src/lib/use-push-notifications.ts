@@ -1,7 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-const VAPID_PUBLIC_KEY = "BKcd5cuYmT5NnzqvXgPGhNRHRsfFTGg43jjDEqDNV-FaQ3CcfEql0i9htNBPBXPELzEqDQoFnFn_WlTBQ5sFnVU";
+// Par VAPID generado el 4 ago 2026 (el anterior nunca tuvo su privada
+// configurada como secret de la Edge Function — no había forma de saber
+// cuál era, así que se generó un par nuevo). Si se regenera otra vez,
+// cambiar TAMBIÉN el fallback en supabase/functions/send-chat-push/index.ts.
+const VAPID_PUBLIC_KEY = "BCBYW7jMiV4B0oCdSDyiC2wUuXMlXA4ecKt4jNpjEs8zohScS3glxfmYxr3UkS1SyEBOSmk-OIbonYBcP1RLWIA";
 
 /**
  * Registro push (FASE 2): registra el service worker y deja la suscripción
