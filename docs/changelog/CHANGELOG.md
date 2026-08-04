@@ -2,6 +2,22 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Design System — Emet Design Principles v1 (especificación oficial)
+
+- **Nuevo documento**: `docs/design/EMET-DESIGN-PRINCIPLES.md` — especificación obligatoria para todo el proyecto basada en Apple HIG + Linear + Notion + Stripe.
+- **Principios clave**:
+  - Eliminar antes que agregar
+  - Una sola acción principal por pantalla
+  - Una sola fuente de atención (jerarquía clara)
+  - Menos tarjetas, más texto
+  - Padding consistente (escala de 8 puntos)
+  - Tipografía antes que color
+  - Mucho menos texto
+  - Toda pantalla debe responder 3 preguntas en 3 segundos
+- **Reglas visuales**: máximo 3 colores de énfasis, escala tipográfica 12-40px, radios 8-20px, sombras por tokens
+- **Checklist de revisión**: 10 puntos obligatorios antes de mergear cualquier pantalla nueva
+- **Motivo**: Emet debe dejar de sentirse como un conjunto de pantallas y empezar a percibirse como un producto cohesionado de nivel profesional.
+
 ## 2026-08-04 · Chat — revertir paleta oscura a tonos originales más profundos
 
 - **Revertido**: La paleta oscura del workspace del chat vuelve a los tonos originales `#05070B → #08111E → #101827 → #151D2B` (más oscuros, menos azulados) en lugar de `#0A121F → #0C1626 → #151D2B → #1A2434` que se aplicó en `fc0f948`.
