@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { resolvePendingExit, requestRhValidation } from "@/lib/pending-exits";
+import { resolvePendingExit } from "@/lib/pending-exits";
 import { Field, Input, Button } from "@/components/os/ui";
 import { useToast, TimePicker } from "@/components/ui";
 
@@ -30,20 +30,6 @@ export function ResolvePendingExit({ userId, date }: { userId: string; date: str
       router.refresh();
     } else {
       toast(`No se pudo guardar: ${r.error}`);
-    }
-  };
-
-  const solicitarRh = async () => {
-    setBusy(true);
-    const supabase = createClient();
-    const r = await requestRhValidation(supabase, userId, date, motivo);
-    setBusy(false);
-    if (r.ok) {
-      toast("Se avisó a RH para que valide este día");
-      setOpen(false);
-      router.refresh();
-    } else {
-      toast(`No se pudo enviar: ${r.error}`);
     }
   };
 
@@ -74,7 +60,6 @@ export function ResolvePendingExit({ userId, date }: { userId: string; date: str
       </div>
       <div className="flex gap-2">
         <Button variant="primary" size="sm" onClick={guardar} disabled={busy} className="flex-1">Guardar</Button>
-        <Button variant="subtle" size="sm" onClick={solicitarRh} disabled={busy} className="flex-1">Solicitar validación RH</Button>
         <Button variant="subtle" size="sm" onClick={() => setOpen(false)} disabled={busy}>Cancelar</Button>
       </div>
     </div>

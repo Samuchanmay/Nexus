@@ -8,6 +8,12 @@
 - **Archivos**: `src/app/globals.css` — variables `--chat-ws-frame`, `--chat-list-bg`, `--chat-header-bg`, `--chat-bg` revertidas a valores originales.
 - **Motivo**: Los tonos originales (`#05070B` negro profundo, `#08111E` azul muy oscuro) tienen mejor contraste y profundidad visual que los tonos intermedios azulados.
 
+## 2026-08-04 · Asistencia — quitar "Solicitar validación RH" + fix tema chat
+
+- **Popup de salida olvidada**: se eliminó el botón "Solicitar validación RH" de `resolve-pending-exit.tsx` y `jornada-watcher.tsx`. Ahora el empleado solo puede **Guardar** la hora de salida (sin pedir validación a RH). El admin verá el historial de cambios.
+- **Fix tema en chat**: `ThemeProvider` ahora usa inicializador perezoso (lazy init) que lee `data-theme` directamente en `useState` en vez de sincronizar en `useEffect`. Esto elimina el flash de tema claro al entrar al chat cuando el usuario tiene modo oscuro activado.
+- **Archivos**: `src/components/os/resolve-pending-exit.tsx`, `src/components/os/jornada-watcher.tsx`, `src/lib/theme.tsx`.
+
 ## 2026-08-03 · Chat — bloque de plataforma de mensajería moderna (grabando · outbox multi-pestaña · silencio por duración · lectura con hora)
 
 - **Indicador "X está grabando un audio"**: `use-typing` extendido con evento broadcast `recording` (mismo canal efímero que "escribiendo…", auto-stop 3s). `use-audio-recorder` anuncia `on:true/false` al iniciar/soltar/cancelar; punto rojo pulsante + texto en lista (`conversation-row.tsx`) y header de la conversación.

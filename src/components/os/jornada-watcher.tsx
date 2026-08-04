@@ -21,7 +21,7 @@ import { summarizeDay, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida } from "@/lib/tz";
-import { getOldestPendingExit, resolvePendingExit, requestRhValidation, type PendingExit } from "@/lib/pending-exits";
+import { getOldestPendingExit, resolvePendingExit, type PendingExit } from "@/lib/pending-exits";
 import { Field, Input, Button } from "./ui";
 import { TimePicker } from "@/components/ui";
 import { Icon } from "./icons";
@@ -137,14 +137,6 @@ export function JornadaWatcher({ userId }: { userId: string }) {
     setBusy(false);
     if (r.ok) setPending(null);
   };
-  const solicitarRhPendiente = async () => {
-    if (!pending) return;
-    setBusy(true);
-    const supabase = createClient();
-    const r = await requestRhValidation(supabase, userId, pending.date, motivo);
-    setBusy(false);
-    if (r.ok) setPending(null);
-  };
   const dismissPendiente = () => {
     if (pending) sessionStorage.setItem("nexus_pending_dismissed", pending.date);
     setPending(null);
@@ -193,7 +185,6 @@ export function JornadaWatcher({ userId }: { userId: string }) {
             </div>
             <div className="flex flex-col gap-2">
               <Button variant="primary" size="sm" onClick={guardarPendiente} disabled={busy}>Guardar</Button>
-              <Button variant="subtle" size="sm" onClick={solicitarRhPendiente} disabled={busy}>Solicitar validación RH</Button>
               <Button variant="ghost" size="sm" onClick={dismissPendiente} disabled={busy}>Ahora no</Button>
             </div>
           </div>

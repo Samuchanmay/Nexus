@@ -8,16 +8,15 @@ const Ctx = createContext<ThemeCtx>({ theme: "light", toggle: () => {}, set: () 
 
 /**
  * Provider de tema de Emet. El arranque real (evitar parpadeo) vive en
- * layout.tsx, que ya aplica data-theme="dark" antes del render. Aquí solo
- * sincronizamos el estado de React con ese atributo y persistimos el cambio.
+ * layout.tsx, que ya aplica data-theme="dark" antes del render. Aquí
+ * inicializamos el estado leyendo el atributo directamente (lazy init)
+ * para evitar el flash de tema incorrecto en el primer render.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
-
-  useEffect(() => {
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    setTheme(isDark ? "dark" : "light");
-  }, []);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof document === "undefined") return "light";
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  });
 
   const set = useCallback((t: Theme) => {
     const el = document.documentElement;
