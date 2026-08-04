@@ -2,6 +2,20 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Rediseño UI/UX: Dashboard principal estilo Linear/Apple
+
+### Mejoras de jerarquía visual y experiencia
+- **Hero principal rediseñado**: Título "¿Cómo va el día?" a 48px, tiempo trabajado a 64px, barra de progreso gruesa (8px) con gradiente.
+- **Tarjeta de jornada simplificada**: Solo información esencial (estado, tiempo, progreso, datos clave), eliminado ruido visual.
+- **Botón principal mejorado**: 48px de alto, sombra prominente, hover con elevación y transición suave.
+- **Métricas rediseñadas**: Cards más grandes con iconos en contenedores de color, números a 32px.
+- **Sección de equipo mejorada**: Chips de estado más grandes y visibles, lista con avatares de 48px, indicadores de estado animados.
+- **Actividades y solicitudes**: Filas más espaciadas con hover states, barras de progreso con colores, badges semánticos.
+- **Animaciones sutiles**: Ping en indicadores de estado, transiciones de 200ms en hover, escalas en chips.
+- **Tipografía con más contraste**: Diferencias marcadas entre niveles (48px → 32px → 22px → 15px → 13px).
+- **Espaciados aumentados**: 40px entre secciones principales, 24px entre elementos relacionados.
+- **Archivos**: `src/app/os/page.tsx`.
+
 ## 2026-08-04 · Fase 4: Reportes unificados con colores y ausencias
 
 ### Reportes unificados (admin + RH)
