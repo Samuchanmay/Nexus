@@ -126,7 +126,7 @@ export default function EmpleadosClient({
   const [editForm, setEditForm] = useState({
     role: "empleado", area_id: "", area: "", nivel: "licenciatura", balance: "0", daysPerYear: "0",
     fullName: "", displayName: "", title: "", honorific: "", hireDate: "", birthDate: "",
-    phone: "", extension: "",
+    phone: "", extension: "", color: PALETTE[0],
   });
   const [editSaving, setEditSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -269,7 +269,21 @@ export default function EmpleadosClient({
       fullName: u.full_name ?? "", displayName: u.display_name ?? "", title: u.title ?? "",
       honorific: u.honorific ?? "", phone: u.phone ?? "", extension: u.extension ?? "",
       hireDate: u.hire_date ?? "", birthDate: u.birth_date ?? "",
+      // Punto de partida del swatch: el color actual de la persona si es
+      // válido, o el siguiente libre — mismo criterio que el form de alta.
+      color: u.nexus_color ?? nextAvailableColor(usedLockedColors),
     });
+  };
+
+  /** Mismo criterio que resolvedColor() del form de alta (línea ~158): RH y
+      coordinador/departamento heredan el color BLOQUEADO de su grupo — solo
+      empleado/admin lo eligen a mano. Se recalcula con el ROL del formulario
+      de edición (no el rol guardado), porque si el admin cambia el rol en el
+      mismo guardado el color debe seguir la regla del rol nuevo. */
+  const resolvedEditColor = (): string | null => {
+    if (editForm.role === "rh") return rhColor;
+    if (AREA_TIPO[editForm.role]) return areas.find((a) => a.id === editForm.area_id)?.color ?? null;
+    return editForm.color;
   };
 
   const saveEdit = async () => {
@@ -284,6 +298,7 @@ export default function EmpleadosClient({
       area_id: AREA_TIPO[editForm.role] ? (editForm.area_id || null) : null,
       area: AREA_TIPO[editForm.role] ? null : (editForm.area.trim() || null),
       nivel: editForm.role === "coordinador" ? editForm.nivel : null,
+      nexus_color: resolvedEditColor(),
       vacation_balance: parseInt(editForm.balance) || 0,
       vacation_days_per_year: parseInt(editForm.daysPerYear) || 0,
       full_name: editForm.fullName.trim() || editing.full_name,
@@ -1048,6 +1063,31 @@ export default function EmpleadosClient({
                       title="Nivel educativo" searchable={false}
                       options={Object.entries(NIVEL_LABELS).map(([v, label]) => ({ value: v, label }))}
                     />
+                  </Field>
+                )}
+                {/* Color — antes solo se elegía al CREAR (gap encontrado en
+                    auditoría 4 ago 2026: no había forma de recolorear a
+                    alguien ya existente sin tocar la base a mano). RH y
+                    coordinador/departamento heredan el color de su grupo
+                    (bloqueado, se administra en Configuración → Colores);
+                    Empleado/Administrador lo eligen aquí libremente, igual
+                    que en el formulario de alta. Se refleja en TODA la app
+                    (avatares, chat, reportes) porque todos leen el mismo
+                    campo users.nexus_color — no hay overrides por pantalla. */}
+                {!AREA_TIPO[editForm.role] && editForm.role !== "rh" && (
+                  <Field label="Color">
+                    <div className="flex gap-1.5 items-center flex-wrap">
+                      {availableColors.map((c) => (
+                        <button key={c} type="button" onClick={() => setEditForm({ ...editForm, color: c })}
+                          aria-label={`Color ${c}`}
+                          className="w-7 h-7 rounded-full transition-transform"
+                          style={{
+                            background: c,
+                            transform: editForm.color === c ? "scale(1.2)" : "scale(1)",
+                            border: editForm.color === c ? "2.5px solid var(--text-1)" : "2.5px solid transparent",
+                          }} />
+                      ))}
+                    </div>
                   </Field>
                 )}
                 {/* Estado — mismo switch/confirmación que la tarjeta de la lista

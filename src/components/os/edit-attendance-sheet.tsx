@@ -24,10 +24,19 @@ export function EditAttendanceSheet({
   open, onClose, userId, userName, date, firstIn, lastOut, adminId, onSuccess,
 }: EditAttendanceSheetProps) {
   const toast = useToast();
-  const [entrada, setEntrada] = useState(firstIn ?? "08:00");
-  const [salida, setSalida] = useState(lastOut ?? "17:00");
+  const [entrada, setEntradaRaw] = useState(firstIn ?? "08:00");
+  const [salida, setSalidaRaw] = useState(lastOut ?? "17:00");
   const [motivo, setMotivo] = useState("");
   const [saving, setSaving] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  // Confirmación explícita al cruzar AM/PM (auditoría 4 ago 2026, FASE 1):
+  // cambiar solo la hora (8 → 9) no la pide; cambiar el periodo del día
+  // (AM → PM) sí, porque modifica la jornada completa — se resetea en
+  // cuanto la persona vuelve a tocar el picker, para no dejar "colada" una
+  // confirmación vieja si sigue ajustando la hora después.
+  const [confirmAmPm, setConfirmAmPm] = useState(false);
+  const setEntrada = (v: string) => { setEntradaRaw(v); setConfirmAmPm(false); };
+  const setSalida = (v: string) => { setSalidaRaw(v); setConfirmAmPm(false); };
 
   // Validaciones inteligentes
   const entradaMin = timeToMin(entrada);
@@ -36,12 +45,18 @@ export function EditAttendanceSheet({
   const esSalidaAntesEntrada = salidaMin < entradaMin;
   const esJornadaMuyLarga = duracionMin > 16 * 60; // >16 horas
   const esJornadaMuyCorta = duracionMin > 0 && duracionMin < 15; // <15 minutos
+  const entradaCambioPeriodo = !!firstIn && cruzaAmPm(firstIn, entrada);
+  const salidaCambioPeriodo = !!lastOut && cruzaAmPm(lastOut, salida);
+  const cambioDePeriodo = entradaCambioPeriodo || salidaCambioPeriodo;
+  const motivoVacio = motivo.trim().length === 0;
 
-  const canSave = !esSalidaAntesEntrada && !esJornadaMuyLarga && !esJornadaMuyCorta && duracionMin > 0;
+  const canSave = !esSalidaAntesEntrada && !esJornadaMuyLarga && !esJornadaMuyCorta && duracionMin > 0
+    && !motivoVacio && (!cambioDePeriodo || confirmAmPm);
 
   const guardar = async () => {
+    setAttempted(true);
     if (!canSave) {
-      toast("Corrige los errores antes de guardar", "danger");
+      toast(motivoVacio ? "Escribe el motivo de la corrección" : "Corrige los errores antes de guardar", "danger");
       return;
     }
 
@@ -114,7 +129,7 @@ export function EditAttendanceSheet({
           date,
           admin_id: adminId,
           action: cambios.length === 1 ? cambios[0] : "Editó entrada y salida",
-          details: cambios.join(". ") + (motivo ? `. Motivo: ${motivo}` : ""),
+          details: `${cambios.join(". ")}. Motivo: ${motivo.trim()}`,
         });
         if (errHistorial) throw errHistorial;
 
@@ -162,15 +177,50 @@ export function EditAttendanceSheet({
             <TimePicker value={salida} onChange={setSalida} />
           </Field>
 
-          <Field label="Motivo (opcional)">
+          <Field label="Motivo">
             <input
               type="text"
               className="field-input w-full"
               placeholder="Ej: Olvidó registrar, Error de sistema"
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
+              style={attempted && motivoVacio ? { borderColor: "var(--danger)" } : undefined}
             />
+            {attempted && motivoVacio && (
+              <p className="text-[12px] mt-1" style={{ color: "var(--danger)" }}>
+                El motivo es obligatorio — queda en el historial de auditoría.
+              </p>
+            )}
           </Field>
+
+          {cambioDePeriodo && (
+            <div className="rounded-m p-3 flex items-start gap-2" style={{ background: "var(--warn-tint)" }}>
+              <Icon name="alert" size={16} className="shrink-0 mt-0.5" style={{ color: "var(--warn)" }} />
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold" style={{ color: "var(--warn)" }}>
+                  Vas a cambiar el periodo del día (AM/PM)
+                </p>
+                <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
+                  {entradaCambioPeriodo && lastOut && salidaCambioPeriodo
+                    ? "La entrada y la salida cambian de mañana a tarde (o viceversa) — esto modifica toda la jornada."
+                    : entradaCambioPeriodo
+                    ? `La entrada pasa de ${firstIn} a ${entrada} — distinto periodo del día.`
+                    : `La salida pasa de ${lastOut} a ${salida} — distinto periodo del día.`}
+                  {" "}¿Seguro que no era un error de AM/PM?
+                </p>
+                {!confirmAmPm && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmAmPm(true)}
+                    className="text-[12.5px] font-semibold mt-2 underline"
+                    style={{ color: "var(--warn)" }}
+                  >
+                    Sí, es correcto — continuar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Validaciones en tiempo real */}
           {duracionMin > 0 && (
@@ -243,4 +293,15 @@ export function EditAttendanceSheet({
 function timeToMin(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + (m || 0);
+}
+
+/** ¿El nuevo valor cae en el otro periodo del día (AM/PM) respecto al
+    original? 12:00-23:59 = PM, 00:00-11:59 = AM. Cambiar 8:12 → 9:12 no
+    cruza nada (AM→AM); cambiar 8:12 → 20:12 sí (AM→PM) — ese es el caso
+    típico de "seleccioné el AM/PM equivocado" que pide confirmación. */
+function cruzaAmPm(original: string, next: string): boolean {
+  const origHour = Number(original.split(":")[0]);
+  const nextHour = Number(next.split(":")[0]);
+  if (Number.isNaN(origHour) || Number.isNaN(nextHour)) return false;
+  return (origHour >= 12) !== (nextHour >= 12);
 }
