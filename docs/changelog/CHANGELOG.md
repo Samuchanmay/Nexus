@@ -2,6 +2,12 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Chat — revertir paleta oscura a tonos originales más profundos
+
+- **Revertido**: La paleta oscura del workspace del chat vuelve a los tonos originales `#05070B → #08111E → #101827 → #151D2B` (más oscuros, menos azulados) en lugar de `#0A121F → #0C1626 → #151D2B → #1A2434` que se aplicó en `fc0f948`.
+- **Archivos**: `src/app/globals.css` — variables `--chat-ws-frame`, `--chat-list-bg`, `--chat-header-bg`, `--chat-bg` revertidas a valores originales.
+- **Motivo**: Los tonos originales (`#05070B` negro profundo, `#08111E` azul muy oscuro) tienen mejor contraste y profundidad visual que los tonos intermedios azulados.
+
 ## 2026-08-03 · Chat — bloque de plataforma de mensajería moderna (grabando · outbox multi-pestaña · silencio por duración · lectura con hora)
 
 - **Indicador "X está grabando un audio"**: `use-typing` extendido con evento broadcast `recording` (mismo canal efímero que "escribiendo…", auto-stop 3s). `use-audio-recorder` anuncia `on:true/false` al iniciar/soltar/cancelar; punto rojo pulsante + texto en lista (`conversation-row.tsx`) y header de la conversación.

@@ -599,12 +599,12 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
   --chat-bubble-received-bg: var(--chat-bubble-in);
 }
 [data-theme="dark"] .chat-ws {
-  /* Capas del workspace — #0A121F → #0E1828 → #151D2B → #1A2434 */
-  --chat-ws-frame: #0A121F;
-  --chat-list-bg: #0C1626;
-  --chat-header-bg: #0C1626;
+  /* Capas del workspace — #05070B → #08111E → #101827 → #151D2B */
+  --chat-ws-frame: #05070B;
+  --chat-list-bg: #08111E;
+  --chat-header-bg: #08111E;
   --chat-composer-bg: #151D2B;
-  --chat-bg: #0A121F;
+  --chat-bg: #05070B;
   --chat-bubble-in: #171D29;
   --chat-bubble-out: linear-gradient(180deg, #2663FF 0%, #195BFF 100%);
   --chat-pill-bg: #151D2B;
