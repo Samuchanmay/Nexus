@@ -65,12 +65,15 @@ export default async function Jornada() {
   return (
     <>
       <DomainTabs domain="tiempo" role={role} />
-      <header className="pt-8 pb-5">
-        <h1 className="text-[28px] font-bold tracking-tight">Mi jornada</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>Últimos 30 días</p>
+      
+      {/* Header compacto */}
+      <header className="pt-6 pb-5">
+        <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Mi jornada</h1>
+        <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>Últimos 30 días</p>
       </header>
 
-      <div className="mb-7">
+      {/* Hero con métrica protagonista */}
+      <div className="mb-8">
         <LiveJornadaHero
           firstIn={todayEntry?.firstIn ?? null} totalMin={todayTotalMin} targetMin={todayTargetMin}
           openSegmentStartsAt={todayEntry?.openSegmentStartsAt ?? null}
@@ -78,75 +81,134 @@ export default async function Jornada() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5 mb-6">
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{days.length}</p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Días con registro</p>
+      {/* KPIs secundarios reordenados */}
+      <div className="flex items-center gap-8 mb-8 pb-8" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div>
+          <p className="text-[24px] font-bold tabular-nums text-text-1">{fmtMin(totalMin)}</p>
+          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Total laborado</p>
         </div>
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{fmtMin(totalMin)}</p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Total laborado</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums" style={{ color: totalExtra > 0 ? "var(--ok)" : undefined }}>
+        <div>
+          <p className="text-[24px] font-bold tabular-nums" style={{ color: totalExtra > 0 ? "var(--ok)" : "var(--text-1)" }}>
             {totalExtra > 0 ? `+${fmtMin(totalExtra)}` : "—"}
           </p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo extra</p>
+          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Tiempo extra</p>
+        </div>
+        <div>
+          <p className="text-[24px] font-bold tabular-nums text-text-1">{days.length}</p>
+          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Días registrados</p>
         </div>
       </div>
 
+      {/* Estado vacío */}
       {days.length === 0 && (
-        <div className="card p-8 text-center">
-          <p className="font-semibold text-[14px]">Aún sin registros</p>
-          <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>
+        <div className="text-center py-16">
+          <div 
+            className="w-16 h-16 rounded-2xl grid place-items-center mb-4 mx-auto"
+            style={{ background: "var(--surface-2)" }}
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-3)" }}>
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h2 className="text-[18px] font-semibold text-text-1 mb-1">Aún sin registros</h2>
+          <p className="text-[14px] text-text-3 max-w-[360px] mx-auto">
             Tus fichajes de los últimos 30 días aparecerán aquí
           </p>
         </div>
       )}
 
-      <div className="flex flex-col gap-2.5">
-        {days.map((d) => {
-          const dateObj = new Date(d.date + "T00:00:00");
-          const isHoliday = holidaySet.has(d.date);
-          const label = dateObj.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
-          return (
-            <details key={d.date} className="card overflow-hidden group">
-              <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer list-none">
-                <div className="flex items-center gap-3">
-                  <p className="text-[14px] font-bold capitalize w-[92px]">{label}</p>
-                  <p className="text-[13px] tabular-nums" style={{ color: "var(--text-2)" }}>
-                    {fmtTime(d.firstIn)} → {fmtTime(d.lastOut)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  {isHoliday
-                    ? <Pill tone="accent">Inhábil</Pill>
-                    : d.noRegistroSalida ? <Pill tone={exitPillFor(pendingExitsMap.get(d.date)).tone}>{exitPillFor(pendingExitsMap.get(d.date)).label}</Pill>
-                    : d.isOpen ? <Pill tone="ok">Trabajando</Pill>
-                    : <Pill tone={d.metTarget ? "ok" : "warn"}>{fmtMin(d.totalMin)}</Pill>}
-                </div>
-              </summary>
-              <div style={{ borderTop: "0.5px solid var(--border)" }}>
-                {d.movements.map((m) => (
-                  <div key={m.id} className="flex justify-between px-5 py-2.5 text-[13px]"
-                    style={{ borderBottom: "0.5px solid var(--border)" }}>
-                    <span>{m.reason}</span>
-                    <span className="font-semibold tabular-nums">{fmtTime(m.time)}</span>
+      {/* Historial diario mejorado */}
+      <div>
+        <h2 className="text-[18px] font-bold text-text-1 mb-4">Historial</h2>
+        <div className="flex flex-col gap-2">
+          {days.map((d) => {
+            const dateObj = new Date(d.date + "T00:00:00");
+            const isHoliday = holidaySet.has(d.date);
+            const label = dateObj.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
+            
+            // Color según cumplimiento
+            const dayColor = isHoliday ? "var(--accent)" 
+              : d.noRegistroSalida ? "var(--danger)"
+              : d.isOpen ? "var(--ok)"
+              : d.metTarget ? "var(--ok)" 
+              : "var(--warn)";
+            
+            return (
+              <details key={d.date} className="group rounded-2xl overflow-hidden transition-all duration-200" style={{ background: "var(--surface)" }}>
+                <summary className="flex items-center justify-between px-5 py-4 cursor-pointer list-none hover:bg-hover transition-colors">
+                  <div className="flex items-center gap-4">
+                    {/* Indicador de color */}
+                    <div className="w-1 h-10 rounded-full" style={{ background: dayColor }} />
+                    
+                    <div>
+                      <p className="text-[14px] font-semibold capitalize text-text-1">{label}</p>
+                      <p className="text-[13px] tabular-nums mt-0.5" style={{ color: "var(--text-2)" }}>
+                        {d.firstIn ? `${fmtTime(d.firstIn)} → ${fmtTime(d.lastOut)}` : "Sin registros"}
+                      </p>
+                    </div>
                   </div>
-                ))}
-                <div className="flex justify-between px-5 py-2.5 text-[12.5px] font-bold">
-                  <span style={{ color: "var(--text-2)" }}>Total trabajado</span>
-                  <span className="tabular-nums">{fmtMin(d.totalMin)}{d.extraMin > 0 && <span style={{ color: "var(--ok)" }}> · +{fmtMin(d.extraMin)} extra</span>}</span>
-                </div>
-                {d.noRegistroSalida && pendingExitsMap.get(d.date)?.status !== "no_registro" && (
-                  <div className="px-5 py-3" style={{ borderTop: "0.5px solid var(--border)" }}>
-                    <ResolvePendingExit userId={profile!.id} date={d.date} />
+                  
+                  <div className="flex items-center gap-3">
+                    {/* Porcentaje si hay datos */}
+                    {d.firstIn && d.targetMin > 0 && (
+                      <span className="text-[13px] font-semibold tabular-nums" style={{ color: dayColor }}>
+                        {Math.round((d.totalMin / d.targetMin) * 100)}%
+                      </span>
+                    )}
+                    
+                    {/* Badge de estado */}
+                    {isHoliday
+                      ? <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>Inhábil</span>
+                      : d.noRegistroSalida 
+                        ? <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>Pendiente</span>
+                        : d.isOpen 
+                          ? <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>Trabajando</span>
+                          : <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full tabular-nums" style={{ background: d.metTarget ? "var(--ok-tint)" : "var(--warn-tint)", color: dayColor }}>{fmtMin(d.totalMin)}</span>}
                   </div>
-                )}
-              </div>
-            </details>
-          );
-        })}
+                </summary>
+                
+                {/* Detalles expandibles */}
+                <div style={{ borderTop: "1px solid var(--border)" }}>
+                  {/* Movimientos del día */}
+                  <div className="px-5 py-3">
+                    <div className="flex flex-col gap-2">
+                      {d.movements.map((m, i) => (
+                        <div key={m.id} className="flex items-center justify-between py-1.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--text-3)" }} />
+                            <span className="text-[13px] text-text-2">{m.reason}</span>
+                          </div>
+                          <span className="text-[13px] font-semibold tabular-nums text-text-1">{fmtTime(m.time)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Total del día */}
+                  <div className="flex justify-between items-center px-5 py-3" style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}>
+                    <span className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>Total trabajado</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-bold tabular-nums text-text-1">{fmtMin(d.totalMin)}</span>
+                      {d.extraMin > 0 && (
+                        <span className="text-[12px] font-semibold tabular-nums px-2 py-0.5 rounded-full" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
+                          +{fmtMin(d.extraMin)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Resolver pendiente si aplica */}
+                  {d.noRegistroSalida && pendingExitsMap.get(d.date)?.status !== "no_registro" && (
+                    <div className="px-5 py-4" style={{ borderTop: "1px solid var(--border)" }}>
+                      <ResolvePendingExit userId={profile!.id} date={d.date} />
+                    </div>
+                  )}
+                </div>
+              </details>
+            );
+          })}
+        </div>
       </div>
     </>
   );

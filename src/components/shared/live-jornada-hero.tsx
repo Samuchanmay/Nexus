@@ -41,30 +41,132 @@ export function LiveJornadaHero({
   const overMin = liveMin - targetMin;
   const barColor = pct < 100 ? "var(--accent)" : overMin <= 60 ? "var(--ok)" : overMin <= 180 ? "var(--warn)" : "var(--danger)";
   const liveExtraMin = Math.max(0, overMin);
+  
+  // Calcular tiempo restante y salida estimada
+  const remainingMin = Math.max(0, targetMin - liveMin);
+  const estimatedExit = firstIn && remainingMin > 0 
+    ? (() => {
+        const [h, m] = firstIn.split(":").map(Number);
+        const totalMinutes = h * 60 + m + targetMin;
+        const exitH = Math.floor(totalMinutes / 60) % 24;
+        const exitM = totalMinutes % 60;
+        return `${String(exitH).padStart(2, "0")}:${String(exitM).padStart(2, "0")}`;
+      })()
+    : null;
 
   return (
     <>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: "var(--text-2)" }}>
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dotColor }} /> Mi jornada · {statusLabel}
+      {/* Status indicator */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>
+          <span className="relative flex h-2 w-2">
+            {statusLabel === "Trabajando" && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: dotColor }}></span>
+            )}
+            <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: dotColor }}></span>
+          </span>
+          {statusLabel}
         </span>
         {liveExtraMin > 0 && (
-          <span className="text-[12px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>+{fmtMin(liveExtraMin)} extra</span>
+          <span className="text-[12px] font-bold tabular-nums px-2 py-0.5 rounded-full" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
+            +{fmtMin(liveExtraMin)} extra
+          </span>
         )}
       </div>
-      <p className="text-[42px] font-bold tabular-nums leading-none text-text-1 mb-1.5">
+      
+      {/* Métrica protagonista */}
+      <p className="text-[56px] font-bold tabular-nums leading-none text-text-1 mb-2">
         {firstIn ? fmtMin(liveMin) : "—"}
       </p>
-      <p className="text-[12.5px] mb-3" style={{ color: "var(--text-3)" }}>
-        {firstIn
-          ? overMin > 0
-            ? `Objetivo alcanzado hace ${fmtMin(overMin)}${showEntrada ? ` · Entrada ${fmtTime(firstIn)}` : ""}`
-            : `${pct}% de la jornada · Objetivo ${fmtMin(targetMin)}${showEntrada ? ` · Entrada ${fmtTime(firstIn)}` : ""}`
-          : `Objetivo ${fmtMin(targetMin)}`}
-      </p>
-      <div className={`h-1.5 rounded-full bg-surface-3 overflow-hidden ${barClassName}`}>
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }} />
+      
+      {/* Contexto adicional */}
+      <div className="flex items-center gap-4 mb-4 text-[13px]">
+        {firstIn && (
+          <>
+            <span style={{ color: "var(--text-3)" }}>
+              {pct}% del objetivo
+            </span>
+            {showEntrada && (
+              <>
+                <span style={{ color: "var(--border)" }}>·</span>
+                <span style={{ color: "var(--text-3)" }}>
+                  Entrada {fmtTime(firstIn)}
+                </span>
+              </>
+            )}
+          </>
+        )}
+        {!firstIn && (
+          <span style={{ color: "var(--text-3)" }}>
+            Objetivo {fmtMin(targetMin)}
+          </span>
+        )}
       </div>
+      
+      {/* Barra de progreso con referencias */}
+      <div className={`relative ${barClassName}`}>
+        <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
+          <div 
+            className="h-full rounded-full transition-all duration-500" 
+            style={{ width: `${pct}%`, background: barColor }} 
+          />
+        </div>
+        {/* Marcas de referencia */}
+        {firstIn && targetMin > 0 && (
+          <div className="flex justify-between mt-1.5 text-[11px]" style={{ color: "var(--text-3)" }}>
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>Meta</span>
+          </div>
+        )}
+      </div>
+      
+      {/* Información adicional en tarjetas compactas */}
+      {firstIn && (
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          {remainingMin > 0 ? (
+            <>
+              <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
+                  Tiempo restante
+                </p>
+                <p className="text-[18px] font-bold tabular-nums text-text-1">
+                  {fmtMin(remainingMin)}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
+                  Salida estimada
+                </p>
+                <p className="text-[18px] font-bold tabular-nums text-text-1">
+                  {estimatedExit ? fmtTime(estimatedExit) : "—"}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-3 rounded-xl" style={{ background: "var(--ok-tint)" }}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--ok)" }}>
+                  Objetivo alcanzado
+                </p>
+                <p className="text-[18px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>
+                  {overMin > 0 ? `+${fmtMin(overMin)}` : "✓"}
+                </p>
+              </div>
+              <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
+                  Total trabajado
+                </p>
+                <p className="text-[18px] font-bold tabular-nums text-text-1">
+                  {fmtMin(liveMin)}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }
