@@ -13,6 +13,7 @@ import { Dialog } from "./ui";
 
 type ProfileData = {
   email: string;
+  phone: string | null;
   birth_date: string | null;
   hire_date: string | null;
   rfc: string | null;
@@ -149,7 +150,7 @@ export function ProfileModal({
     let active = true;
     createClient()
       .from("users")
-      .select("email, birth_date, hire_date, rfc, curp, avatar_url, title, honorific, area")
+      .select("email, phone, birth_date, hire_date, rfc, curp, avatar_url, title, honorific, area")
       .eq("id", userId)
       .single()
       .then(({ data: row }) => { if (active && row) { setData(row as ProfileData); setLoading(false); } });
@@ -180,6 +181,7 @@ export function ProfileModal({
         birth_date: data.birth_date || null,
         rfc: data.rfc?.trim() || null,
         curp: data.curp?.trim() || null,
+        phone: data.phone?.trim() || null,
       })
       .eq("id", userId);
     setSaving(false);
@@ -273,6 +275,14 @@ export function ProfileModal({
               <div className="rounded-sm border border-border divide-y divide-border">
                 <InfoRow icon="mail" label="Correo" color={color}>
                   <p className="text-[13.5px] text-text-1 truncate">{data.email}</p>
+                </InfoRow>
+                <InfoRow icon="phone" label="Teléfono" color={color}>
+                  <input
+                    type="tel" value={data.phone ?? ""} maxLength={20}
+                    onChange={(e) => set("phone", e.target.value)}
+                    placeholder="10 dígitos"
+                    className="w-full bg-transparent text-[13.5px] text-text-1 focus:outline-none placeholder:text-text-3"
+                  />
                 </InfoRow>
               </div>
 
