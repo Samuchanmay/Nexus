@@ -795,7 +795,7 @@ export default function CalendarioClient({
                   />
                 </Field>
                 <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>
-                  Deja vacío para usar tu calendario principal
+                  Deja vacío para usar el calendario del equipo (el mismo que se ve en Calendario) — llena esto solo si quieres mandarlo a otro calendario específico
                 </p>
               </div>
             )}

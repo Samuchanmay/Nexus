@@ -127,7 +127,23 @@ Deno.serve(async (req) => {
       .eq("event_id", eventId)
       .maybeSingle();
 
-    const calendarId = event.google_calendar_id || "primary";
+    // BUG (auditoría 4 ago 2026): si el evento no trae google_calendar_id
+    // explícito, el fallback histórico era "primary" — el calendario
+    // PERSONAL del admin que sincroniza. El "Calendario de equipo"
+    // (/admin/calendario) solo LEE del calendario guardado en
+    // app_settings.gcal_activity_calendar_id (ver page.tsx) — por eso los
+    // eventos sincronizados sin ID explícito nunca aparecían ahí: se
+    // escribían en un calendario que nadie más leía. Fallback correcto:
+    // el mismo calendario que ya lee el equipo, no "primary".
+    let calendarId = event.google_calendar_id as string | null;
+    if (!calendarId) {
+      const { data: teamCalSetting } = await admin
+        .from("app_settings")
+        .select("value")
+        .eq("key", "gcal_activity_calendar_id")
+        .maybeSingle();
+      calendarId = teamCalSetting?.value || "primary";
+    }
     const targetCalendar = encodeURIComponent(calendarId);
 
     // ACCIÓN: DELETE
