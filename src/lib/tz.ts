@@ -70,11 +70,11 @@ export function shortDate(iso: string): string {
   return `${d} ${MESES_CORTOS[m - 1]} ${String(y).slice(-2)}`;
 }
 
-/** dd/mm/aa — formato numérico compacto para listas y tablas (distinto del "21 ago 26" de shortDate, pensado para prosa). */
+/** dd/mm/aaaa — formato numérico completo para listas y tablas (estándar mexicano). */
 export function dmy(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split("-");
   if (!y || !m || !d) return iso;
-  return `${d}/${m}/${y.slice(-2)}`;
+  return `${d}/${m}/${y}`;
 }
 
 /** Próximo aniversario (mes/día de hireDate) a partir de hoy — usado para

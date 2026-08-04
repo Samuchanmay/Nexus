@@ -2,6 +2,13 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Asistencia — edición de días pasados + formato dd/mm/aaaa
+
+- **Selector de fecha**: ahora puedes ver y editar cualquier día pasado, no solo el día actual. Input de fecha en el header de `/admin/asistencia`.
+- **Edición sin restricciones**: el botón "Corregir" aparece siempre (no solo cuando falta entrada o salida). Si ya existe registro, hace UPDATE; si no, hace INSERT.
+- **Formato de fechas**: cambiado de dd/mm/yy a dd/mm/aaaa (estándar mexicano completo) en la función `dmy()` de `src/lib/tz.ts`.
+- **Archivos**: `src/app/admin/asistencia/page.tsx`, `src/app/admin/asistencia/client.tsx`, `src/lib/tz.ts`.
+
 ## 2026-08-04 · Asistencia — edición de horarios por admin (solo cuando falta entrada o salida)
 
 - **Nueva funcionalidad**: el admin puede corregir entrada/salida cuando el empleado olvidó marcar.

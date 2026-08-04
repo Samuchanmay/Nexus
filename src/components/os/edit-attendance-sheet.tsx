@@ -49,9 +49,25 @@ export function EditAttendanceSheet({
     const supabase = createClient();
 
     try {
-      // 1. Insertar nueva entrada (si no existía)
-      if (!firstIn) {
-        const { error: errEntrada } = await supabase.from("attendance").insert({
+      const cambios: string[] = [];
+
+      // 1. Actualizar o insertar entrada
+      if (firstIn) {
+        // Ya existe entrada — actualizar si cambió
+        if (entrada !== firstIn) {
+          const { error } = await supabase
+            .from("attendance")
+            .update({ time: `${entrada}:00` })
+            .eq("user_id", userId)
+            .eq("date", date)
+            .eq("type", "Entrada")
+            .eq("reason", "Entrada a trabajo");
+          if (error) throw error;
+          cambios.push(`Entrada: ${firstIn} → ${entrada}`);
+        }
+      } else {
+        // No existe entrada — insertar
+        const { error } = await supabase.from("attendance").insert({
           user_id: userId,
           date,
           type: "Entrada",
@@ -59,12 +75,27 @@ export function EditAttendanceSheet({
           time: `${entrada}:00`,
           distance_m: null,
         });
-        if (errEntrada) throw errEntrada;
+        if (error) throw error;
+        cambios.push(`Agregó entrada: ${entrada}`);
       }
 
-      // 2. Insertar nueva salida (si no existía)
-      if (!lastOut) {
-        const { error: errSalida } = await supabase.from("attendance").insert({
+      // 2. Actualizar o insertar salida
+      if (lastOut) {
+        // Ya existe salida — actualizar si cambió
+        if (salida !== lastOut) {
+          const { error } = await supabase
+            .from("attendance")
+            .update({ time: `${salida}:00` })
+            .eq("user_id", userId)
+            .eq("date", date)
+            .eq("type", "Salida")
+            .eq("reason", "Fin de jornada");
+          if (error) throw error;
+          cambios.push(`Salida: ${lastOut} → ${salida}`);
+        }
+      } else {
+        // No existe salida — insertar
+        const { error } = await supabase.from("attendance").insert({
           user_id: userId,
           date,
           type: "Salida",
@@ -72,28 +103,26 @@ export function EditAttendanceSheet({
           time: `${salida}:00`,
           distance_m: null,
         });
-        if (errSalida) throw errSalida;
+        if (error) throw error;
+        cambios.push(`Agregó salida: ${salida}`);
       }
 
-      // 3. Registrar en historial de correcciones
-      const { error: errHistorial } = await supabase.from("attendance_corrections").insert({
-        user_id: userId,
-        date,
-        admin_id: adminId,
-        action: !firstIn && !lastOut ? "Agregó entrada y salida" : !firstIn ? "Agregó entrada" : "Agregó salida",
-        details: `Entrada: ${entrada}, Salida: ${salida}. Motivo: ${motivo || "Sin motivo"}`,
-      });
-      if (errHistorial) throw errHistorial;
+      // 3. Registrar en historial de correcciones (si hubo cambios)
+      if (cambios.length > 0) {
+        const { error: errHistorial } = await supabase.from("attendance_corrections").insert({
+          user_id: userId,
+          date,
+          admin_id: adminId,
+          action: cambios.length === 1 ? cambios[0] : "Editó entrada y salida",
+          details: cambios.join(". ") + (motivo ? `. Motivo: ${motivo}` : ""),
+        });
+        if (errHistorial) throw errHistorial;
 
-      // 4. Log de admin
-      logAdminAction(
-        supabase,
-        adminId,
-        "Corrigió asistencia",
-        `${userName} · ${date} · ${!firstIn && !lastOut ? "Entrada y salida" : !firstIn ? "Entrada" : "Salida"}`
-      );
+        // 4. Log de admin
+        logAdminAction(supabase, adminId, "Corrigió asistencia", `${userName} · ${date} · ${cambios.join(", ")}`);
+      }
 
-      toast("Asistencia corregida");
+      toast(cambios.length > 0 ? "Asistencia corregida" : "Sin cambios");
       onSuccess();
       onClose();
     } catch (err) {
@@ -125,17 +154,13 @@ export function EditAttendanceSheet({
         </div>
 
         <div className="space-y-4">
-          {!firstIn && (
-            <Field label="Hora de entrada">
-              <TimePicker value={entrada} onChange={setEntrada} />
-            </Field>
-          )}
+          <Field label="Hora de entrada">
+            <TimePicker value={entrada} onChange={setEntrada} />
+          </Field>
 
-          {!lastOut && (
-            <Field label="Hora de salida">
-              <TimePicker value={salida} onChange={setSalida} />
-            </Field>
-          )}
+          <Field label="Hora de salida">
+            <TimePicker value={salida} onChange={setSalida} />
+          </Field>
 
           <Field label="Motivo (opcional)">
             <input

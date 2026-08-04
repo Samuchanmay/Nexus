@@ -5,6 +5,7 @@
 //  Todo con tokens v6; datos 100 % Supabase (server page los junta).
 // ═══════════════════════════════════════════════════════════════
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
 import { IconDownload, IconClock, IconX } from "@/components/icons";
 import { usePersistedView } from "@/lib/persisted-view";
@@ -156,11 +157,12 @@ function estadoStatus(
   return estadoOf(day, vacation, incident, isHoliday, restDay);
 }
 
-export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, adminId, pendingValidations, isHoliday = false }: {
+export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, selectedDate, adminId, pendingValidations, isHoliday = false }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[]; weekBlocks: WeekBlock[];
-  reportSettings: { enabled: boolean; email: string }; today: string; adminId: string;
+  reportSettings: { enabled: boolean; email: string }; today: string; selectedDate: string; adminId: string;
   pendingValidations: PendingValidation[]; isHoliday?: boolean;
 }) {
+  const router = useRouter();
   const toast = useToast();
   // FASE R — cola de "salida olvidada" escalada por la propia persona
   // (antes era un flujo de RH sin ninguna pantalla real: los registros se
@@ -172,8 +174,13 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
   const [resolveTime, setResolveTime] = useState("");
   const [savingResolve, setSavingResolve] = useState(false);
 
-  // Estado para edición de asistencia (solo cuando falta entrada o salida)
+  // Estado para edición de asistencia (siempre disponible para el admin)
   const [editingPerson, setEditingPerson] = useState<PersonDay | null>(null);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    router.push(`/admin/asistencia?date=${newDate}`);
+  };
 
   const confirmExit = async (p: PendingValidation) => {
     if (!resolveTime) { toast("Elige la hora antes de confirmar", "danger"); return; }
@@ -270,14 +277,22 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
         <div className="flex items-center gap-2.5 flex-wrap">
           <SlidingSegments
             options={["Tabla", "Gantt", "Semana"]}
-            value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "Semana"}
+            value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "semana"}
             onChange={(v) => setView(v === "Tabla" ? "tabla" : v === "Gantt" ? "gantt" : "semana")}
+          />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={handleDateChange}
+            max={today}
+            className="field-input px-3 py-2 text-[13px]"
+            style={{ width: "auto" }}
           />
           <div className="w-full sm:w-[300px] flex justify-end">
             {view === "tabla" && (
-              <a href={dayCsvHref} download={`asistencia-${today}.csv`}
+              <a href={dayCsvHref} download={`asistencia-${selectedDate}.csv`}
                 className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap flex items-center gap-1.5"
-                onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${today}.csv`); }}>
+                onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${selectedDate}.csv`); }}>
                 <IconDownload className="w-3.5 h-3.5" /> CSV del día
               </a>
             )}
@@ -385,8 +400,8 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 </div>
                 {estadoPill(day, states, u.vacation, u.incident, isHoliday, u.restDay)}
               </div>
-              {/* Botón de edición — solo cuando falta entrada o salida */}
-              {!u.vacation?.today && (!day.firstIn || !day.lastOut) && (
+              {/* Botón de edición — siempre disponible para el admin */}
+              {!u.vacation?.today && (
                 <button
                   onClick={() => setEditingPerson({ user: u, schedule: day.targetMin ? { start_time: "", end_time: "", target_min: day.targetMin } : { start_time: "", end_time: "", target_min: 480 }, day })}
                   className="text-[12px] font-semibold px-2.5 py-1.5 rounded-full transition-colors"
@@ -675,7 +690,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           onClose={() => setEditingPerson(null)}
           userId={editingPerson.user.id}
           userName={editingPerson.user.display_name}
-          date={today}
+          date={selectedDate}
           firstIn={editingPerson.day.firstIn}
           lastOut={editingPerson.day.lastOut}
           adminId={adminId}

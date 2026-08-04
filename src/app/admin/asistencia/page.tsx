@@ -75,15 +75,17 @@ function mondayOf(dateIso: string): string {
 }
 
 /** Asistencia — server junta los datos; la vista (tabla ⇄ Gantt ⇄ semana) vive en client.tsx */
-export default async function AsistenciaEquipo() {
+export default async function AsistenciaEquipo({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const params = await searchParams;
   const today = todayMerida();
+  const selectedDate = params.date ?? today; // Fecha seleccionada (por defecto hoy)
   const since = addDays(today, -56); // 8 semanas
 
   const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }, { data: incs }, { data: holidayRows }, { data: restDayRows }, { data: vacsHist }, { data: incsHist }, { data: holidaysHist }, { data: restDaysHist }] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area, title, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
-    supabase.from("attendance").select("*").eq("date", today).order("time"),
+    supabase.from("attendance").select("*").eq("date", selectedDate).order("time"),
     supabase.from("schedules").select("*"),
     supabase.from("jornada_states").select("*").eq("activo", true),
     supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
@@ -92,7 +94,7 @@ export default async function AsistenciaEquipo() {
     // fuente que "Vacaciones" en Hoy admin, para que el punto de estado y
     // la tarjeta de Asistencia coincidan con la realidad (Plano Maestro §10).
     supabase.from("vacations").select("user_id, start_date, end_date")
-      .eq("status", "Aprobada").is("archived_at", null).gte("end_date", today),
+      .eq("status", "Aprobada").is("archived_at", null).gte("end_date", selectedDate),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
     // Salidas olvidadas que la propia persona ya no puede confirmar y pidió
     // validación manual — antes era un flujo exclusivo de RH sin pantalla
@@ -104,13 +106,13 @@ export default async function AsistenciaEquipo() {
       .select("id, user_id, date, resolved_reason, users:user_id(display_name, avatar_url, nexus_color)")
       .eq("status", "pendiente").eq("requested_rh_validation", true)
       .order("date", { ascending: true }),
-    // Incidencias/feriados/descansos vigentes HOY — mismo patrón que Task 3
+    // Incidencias/feriados/descansos vigentes en la fecha seleccionada — mismo patrón que Task 3
     // (admin/empleados), para que el Attendance Status Resolver tenga la
     // misma información en Asistencia que en Directorio (spec 2026-07-31).
     supabase.from("incidents").select("user_id, kind, note, start_date, end_date").eq("status", "Autorizado")
-      .is("archived_at", null).lte("start_date", today).gte("end_date", today),
-    supabase.from("holidays").select("date").eq("date", today),
-    supabase.from("rest_days").select("user_id, note, start_date, end_date").lte("start_date", today).gte("end_date", today),
+      .is("archived_at", null).lte("start_date", selectedDate).gte("end_date", selectedDate),
+    supabase.from("holidays").select("date").eq("date", selectedDate),
+    supabase.from("rest_days").select("user_id, note, start_date, end_date").lte("start_date", selectedDate).gte("end_date", selectedDate),
     // Mismas 4 fuentes pero abiertas a las 8 semanas de `since` — el punto
     // de estado de arriba solo necesita HOY, pero el reporte semanal/Excel
     // (Task 5) necesita el motivo de cada día pasado sin entrada, no solo
@@ -182,13 +184,13 @@ export default async function AsistenciaEquipo() {
 
   const rows = (att ?? []) as AttendanceRow[];
   const people: PersonDay[] = (team ?? []).map((u) => {
-    const sched = scheduleFor((scheds ?? []) as Schedule[], u.id, today);
+    const sched = scheduleFor((scheds ?? []) as Schedule[], u.id, selectedDate);
     const schedule = {
       start_time: sched?.start_time ?? "09:00:00",
       end_time: sched?.end_time ?? "18:00:00",
       target_min: sched?.target_min ?? 480,
     };
-    const day = summarizeDay(today, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" }, states);
+    const day = summarizeDay(selectedDate, rows.filter((r) => r.user_id === u.id), sched ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" }, states);
     return {
       user: {
         id: u.id, display_name: u.display_name, area: u.area, title: u.title,
@@ -259,7 +261,7 @@ export default async function AsistenciaEquipo() {
   return (
     <AsistenciaClient
       people={people} states={states} weekRows={weekRows} weekBlocks={weekBlocks}
-      reportSettings={reportSettings} today={today} adminId={meRes?.data?.id ?? ""}
+      reportSettings={reportSettings} today={today} selectedDate={selectedDate} adminId={meRes?.data?.id ?? ""}
       pendingValidations={pendingValidations} isHoliday={isHoliday}
     />
   );
