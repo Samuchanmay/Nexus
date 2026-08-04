@@ -2,6 +2,32 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Rediseño UI/UX: Módulo de Personas y Biblioteca - Estilo Linear/Notion
+
+### Personas (Directorio)
+- **Header compacto**: Título 32px con contadores de estado (activos, incompletos) con iconos de color.
+- **Buscador Spotlight**: 44px alto, icono de lupa, placeholder descriptivo, focus ring sutil.
+- **Filtros mejorados**: Pills con contadores, activo con fondo sólido y sombra.
+- **Tarjetas rediseñadas**: Padding 20px, border-radius 16px, avatares 48px.
+- **Jerarquía visual**: Nombre 16px bold domina, metadata 13px secundaria.
+- **Badge "Incompleto"**: Más discreto con fondo warning-tint.
+- **Grupos**: 32px de espaciado entre grupos, headers con contador en badge.
+- **Animaciones**: Hover con elevación 2px y sombra suave.
+
+### Biblioteca
+- **Header compacto**: Título 32px con subtítulo descriptivo.
+- **Buscador Spotlight**: Mismo patrón que Personas.
+- **Filtros discretos**: Pills con contadores, transiciones suaves.
+- **Estado vacío**: Icono 64px, mensaje humano, descripción max-width 360px.
+- **Lista tipo Notion**: Filas compactas con columnas (Actividad, Tipo, Responsable, Fecha).
+- **Hover states**: Cambio de fondo sutil, título cambia a color de acento.
+- **Badges semánticos**: Verde para "Completado".
+
+### Design System Actualizado
+- **Patrón 10.6.2**: Directorio de Personas con Buscador Spotlight.
+- **Patrón 10.6.3**: Biblioteca con Lista Tipo Notion.
+- **Archivos**: `src/app/admin/empleados/client.tsx`, `src/app/admin/biblioteca/client.tsx`, `docs/design/EMET-DESIGN-PRINCIPLES.md`.
+
 ## 2026-08-04 · Rediseño UI/UX: Módulo de Configuración - Progressive Disclosure
 
 ### Mejoras de jerarquía visual y experiencia
