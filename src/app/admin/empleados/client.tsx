@@ -400,59 +400,53 @@ export default function EmpleadosClient({
     return (
       <div
         onClick={() => openEdit(u)}
-        className="group relative w-full text-left flex items-center gap-3 sm:gap-3.5 px-3.5 py-3 sm:px-4 rounded-m border border-border cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[3px]"
+        className="group relative w-full text-left flex items-center gap-4 px-5 py-4 rounded-2xl border border-border cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-[2px]"
         style={{
-          background: "var(--surface)", opacity: u.active ? 1 : 0.55,
+          background: "var(--surface)", 
+          opacity: u.active ? 1 : 0.55,
           transition: "transform .22s var(--spring), box-shadow .22s var(--ease), border-color .22s var(--ease)",
         }}
       >
-        {/* Avatar 44px + punto de estado (activo/vacaciones/baja/…) + badge
-            separado de "perfil incompleto" (esquina opuesta, nunca compiten). */}
-        {/* Avatar único — sin badge de alerta superpuesto (con 14/20 perfiles
-            incompletos, un ícono de alarma repetido en cada fila era ruido,
-            no señal; el conteo ya vive en el encabezado del módulo). El
-            estado "incompleto" ahora es un badge de texto discreto junto al
-            cargo/departamento, ver abajo. */}
+        {/* Avatar 48px + punto de estado */}
         <span className="relative shrink-0">
           <Avatar
             name={u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
-            color={u.nexus_color} avatarUrl={u.avatar_url} size={44}
+            color={u.nexus_color} avatarUrl={u.avatar_url} size={48}
             birthday={isBirthdayToday(u.birth_date, todayISO())}
             status={status.color} statusLabel={status.label}
           />
         </span>
 
+        {/* Información - Nombre domina visualmente */}
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold truncate">
+          <p className="text-[16px] font-bold truncate text-text-1">
             {u.honorific ? `${u.honorific} ${u.full_name}` : u.full_name}
           </p>
           {(u.title || dept || !u.onboarded) && (
-            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+            <div className="flex items-center gap-2 flex-wrap mt-1.5">
               {u.title && (
                 <span
-                  className="px-1.5 py-[1px] rounded-full text-[12px] font-semibold shrink-0 truncate max-w-[170px]"
-                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+                  className="text-[13px] font-medium truncate max-w-[200px]"
+                  style={{ color: "var(--text-2)" }}
                   title={u.title}
                 >{u.title}</span>
               )}
+              {u.title && dept && (
+                <span className="text-[13px]" style={{ color: "var(--text-3)" }}>·</span>
+              )}
               {dept && (
                 <span
-                  className="px-1.5 py-[1px] rounded-full text-[12px] font-semibold shrink-0 truncate max-w-[140px]"
-                  style={{ background: "var(--surface-2)", color: "var(--text-3)" }}
+                  className="text-[13px] font-medium truncate max-w-[160px]"
+                  style={{ color: "var(--text-3)" }}
                   title={dept}
                 >{dept}</span>
               )}
-              {/* Antes era un pill relleno de --warn (misma saturación que una
-                  alerta real) — con 14/20 perfiles así, competía visualmente
-                  con Cargo/Área. Ahora es un punto + texto discreto, mismo
-                  peso que una nota, no una advertencia. */}
               {!u.onboarded && (
                 <span
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold shrink-0"
-                  style={{ color: "var(--text-3)" }}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
                   title="Aún no ha iniciado sesión — perfil incompleto"
                 >
-                  <span className="w-1 h-1 rounded-full shrink-0" style={{ background: "var(--warn)" }} />
                   Incompleto
                 </span>
               )}
@@ -460,22 +454,15 @@ export default function EmpleadosClient({
           )}
         </div>
 
-        {/* Acciones — mismo botón "⋮" siempre visible en móvil y escritorio
-            (antes: escondido con hidden sm:flex + opacity en hover, así que
-            en escritorio dependía de pasar el mouse y en móvil no existía
-            ningún acceso rápido a estas acciones desde la fila). Un solo
-            punto de entrada evita la inconsistencia entre pantallas que
-            señalaba la auditoría — "Ver perfil" y "Copiar correo" viven
-            ahora dentro del mismo menú junto con Vacaciones y
-            Activar/Desactivar, en vez de ser botones aparte. */}
+        {/* Acciones - Menú ⋯ */}
         <div className="flex items-center shrink-0">
           <Menu
             align="right"
             trigger={({ onClick }) => (
               <button onClick={onClick} title="Más acciones" aria-label="Más acciones"
-                className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3"
+                className="h-8 w-8 rounded-lg grid place-items-center hover:bg-surface-3 transition-colors"
                 style={{ color: "var(--text-3)" }}>
-                <span className="text-[15px] leading-none font-bold">⋯</span>
+                <span className="text-[16px] leading-none font-bold">⋯</span>
               </button>
             )}>
             <MenuItem icon={<IconPen className="w-4 h-4" />} onClick={() => openEdit(u)}>
@@ -496,6 +483,7 @@ export default function EmpleadosClient({
           </Menu>
         </div>
 
+        {/* Switch de activo */}
         <span onClick={(e) => e.stopPropagation()} className="shrink-0">
           <Switch size="sm" tone="neutral" checked={u.active} onChange={() => requestToggle(u)} />
         </span>
@@ -521,25 +509,26 @@ export default function EmpleadosClient({
     const toShow = filtered.slice(0, shown);
     const hasMore = filtered.length > shown;
     return (
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-3">
+        {/* Header del grupo */}
         <button onClick={() => toggleGroup(g.label)}
-          className="flex items-center gap-2 text-left w-full px-1 py-1.5 rounded-sm transition-colors hover:bg-hover">
+          className="flex items-center gap-2.5 text-left w-full px-2 py-2 rounded-xl transition-colors hover:bg-hover">
           <span className="transition-transform duration-200 shrink-0" style={{ color: "var(--text-3)", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>
-            <IconChevronLeft className="w-3 h-3 -rotate-90" />
+            <IconChevronLeft className="w-3.5 h-3.5 -rotate-90" />
           </span>
-          <p className="text-[12.5px] font-bold leading-tight">
-            {g.label} <span style={{ color: "var(--text-3)", fontWeight: 600 }}>· {filtered.length}</span>
+          <p className="text-[14px] font-bold leading-tight text-text-1">
+            {g.label}
           </p>
+          <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
+            {filtered.length}
+          </span>
         </button>
-        {/* Grid-rows 0fr/1fr: acordeón CSS-only, sin medir alturas — fade + slide suaves (punto 14).
-            El overflow-hidden que oculta el contenido colapsado recortaba también
-            el lift+sombra del hover de las tarjetas más cercanas al borde — el
-            padding+margen negativo de abajo le da 6px de aire para respirar sin
-            mover nada del layout visible. */}
+        
+        {/* Grid de tarjetas con animación */}
         <div className="grid transition-[grid-template-rows] duration-300 ease-out"
           style={{ gridTemplateRows: isCollapsed ? "0fr" : "1fr" }}>
           <div className="overflow-hidden -m-1.5">
-            <div className="p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 transition-opacity duration-200 items-start"
+            <div className="p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-3 transition-opacity duration-200 items-start"
               style={{ opacity: isCollapsed ? 0 : 1 }}>
               {filtered.length === 0 ? (
                 <p className="text-[13px] py-3 sm:col-span-2" style={{ color: "var(--text-3)" }}>Sin registros</p>
@@ -547,7 +536,7 @@ export default function EmpleadosClient({
               {hasMore && (
                 <button
                   onClick={() => setVisibleCounts((v) => ({ ...v, [g.label]: shown + PAGE_SIZE }))}
-                  className="btn-tertiary h-8 px-3 text-[12.5px] w-fit sm:col-span-2"
+                  className="btn-tertiary h-9 px-4 text-[13px] w-fit sm:col-span-2"
                 >
                   Mostrar más ({filtered.length - shown} restantes)
                 </button>
@@ -562,40 +551,80 @@ export default function EmpleadosClient({
   return (
     <>
       <DomainTabs domain="personas" role="admin" />
-      <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Directorio</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          {users.length} colaborador{users.length === 1 ? "" : "es"}
-          {" "}&bull;{" "}
-          {users.filter((u) => u.active).length} activo{users.filter((u) => u.active).length === 1 ? "" : "s"}
+      
+      {/* Header compacto */}
+      <header className="pt-6 pb-5">
+        <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Directorio</h1>
+        <div className="flex items-center gap-4 mt-3">
+          <span className="flex items-center gap-1.5 text-[14px] font-medium" style={{ color: "var(--text-2)" }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: "var(--ok)" }} />
+            {users.filter((u) => u.active).length} activos
+          </span>
+          <span className="text-[14px]" style={{ color: "var(--text-3)" }}>
+            {users.length} colaboradores
+          </span>
           {users.some((u) => !u.onboarded) && (
-            <> {" "}&bull;{" "} {users.filter((u) => !u.onboarded).length} perfil{users.filter((u) => !u.onboarded).length === 1 ? "" : "es"} incompleto{users.filter((u) => !u.onboarded).length === 1 ? "" : "s"}</>
+            <span className="flex items-center gap-1.5 text-[14px]" style={{ color: "var(--warn)" }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: "var(--warn)" }} />
+              {users.filter((u) => !u.onboarded).length} perfiles incompletos
+            </span>
           )}
-        </p>
+        </div>
       </header>
 
-      {/* Mobile: buscador en su propia fila (ancho completo) y chips en tira
-          horizontal con scroll nativo — estilo iOS (App Store, Mensajes),
-          en vez de envolver en varias líneas y empujar la lista hacia abajo.
-          Desktop (sm:+): vuelve al layout en línea de siempre. */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-2 mb-4">
-        <input className="field-input text-[12.5px] w-full sm:w-[220px] shrink-0" placeholder="Buscar por nombre, correo, cargo o área…"
-          value={search} onChange={(e) => setSearch(e.target.value)} />
-        <div className="flex items-center gap-1.5 overflow-x-auto sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
-          style={{ scrollbarWidth: "none" }}>
+      {/* Buscador prominente + Filtros */}
+      <div className="flex flex-col gap-3 mb-6">
+        {/* Buscador estilo Spotlight */}
+        <div className="relative">
+          <svg 
+            className="absolute left-4 top-1/2 -translate-y-1/2" 
+            width="18" height="18" viewBox="0 0 24 24" fill="none" 
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ color: "var(--text-3)" }}
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            className="w-full h-11 pl-11 pr-4 rounded-xl text-[14px] transition-all duration-200 focus:ring-2 focus:ring-accent/20"
+            style={{ 
+              background: "var(--surface-2)", 
+              border: "1.5px solid var(--border)",
+              color: "var(--text-1)"
+            }}
+            placeholder="Buscar personas, cargos o departamentos..."
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+          />
+        </div>
+        
+        {/* Filtros con mejor jerarquía */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
           {ROLE_CHIPS.map((c) => (
-            <button key={c.key} onClick={() => setRoleFilter(c.key)}
-              className="px-3.5 py-2 sm:py-1.5 rounded-full text-[12.5px] sm:text-[12px] font-semibold transition-colors shrink-0 whitespace-nowrap"
+            <button 
+              key={c.key} 
+              onClick={() => setRoleFilter(c.key)}
+              className="px-4 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 shrink-0 whitespace-nowrap"
               style={roleFilter === c.key
-                ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
-                : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
-              {c.label} ({c.count})
+                ? { 
+                    background: "var(--accent)", 
+                    color: "#fff",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.12)"
+                  }
+                : { 
+                    background: "var(--surface-2)", 
+                    color: "var(--text-2)",
+                    border: "1px solid var(--border)"
+                  }}
+            >
+              {c.label}
+              <span className="ml-1.5 text-[11px] opacity-70">{c.count}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         {groups.map((g) => <Group key={g.label} g={g} />)}
       </div>
 

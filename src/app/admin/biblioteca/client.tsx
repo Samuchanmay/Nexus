@@ -50,95 +50,155 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
 
   return (
     <>
-      <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Biblioteca</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          Memoria institucional: {items.length} actividad{items.length === 1 ? "" : "es"} terminada{items.length === 1 ? "" : "s"}.
+      {/* Header compacto */}
+      <header className="pt-6 pb-5">
+        <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Biblioteca</h1>
+        <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
+          Todo el conocimiento generado por el equipo
         </p>
       </header>
 
-      <div className="mb-3.5">
+      {/* Buscador prominente estilo Spotlight */}
+      <div className="relative mb-5">
+        <svg 
+          className="absolute left-4 top-1/2 -translate-y-1/2" 
+          width="18" height="18" viewBox="0 0 24 24" fill="none" 
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ color: "var(--text-3)" }}
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por título, tipo, coordinación o colaborador…"
-          className="w-full h-11 rounded-sm px-3.5 text-[14px]"
-          style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }}
+          placeholder="Buscar actividades, documentos o personas..."
+          className="w-full h-11 pl-11 pr-4 rounded-xl text-[14px] transition-all duration-200 focus:ring-2 focus:ring-accent/20"
+          style={{ 
+            background: "var(--surface-2)", 
+            border: "1.5px solid var(--border)",
+            color: "var(--text-1)"
+          }}
         />
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-5">
+      {/* Filtros discretos */}
+      <div className="flex flex-wrap gap-2 mb-6">
         <button onClick={() => setTypeFilter("")}
-          className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-colors"
+          className="text-[13px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
           style={{
             background: typeFilter === "" ? "var(--accent)" : "var(--surface-2)",
             color: typeFilter === "" ? "#fff" : "var(--text-2)",
+            boxShadow: typeFilter === "" ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
           }}>
-          Todos · {items.length}
+          Todos
+          <span className="ml-1.5 text-[11px] opacity-70">{items.length}</span>
         </button>
         {types.filter((t) => counts.has(t.key)).map((t) => (
           <button key={t.key} onClick={() => setTypeFilter(t.key)}
-            className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-colors"
+            className="text-[13px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
             style={{
               background: typeFilter === t.key ? "var(--accent)" : "var(--surface-2)",
               color: typeFilter === t.key ? "#fff" : "var(--text-2)",
+              boxShadow: typeFilter === t.key ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
             }}>
-            {t.label} · {counts.get(t.key)}
+            {t.label}
+            <span className="ml-1.5 text-[11px] opacity-70">{counts.get(t.key)}</span>
           </button>
         ))}
       </div>
 
+      {/* Estado vacío compacto */}
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Icon name="book" size={22} />}
-          title={items.length === 0 ? "Aún no hay actividades terminadas" : "Sin resultados para este filtro"}
-          hint={items.length === 0 ? "Cuando una actividad se marque como completada, aparecerá aquí." : "Prueba con otro tipo o quita el filtro."}
-        />
+        <div className="text-center py-16">
+          <div 
+            className="w-16 h-16 rounded-2xl grid place-items-center mb-4 mx-auto"
+            style={{ background: "var(--surface-2)" }}
+          >
+            <Icon name="book" size={32} className="text-text-3" />
+          </div>
+          <h2 className="text-[18px] font-semibold text-text-1 mb-1">
+            {items.length === 0 ? "Aún no hay actividades archivadas" : "Sin resultados"}
+          </h2>
+          <p className="text-[14px] text-text-3 max-w-[360px] mx-auto">
+            {items.length === 0 
+              ? "Cuando una actividad se marque como completada, la encontrarás aquí para futuras consultas."
+              : "Prueba con otro tipo o quita el filtro."}
+          </p>
+        </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {filtered.map((it) => {
-            const r = it.requests;
-            return (
-              <div key={it.id} className="card p-4">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <p className="text-[14.5px] font-bold truncate">{r?.title ?? "Sin título"}</p>
-                    <p className="text-[12.5px] mt-0.5" style={{ color: "var(--text-3)" }}>
-                      {r?.requester_area ?? "—"} · {r?.event_date ? dmy(r.event_date) : "sin fecha de evento"}
-                    </p>
-                  </div>
-                  <Pill tone="ok">{typeLabel[r?.type ?? ""] ?? r?.type ?? "—"}</Pill>
-                </div>
+        /* Lista tipo Notion - filas compactas */
+        <div>
+          {/* Header de tabla */}
+          <div className="hidden md:grid grid-cols-[1fr_120px_140px_100px] gap-4 px-4 py-2 text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+            <span>Actividad</span>
+            <span>Tipo</span>
+            <span>Responsable</span>
+            <span>Fecha</span>
+          </div>
 
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                  {it.project_assignments.map((a, i) => a.users && (
-                    <span key={i} className="flex items-center gap-1.5">
-                      <Avatar name={a.users.display_name} color={a.users.nexus_color} avatarUrl={a.users.avatar_url} size={22} birthday={isBirthdayToday(a.users.birth_date, todayISO())} />
-                      <span className="text-[12px] font-semibold">{a.users.display_name}{a.is_lead ? " (responsable)" : ""}</span>
+          {/* Filas */}
+          <div className="flex flex-col">
+            {filtered.map((it) => {
+              const r = it.requests;
+              const lead = it.project_assignments.find((a) => a.is_lead)?.users ?? it.project_assignments[0]?.users;
+              
+              return (
+                <div 
+                  key={it.id} 
+                  className="group grid grid-cols-1 md:grid-cols-[1fr_120px_140px_100px] gap-2 md:gap-4 px-4 py-3.5 rounded-xl hover:bg-hover transition-all duration-200 cursor-pointer border border-transparent hover:border-border"
+                >
+                  {/* Título + metadata */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-semibold text-text-1 truncate group-hover:text-accent transition-colors">
+                        {r?.title ?? "Sin título"}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[12px] text-text-3">{r?.requester_area ?? "—"}</span>
+                        {it.evidences.length > 0 && (
+                          <>
+                            <span className="text-[11px] text-text-3">·</span>
+                            <span className="text-[11px] text-text-3">{it.evidences.length} evidencia{it.evidences.length === 1 ? "" : "s"}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tipo */}
+                  <div className="flex items-center">
+                    <span 
+                      className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
+                      style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
+                    >
+                      {typeLabel[r?.type ?? ""] ?? r?.type ?? "—"}
                     </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-4 mt-3 text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
-                  <span>{it.evidences.length} evidencia{it.evidences.length === 1 ? "" : "s"}</span>
-                  <span>{it.comments.length} comentario{it.comments.length === 1 ? "" : "s"}</span>
-                  {it.deadline && <span>Entregada · {dmy(it.deadline)}</span>}
-                </div>
-
-                {it.evidences.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2.5">
-                    {it.evidences.map((e) => (
-                      <a key={e.id} href={e.publish_url || e.drive_url || "#"} target="_blank" rel="noreferrer"
-                        className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
-                        style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
-                        Ver evidencia →
-                      </a>
-                    ))}
                   </div>
-                )}
 
-              </div>
-            );
-          })}
+                  {/* Responsable */}
+                  <div className="flex items-center gap-2">
+                    {lead ? (
+                      <>
+                        <Avatar name={lead.display_name} color={lead.nexus_color} avatarUrl={lead.avatar_url} size={24} birthday={isBirthdayToday(lead.birth_date, todayISO())} />
+                        <span className="text-[13px] font-medium text-text-2 truncate hidden lg:block">{lead.display_name}</span>
+                      </>
+                    ) : (
+                      <span className="text-[13px] text-text-3">—</span>
+                    )}
+                  </div>
+
+                  {/* Fecha */}
+                  <div className="flex items-center">
+                    {it.deadline ? (
+                      <span className="text-[13px] font-medium text-text-2">{dmy(it.deadline)}</span>
+                    ) : (
+                      <span className="text-[13px] text-text-3">—</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </>
