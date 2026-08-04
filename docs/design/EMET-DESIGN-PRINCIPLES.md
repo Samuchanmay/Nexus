@@ -642,6 +642,72 @@ Si alguna falla, la pantalla debe simplificarse antes de mergear.
 
 ---
 
+### 10.6.1 Dashboard de Reportes con Métrica Protagonista
+**Principio**: En dashboards analíticos, la métrica más importante debe ser el foco visual inmediato.
+
+**Implementación**:
+```
+┌─────────────────────────────────────────────┐
+│ Reportes                                    │
+│ 126 solicitudes en total                    │
+├─────────────────────────────────────────────┤
+│                                             │
+│  126                                        │
+│  solicitudes                                │
+│  ↑ 18% vs periodo anterior                  │
+│                                             │
+├─────────────────────────────────────────────┤
+│  45           2.3h          8               │
+│  Actividades  Tiempo prom.   Áreas          │
+│  creadas      aprobación     solicitantes   │
+├─────────────────────────────────────────────┤
+│ Tendencia                                   │
+│ ▁▂▃▅▆▇█▇▆▅  126 solicitudes en 8 semanas   │
+├─────────────────────────────────────────────┤
+│ Resumen                                     │
+│ ┌────────────┬────────────┬────────────┐   │
+│ │ Top        │ Área con   │ Cuello de  │   │
+│ │ empleado   │ más carga  │ botella    │   │
+│ │            │            │            │   │
+│ │ Jorge      │ Comunicación│ Dirección │   │
+│ │ 45.2h      │ 23 sol.    │ 2.3d prom. │   │
+│ └────────────┴────────────┴────────────┘   │
+└─────────────────────────────────────────────┘
+```
+
+**Reglas**:
+- Métrica protagonista: 56px, bold, color primario
+- Etiqueta descriptiva: 18px, medium, color secundario
+- Tendencia con indicador: ↑/↓ + porcentaje
+- KPIs secundarios en línea horizontal: 24px
+- Separador visual entre secciones (border o espaciado 32px)
+- Insights ejecutivos en grid de 3 columnas
+- **NUNCA usar donuts** → reemplazar con barras horizontales
+- Sparkline más grande (240x60px) para mejor legibilidad
+
+**Ejemplo de código**:
+```jsx
+{/* Métrica protagonista */}
+<div className="mb-8">
+  <div className="flex items-baseline gap-3 mb-2">
+    <span className="text-[56px] font-bold tabular-nums leading-none text-text-1">
+      {totalReqs}
+    </span>
+    <span className="text-[18px] font-medium" style={{ color: "var(--text-2)" }}>
+      solicitudes
+    </span>
+  </div>
+  <div className="flex items-center gap-2 text-[14px]">
+    <span style={{ color: trendUp ? "var(--ok)" : "var(--warn)" }}>
+      {trendUp ? "↑" : "↓"} {trendPct}%
+    </span>
+    <span style={{ color: "var(--text-3)" }}>vs periodo anterior</span>
+  </div>
+</div>
+```
+
+---
+
 ### 10.7 Tarjetas con Hover Elevado
 **Principio**: Las tarjetas deben responder al hover de forma sutil.
 
