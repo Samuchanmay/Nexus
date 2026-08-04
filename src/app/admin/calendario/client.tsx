@@ -36,6 +36,8 @@ export type InstitutionalEvent = {
   location_type?: string; location_name?: string | null; location_address?: string | null;
   location_coords?: string | null; location_radius?: number; allow_any_location?: boolean;
   owner_id?: string | null; status?: string; priority?: string; description?: string | null;
+  // Campos Fase 3 — Sincronización con Google Calendar (migración 0031)
+  sync_to_google?: boolean; google_calendar_id?: string | null;
 };
 
 export default function CalendarioClient({
@@ -80,12 +82,15 @@ export default function CalendarioClient({
     locationCoords: string; locationRadius: number; allowAnyLocation: boolean;
     ownerId: string; status: "pendiente" | "confirmado" | "cancelado";
     priority: "alta" | "media" | "baja"; description: string;
+    // Campos Fase 3: Sincronización con Google Calendar
+    syncToGoogle: boolean; googleCalendarId: string;
   }>({
     title: "", kind: "evento", start: null, end: null, notes: "",
     startTime: "", endTime: "", clientName: "", departmentId: "",
     locationType: "interno", locationName: "", locationAddress: "",
     locationCoords: "", locationRadius: 150, allowAnyLocation: false,
     ownerId: "", status: "pendiente", priority: "media", description: "",
+    syncToGoogle: false, googleCalendarId: "",
   });
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false);
 
@@ -203,6 +208,7 @@ export default function CalendarioClient({
       locationType: "interno", locationName: "", locationAddress: "",
       locationCoords: "", locationRadius: 150, allowAnyLocation: false,
       ownerId: "", status: "pendiente", priority: "media", description: "",
+      syncToGoogle: false, googleCalendarId: "",
     });
     setConfirmDeleteEvent(false);
     setEventSheetOpen(true);
@@ -220,6 +226,7 @@ export default function CalendarioClient({
       allowAnyLocation: ev.allow_any_location ?? false,
       ownerId: ev.owner_id ?? "", status: (ev.status as "pendiente" | "confirmado" | "cancelado") ?? "pendiente",
       priority: (ev.priority as "alta" | "media" | "baja") ?? "media", description: ev.description ?? "",
+      syncToGoogle: ev.sync_to_google ?? false, googleCalendarId: ev.google_calendar_id ?? "",
     });
     setConfirmDeleteEvent(false);
     setEventSheetOpen(true);
@@ -245,6 +252,9 @@ export default function CalendarioClient({
       status: eventForm.status,
       priority: eventForm.priority,
       description: eventForm.description.trim() || null,
+      // Campos Fase 3: Sincronización con Google Calendar
+      sync_to_google: eventForm.syncToGoogle,
+      google_calendar_id: eventForm.googleCalendarId || null,
     };
     const ok = await runSaveEvent(async () => {
       const sb = createClient();
@@ -255,6 +265,25 @@ export default function CalendarioClient({
       return { error: null };
     }, { ok: editingEvent ? "Evento institucional actualizado" : "Evento institucional agregado" });
     if (ok) {
+      // Si está activada la sincronización con Google, sincronizar el evento
+      if (eventForm.syncToGoogle) {
+        const sb = createClient();
+        const { data: eventId } = editingEvent
+          ? { data: editingEvent.id }
+          : await sb.from("institutional_events").select("id").order("created_at", { ascending: false }).limit(1).single();
+        
+        if (eventId) {
+          const { data: syncResult, error: syncError } = await sb.functions.invoke("gcal-sync-event", {
+            body: { eventId, action: editingEvent ? "update" : "create" },
+          });
+          if (syncError || !syncResult?.ok) {
+            toast("Evento guardado, pero no se pudo sincronizar con Google Calendar", "warn");
+          } else {
+            toast(`Evento guardado y sincronizado con Google Calendar`, "ok");
+          }
+        }
+      }
+      
       setEventSheetOpen(false);
       if (adminId) logAdminAction(createClient(), adminId, editingEvent ? "Editó evento institucional" : "Agregó evento institucional", eventForm.title.trim());
       router.refresh();
@@ -735,6 +764,42 @@ export default function CalendarioClient({
             <textarea className="field-input min-h-[80px] resize-none" placeholder="Detalles del evento…"
               value={eventForm.description} onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })} />
           </Field>
+
+          {/* Sincronización con Google Calendar (Fase 3) */}
+          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Google Calendar</p>
+          <div className="rounded-lg p-3" style={{ background: "var(--surface-2)" }}>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={eventForm.syncToGoogle}
+                onChange={(e) => setEventForm({ ...eventForm, syncToGoogle: e.target.checked })}
+                className="w-4 h-4 rounded mt-0.5"
+              />
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold" style={{ color: "var(--text-1)" }}>
+                  Sincronizar con Google Calendar
+                </p>
+                <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
+                  El evento se creará/actualizará automáticamente en Google Calendar
+                </p>
+              </div>
+            </label>
+            {eventForm.syncToGoogle && (
+              <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+                <Field label="ID del calendario (opcional)">
+                  <input
+                    className="field-input"
+                    placeholder="primary"
+                    value={eventForm.googleCalendarId}
+                    onChange={(e) => setEventForm({ ...eventForm, googleCalendarId: e.target.value })}
+                  />
+                </Field>
+                <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>
+                  Deja vacío para usar tu calendario principal
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Botones */}
           {editingEvent && confirmDeleteEvent ? (

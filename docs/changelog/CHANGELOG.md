@@ -2,6 +2,22 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Fase 3: Sincronización bidireccional con Google Calendar
+
+### Sincronización de eventos con Google Calendar (migración 0031)
+- **Nuevas tablas**: `event_google_mapping` (mapeo eventos Emet ↔ Google), `google_calendar_webhooks` (webhooks activos), `google_sync_logs` (logs de sincronización).
+- **Nuevos campos en institutional_events**: `sync_to_google` (boolean), `google_calendar_id` (ID del calendario destino).
+- **Edge Functions**:
+  - `gcal-sync-event`: crea/actualiza/elimina eventos en Google Calendar
+  - `gcal-webhook`: recibe notificaciones push de Google Calendar
+  - `gcal-register-webhook`: registra webhook con Google
+  - `gcal-unregister-webhook`: cancela webhook
+- **UI**: switch "Sincronizar con Google Calendar" en el formulario de eventos.
+- **Flujo bidireccional**: 
+  - Emet → Google: al crear/editar evento con sync activado
+  - Google → Emet: vía webhooks (cada 5 min verifica cambios)
+- **Archivos**: `supabase/migrations/0031_google_calendar_sync.sql`, `supabase/functions/gcal-sync-event/`, `supabase/functions/gcal-webhook/`, `supabase/functions/gcal-register-webhook/`, `supabase/functions/gcal-unregister-webhook/`, `src/app/admin/calendario/client.tsx`, `src/app/admin/calendario/page.tsx`.
+
 ## 2026-08-04 · Fase 2: Check-in/out en eventos con validación GPS
 
 ### Check-in/out de eventos (migración 0030)
