@@ -95,107 +95,93 @@ export default function ConfigHub(props: {
 
   return (
     <>
-      <header className="pt-8 pb-6">
-        <h1 className="text-[28px] font-bold tracking-tight">Configuración</h1>
-        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>
-          Lo que solo se administra desde aquí, agrupado por lo que estás haciendo.
+      {/* Header compacto */}
+      <header className="pt-6 pb-5">
+        <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Configuración</h1>
+        <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
+          Administra los ajustes del sistema
         </p>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-7">
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{topStats.users}</p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Colaboradores activos</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-[19px] font-bold tabular-nums">{topStats.coordinaciones}</p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Coordinaciones/deptos.</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: isProdMode ? "var(--ok)" : "var(--warn)" }}>
-            <Icon name={isProdMode ? "check" : "alert"} size={12} /> {isProdMode ? "Producción" : "Modo demo"}
-          </p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Conexión con Supabase</p>
-        </div>
-        <div className="card p-4 text-center">
-          <p className="text-[13px] font-bold flex items-center justify-center gap-1" style={{ color: isEmailConfigured ? "var(--ok)" : "var(--warn)" }}>
-            <Icon name={isEmailConfigured ? "check" : "alert"} size={12} /> {isEmailConfigured ? "Activo" : "Sin configurar"}
-          </p>
-          <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Correo (Resend)</p>
-        </div>
-      </div>
-
-      {/* Panel maestro-detalle tipo Ajustes de Apple — categorías a la
-          izquierda, contenido a la derecha, sin navegación real entre
-          ellas. En mobile colapsa a una sola columna: lista de
-          categorías primero, panel con botón "Volver" al seleccionar. */}
-      <div className="grid md:grid-cols-[240px_1fr] gap-5 items-start">
-        <nav className={`flex-col gap-4 ${selected ? "hidden md:flex" : "flex"}`}>
+      {/* Panel maestro-detalle tipo Ajustes de Apple */}
+      <div className="grid md:grid-cols-[220px_1fr] gap-6 items-start">
+        {/* Sidebar con grupos colapsables */}
+        <nav className={`flex-col gap-5 ${selected ? "hidden md:flex" : "flex"}`}>
           {GROUPS.map((group) => (
             <div key={group}>
-              <p className="text-[12px] font-bold mb-1.5 px-1" style={{ color: "var(--text-3)" }}>{group.toUpperCase()}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-3" style={{ color: "var(--text-3)" }}>
+                {group}
+              </p>
               <div className="flex flex-col gap-0.5">
                 {SECTIONS.filter((s) => s.group === group).map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setSelected(s.id)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-sm text-left transition-colors"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200"
                     style={selected === s.id
                       ? { background: "var(--accent-tint)", color: "var(--accent)" }
                       : { color: "var(--text-2)" }}
                   >
                     <Icon name={s.icon} size={16} />
                     <span className="text-[13px] font-semibold truncate flex-1">{s.title}</span>
+                    {selected === s.id && (
+                      <Icon name="chevron" size={12} style={{ transform: "rotate(90deg)" }} />
+                    )}
                   </button>
                 ))}
               </div>
             </div>
           ))}
+
+          {/* Otros accesos */}
+          <div className="pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+            <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-3" style={{ color: "var(--text-3)" }}>
+              Otros accesos
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {QUICK_LINKS[0].items.map((it) => (
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 hover:bg-hover"
+                  style={{ color: "var(--text-2)" }}
+                >
+                  <Icon name={it.icon} size={16} />
+                  <span className="text-[13px] font-semibold truncate flex-1">{it.title}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         </nav>
 
+        {/* Panel de contenido */}
         <div className={selected ? "block" : "hidden md:block"}>
           {active && (
-            <div className="card p-4 mb-5 flex items-center gap-3">
-              <button onClick={() => setSelected(null)} className="md:hidden w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "var(--surface-2)" }} aria-label="Volver a categorías">
-                <Icon name="chevron" size={14} style={{ transform: "rotate(180deg)" }} />
-              </button>
-              <span className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
-                style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
-                <Icon name={active.icon} size={17} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[15px] font-bold">{active.title}</p>
-                <p className="text-[12px] truncate" style={{ color: "var(--text-2)" }}>{active.desc}</p>
+            <div className="mb-5">
+              <div className="flex items-center gap-3 mb-4">
+                <button 
+                  onClick={() => setSelected(null)} 
+                  className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hover:bg-hover transition-colors"
+                  style={{ background: "var(--surface-2)" }} 
+                  aria-label="Volver a categorías"
+                >
+                  <Icon name="chevron" size={14} style={{ transform: "rotate(180deg)" }} />
+                </button>
+                <span 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
+                >
+                  <Icon name={active.icon} size={18} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-[20px] font-bold text-text-1">{active.title}</h2>
+                  <p className="text-[13px] truncate" style={{ color: "var(--text-2)" }}>{active.desc}</p>
+                </div>
               </div>
             </div>
           )}
           {renderSection()}
         </div>
-      </div>
-
-      <div className="flex flex-col gap-7 mt-9">
-        {QUICK_LINKS.map((cat) => (
-          <section key={cat.title}>
-            <h2 className="text-[12px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
-              {cat.title}
-            </h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {cat.items.map((it) => (
-                <Link key={it.href} href={it.href} className="card card-hover p-4 flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0"
-                    style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
-                    <Icon name={it.icon} size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-bold">{it.title}</p>
-                    <p className="text-[12.5px] mt-1" style={{ color: "var(--text-2)" }}>{it.desc}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))}
       </div>
     </>
   );

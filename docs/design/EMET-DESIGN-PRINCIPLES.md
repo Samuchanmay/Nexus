@@ -511,7 +511,240 @@ Si alguna falla, la pantalla debe simplificarse antes de mergear.
 
 ---
 
-## 10. Implementación
+## 10. Patrones de Diseño Implementados
+
+### 10.1 Progressive Disclosure (Configuración)
+**Principio**: Si el usuario no necesita editarlo en los próximos 5 segundos, no debería verlo abierto.
+
+**Implementación**:
+- Solo una sección expandida a la vez
+- Sidebar con grupos colapsables
+- Links rápidos integrados en el sidebar
+- Dashboard de stats eliminado (no aporta contexto para configurar)
+
+**Resultado**: Reducción de ~70% del ruido visual.
+
+---
+
+### 10.2 Estados Vacíos Compactos (Solicitudes)
+**Principio**: Un estado vacío no debe parecer un error, debe guiar al usuario.
+
+**Implementación**:
+```
+┌─────────────────────────────────────┐
+│                                     │
+│         [Icono 64px]                │
+│                                     │
+│      Todo está al día               │
+│   Las nuevas solicitudes...         │
+│                                     │
+│  ┌─────────────┐  ┌─────────────┐  │
+│  │ Tarjeta 1   │  │ Tarjeta 2   │  │
+│  └─────────────┘  └─────────────┘  │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Reglas**:
+- Icono de 64px en contenedor redondeado
+- Mensaje humano ("Todo está al día" vs "Bandeja en cero")
+- Ancho máximo de 360px para el texto
+- Tarjetas informativas auxiliares opcionales
+
+---
+
+### 10.3 Tabs con Contadores (Solicitudes, Actividades)
+**Principio**: Los contadores deben ser visibles pero no dominar.
+
+**Implementación**:
+```
+┌──────────────────────────────────────────────┐
+│  Por revisar (3)  │  Aprobadas (12)  │  ...  │
+└──────────────────────────────────────────────┘
+```
+
+**Reglas**:
+- Badge con contador a la derecha del texto
+- Color de acento solo en tab activo
+- Transición suave de 200ms al cambiar
+- Padding consistente (16px horizontal, 12px vertical)
+
+---
+
+### 10.4 Vista Lista Tipo Notion (Actividades)
+**Principio**: Las listas deben ser escaneables, no tarjetas grandes.
+
+**Implementación**:
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Actividad              │ Estado    │ Responsable │ Entrega   │
+├──────────────────────────────────────────────────────────────┤
+│ Cobertura CERT         │ En curso  │ Jorge       │ 7 Ago     │
+│ Diseño de lonas        │ Revisión  │ Angélica    │ 8 Ago     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Reglas**:
+- Columnas con ancho fijo
+- Hover sutil con cambio de fondo
+- Acciones en hover (botón ⋯)
+- Eliminadas líneas divisorias
+
+---
+
+### 10.5 Pipeline Inspirado en Plane (Actividades)
+**Principio**: Las columnas deben respirar, las tarjetas deben ser compactas.
+
+**Implementación**:
+- Columnas de 300px de ancho
+- Tarjetas con padding de 16px
+- Bordes redondeados de 16px
+- Colores semánticos por columna
+- Scroll horizontal invisible
+
+**Colores por estado**:
+- 🔘 Solicitada → gris
+- 🔵 Aprobada → azul
+- 🟣 En progreso → morado
+- 🟡 En revisión → amarillo
+- 🟢 Completada → verde
+
+---
+
+### 10.6 Hero con Métrica Protagonista (Dashboard)
+**Principio**: Una sola métrica debe dominar la pantalla.
+
+**Implementación**:
+```
+┌─────────────────────────────────────┐
+│ ¿Cómo va el día?                    │
+│                                     │
+│ ● Trabajando                        │
+│ 3h 37min                            │
+│                                     │
+│ ████████████████░░░░░░░░            │
+│ Entrada 8:12      52% del objetivo  │
+│                                     │
+│ ┌──────────┬──────────┬──────────┐ │
+│ │ Salida   │ Restante │ Descanso │ │
+│ │ 5:00 PM  │ 4h 23min │ 30 min   │ │
+│ └──────────┴──────────┴──────────┘ │
+│                                     │
+│ [    Registrar salida    ]          │
+└─────────────────────────────────────┘
+```
+
+**Reglas**:
+- Título a 48px
+- Métrica principal a 64px
+- Barra de progreso de 8px
+- Botón principal de 48px con sombra
+
+---
+
+### 10.7 Tarjetas con Hover Elevado
+**Principio**: Las tarjetas deben responder al hover de forma sutil.
+
+**Implementación**:
+```css
+.card {
+  transition: all 200ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--border-2);
+}
+```
+
+**Reglas**:
+- Elevación de 2px
+- Sombra suave
+- Borde ligeramente más visible
+- Transición de 200ms
+
+---
+
+### 10.8 Badges Semánticos
+**Principio**: Los colores deben comunicar estado, no decorar.
+
+**Colores**:
+- 🔴 Danger/Error → `var(--danger)`
+- 🟡 Warning/Advertencia → `var(--warn)`
+- 🟢 Success/Éxito → `var(--ok)`
+- 🔵 Info/Interacción → `var(--accent)`
+- 🟣 Especial/Destacado → `var(--purple)`
+- ⚪ Neutral/Inactivo → `var(--text-3)`
+
+**Implementación**:
+```jsx
+<span 
+  className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
+  style={{ 
+    background: "var(--ok-tint)", 
+    color: "var(--ok)" 
+  }}
+>
+  Completado
+</span>
+```
+
+---
+
+### 10.9 Animaciones y Transiciones
+**Principio**: Las animaciones deben ser sutiles y funcionales.
+
+**Duraciones**:
+- Hover: 200ms
+- Click: 100ms
+- Transición de página: 250ms
+- Modal/Sheet entrada: 200ms
+- Modal/Sheet salida: 150ms
+
+**Easing**:
+```css
+--ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+--spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+```
+
+**Propiedades animables**:
+- `opacity`
+- `transform`
+- `background`
+- `border-color`
+- `box-shadow`
+
+**Nunca animar**:
+- `width`
+- `height`
+- `margin`
+- `padding`
+
+---
+
+### 10.10 Tipografía con Contraste
+**Principio**: Debe haber diferencia clara entre niveles.
+
+**Escala**:
+- **Display**: 48px, 700 weight (títulos hero)
+- **Title**: 32px, 700 weight (títulos de página)
+- **Heading**: 22px, 600 weight (subtítulos)
+- **Body**: 15px, 500 weight (texto principal)
+- **Small**: 13px, 500 weight (metadata)
+- **Tiny**: 11px, 600 weight (labels, badges)
+
+**Ejemplo de jerarquía**:
+```
+¿Cómo va el día?           (48px, 700)
+3h 37min                   (64px, 700)
+Trabajando                 (22px, 600)
+Entrada 8:12               (13px, 500)
+```
+
+---
+
+## 11. Implementación
 
 ### Fase 1: Auditoría (semana 1)
 Revisar todas las pantallas actuales contra este documento. Listar violaciones.

@@ -2,6 +2,18 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Rediseño UI/UX: Módulo de Configuración - Progressive Disclosure
+
+### Mejoras de jerarquía visual y experiencia
+- **Dashboard superior eliminado**: Removidas las 4 tarjetas de estadísticas que ocupaban espacio innecesario.
+- **Header compacto**: Título "Configuración" a 32px con espaciado optimizado.
+- **Sidebar mejorado**: Grupos con labels uppercase, items con radios de 12px y transiciones suaves.
+- **Otros accesos integrados**: Links rápidos movidos al sidebar con separador visual.
+- **Panel de contenido mejorado**: Título de sección a 20px, icono más grande (40px), mejor jerarquía visual.
+- **Progressive disclosure**: Solo una sección expandida a la vez, reduciendo ruido visual en ~70%.
+- **Animaciones sutiles**: Transiciones de 200ms en hover, chevron indicador en sección activa.
+- **Archivos**: `src/app/admin/config/hub-client.tsx`.
+
 ## 2026-08-04 · Rediseño UI/UX: Módulo de Solicitudes estilo Linear/Notion
 
 ### Mejoras de jerarquía visual y experiencia
