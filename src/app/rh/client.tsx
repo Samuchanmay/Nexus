@@ -13,6 +13,8 @@ import { Icon } from "@/components/os/icons";
 import { todayMerida, addDays, shortDate, seniorityLabel, dmy, nextAnniversary } from "@/lib/tz";
 import { VACATION_TONE } from "@/lib/ui-maps";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
+import { XlsxReportButton, type WeekBlock, type DayDetail } from "@/components/shared/xlsx-report";
+import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
 
 type Member = {
   id: string; full_name: string; display_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null; area: string | null; title: string | null;
@@ -235,10 +237,135 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
     const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `emet-rh-${period.toLowerCase()}-${todayMerida()}.csv`;
+    a.download = `emet-rh-${period.toLowerCase()}-${todayMerida()}.xlsx`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
+
+  // ── Bloques semanales para el reporte Excel (mismo formato que admin) ──
+  const DIAS_LARGO = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  
+  /** Lunes de la semana ISO que contiene la fecha dada. */
+  const mondayOf = (dateIso: string): string => {
+    const d = new Date(dateIso + "T12:00:00Z");
+    const day = d.getUTCDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setUTCDate(d.getUTCDate() + diff);
+    return d.toISOString().slice(0, 10);
+  };
+
+  /** Etiqueta de semana "29 junio al 04 de julio". */
+  const weekLabelOf = (monday: string): string => {
+    const start = new Date(monday + "T12:00:00Z");
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 5);
+    const d1 = start.getUTCDate(), m1 = MESES_LARGO[start.getUTCMonth()];
+    const d2 = end.getUTCDate(), m2 = MESES_LARGO[end.getUTCMonth()];
+    return m1 === m2 ? `${d1} al ${d2} de ${m1}` : `${d1} de ${m1} al ${d2} de ${m2}`;
+  };
+
+  /** Motivo de ausencia para un día usando el Attendance Status Resolver. */
+  const absenceReasonFor = (userId: string, date: string): string | undefined => {
+    const vac = vacations.find((v) => v.user_id === userId && v.start_date <= date && v.end_date >= date && v.status === "Aprobada");
+    const isHoliday = holidays.some((h) => h.date === date);
+    const wd = new Date(date + "T12:00:00Z").getUTCDay();
+    const s = getAttendanceStatus({
+      date,
+      today: todayMerida(),
+      firstIn: null,
+      isOpen: false,
+      noRegistroSalida: false,
+      vacation: vac ? { start: vac.start_date, end: vac.end_date } : null,
+      incident: null,
+      isHoliday,
+      restDay: wd === 0 ? { note: "Descanso" } : null,
+      isBusinessDay: wd !== 0,
+    });
+    return s.showInReports ? s.label : undefined;
+  };
+
+  /** Construye el detalle de un día para el reporte. */
+  const buildDayDetail = (date: string, rows: AttendanceRow[], sched: { target_min: number; tolerance_min: number; end_time: string }): DayDetail => {
+    const mv = rows.filter((r) => r.date === date).sort((a, b) => a.time.localeCompare(b.time));
+    const entradas = mv.filter((m) => m.type === "Entrada");
+    const salidas = mv.filter((m) => m.type === "Salida");
+    const entrada = entradas[0]?.time ?? null;
+    const finJornada = salidas.find((s) => s.reason === "Fin de jornada");
+    const salida1Row = salidas.find((s) => s.reason !== "Fin de jornada");
+    const salida1 = salida1Row?.time ?? null;
+    let entrada2: string | null = null;
+    if (salida1Row) {
+      const idx = mv.findIndex((m) => m === salida1Row);
+      entrada2 = mv.slice(idx + 1).find((m) => m.type === "Entrada")?.time ?? null;
+    }
+    const salidaFinal = finJornada?.time ?? (salidas.length ? salidas[salidas.length - 1].time : null);
+    const summary = entrada ? summarizeDay(date, rows, sched, states) : null;
+    const wd = new Date(date + "T12:00:00Z").getUTCDay();
+    
+    return {
+      dayLabel: DIAS_LARGO[wd],
+      date,
+      entrada: entrada ? entrada.slice(0, 5) : null,
+      salida1: salida1 ? salida1.slice(0, 5) : null,
+      entrada2: entrada2 ? entrada2.slice(0, 5) : null,
+      salidaFinal: salidaFinal ? salidaFinal.slice(0, 5) : null,
+      horasTrabajadas: summary && summary.totalMin > 0 ? Math.round((summary.totalMin / 60) * 10) / 10 : null,
+      horasExtra: summary && summary.extraMin > 0 ? Math.round((summary.extraMin / 60) * 10) / 10 : null,
+      statusLabel: entrada ? undefined : absenceReasonFor("", date),
+    };
+  };
+
+  /** Construye los bloques semanales para el reporte Excel. */
+  const weekBlocks = useMemo((): WeekBlock[] => {
+    const blocks: WeekBlock[] = [];
+    const today = todayMerida();
+    const since = addDays(today, -PERIOD_DAYS[period]);
+    
+    // Obtener todas las fechas con asistencia en el periodo
+    const allDates = [...new Set(attendance.filter((r) => r.date >= since).map((r) => r.date))].sort();
+    if (allDates.length === 0) return blocks;
+    
+    // Agrupar por semana
+    const byWeek = new Map<string, Set<string>>();
+    for (const date of allDates) {
+      const wk = mondayOf(date);
+      const dates = byWeek.get(wk) ?? new Set();
+      dates.add(date);
+      byWeek.set(wk, dates);
+    }
+    
+    // Para cada semana y cada empleado, construir el bloque
+    for (const [weekStart, dates] of byWeek) {
+      for (const member of team) {
+        const memberRows = attendance.filter((r) => r.user_id === member.id);
+        const days: DayDetail[] = [];
+        
+        // Lunes a Sábado
+        for (let i = 0; i < 6; i++) {
+          const date = addDays(weekStart, i);
+          const sched = scheduleFor(schedules, member.id, date) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
+          const dayRows = memberRows.filter((r) => r.date === date);
+          const detail = buildDayDetail(date, dayRows, sched);
+          // Corregir statusLabel con el userId correcto
+          if (!detail.entrada) {
+            detail.statusLabel = absenceReasonFor(member.id, date);
+          }
+          days.push(detail);
+        }
+        
+        blocks.push({
+          userId: member.id,
+          name: member.full_name,
+          color: member.nexus_color || "#5856D6",
+          weekStart,
+          weekLabel: weekLabelOf(weekStart),
+          days,
+        });
+      }
+    }
+    
+    return blocks.sort((a, b) => b.weekStart.localeCompare(a.weekStart) || a.name.localeCompare(b.name));
+  }, [attendance, team, schedules, states, vacations, holidays, period]);
 
   return (
     <>
@@ -273,11 +400,18 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       {/* Por empleado */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-[16px] font-bold">Por empleado</h2>
-        <button onClick={exportCSV}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[12.5px] font-semibold"
-          style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>
-          <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
-        </button>
+        <div className="flex gap-2">
+          <XlsxReportButton
+            blocks={weekBlocks}
+            label="Excel semanal"
+            filename="emet-rh-asistencia"
+          />
+          <button onClick={exportCSV}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[12.5px] font-semibold"
+            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+            <IconDownload className="w-3.5 h-3.5" /> CSV
+          </button>
+        </div>
       </div>
       <div className="flex flex-col gap-2.5 mb-8">
         {stats.map((s) => (

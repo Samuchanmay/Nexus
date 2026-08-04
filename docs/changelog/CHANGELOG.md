@@ -2,6 +2,16 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Fase 4: Reportes unificados con colores y ausencias
+
+### Reportes unificados (admin + RH)
+- **Componente compartido**: `src/components/shared/xlsx-report.tsx` — mismo formato Excel para admin y RH.
+- **Colores por empleado**: cada bloque usa el `nexus_color` del empleado.
+- **Ausencias con colores semánticos**: Vacaciones (morado), Incapacidad (rojo), Permiso (amarillo), Comisión (azul), Home office (verde), etc.
+- **RH ahora tiene el mismo reporte**: botón "Excel semanal" junto al CSV, con toda la información de asistencia + ausencias.
+- **Attendance Status Resolver integrado**: muestra automáticamente el motivo de ausencia (vacaciones, permiso, día inhábil, etc.) cuando no hay entrada.
+- **Archivos**: `src/components/shared/xlsx-report.tsx`, `src/app/admin/asistencia/xlsx-weekly-report.tsx`, `src/app/rh/client.tsx`.
+
 ## 2026-08-04 · Fase 3: Sincronización bidireccional con Google Calendar
 
 ### Sincronización de eventos con Google Calendar (migración 0031)
