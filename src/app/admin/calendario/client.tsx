@@ -28,7 +28,15 @@ export type ProjectDeadline = {
 };
 
 export type GcalEvent = { id: string; title: string; start: string; end: string; allDay: boolean };
-export type InstitutionalEvent = { id: string; title: string; kind: string; start_date: string; end_date: string; notes: string | null };
+export type InstitutionalEvent = {
+  id: string; title: string; kind: string; start_date: string; end_date: string; notes: string | null;
+  // Campos nuevos (Fase 1 — migración 0028)
+  start_time?: string | null; end_time?: string | null;
+  client_name?: string | null; department_id?: string | null;
+  location_type?: string; location_name?: string | null; location_address?: string | null;
+  location_coords?: string | null; location_radius?: number; allow_any_location?: boolean;
+  owner_id?: string | null; status?: string; priority?: string; description?: string | null;
+};
 
 export default function CalendarioClient({
   ym, year, month, daysInMonth, today, prevHref, nextHref,
@@ -64,20 +72,49 @@ export default function CalendarioClient({
   const { run: runDeleteEvent, saving: deletingEvent } = useSupabaseMutation();
   const [eventSheetOpen, setEventSheetOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<InstitutionalEvent | null>(null);
-  const [eventForm, setEventForm] = useState<{ title: string; kind: InstitutionalKind; start: string | null; end: string | null; notes: string }>(
-    { title: "", kind: "evento", start: null, end: null, notes: "" }
-  );
+  const [eventForm, setEventForm] = useState<{
+    title: string; kind: InstitutionalKind; start: string | null; end: string | null; notes: string;
+    // Campos nuevos (Fase 1)
+    startTime: string; endTime: string; clientName: string; departmentId: string;
+    locationType: "interno" | "externo"; locationName: string; locationAddress: string;
+    locationCoords: string; locationRadius: number; allowAnyLocation: boolean;
+    ownerId: string; status: "pendiente" | "confirmado" | "cancelado";
+    priority: "alta" | "media" | "baja"; description: string;
+  }>({
+    title: "", kind: "evento", start: null, end: null, notes: "",
+    startTime: "", endTime: "", clientName: "", departmentId: "",
+    locationType: "interno", locationName: "", locationAddress: "",
+    locationCoords: "", locationRadius: 150, allowAnyLocation: false,
+    ownerId: "", status: "pendiente", priority: "media", description: "",
+  });
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false);
 
   const openAddEvent = () => {
     setEditingEvent(null);
-    setEventForm({ title: "", kind: "evento", start: focusDate, end: focusDate, notes: "" });
+    setEventForm({
+      title: "", kind: "evento", start: focusDate, end: focusDate, notes: "",
+      startTime: "", endTime: "", clientName: "", departmentId: "",
+      locationType: "interno", locationName: "", locationAddress: "",
+      locationCoords: "", locationRadius: 150, allowAnyLocation: false,
+      ownerId: "", status: "pendiente", priority: "media", description: "",
+    });
     setConfirmDeleteEvent(false);
     setEventSheetOpen(true);
   };
   const openEditEvent = (ev: InstitutionalEvent) => {
     setEditingEvent(ev);
-    setEventForm({ title: ev.title, kind: (ev.kind as InstitutionalKind) ?? "evento", start: ev.start_date, end: ev.end_date, notes: ev.notes ?? "" });
+    setEventForm({
+      title: ev.title, kind: (ev.kind as InstitutionalKind) ?? "evento",
+      start: ev.start_date, end: ev.end_date, notes: ev.notes ?? "",
+      startTime: ev.start_time ?? "", endTime: ev.end_time ?? "",
+      clientName: ev.client_name ?? "", departmentId: ev.department_id ?? "",
+      locationType: (ev.location_type as "interno" | "externo") ?? "interno",
+      locationName: ev.location_name ?? "", locationAddress: ev.location_address ?? "",
+      locationCoords: ev.location_coords ?? "", locationRadius: ev.location_radius ?? 150,
+      allowAnyLocation: ev.allow_any_location ?? false,
+      ownerId: ev.owner_id ?? "", status: (ev.status as "pendiente" | "confirmado" | "cancelado") ?? "pendiente",
+      priority: (ev.priority as "alta" | "media" | "baja") ?? "media", description: ev.description ?? "",
+    });
     setConfirmDeleteEvent(false);
     setEventSheetOpen(true);
   };
@@ -87,6 +124,21 @@ export default function CalendarioClient({
       title: eventForm.title.trim(), kind: eventForm.kind,
       start_date: eventForm.start, end_date: eventForm.end,
       notes: eventForm.notes.trim() || null,
+      // Campos nuevos (Fase 1)
+      start_time: eventForm.startTime || null,
+      end_time: eventForm.endTime || null,
+      client_name: eventForm.clientName.trim() || null,
+      department_id: eventForm.departmentId || null,
+      location_type: eventForm.locationType,
+      location_name: eventForm.locationName.trim() || null,
+      location_address: eventForm.locationAddress.trim() || null,
+      location_coords: eventForm.locationCoords.trim() || null,
+      location_radius: eventForm.locationRadius,
+      allow_any_location: eventForm.allowAnyLocation,
+      owner_id: eventForm.ownerId || null,
+      status: eventForm.status,
+      priority: eventForm.priority,
+      description: eventForm.description.trim() || null,
     };
     const ok = await runSaveEvent(async () => {
       const sb = createClient();
@@ -442,37 +494,138 @@ export default function CalendarioClient({
         </div>
       )}
 
-      {/* Drawer: alta / edición de un evento institucional (FASE U). */}
+      {/* Drawer: alta / edición de un evento institucional (FASE U + Fase 1). */}
       <Sheet
         open={eventSheetOpen} onClose={() => setEventSheetOpen(false)}
-        title={editingEvent ? "Editar evento institucional" : "Agregar evento institucional"}
-        subtitle="Académico, evento, administrativo o aviso — visible para todo el equipo en este mismo calendario"
+        title={editingEvent ? "Editar evento" : "Nuevo evento"}
+        subtitle="Evento institucional con ubicación, participantes y seguimiento"
       >
         <div className="flex flex-col gap-3 pb-2">
+          {/* Información general */}
+          <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Información general</p>
           <Field label="Título">
-            <input className="field-input" placeholder="Ej. Inicio de semestre"
+            <input className="field-input" placeholder="Ej. Graduación Enfermería"
               value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} />
           </Field>
-          <Field label="Tipo">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Tipo">
+              <Select
+                value={eventForm.kind} onChange={(v) => setEventForm({ ...eventForm, kind: v as InstitutionalKind })}
+                title="Tipo de evento" searchable={false}
+                options={(Object.keys(INSTITUTIONAL_KIND_LABEL) as InstitutionalKind[]).map((k) => ({ value: k, label: INSTITUTIONAL_KIND_LABEL[k] }))}
+              />
+            </Field>
+            <Field label="Prioridad">
+              <Select
+                value={eventForm.priority} onChange={(v) => setEventForm({ ...eventForm, priority: v as "alta" | "media" | "baja" })}
+                title="Prioridad" searchable={false}
+                options={[
+                  { value: "alta", label: "Alta" },
+                  { value: "media", label: "Media" },
+                  { value: "baja", label: "Baja" },
+                ]}
+              />
+            </Field>
+          </div>
+          <Field label="Estado">
             <Select
-              value={eventForm.kind} onChange={(v) => setEventForm({ ...eventForm, kind: v as InstitutionalKind })}
-              title="Tipo de evento" searchable={false}
-              options={(Object.keys(INSTITUTIONAL_KIND_LABEL) as InstitutionalKind[]).map((k) => ({ value: k, label: INSTITUTIONAL_KIND_LABEL[k] }))}
+              value={eventForm.status} onChange={(v) => setEventForm({ ...eventForm, status: v as "pendiente" | "confirmado" | "cancelado" })}
+              title="Estado" searchable={false}
+              options={[
+                { value: "pendiente", label: "Pendiente" },
+                { value: "confirmado", label: "Confirmado" },
+                { value: "cancelado", label: "Cancelado" },
+              ]}
             />
           </Field>
+
+          {/* Fecha y hora */}
+          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Fecha y hora</p>
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rango de fechas</label>
             <DateRangeField start={eventForm.start} end={eventForm.end}
               onSelect={(s, e) => setEventForm({ ...eventForm, start: s, end: e ?? s })} />
           </div>
-          <Field label="Notas (opcional)">
-            <textarea className="field-input min-h-[80px] resize-none" placeholder="Contexto adicional…"
-              value={eventForm.notes} onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })} />
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Hora inicio (opcional)">
+              <input type="time" className="field-input" value={eventForm.startTime}
+                onChange={(e) => setEventForm({ ...eventForm, startTime: e.target.value })} />
+            </Field>
+            <Field label="Hora fin (opcional)">
+              <input type="time" className="field-input" value={eventForm.endTime}
+                onChange={(e) => setEventForm({ ...eventForm, endTime: e.target.value })} />
+            </Field>
+          </div>
+
+          {/* Cliente y departamento */}
+          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Cliente y departamento</p>
+          <Field label="Cliente (opcional)">
+            <input className="field-input" placeholder="Ej. Hospital Juárez"
+              value={eventForm.clientName} onChange={(e) => setEventForm({ ...eventForm, clientName: e.target.value })} />
+          </Field>
+          <Field label="Departamento solicitante (opcional)">
+            <input className="field-input" placeholder="Ej. Enfermería"
+              value={eventForm.departmentId} onChange={(e) => setEventForm({ ...eventForm, departmentId: e.target.value })} />
           </Field>
 
+          {/* Ubicación */}
+          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Ubicación</p>
+          <Field label="Tipo de ubicación">
+            <Select
+              value={eventForm.locationType} onChange={(v) => setEventForm({ ...eventForm, locationType: v as "interno" | "externo" })}
+              title="Tipo de ubicación" searchable={false}
+              options={[
+                { value: "interno", label: "Dentro del CERT" },
+                { value: "externo", label: "Externo" },
+              ]}
+            />
+          </Field>
+          {eventForm.locationType === "externo" && (
+            <>
+              <Field label="Nombre del lugar">
+                <input className="field-input" placeholder="Ej. Hotel Fiesta Americana"
+                  value={eventForm.locationName} onChange={(e) => setEventForm({ ...eventForm, locationName: e.target.value })} />
+              </Field>
+              <Field label="Dirección">
+                <input className="field-input" placeholder="Ej. Av. Colon 420, Mérida"
+                  value={eventForm.locationAddress} onChange={(e) => setEventForm({ ...eventForm, locationAddress: e.target.value })} />
+              </Field>
+              <Field label="Coordenadas GPS (lat,lng)">
+                <input className="field-input" placeholder="Ej. 20.9839,-89.6169"
+                  value={eventForm.locationCoords} onChange={(e) => setEventForm({ ...eventForm, locationCoords: e.target.value })} />
+              </Field>
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Radio (metros)">
+                  <input type="number" className="field-input" value={eventForm.locationRadius}
+                    onChange={(e) => setEventForm({ ...eventForm, locationRadius: Number(e.target.value) })} />
+                </Field>
+                <div className="flex items-end pb-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={eventForm.allowAnyLocation}
+                      onChange={(e) => setEventForm({ ...eventForm, allowAnyLocation: e.target.checked })}
+                      className="w-4 h-4 rounded" />
+                    <span className="text-[12px]" style={{ color: "var(--text-2)" }}>Sin GPS</span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Descripción */}
+          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Descripción</p>
+          <Field label="Notas (opcional)">
+            <textarea className="field-input min-h-[60px] resize-none" placeholder="Contexto adicional…"
+              value={eventForm.notes} onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })} />
+          </Field>
+          <Field label="Descripción detallada (opcional)">
+            <textarea className="field-input min-h-[80px] resize-none" placeholder="Detalles del evento…"
+              value={eventForm.description} onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })} />
+          </Field>
+
+          {/* Botones */}
           {editingEvent && confirmDeleteEvent ? (
             <div className="flex items-center gap-2 rounded-sm px-3.5 py-2.5" style={{ background: "var(--danger-tint)" }}>
-              <span className="text-[12.5px] font-semibold flex-1" style={{ color: "var(--danger)" }}>¿Eliminar este evento institucional?</span>
+              <span className="text-[12.5px] font-semibold flex-1" style={{ color: "var(--danger)" }}>¿Eliminar este evento?</span>
               <button className="text-[12px] font-semibold px-2.5 py-1 rounded-full" disabled={deletingEvent}
                 style={{ background: "var(--danger)", color: "#fff" }} onClick={deleteEvent}>Sí, eliminar</button>
               <button className="text-[12px] font-semibold px-2.5 py-1 rounded-full"

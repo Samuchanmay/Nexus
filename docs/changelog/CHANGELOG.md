@@ -2,6 +2,21 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Fase 1: Eventos ampliados + sistema de auditoría de negocio
+
+### Eventos ampliados (migraciones 0028 + 0029)
+- **Nuevos campos en eventos**: hora inicio/fin, cliente, departamento solicitante, ubicación (interno/externo, nombre, dirección, GPS, radio), responsable, estado (pendiente/confirmado/cancelado), prioridad (alta/media/baja), descripción.
+- **Nuevas tablas**: `event_participants` (responsable + equipo asignado), `event_attendance` (check-in/out en eventos), `event_history` (historial de cambios).
+- **Funciones helper**: `get_event_participants()`, `get_event_coverage_duration()`.
+- **UI actualizada**: formulario de eventos con secciones (información general, fecha/hora, cliente/departamento, ubicación, descripción).
+- **Archivos**: `supabase/migrations/0028_events_extended.sql`, `supabase/migrations/0029_event_participants_attendance.sql`, `src/app/admin/calendario/client.tsx`, `src/app/admin/calendario/page.tsx`.
+
+### Sistema de auditoría de negocio
+- **BUSINESS_RULES.md**: 38 reglas de negocio documentadas (asistencia, eventos, vacaciones, permisos, chat, usuarios, proyectos, auditoría). Incluye transiciones de estado prohibidas y casos extremos.
+- **docs/testing/**: casos de prueba extremos por módulo (asistencia.md, chat.md, calendario.md).
+- **DEPENDENCIAS.md**: mapa de dependencias entre módulos (qué afecta qué al modificar).
+- **Checklist de auditoría**: 15 puntos obligatorios antes de mergear cambios.
+
 ## 2026-08-04 · Asistencia — edición de días pasados + formato dd/mm/aaaa
 
 - **Selector de fecha**: ahora puedes ver y editar cualquier día pasado, no solo el día actual. Input de fecha en el header de `/admin/asistencia`.

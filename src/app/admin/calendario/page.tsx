@@ -36,10 +36,10 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       .not("deadline", "is", null).gte("deadline", yFirst).lte("deadline", yLast).order("deadline"),
     supabase.from("app_settings").select("value").eq("key", "gcal_efemerides_calendar_id").maybeSingle(),
     supabase.from("app_settings").select("value").eq("key", "gcal_activity_calendar_id").maybeSingle(),
-    // Calendarios institucionales (FASE U) — fusionados aquí como una capa
+    // Calendarios institucionales (FASE U + Fase 1) — fusionados aquí como una capa
     // más, administrados directamente en Emet (a diferencia de "Eventos
     // CERT" que vive en Google Calendar y solo se lee vía gcal-list-events).
-    supabase.from("institutional_events").select("id, title, kind, start_date, end_date, notes")
+    supabase.from("institutional_events").select("id, title, kind, start_date, end_date, notes, start_time, end_time, client_name, department_id, location_type, location_name, location_address, location_coords, location_radius, allow_any_location, owner_id, status, priority, description")
       .lte("start_date", yLast).gte("end_date", yFirst).order("start_date"),
   ]);
   const { data: meRow } = user ? await supabase.from("users").select("id").eq("auth_id", user.id).single() : { data: null };
