@@ -2,6 +2,17 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Fase 2: Check-in/out en eventos con validación GPS
+
+### Check-in/out de eventos (migración 0030)
+- **Funciones RPC**: `event_check_in()` con validación GPS, `event_check_out()` con cálculo de duración, `get_event_coverage_status()`, `get_event_coverage_summary()`.
+- **Validación GPS**: calcula distancia entre usuario y ubicación del evento usando fórmula Haversine simplificada. Valida radio configurable (default 150m).
+- **Estados de cobertura**: `not_checked_in`, `in_coverage`, `coverage_completed`.
+- **UI**: sheet de cobertura al hacer clic en evento de hoy. Muestra estado, duración en tiempo real, botones "Iniciar cobertura" / "Finalizar cobertura".
+- **GPS automático**: solicita ubicación al abrir el sheet si el evento es externo.
+- **Historial**: registra check-in/out en `event_history` con coordenadas y distancia.
+- **Archivos**: `supabase/migrations/0030_event_checkin_gps.sql`, `src/app/admin/calendario/client.tsx`.
+
 ## 2026-08-04 · Fase 1: Eventos ampliados + sistema de auditoría de negocio
 
 ### Eventos ampliados (migraciones 0028 + 0029)

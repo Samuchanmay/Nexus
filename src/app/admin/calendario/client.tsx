@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, SlidingSegments, Sheet, DateRangeField, Select, useToast } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
@@ -88,6 +88,112 @@ export default function CalendarioClient({
     ownerId: "", status: "pendiente", priority: "media", description: "",
   });
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false);
+
+  // ── Check-in/out de eventos (Fase 2) ──
+  const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
+  const [checkinEvent, setCheckinEvent] = useState<InstitutionalEvent | null>(null);
+  const [checkinStatus, setCheckinStatus] = useState<{
+    is_participant: boolean;
+    participant_role?: string;
+    participant_status?: string;
+    coverage_status?: string;
+    check_in_at?: string;
+    check_out_at?: string;
+    duration_min?: number;
+  } | null>(null);
+  const [checkinLoading, setCheckinLoading] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Solicitar GPS al abrir el sheet de check-in
+  useEffect(() => {
+    if (!checkinSheetOpen || !checkinEvent) return;
+    if (checkinEvent.location_type !== "externo" || checkinEvent.allow_any_location) return;
+
+    if (!navigator.geolocation) {
+      setGpsError("GPS no disponible en este dispositivo");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGpsError(null);
+      },
+      (err) => {
+        setGpsError("No se pudo obtener tu ubicación");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [checkinSheetOpen, checkinEvent]);
+
+  const loadCoverageStatus = async (eventId: string, userId: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("get_event_coverage_status", {
+      p_event_id: eventId,
+      p_user_id: userId,
+    });
+    if (!error && data) {
+      setCheckinStatus(data);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    if (!checkinEvent || !adminId) return;
+    setCheckinLoading(true);
+
+    const supabase = createClient();
+    const coords = gpsCoords ? `${gpsCoords.lat},${gpsCoords.lng}` : null;
+
+    const { data, error } = await supabase.rpc("event_check_in", {
+      p_event_id: checkinEvent.id,
+      p_user_id: adminId,
+      p_coords: coords,
+      p_location_type: checkinEvent.location_type === "externo" ? "evento" : "oficina",
+    });
+
+    setCheckinLoading(false);
+
+    if (error || !data?.ok) {
+      toast(data?.error || "Error al hacer check-in", "danger");
+      return;
+    }
+
+    toast("Check-in registrado", "ok");
+    await loadCoverageStatus(checkinEvent.id, adminId);
+  };
+
+  const handleCheckOut = async () => {
+    if (!checkinEvent || !adminId) return;
+    setCheckinLoading(true);
+
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("event_check_out", {
+      p_event_id: checkinEvent.id,
+      p_user_id: adminId,
+    });
+
+    setCheckinLoading(false);
+
+    if (error || !data?.ok) {
+      toast(data?.error || "Error al hacer check-out", "danger");
+      return;
+    }
+
+    toast(`Check-out registrado · Duración: ${Math.floor(data.duration_min / 60)}h ${data.duration_min % 60}m`, "ok");
+    await loadCoverageStatus(checkinEvent.id, adminId);
+  };
+
+  const openCheckinSheet = async (ev: InstitutionalEvent) => {
+    setCheckinEvent(ev);
+    setCheckinSheetOpen(true);
+    setGpsCoords(null);
+    setGpsError(null);
+    setCheckinStatus(null);
+    if (adminId) {
+      await loadCoverageStatus(ev.id, adminId);
+    }
+  };
 
   const openAddEvent = () => {
     setEditingEvent(null);
@@ -330,7 +436,15 @@ export default function CalendarioClient({
   const handleEventClick = (ev: CalendarEvent) => {
     if (ev.kind !== "evento_institucional") return;
     const inst = (institutionalEvents ?? []).find((i) => i.id === ev.meta?.institutionalId);
-    if (inst) openEditEvent(inst);
+    if (!inst) return;
+
+    // Si el evento es de hoy y está confirmado, abrir sheet de check-in
+    const isToday = inst.start_date <= today && inst.end_date >= today;
+    if (isToday && inst.status === "confirmado") {
+      openCheckinSheet(inst);
+    } else {
+      openEditEvent(inst);
+    }
   };
 
   // Fondo morado suave en días donde alguien está de vacaciones (paridad con
@@ -642,6 +756,152 @@ export default function CalendarioClient({
               <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={savingEvent} onClick={saveEvent}>
                 {savingEvent ? "Guardando…" : "Guardar"}
               </button>
+            </div>
+          )}
+        </div>
+      </Sheet>
+
+      {/* Sheet: Check-in/out de evento (Fase 2) */}
+      <Sheet
+        open={checkinSheetOpen}
+        onClose={() => setCheckinSheetOpen(false)}
+        title="Cobertura de evento"
+        subtitle={checkinEvent?.title ?? ""}
+      >
+        <div className="flex flex-col gap-4 pb-2">
+          {/* Información del evento */}
+          <div className="rounded-lg p-4" style={{ background: "var(--surface-2)" }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-[14px] font-bold">{checkinEvent?.title}</p>
+                <p className="text-[12px] mt-1" style={{ color: "var(--text-2)" }}>
+                  {checkinEvent?.start_date === checkinEvent?.end_date
+                    ? dmy(checkinEvent?.start_date ?? "")
+                    : `${dmy(checkinEvent?.start_date ?? "")} → ${dmy(checkinEvent?.end_date ?? "")}`}
+                  {checkinEvent?.start_time && ` · ${checkinEvent.start_time.slice(0, 5)}`}
+                  {checkinEvent?.end_time && ` → ${checkinEvent.end_time.slice(0, 5)}`}
+                </p>
+                {checkinEvent?.location_type === "externo" && checkinEvent?.location_name && (
+                  <p className="text-[12px] mt-1" style={{ color: "var(--text-3)" }}>
+                    📍 {checkinEvent.location_name}
+                    {checkinEvent.location_address && ` · ${checkinEvent.location_address}`}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setCheckinSheetOpen(false);
+                  if (checkinEvent) openEditEvent(checkinEvent);
+                }}
+                className="text-[12px] font-semibold px-3 py-1.5 rounded-full"
+                style={{ background: "var(--surface-3)", color: "var(--text-2)" }}
+              >
+                Editar
+              </button>
+            </div>
+          </div>
+
+          {/* Estado de cobertura */}
+          {checkinStatus ? (
+            <>
+              {checkinStatus.is_participant ? (
+                <div className="rounded-lg p-4" style={{ background: "var(--surface-2)" }}>
+                  <p className="text-[12px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
+                    Tu cobertura
+                  </p>
+                  {checkinStatus.coverage_status === "not_checked_in" && (
+                    <>
+                      <p className="text-[13px]" style={{ color: "var(--text-2)" }}>
+                        No has iniciado cobertura
+                      </p>
+                      {gpsError && (
+                        <p className="text-[12px] mt-2" style={{ color: "var(--warn)" }}>
+                          ⚠ {gpsError}
+                        </p>
+                      )}
+                      {gpsCoords && (
+                        <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>
+                          GPS: {gpsCoords.lat.toFixed(4)}, {gpsCoords.lng.toFixed(4)}
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {checkinStatus.coverage_status === "in_coverage" && (
+                    <>
+                      <p className="text-[13px] font-semibold" style={{ color: "var(--ok)" }}>
+                        ✓ En cobertura
+                      </p>
+                      <p className="text-[12px] mt-1" style={{ color: "var(--text-2)" }}>
+                        Inicio: {checkinStatus.check_in_at ? new Date(checkinStatus.check_in_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : ""}
+                      </p>
+                      {checkinStatus.duration_min !== undefined && (
+                        <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
+                          Duración: {Math.floor(checkinStatus.duration_min / 60)}h {checkinStatus.duration_min % 60}m
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {checkinStatus.coverage_status === "coverage_completed" && (
+                    <>
+                      <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>
+                        ✓ Cobertura completada
+                      </p>
+                      <p className="text-[12px] mt-1" style={{ color: "var(--text-2)" }}>
+                        Inicio: {checkinStatus.check_in_at ? new Date(checkinStatus.check_in_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : ""}
+                      </p>
+                      <p className="text-[12px]" style={{ color: "var(--text-2)" }}>
+                        Fin: {checkinStatus.check_out_at ? new Date(checkinStatus.check_out_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) : ""}
+                      </p>
+                      {checkinStatus.duration_min !== undefined && (
+                        <p className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
+                          Duración total: {Math.floor(checkinStatus.duration_min / 60)}h {checkinStatus.duration_min % 60}m
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg p-4" style={{ background: "var(--warn-tint)" }}>
+                  <p className="text-[13px]" style={{ color: "var(--warn)" }}>
+                    No estás asignado como participante de este evento
+                  </p>
+                </div>
+              )}
+
+              {/* Botones de acción */}
+              <div className="flex gap-2">
+                {checkinStatus.is_participant && checkinStatus.coverage_status === "not_checked_in" && (
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={checkinLoading}
+                    className="btn-primary flex-1 py-3 text-[14px] font-semibold"
+                  >
+                    {checkinLoading ? "Registrando…" : "Iniciar cobertura"}
+                  </button>
+                )}
+                {checkinStatus.is_participant && checkinStatus.coverage_status === "in_coverage" && (
+                  <button
+                    onClick={handleCheckOut}
+                    disabled={checkinLoading}
+                    className="flex-1 py-3 text-[14px] font-semibold rounded-lg"
+                    style={{ background: "var(--warn)", color: "#fff" }}
+                  >
+                    {checkinLoading ? "Registrando…" : "Finalizar cobertura"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setCheckinSheetOpen(false)}
+                  className="btn-secondary flex-1 py-3 text-[14px]"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-[13px]" style={{ color: "var(--text-3)" }}>
+                Cargando estado…
+              </p>
             </div>
           )}
         </div>
