@@ -58,7 +58,7 @@ export function LiveJornadaHero({
     <>
       {/* Status indicator */}
       <div className="flex items-center justify-between mb-2">
-        <span className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>
+        <span className="flex items-center gap-2 text-[13.5px] font-semibold" style={{ color: "var(--text-2)" }}>
           <span className="relative flex h-2 w-2">
             {statusLabel === "Trabajando" && (
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: dotColor }}></span>
@@ -80,7 +80,7 @@ export function LiveJornadaHero({
       </p>
       
       {/* Contexto adicional */}
-      <div className="flex items-center gap-4 mb-4 text-[13px]">
+      <div className="flex items-center gap-4 mb-4 text-[13.5px]">
         {firstIn && (
           <>
             <span style={{ color: "var(--text-3)" }}>
@@ -113,7 +113,7 @@ export function LiveJornadaHero({
         </div>
         {/* Marcas de referencia */}
         {firstIn && targetMin > 0 && (
-          <div className="flex justify-between mt-1.5 text-[11px]" style={{ color: "var(--text-3)" }}>
+          <div className="flex justify-between mt-1.5 text-[12px]" style={{ color: "var(--text-3)" }}>
             <span>0%</span>
             <span>25%</span>
             <span>50%</span>
@@ -129,18 +129,18 @@ export function LiveJornadaHero({
           {remainingMin > 0 ? (
             <>
               <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
-                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
+                <p className="text-[12px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
                   Tiempo restante
                 </p>
-                <p className="text-[18px] font-bold tabular-nums text-text-1">
+                <p className="text-[19px] font-bold tabular-nums text-text-1">
                   {fmtMin(remainingMin)}
                 </p>
               </div>
               <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
-                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
+                <p className="text-[12px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
                   Salida estimada
                 </p>
-                <p className="text-[18px] font-bold tabular-nums text-text-1">
+                <p className="text-[19px] font-bold tabular-nums text-text-1">
                   {estimatedExit ? fmtTime(estimatedExit) : "—"}
                 </p>
               </div>
@@ -148,18 +148,18 @@ export function LiveJornadaHero({
           ) : (
             <>
               <div className="p-3 rounded-xl" style={{ background: "var(--ok-tint)" }}>
-                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--ok)" }}>
+                <p className="text-[12px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--ok)" }}>
                   Objetivo alcanzado
                 </p>
-                <p className="text-[18px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>
+                <p className="text-[19px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>
                   {overMin > 0 ? `+${fmtMin(overMin)}` : "✓"}
                 </p>
               </div>
               <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
-                <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
+                <p className="text-[12px] font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--text-3)" }}>
                   Total trabajado
                 </p>
-                <p className="text-[18px] font-bold tabular-nums text-text-1">
+                <p className="text-[19px] font-bold tabular-nums text-text-1">
                   {fmtMin(liveMin)}
                 </p>
               </div>

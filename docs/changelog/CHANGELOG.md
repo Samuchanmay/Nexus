@@ -2,6 +2,20 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Fase 2 cerrada: retrofit tipográfico canónico + ripple global
+
+### Retrofit tipográfico W2/W3 (normalización de tamaños sueltos)
+- La escala `--fs-*` (12/12.5/13.5/14/15/16/19/21/24/28/42) se registró como utilidades de Tailwind (`text-tag`, `text-base`, `text-title`, `text-display`, …) en `tailwind.config.ts` — el token se vuelve real, no solo documentado.
+- 423 tamaños sueltos normalizados en 75 archivos: 11/11.5→12, 13→13.5, 14.5→14, 15.5→15, 17→16, 18→19, 20→19, 22→21, 23→24, 26/27/30/32→28. Los títulos de página inline (32px) ahora coinciden con `PageHeader` (28px, `--fs-display`).
+- Excepciones documentadas y congeladas en `TYPOGRAPHY.md`: <11px (micro-densidad del calendario) y ≥34px (tier hero/bienvenida).
+
+### Ripple global (menú + botones)
+- `ripple.ts` robustecido: `position:relative` solo si el host es estático (no pisa absolute/fixed), `overflow:hidden` condicional, respeta `prefers-reduced-motion` (JS + CSS), solo botón izquierdo del ratón, ignora hosts deshabilitados y responde a Enter/Espacio (paridad de accesibilidad).
+- Selector extendido al vocabulario de botones del sistema (`.btn-primary/.btn-secondary/.btn-tertiary/.btn-ok`) + `data-ripple` en el menú: sidebar, tab bar móvil, Spotlight (⌘K), DomainTabs, botón central de fichar, avatar y buscadores del header — y en `Button`/`IconButton` (`components/os/ui.tsx`).
+
+### Archivos
+- `tailwind.config.ts`, `src/lib/ripple.ts`, `src/components/os/{ui,shell,domain-tabs}.tsx`, `src/app/globals.css`, 75 archivos con tamaños normalizados, `docs/design/TYPOGRAPHY.md`, `docs/03-ROADMAP.md`.
+
 ## 2026-08-05 · Fix: la corrección de asistencia no se guardaba (RLS)
 
 ### Bug

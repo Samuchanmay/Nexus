@@ -22,7 +22,7 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
     <div className="mb-3 last:mb-0">
-      <div className="flex items-center justify-between text-[13px] mb-1">
+      <div className="flex items-center justify-between text-[13.5px] mb-1">
         <span className="font-semibold">{label}</span>
         <span className="tabular-nums" style={{ color: "var(--text-3)" }}>{count}</span>
       </div>
@@ -317,7 +317,7 @@ export default async function Reportes() {
             <div>
               <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Top empleado</p>
               {topEmployee ? (
-                <p className="text-[15px] font-bold text-text-1 truncate">{topEmployee.name} <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--ok)" }}>· {topEmployee.hours}h</span></p>
+                <p className="text-[15px] font-bold text-text-1 truncate">{topEmployee.name} <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "var(--ok)" }}>· {topEmployee.hours}h</span></p>
               ) : (
                 <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
               )}
@@ -325,7 +325,7 @@ export default async function Reportes() {
             <div>
               <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Área con más carga</p>
               {topAreas.length > 0 ? (
-                <p className="text-[15px] font-bold text-text-1 truncate">{topAreas[0][0]} <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>· {topAreas[0][1]}</span></p>
+                <p className="text-[15px] font-bold text-text-1 truncate">{topAreas[0][0]} <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>· {topAreas[0][1]}</span></p>
               ) : (
                 <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos</p>
               )}
@@ -333,7 +333,7 @@ export default async function Reportes() {
             <div>
               <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Cuello de botella</p>
               {bottleneck ? (
-                <p className="text-[15px] font-bold text-text-1 truncate">{bottleneck.area} <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--warn)" }}>
+                <p className="text-[15px] font-bold text-text-1 truncate">{bottleneck.area} <span className="text-[13.5px] font-semibold tabular-nums" style={{ color: "var(--warn)" }}>
                   {bottleneck.hours < 24 ? `${bottleneck.hours}h` : `${(bottleneck.hours / 24).toFixed(1)}d`}
                 </span></p>
               ) : (
@@ -378,7 +378,7 @@ export default async function Reportes() {
         <h2 className="text-[15px] font-bold text-text-1 mb-4">
           Áreas que más solicitan
           {Object.keys(byArea).length > 0 && (
-            <span className="text-[13px] font-medium ml-2" style={{ color: "var(--text-3)" }}>
+            <span className="text-[13.5px] font-medium ml-2" style={{ color: "var(--text-3)" }}>
               · {Object.keys(byArea).length} en total
             </span>
           )}
@@ -427,7 +427,7 @@ export default async function Reportes() {
           <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-[13.5px]">
               <thead>
                 <tr style={{ color: "var(--text-3)" }} className="text-left">
                   <th className="font-semibold pb-3 pr-4">Persona</th>

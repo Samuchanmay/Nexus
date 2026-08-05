@@ -223,7 +223,7 @@ export default function CalendarioClient({
             {monthHolidays.map((h) => {
               const st = holidayStyle(h.kind);
               return (
-                <div key={h.date} className="flex items-center justify-between text-[13px]">
+                <div key={h.date} className="flex items-center justify-between text-[13.5px]">
                   <span className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: st.fg }} />
                     <span className="font-semibold">{h.name}</span>

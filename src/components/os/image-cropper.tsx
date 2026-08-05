@@ -135,8 +135,8 @@ export function ImageCropper({ file, onCancel, onSave }: {
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 h-16 border-t border-border">
-          <button onClick={onCancel} className="btn-secondary h-9 px-4 text-[13px]">Cancelar</button>
-          <button onClick={save} disabled={saving || !imgUrl} className="btn-primary h-9 px-4 text-[13px]">
+          <button onClick={onCancel} className="btn-secondary h-9 px-4 text-[13.5px]">Cancelar</button>
+          <button onClick={save} disabled={saving || !imgUrl} className="btn-primary h-9 px-4 text-[13.5px]">
             {saving ? "Procesando…" : "Guardar"}
           </button>
         </div>

@@ -19,6 +19,18 @@ export default {
         apple: "cubic-bezier(.22,.61,.36,1)",
         spring: "cubic-bezier(.34,1.4,.64,1)",
       },
+      // Escala tipográfica canónica (design/design/TYPOGRAPHY.md): cada
+      // utilidad resuelve al token --fs-* de globals.css. Sobrescribe los
+      // defaults de Tailwind (xs/sm/lg/xl/2xl/3xl) — seguro porque la app
+      // solo usa valores arbitrarios; el retrofit W2/W3 los unificó a estos
+      // números. No inventar tamaños nuevos fuera de esta escala.
+      fontSize: {
+        "2xs": "var(--fs-2xs)", xs: "var(--fs-xs)", sm: "var(--fs-sm)",
+        tag: "var(--fs-tag)", base: "var(--fs-base)", md: "var(--fs-md)",
+        lg: "var(--fs-lg)", xl: "var(--fs-xl)", title: "var(--fs-title)",
+        "2xl": "var(--fs-2xl)", "3xl": "var(--fs-3xl)", display: "var(--fs-display)",
+        hero: "var(--fs-hero)",
+      },
     },
   },
   plugins: [],

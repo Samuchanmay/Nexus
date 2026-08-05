@@ -172,7 +172,7 @@ export function JornadaWatcher({ userId }: { userId: string }) {
         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,.45)" }}>
           <div className="card p-5 w-full max-w-sm">
             <p className="text-[15px] font-bold mb-1">Jornada pendiente</p>
-            <p className="text-[13px] mb-4" style={{ color: "var(--text-2)" }}>
+            <p className="text-[13.5px] mb-4" style={{ color: "var(--text-2)" }}>
               El <span className="font-semibold capitalize">{dateLabel(pending.date)}</span> olvidaste registrar tu salida. ¿A qué hora saliste?
             </p>
             <div className="grid grid-cols-2 gap-2 mb-3">

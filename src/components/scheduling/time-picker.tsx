@@ -137,7 +137,7 @@ export function TimePicker({
 
       <SchedulingOverlay open={open} onClose={() => setOpen(false)} ariaLabel={title} width={344}>
         <div className="w-full flex flex-col gap-[18px]" style={{ padding: "28px 32px 20px" }}>
-          <p className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--text-1)]">{title}</p>
+          <p className="text-[16px] font-semibold tracking-[-0.01em] text-[var(--text-1)]">{title}</p>
 
           {/* Ruedas */}
           <div className="flex items-stretch justify-between w-full">
@@ -148,10 +148,10 @@ export function TimePicker({
         </div>
 
         <div className="flex items-center justify-end gap-2 shrink-0" style={{ padding: "6px 32px 24px", borderTop: "0.5px solid var(--border)" }}>
-          <button type="button" onClick={() => setOpen(false)} className="btn-tertiary h-9 px-4 rounded-full text-[13px]">
+          <button type="button" onClick={() => setOpen(false)} className="btn-tertiary h-9 px-4 rounded-full text-[13.5px]">
             Cancelar
           </button>
-          <button type="button" onClick={() => setOpen(false)} className="btn-primary h-9 px-5 rounded-full text-[13px]">
+          <button type="button" onClick={() => setOpen(false)} className="btn-primary h-9 px-5 rounded-full text-[13.5px]">
             Listo
           </button>
         </div>

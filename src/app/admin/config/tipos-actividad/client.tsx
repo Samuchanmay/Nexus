@@ -193,7 +193,7 @@ export default function TiposClient({ types, templates, embedded }: {
                     <Icon className="w-4 h-4" />
                   </div>
                   <input defaultValue={row.label} onBlur={(e) => saveLabel(row, e.target.value)}
-                    className="text-[14.5px] font-bold bg-transparent border-0 outline-none flex-1 min-w-0" />
+                    className="text-[14px] font-bold bg-transparent border-0 outline-none flex-1 min-w-0" />
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch tone="status" checked={row.activo} onChange={() => toggleActivo(row)} disabled={saving}
@@ -232,7 +232,7 @@ export default function TiposClient({ types, templates, embedded }: {
                   <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Icono</span>
                   <Select
                     value={row.icon} onChange={(v) => update(row, { icon: v })}
-                    title="Ícono" searchable={false} className="field-input text-[13px] py-2 w-full flex items-center justify-between gap-2 text-left"
+                    title="Ícono" searchable={false} className="field-input text-[13.5px] py-2 w-full flex items-center justify-between gap-2 text-left"
                     options={ICONS.map((i) => ({ value: i.key, label: i.label, icon: <i.Icon className="w-4 h-4" /> }))}
                   />
                 </label>
@@ -242,7 +242,7 @@ export default function TiposClient({ types, templates, embedded }: {
                   </span>
                   <input type="number" min={1} defaultValue={row.min_hours / 24}
                     onBlur={(e) => saveMinDays(row, Number(e.target.value) || 1)}
-                    className="field-input text-[13px] py-2" />
+                    className="field-input text-[13.5px] py-2" />
                 </label>
                 <label className="block">
                   <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
@@ -250,7 +250,7 @@ export default function TiposClient({ types, templates, embedded }: {
                   </span>
                   <input defaultValue={row.subtypes.join(", ")}
                     onBlur={(e) => saveSubtypes(row, e.target.value)}
-                    className="field-input text-[13px] py-2" placeholder="Ej. Fotografía, Video" />
+                    className="field-input text-[13.5px] py-2" placeholder="Ej. Fotografía, Video" />
                 </label>
               </div>
 
@@ -288,7 +288,7 @@ export default function TiposClient({ types, templates, embedded }: {
                       <span className="text-[12px] font-bold w-4 text-center shrink-0" style={{ color: "var(--text-3)" }}>
                         {idx + 1}
                       </span>
-                      <span className="text-[13px] flex-1">{it.label}</span>
+                      <span className="text-[13.5px] flex-1">{it.label}</span>
                       <button onClick={() => moveItem(tpl!, idx, -1)} disabled={idx === 0 || saving}
                         className="text-[12px] font-bold px-1.5 disabled:opacity-30" style={{ color: "var(--text-2)" }}>↑</button>
                       <button onClick={() => moveItem(tpl!, idx, 1)} disabled={idx === items.length - 1 || saving}
@@ -301,7 +301,7 @@ export default function TiposClient({ types, templates, embedded }: {
                     </div>
                   ))}
                   <div className="flex gap-2 mt-1.5">
-                    <input className="field-input text-[13px] py-2 flex-1" placeholder="Nuevo paso…"
+                    <input className="field-input text-[13.5px] py-2 flex-1" placeholder="Nuevo paso…"
                       value={newItemLabel[row.key] ?? ""}
                       onChange={(e) => setNewItemLabel((f) => ({ ...f, [row.key]: e.target.value }))}
                       onKeyDown={(e) => { if (e.key === "Enter") addItem(row.key); }} />
@@ -318,7 +318,7 @@ export default function TiposClient({ types, templates, embedded }: {
       </div>
 
       <div className="card p-5">
-        <p className="text-[13px] font-bold mb-3">Agregar tipo nuevo</p>
+        <p className="text-[13.5px] font-bold mb-3">Agregar tipo nuevo</p>
         <div className="grid md:grid-cols-2 gap-2.5 mb-2.5">
           <input className="field-input" placeholder="Nombre (ej. Podcast)"
             value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />

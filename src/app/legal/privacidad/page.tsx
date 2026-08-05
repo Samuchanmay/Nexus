@@ -28,13 +28,13 @@ export default function AvisoPrivacidad() {
         <div className="flex items-center gap-3 mb-6">
           <EmetMark size={36} />
           <div>
-            <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>EMET</p>
+            <p className="text-[13.5px] font-semibold" style={{ color: "var(--text-2)" }}>EMET</p>
           </div>
         </div>
 
         <div className="card p-6 sm:p-9">
-          <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight mb-1.5">Aviso de Privacidad Integral</h1>
-          <p className="text-[13px] mb-6" style={{ color: "var(--text-2)" }}>
+          <h1 className="text-[28px] sm:text-[28px] font-bold tracking-tight mb-1.5">Aviso de Privacidad Integral</h1>
+          <p className="text-[13.5px] mb-6" style={{ color: "var(--text-2)" }}>
             Última actualización: 17 de julio de 2026
           </p>
 

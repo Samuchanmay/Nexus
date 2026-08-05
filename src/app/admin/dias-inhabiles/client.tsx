@@ -163,7 +163,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
       <header className="pt-6 pb-5">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Días inhábiles</h1>
+            <h1 className="text-[28px] font-bold tracking-tight text-text-1 leading-none">Días inhábiles</h1>
             <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
               Estos días nunca generan falta y no cuentan para vacaciones
             </p>
@@ -175,7 +175,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
               options={yearOptions}
             />
             <button 
-              className="h-10 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover flex items-center gap-2"
+              className="h-10 px-4 rounded-lg text-[13.5px] font-semibold transition-all duration-200 hover:bg-hover flex items-center gap-2"
               style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
               disabled={generating} onClick={generar}>
               <IconDownload className="w-4 h-4" /> 
@@ -183,7 +183,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
               <span className="sm:hidden">Importar</span>
             </button>
             <button 
-              className="h-10 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover flex items-center gap-2"
+              className="h-10 px-4 rounded-lg text-[13.5px] font-semibold transition-all duration-200 hover:bg-hover flex items-center gap-2"
               style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
               onClick={openRest} disabled={team.length === 0}>
               <IconSun className="w-4 h-4" />
@@ -210,7 +210,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
               <div key={r.id} className="group flex items-center justify-between p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="min-w-0 flex-1">
                   <span className="text-[14px] font-semibold">{r.userName}</span>
-                  <span className="text-[13px] ml-2" style={{ color: "var(--text-2)" }}>
+                  <span className="text-[13.5px] ml-2" style={{ color: "var(--text-2)" }}>
                     {dmy(r.startDate)}{r.endDate !== r.startDate ? ` → ${dmy(r.endDate)}` : ""}
                   </span>
                   {r.note && <span className="text-[12px] ml-2" style={{ color: "var(--text-3)" }}>· {r.note}</span>}
@@ -240,7 +240,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
                 </div>
                 <p className="text-[12px] font-bold leading-tight" style={{ color: "var(--text-3)" }}>{HOLIDAY_KIND_LABEL[k]}</p>
               </div>
-              <p className="text-[22px] font-bold tabular-nums text-text-1 leading-none">{kindCounts[k] ?? 0}</p>
+              <p className="text-[21px] font-bold tabular-nums text-text-1 leading-none">{kindCounts[k] ?? 0}</p>
             </div>
           );
         })}
@@ -257,13 +257,13 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[16px] font-bold capitalize">{MONTHS[month - 1]} {year}</h2>
             <div className="flex items-center gap-2">
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, -1))}>← Mes anterior</button>
-              <button className="btn-tertiary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(today.slice(0, 7))}>Hoy</button>
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYm(shiftMonth(ym, 1))}>Mes siguiente →</button>
+              <button className="btn-secondary px-3.5 py-1.5 text-[13.5px]" onClick={() => setYm(shiftMonth(ym, -1))}>← Mes anterior</button>
+              <button className="btn-tertiary px-3.5 py-1.5 text-[13.5px]" onClick={() => setYm(today.slice(0, 7))}>Hoy</button>
+              <button className="btn-secondary px-3.5 py-1.5 text-[13.5px]" onClick={() => setYm(shiftMonth(ym, 1))}>Mes siguiente →</button>
               <Select
                 value={String(year)} onChange={(v) => setYm(`${v}-${String(month).padStart(2, "0")}`)}
                 title="Cambiar año" searchable={false}
-                className="field-input w-[90px] flex items-center justify-between gap-2 text-left py-1.5 text-[13px]"
+                className="field-input w-[90px] flex items-center justify-between gap-2 text-left py-1.5 text-[13.5px]"
                 options={yearOptions}
               />
             </div>
@@ -290,7 +290,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
                   }}>
                   <p className="text-[12px] font-bold tabular-nums" style={{ color: h ? style!.fg : "var(--text-2)" }}>{c.day}</p>
                   {h && (
-                    <p className="text-[11px] font-semibold leading-tight line-clamp-2" style={{ color: style!.fg }}>{h.name}</p>
+                    <p className="text-[12px] font-semibold leading-tight line-clamp-2" style={{ color: style!.fg }}>{h.name}</p>
                   )}
                 </button>
               );
@@ -305,9 +305,9 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
           <div className="card p-4 flex items-center justify-between flex-wrap gap-3">
             <span className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Vista anual</span>
             <div className="flex items-center gap-2">
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYearView((y) => y - 1)}>←</button>
+              <button className="btn-secondary px-3.5 py-1.5 text-[13.5px]" onClick={() => setYearView((y) => y - 1)}>←</button>
               <span className="text-[15px] font-bold tabular-nums w-[52px] text-center">{yearView}</span>
-              <button className="btn-secondary px-3.5 py-1.5 text-[13px]" onClick={() => setYearView((y) => y + 1)}>→</button>
+              <button className="btn-secondary px-3.5 py-1.5 text-[13.5px]" onClick={() => setYearView((y) => y + 1)}>→</button>
             </div>
           </div>
 

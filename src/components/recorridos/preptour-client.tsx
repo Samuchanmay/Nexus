@@ -54,7 +54,7 @@ export function PrepTourClient({ initialDemos }: { initialDemos: PrepTourDemo[] 
     <div className="space-y-6">
       <Card>
         <h2 className="text-[15px] font-bold text-text-1 mb-2">Cómo crear un recorrido</h2>
-        <ol className="text-[13px] text-text-2 space-y-1 list-decimal list-inside">
+        <ol className="text-[13.5px] text-text-2 space-y-1 list-decimal list-inside">
           <li>Abre la extensión Recorridos en Chrome y pulsa «Grabar un nuevo demo».</li>
           <li>Navega por la app: cada paso se guarda como pantalla.</li>
           <li>Detén la grabación; el tour quedará como borrador aquí abajo.</li>
@@ -63,7 +63,7 @@ export function PrepTourClient({ initialDemos }: { initialDemos: PrepTourDemo[] 
       </Card>
 
       {error && (
-        <div className="text-[13px] text-white px-3 py-2 rounded-sm" style={{ background: "var(--danger)" }}>
+        <div className="text-[13.5px] text-white px-3 py-2 rounded-sm" style={{ background: "var(--danger)" }}>
           {error}
         </div>
       )}
@@ -89,7 +89,7 @@ export function PrepTourClient({ initialDemos }: { initialDemos: PrepTourDemo[] 
                 {d.description && (
                   <p className="text-[12.5px] text-text-2 mt-1 line-clamp-1">{d.description}</p>
                 )}
-                <p className="text-[11.5px] text-text-3 mt-1">
+                <p className="text-[12px] text-text-3 mt-1">
                   {d.slug} · actualizado {fmt(d.updated_at)}
                 </p>
               </div>

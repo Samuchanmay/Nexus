@@ -8,7 +8,14 @@
 
 ## Escala canónica (`--fs-*`)
 
-La escala no inventa números: **nombra los tamaños que ya existen** para que un componente nuevo nunca tenga que escribir uno más. Retrofit pendiente en W2/W3.
+La escala no inventa números: **nombra los tamaños que ya existen** para que un componente nuevo nunca tenga que escribir uno más. Registrada en `tailwind.config.ts` (`fontSize`) como utilidades: `text-2xs`, `text-xs`, `text-sm`, `text-tag`, `text-base`, `text-md`, `text-lg`, `text-xl`, `text-title`, `text-2xl`, `text-3xl`, `text-display`, `text-hero` — cada una resuelve a su token.
+
+Retrofit W2/W3 aplicado (2026-08-05): los tamaños sueltos históricos se normalizaron a la escala (423 reemplazos en 75 archivos). Quedan **dos excepciones deliberadas, fuera de la escala por densidad/contexto**:
+
+| Banda | Excepción | Dónde |
+|---|---|---|
+| <11px (7.5–10.5) | Micro-densidad del calendario | Celdas del heatmap anual, chips diminutos |
+| ≥34px (34–80) | Hero / tier de pantalla de bienvenida | `--fs-hero` (42) y tamaños de pantallas de bienvenida/estadísticas grandes |
 
 | Token | px | Uso típico |
 |---|---|---|
@@ -37,7 +44,7 @@ El hero de "Mi Día" usa `clamp(26px,5vw,32px)` — tipografía fluida en el her
 
 ## Reglas
 
-1. Usar la escala `--fs-*`; no escribir `text-[13px]` nuevos si no está en la escala.
+1. Usar la escala `--fs-*` (o las utilidades `text-*` del tema); no escribir `text-[13px]` nuevos si no está en la escala — y si ya está, normalizar al valor canónico (retrofit hecho).
 2. No más de 3 niveles de tamaño en una pantalla (jerarquía de título/cuerpo/meta).
 3. El line-clamp y ellipsis están permitidos para filas de lista; el texto completo se ve en el detalle.
-4. La pausa/hero permite tamaños grandes con `clamp()`; el interior de módulos usa escala fija.
+4. La pausa/hero permite tamaños grandes con `clamp()`; el interior de módulos usa escala fija. Las bandas de excepción (<11px micro-densidad y ≥34px hero) no deben crecer.

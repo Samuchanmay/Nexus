@@ -77,7 +77,7 @@ export function WeekView({
                 <button key={day} type="button" onClick={() => onDayClick?.(day)}
                   className="flex flex-col items-center py-3 transition-all hover:bg-hover"
                   aria-current={isToday ? "date" : undefined}>
-                  <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: isToday ? "var(--accent)" : "var(--text-3)" }}>{DOW[i]}</span>
+                  <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: isToday ? "var(--accent)" : "var(--text-3)" }}>{DOW[i]}</span>
                   <span className="text-[15px] font-bold tabular-nums w-8 h-8 mt-1 grid place-items-center rounded-full transition-all"
                     style={{ 
                       color: isToday ? "#fff" : "var(--text-1)", 
@@ -97,7 +97,7 @@ export function WeekView({
                 <div key={day} className="flex flex-col gap-1.5 p-2">
                   {(eventsByDay.get(day) ?? []).filter((ev) => ev.allDay).slice(0, 3).map((ev) => (
                     <button key={ev.id} type="button" onClick={() => onEventClick?.(ev)}
-                      className="text-[11px] font-semibold truncate px-2 py-1 rounded-lg text-left transition-all hover:scale-[1.02] hover:shadow-md"
+                      className="text-[12px] font-semibold truncate px-2 py-1 rounded-lg text-left transition-all hover:scale-[1.02] hover:shadow-md"
                       style={{ 
                         background: `color-mix(in srgb, ${eventColor(ev.kind)} 18%, transparent)`, 
                         color: eventColor(ev.kind),
@@ -159,7 +159,7 @@ export function WeekView({
                           boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
                         }}
                         title={ev.title}>
-                        <span className="block text-[11px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{ev.title}</span>
+                        <span className="block text-[12px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{ev.title}</span>
                       </button>
                     );
                   })}

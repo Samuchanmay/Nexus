@@ -88,6 +88,7 @@ export function Shell({
           <button
             onClick={() => setSpot(true)}
             aria-label="Buscar"
+            data-ripple
             className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full text-text-3 hover:bg-hover transition-colors"
           >
             <Icon name="search" size={16} />
@@ -98,6 +99,7 @@ export function Shell({
             onClick={() => setSpot(true)}
             aria-label="Buscar"
             title="Buscar (⌘K)"
+            data-ripple
             className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full text-text-3 hover:bg-hover transition-colors"
           >
             <Icon name="search" size={15} />
@@ -108,6 +110,7 @@ export function Shell({
           <button
             className="ml-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             title={user.name}
+            data-ripple
             onClick={() => setAvatarMenu(true)}
           >
             <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
@@ -181,6 +184,7 @@ function MobileBottomNav({ items, active, onGo, ficharAction, badge }: {
       <button
         key={i.key}
         onClick={() => onGo(i.key)}
+        data-ripple
         className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 relative"
         style={{ color: on ? "var(--accent)" : "var(--text-3)" }}
       >
@@ -215,6 +219,7 @@ function MobileBottomNav({ items, active, onGo, ficharAction, badge }: {
         <div className="flex-1 flex items-start justify-center relative" style={{ marginTop: "-16px" }}>
           <Link
             href="/fichar"
+            data-ripple
             aria-label="Registrar entrada o salida"
             className="grid place-items-center h-14 w-14 rounded-full text-white active:scale-95 transition-transform"
             style={{
@@ -328,7 +333,7 @@ function Sidebar({ items, active, onGo, className, theme, badge }: {
                   const b = badge?.[i.key] ?? 0;
                   return (
                     <button
-                      key={i.key} onClick={() => onGo(i.key)}
+                      key={i.key} onClick={() => onGo(i.key)} data-ripple
                       className={cx(
                         "w-full flex items-center gap-2.5 h-9 px-2.5 rounded-sm text-[14px] font-medium transition-colors duration-150",
                         on ? "bg-accent text-white shadow-sm" : "text-text-2 hover:bg-hover hover:text-text-1"
@@ -338,7 +343,7 @@ function Sidebar({ items, active, onGo, className, theme, badge }: {
                       <span className="flex-1 min-w-0 truncate text-left">{i.label}</span>
                       {b > 0 && (
                         <span
-                          className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[11px] font-bold text-white shrink-0"
+                          className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[12px] font-bold text-white shrink-0"
                           style={{ background: on ? "rgba(255,255,255,0.28)" : "var(--accent)" }}
                         >
                           {b > 99 ? "99+" : b}
@@ -412,14 +417,14 @@ function Spotlight({ open, items, onGo, onClose, badge }: {
         </div>
         <div className="max-h-[340px] nx-scroll overflow-y-auto p-2">
           {results.length === 0 && (
-            <p className="text-center text-[13px] text-text-3 py-8">Sin resultados para “{q}”.</p>
+            <p className="text-center text-[13.5px] text-text-3 py-8">Sin resultados para “{q}”.</p>
           )}
           {results.map((i, idx) => {
             const on = idx === sel;
             const b = badge?.[i.key] ?? 0;
             return (
               <button
-                key={i.key} onClick={() => onGo(i.key)} onMouseEnter={() => setSel(idx)}
+                key={i.key} onClick={() => onGo(i.key)} onMouseEnter={() => setSel(idx)} data-ripple
                 className={cx(
                   "w-full flex items-center gap-3 h-11 px-3 rounded-sm text-left transition-colors",
                   on ? "bg-accent text-white" : "text-text-1 hover:bg-hover"
@@ -429,7 +434,7 @@ function Spotlight({ open, items, onGo, onClose, badge }: {
                 <span className="text-[14px] font-medium flex-1">{i.label}</span>
                 {b > 0 && (
                   <span
-                    className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[11px] font-bold text-white shrink-0"
+                    className="min-w-[18px] h-[18px] px-1.5 grid place-items-center rounded-full text-[12px] font-bold text-white shrink-0"
                     style={{ background: on ? "rgba(255,255,255,0.28)" : "var(--accent)" }}
                   >
                     {b > 99 ? "99+" : b}

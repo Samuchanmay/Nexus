@@ -194,7 +194,7 @@ export function ForwardSheet({
         {loading ? (
           <SkelList rows={4} avatar />
         ) : filtered.length === 0 ? (
-          <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
+          <p className="text-[13.5px] text-center py-8" style={{ color: "var(--text-3)" }}>
             {conversations.length === 0 ? "No tienes otras conversaciones." : `Nada coincide con “${search}”`}
           </p>
         ) : (
@@ -211,7 +211,7 @@ export function ForwardSheet({
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13.5px] font-semibold truncate">{name}</span>
                   {c.last_message_preview && (
-                    <span className="block text-[11.5px] truncate" style={{ color: "var(--text-3)" }}>{c.last_message_preview}</span>
+                    <span className="block text-[12px] truncate" style={{ color: "var(--text-3)" }}>{c.last_message_preview}</span>
                   )}
                 </span>
                 {c.type === "announcement" && (

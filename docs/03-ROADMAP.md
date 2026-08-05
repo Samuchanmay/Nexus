@@ -45,8 +45,8 @@ Documento vivo. Cada fila responde a código real: ✅ existe en el repo, 🟡 e
 | Días inhábiles | ✅ | Migración 0019 |
 | Pausa activa (recordatorio de estiramiento) | ✅ | `PausaActivaPopup` + config |
 | Horarios por persona (tabla `schedules`) | ✅ | `admin/config/horarios` |
-| **Retrofit de tipografía canónica (W2/W3)** | 🟡 | La escala `--fs-*` existe; queda normalizar tamaños sueltos históricos |
-| **Reorganización del menú — Fase 3 (ripple global)** | 🟢 | Mecánica `src/lib/ripple.ts` lista, falta extender `[data-ripple]` |
+| **Retrofit de tipografía canónica (W2/W3)** | ✅ | Escala registrada como utilidades Tailwind; tamaños sueltos normalizados (423 reemplazos); excepciones documentadas: <11px micro-densidad y ≥34px hero |
+| **Reorganización del menú — Fase 3 (ripple global)** | ✅ | `initRipple` + `data-ripple` en el menú (sidebar, tab bar móvil, spotlight, domain tabs, fichar) y en Button/IconButton; ripple.ts robustecido (position seguro, reduced-motion, botón izquierdo, teclado) |
 
 ## Fase 3 · Chat (módulo premium)
 
@@ -250,6 +250,6 @@ Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación
 
 ## Próximo hito sugerido
 
-Consolidar **Fase 2 (retrofit tipográfico W2/W3)** y **Fase 3 (búsqueda cross-conversación)**, que son los únicos items 🟡 con código ya existente a medias. Ambos son puramente de UX y no requieren cambios de esquema.
+Fase 2 quedó cerrada (2026-08-05): retrofit tipográfico ✅ y ripple del menú ✅. Los siguientes items 🟡 con código a medias son de la Fase 3: **búsqueda cross-conversación** y el cierre del checklist del chat (§24).
 
 Para elevar el chat a plataforma de comunicación profesional, el siguiente bloque de trabajo (todos 🟡/🟢 del checklist §Chat): **"Leído por …" en grupos** (requiere tabla `message_reads`), **búsqueda cross-conversación**, y **"eliminar para mí"** (estado por participante).

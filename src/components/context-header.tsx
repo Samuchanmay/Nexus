@@ -126,12 +126,12 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
       <header className="pt-1">
         <p className="text-[12px] font-semibold text-text-3">&nbsp;</p>
         <h1
-          className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1 inline-flex flex-nowrap items-center gap-2.5"
+          className="text-[24px] md:text-[28px] font-bold tracking-tight text-text-1 inline-flex flex-nowrap items-center gap-2.5"
           style={{ lineHeight: 1.25, overflow: "visible" }}
         >
           <span>Hola, {input.name}</span> <AnimatedEmoji emoji="👋" size={22} />
         </h1>
-        <p className="text-[13px] mt-0.5 text-text-3">&nbsp;</p>
+        <p className="text-[13.5px] mt-0.5 text-text-3">&nbsp;</p>
       </header>
     );
   }
@@ -153,7 +153,7 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
               se corta ni baja a su propia línea, sin importar el largo del
               saludo generado. */}
           <h1
-            className="text-[24px] md:text-[27px] font-bold tracking-tight text-text-1 inline-flex flex-nowrap items-center gap-2.5"
+            className="text-[24px] md:text-[28px] font-bold tracking-tight text-text-1 inline-flex flex-nowrap items-center gap-2.5"
             style={{ lineHeight: 1.25, overflow: "visible" }}
           >
             <span>{message.greetingText}</span> <AnimatedEmoji emoji={message.greetingEmoji} size={22} />
@@ -167,7 +167,7 @@ export function ContextHeader({ input }: { input: ContextHeaderInput }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: "easeOut", delay: 0.05 }}
-          className="text-[13px] mt-0.5 text-text-3"
+          className="text-[13.5px] mt-0.5 text-text-3"
         >
           {message.subtitleText}
         </motion.p>

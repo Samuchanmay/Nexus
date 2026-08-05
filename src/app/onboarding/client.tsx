@@ -79,7 +79,7 @@ export default function OnboardingClient({
               <div className="flex gap-1.5 flex-wrap">
                 {HONORIFICS.map((t) => (
                   <button key={t} type="button" onClick={() => setHonorific(t)}
-                    className="px-3.5 py-2 rounded-full text-[13px] font-semibold"
+                    className="px-3.5 py-2 rounded-full text-[13.5px] font-semibold"
                     style={honorific === t
                       ? { background: "var(--accent-tint)", color: "var(--accent)", border: "1px solid var(--accent)" }
                       : { border: "1px solid var(--border-2)", color: "var(--text-2)" }}>
@@ -121,7 +121,7 @@ export default function OnboardingClient({
           )}
 
           <button onClick={save} disabled={!canSave || saving}
-            className="btn-primary w-full py-3.5 text-[14.5px] flex items-center justify-center gap-2.5 mt-1">
+            className="btn-primary w-full py-3.5 text-[14px] flex items-center justify-center gap-2.5 mt-1">
             <IconCheck className="w-[16px] h-[16px]" />
             {saving ? "Guardando…" : "Entrar a Emet"}
           </button>

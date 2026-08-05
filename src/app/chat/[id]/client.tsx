@@ -831,7 +831,7 @@ export default function EnlaceConversationClient({
             </div>
           )}
           {messages.length === 0 && (
-            <p className="text-center text-[13px] py-10" style={{ color: "var(--text-2)" }}>
+            <p className="text-center text-[13.5px] py-10" style={{ color: "var(--text-2)" }}>
               Todavía no hay mensajes. Escribe el primero.
             </p>
           )}
@@ -849,7 +849,7 @@ export default function EnlaceConversationClient({
             if (m.type === "system") {
               return (
                 <div key={m.id} className="flex justify-center py-1.5">
-                  <span className="text-[11.5px] px-2.5 py-1" style={{ color: "var(--text-3)" }}>
+                  <span className="text-[12px] px-2.5 py-1" style={{ color: "var(--text-3)" }}>
                     {m.content}
                   </span>
                 </div>
@@ -962,7 +962,7 @@ export default function EnlaceConversationClient({
           <div className="mt-2 shrink-0 flex items-center gap-2 rounded-[10px] px-3 py-2" style={{ background: "var(--danger-tint)" }}>
             <Icon name="close" size={13} style={{ color: "var(--danger)" }} />
             <span className="text-[12px] font-medium flex-1" style={{ color: "var(--danger)" }}>{upload.error}</span>
-            <button onClick={upload.retry} className="text-[11.5px] font-semibold shrink-0" style={{ color: "var(--danger)" }}>Reintentar</button>
+            <button onClick={upload.retry} className="text-[12px] font-semibold shrink-0" style={{ color: "var(--danger)" }}>Reintentar</button>
             <button onClick={upload.reset}><Icon name="close" size={12} style={{ color: "var(--text-3)" }} /></button>
           </div>
         )}
@@ -998,7 +998,7 @@ export default function EnlaceConversationClient({
                     className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ background: "var(--danger)", animation: "nx-breathe-soft 1s ease-in-out infinite" }}
                   />
-                  <span className="text-[13px] font-bold truncate" style={{ color: "var(--text-1)" }}>Nota de audio</span>
+                  <span className="text-[13.5px] font-bold truncate" style={{ color: "var(--text-1)" }}>Nota de audio</span>
                   <span className="text-[12px] font-semibold shrink-0" style={{ color: "var(--text-2)" }}>{fmtRec(seconds)}</span>
                 </div>
                 <IconButton
@@ -1220,7 +1220,7 @@ function MessageBubble({
 
                   {repliedTo && (
                     <div className="rounded-[6px] px-2 py-1 mb-1 border-l-2" style={{ borderColor: mine ? "rgba(255,255,255,0.7)" : "var(--accent)", background: mine ? "rgba(255,255,255,0.12)" : "var(--chat-card-inner)" }}>
-                      <p className="text-[11.5px] truncate opacity-80">
+                      <p className="text-[12px] truncate opacity-80">
                         {messagePreview(repliedTo)}
                       </p>
                     </div>
@@ -1239,7 +1239,7 @@ function MessageBubble({
                       <div className="w-[240px] h-[170px] rounded-[12px] mb-1 overflow-hidden" style={{ background: "var(--chat-card-inner)" }}>
                         <div className="relative h-full w-full">
                           <Skel className="absolute inset-0 !rounded-none" />
-                          <span className="absolute bottom-2.5 left-3 text-[11px]" style={{ color: "var(--text-3)" }}>Cargando imagen…</span>
+                          <span className="absolute bottom-2.5 left-3 text-[12px]" style={{ color: "var(--text-3)" }}>Cargando imagen…</span>
                         </div>
                       </div>
                     )
@@ -1288,13 +1288,13 @@ function MessageBubble({
                           className="w-full h-[150px]"
                         />
                       </div>
-                      <p className="text-[11.5px] font-semibold mb-0.5 flex items-center gap-1" style={{ color: mine ? "#FFFFFF" : "var(--text-1)" }}>
+                      <p className="text-[12px] font-semibold mb-0.5 flex items-center gap-1" style={{ color: mine ? "#FFFFFF" : "var(--text-1)" }}>
                         <Icon name="pin" size={13} aria-hidden /> Ubicación
                       </p>
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lng}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="text-[11.5px] font-semibold"
+                        className="text-[12px] font-semibold"
                         style={{ color: mine ? "rgba(255,255,255,0.9)" : "var(--accent)" }}
                       >
                         Ver en Google Maps
@@ -1392,7 +1392,7 @@ function InfoPanel({
       <div className="relative flex flex-col items-center shrink-0 pt-2 pb-6">
         <IconButton icon="close" label="Cerrar" size={15} onClick={onClose} className="absolute top-0 right-0" />
         <Avatar name={title} avatarUrl={avatarUrl} color={avatarColor} size={64} />
-        <p className="mt-3 text-[20px] font-bold tracking-tight truncate max-w-full px-2">{title}</p>
+        <p className="mt-3 text-[19px] font-bold tracking-tight truncate max-w-full px-2">{title}</p>
         <p className="text-[12.5px] mt-0.5" style={{ color: "var(--text-3)" }}>
           {conversation.type === "announcement" ? `Suscritos (${participants.length})`
             : conversation.type === "group" ? `${participants.length} ${participants.length === 1 ? "integrante" : "integrantes"}`
@@ -1401,7 +1401,7 @@ function InfoPanel({
       </div>
 
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
+        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
           {conversation.type === "announcement" ? `Suscritos (${participants.length})`
             : conversation.type === "group" ? `Miembros (${participants.length})` : "Conversación directa"}
         </p>
@@ -1431,7 +1431,7 @@ function InfoPanel({
       </div>
 
       <div className="mb-5 px-1">
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Perfil</p>
+        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Perfil</p>
         <div className="space-y-2.5">
           {conversation.type === "direct" && otherProfile ? (
             <>
@@ -1451,7 +1451,7 @@ function InfoPanel({
       </div>
 
       <div className="mb-5 px-1">
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Detalles</p>
+        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Detalles</p>
         <div className="space-y-2">
           <p className="text-[12.5px]" style={{ color: "var(--text-1)" }}>
             <span className="font-semibold">Tipo: </span>
@@ -1473,7 +1473,7 @@ function InfoPanel({
       </div>
 
       <div className="mb-5 px-1">
-        <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Notificaciones</p>
+        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Notificaciones</p>
         <button
           onClick={onToggleMuted}
           className="w-full flex items-center justify-between py-1.5 rounded-[10px] px-1 hover:bg-hover transition-colors"
@@ -1501,7 +1501,7 @@ function InfoPanel({
               <button
                 key={label}
                 onClick={() => onSetMutedFor(until)}
-                className="h-8 px-3 rounded-full text-[11.5px] font-semibold transition-all duration-150 hover:bg-hover active:scale-[.97]"
+                className="h-8 px-3 rounded-full text-[12px] font-semibold transition-all duration-150 hover:bg-hover active:scale-[.97]"
                 style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
               >
                 {label}
@@ -1512,7 +1512,7 @@ function InfoPanel({
         {muted && (
           <button
             onClick={onToggleMuted}
-            className="mt-1.5 text-[11.5px] font-semibold"
+            className="mt-1.5 text-[12px] font-semibold"
             style={{ color: "var(--accent)" }}
           >
             Activar notificaciones
@@ -1522,9 +1522,9 @@ function InfoPanel({
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Archivos recientes</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Archivos recientes</p>
           {recentFiles.length > 3 && (
-            <button onClick={() => setShowAllFiles((v) => !v)} className="text-[11px] font-semibold" style={{ color: "var(--accent)" }}>
+            <button onClick={() => setShowAllFiles((v) => !v)} className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}>
               {showAllFiles ? "Ver menos" : "Ver todos"}
             </button>
           )}
@@ -1539,7 +1539,7 @@ function InfoPanel({
                   <Icon name={fileIcon(f.mime_type)} size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11.5px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{f.file_name}</p>
+                  <p className="text-[12px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{f.file_name}</p>
                   <p className="text-[10px]" style={{ color: "var(--text-3)" }}>{fmtBytes(f.file_size)}</p>
                 </div>
               </div>
@@ -1665,7 +1665,7 @@ function MessageMenu({
       >
         {confirming ? (
           <div className="px-2 py-1.5 space-y-1">
-            <p className="text-[11.5px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar este mensaje?</p>
+            <p className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>¿Eliminar este mensaje?</p>
             <p className="text-[10.5px]" style={{ color: "var(--text-3)" }}>Se borra para todos, sin posibilidad de deshacer.</p>
             <div className="flex gap-2 pt-1">
               <button

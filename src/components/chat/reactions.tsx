@@ -36,7 +36,7 @@ export function ReactionStrip({
         };
         if (readOnly) {
           return (
-            <span key={emoji} className="flex items-center gap-1 h-7 px-2 rounded-full text-[11px] font-semibold leading-none" style={style}>
+            <span key={emoji} className="flex items-center gap-1 h-7 px-2 rounded-full text-[12px] font-semibold leading-none" style={style}>
               {inner}
             </span>
           );
@@ -45,7 +45,7 @@ export function ReactionStrip({
           <button
             key={emoji}
             onClick={() => onToggle(emoji)}
-            className="flex items-center gap-1 h-7 px-2 rounded-full text-[11px] font-semibold leading-none transition-all duration-150 hover:scale-105 active:scale-95"
+            className="flex items-center gap-1 h-7 px-2 rounded-full text-[12px] font-semibold leading-none transition-all duration-150 hover:scale-105 active:scale-95"
             style={style}
           >
             {inner}
@@ -68,7 +68,7 @@ export function ReactionPicker({ onPick }: { onPick: (emoji: string) => void }) 
         <button
           key={emoji}
           onClick={() => onPick(emoji)}
-          className="text-[17px] leading-none hover:scale-125 transition-transform"
+          className="text-[16px] leading-none hover:scale-125 transition-transform"
           style={{ animation: "nx-pop-react .3s var(--ease)" }}
         >
           {emoji}

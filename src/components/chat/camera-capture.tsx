@@ -107,7 +107,7 @@ export function CameraCapture({ open, onClose, onCapture }: {
         ) : (
           <div className="w-full h-[220px] grid place-items-center text-center px-6">
             <div>
-              <p className="text-[30px] mb-1" aria-hidden>📷</p>
+              <p className="text-[28px] mb-1" aria-hidden>📷</p>
               <p className="text-[12.5px] font-semibold" style={{ color: "var(--text-2)" }}>
                 {state === "starting" ? "Encendiendo la cámara…"
                   : state === "denied" ? "Permiso de cámara denegado."

@@ -82,7 +82,7 @@ export default async function LandingPage() {
               <EmetMark size={56} />
             </div>
             <h1 className="text-[44px] sm:text-[56px] font-bold tracking-tight leading-none mb-3">EMET</h1>
-            <p className="text-[19px] sm:text-[22px] font-semibold mb-4" style={{ color: "var(--text-2)" }}>
+            <p className="text-[19px] sm:text-[21px] font-semibold mb-4" style={{ color: "var(--text-2)" }}>
               Sistema operativo para organizaciones educativas, empresas y equipos de trabajo.
             </p>
             <p className="text-[15px] sm:text-[16px] leading-relaxed max-w-[560px] mx-auto mb-10" style={{ color: "var(--text-2)" }}>
@@ -92,12 +92,12 @@ export default async function LandingPage() {
               depender de varias herramientas distintas.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Link href={ctaHref} className="btn-primary px-6 py-3.5 text-[14.5px] font-semibold">
+              <Link href={ctaHref} className="btn-primary px-6 py-3.5 text-[14px] font-semibold">
                 {ctaLabel}
               </Link>
               <a
                 href="#que-es"
-                className="px-6 py-3.5 text-[14.5px] font-semibold rounded-sm"
+                className="px-6 py-3.5 text-[14px] font-semibold rounded-sm"
                 style={{ color: "var(--text-1)", border: "1px solid var(--border)" }}
               >
                 Conocer más
@@ -109,7 +109,7 @@ export default async function LandingPage() {
         {/* ── ¿Qué puedes hacer con EMET? ── */}
         <section className="px-5 sm:px-10 py-16 sm:py-20" aria-labelledby="capacidades-heading">
           <div className="max-w-[720px] mx-auto">
-            <h2 id="capacidades-heading" className="text-[22px] sm:text-[26px] font-bold tracking-tight text-center mb-8">
+            <h2 id="capacidades-heading" className="text-[21px] sm:text-[28px] font-bold tracking-tight text-center mb-8">
               ¿Qué puedes hacer con EMET?
             </h2>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 max-w-[520px] mx-auto">
@@ -134,7 +134,7 @@ export default async function LandingPage() {
         {/* ── ¿Qué es EMET? ── */}
         <section id="que-es" className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="que-es-heading">
           <div className="max-w-[680px] mx-auto text-center flex flex-col gap-5">
-            <h2 id="que-es-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight">
+            <h2 id="que-es-heading" className="text-[28px] sm:text-[28px] font-bold tracking-tight">
               ¿Qué es EMET?
             </h2>
             <p className="text-[15px] leading-relaxed text-left" style={{ color: "var(--text-2)" }}>
@@ -156,10 +156,10 @@ export default async function LandingPage() {
         {/* ── ¿Cómo funciona? ── */}
         <section className="px-5 sm:px-10 py-20 sm:py-24" aria-labelledby="funciona-heading">
           <div className="max-w-[680px] mx-auto">
-            <h2 id="funciona-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
+            <h2 id="funciona-heading" className="text-[28px] sm:text-[28px] font-bold tracking-tight text-center mb-3">
               ¿Cómo funciona?
             </h2>
-            <p className="text-[14.5px] text-center max-w-[480px] mx-auto mb-10" style={{ color: "var(--text-2)" }}>
+            <p className="text-[14px] text-center max-w-[480px] mx-auto mb-10" style={{ color: "var(--text-2)" }}>
               El mismo flujo, de principio a fin, sin cambiar de herramienta.
             </p>
             <ol className="flex flex-col gap-3">
@@ -173,8 +173,8 @@ export default async function LandingPage() {
                     {i + 1}
                   </span>
                   <div>
-                    <p className="text-[14.5px] font-bold mb-1">{f.paso}</p>
-                    <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)" }}>{f.desc}</p>
+                    <p className="text-[14px] font-bold mb-1">{f.paso}</p>
+                    <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--text-2)" }}>{f.desc}</p>
                   </div>
                 </li>
               ))}
@@ -185,17 +185,17 @@ export default async function LandingPage() {
         {/* ── Casos de uso ── */}
         <section className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="casos-heading">
           <div className="max-w-[960px] mx-auto">
-            <h2 id="casos-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
+            <h2 id="casos-heading" className="text-[28px] sm:text-[28px] font-bold tracking-tight text-center mb-3">
               Casos de uso
             </h2>
-            <p className="text-[14.5px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
+            <p className="text-[14px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
               Pensado para organizaciones que necesitan operar con claridad.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {CASOS_DE_USO.map((c) => (
                 <div key={c.title} className="card p-5">
-                  <p className="text-[14.5px] font-bold mb-1.5">{c.title}</p>
-                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)" }}>{c.desc}</p>
+                  <p className="text-[14px] font-bold mb-1.5">{c.title}</p>
+                  <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--text-2)" }}>{c.desc}</p>
                 </div>
               ))}
             </div>
@@ -205,17 +205,17 @@ export default async function LandingPage() {
         {/* ── Funcionalidades ── */}
         <section id="funcionalidades" className="px-5 sm:px-10 py-20 sm:py-24" aria-labelledby="funcionalidades-heading">
           <div className="max-w-[960px] mx-auto">
-            <h2 id="funcionalidades-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
+            <h2 id="funcionalidades-heading" className="text-[28px] sm:text-[28px] font-bold tracking-tight text-center mb-3">
               Funcionalidades
             </h2>
-            <p className="text-[14.5px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
+            <p className="text-[14px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
               Todo lo que un equipo necesita para operar, en un solo sistema.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {FUNCIONALIDADES.map((f) => (
                 <div key={f.title} className="card p-5">
-                  <p className="text-[14.5px] font-bold mb-1.5">{f.title}</p>
-                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)" }}>{f.desc}</p>
+                  <p className="text-[14px] font-bold mb-1.5">{f.title}</p>
+                  <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--text-2)" }}>{f.desc}</p>
                 </div>
               ))}
             </div>
@@ -225,17 +225,17 @@ export default async function LandingPage() {
         {/* ── Beneficios ── */}
         <section className="px-5 sm:px-10 py-20 sm:py-24" style={{ background: "var(--surface)" }} aria-labelledby="beneficios-heading">
           <div className="max-w-[960px] mx-auto">
-            <h2 id="beneficios-heading" className="text-[26px] sm:text-[30px] font-bold tracking-tight text-center mb-3">
+            <h2 id="beneficios-heading" className="text-[28px] sm:text-[28px] font-bold tracking-tight text-center mb-3">
               Lo que cambia al centralizar todo
             </h2>
-            <p className="text-[14.5px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
+            <p className="text-[14px] text-center max-w-[520px] mx-auto mb-12" style={{ color: "var(--text-2)" }}>
               No es agregar otra herramienta más. Es dejar de necesitar las demás.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {BENEFICIOS.map((b) => (
                 <div key={b.title} className="card p-5">
-                  <p className="text-[14.5px] font-bold mb-1.5">{b.title}</p>
-                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)" }}>{b.desc}</p>
+                  <p className="text-[14px] font-bold mb-1.5">{b.title}</p>
+                  <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--text-2)" }}>{b.desc}</p>
                 </div>
               ))}
             </div>
@@ -247,7 +247,7 @@ export default async function LandingPage() {
             <div className="flex flex-col items-center sm:items-start gap-1">
               <div className="flex items-center gap-2">
                 <EmetMark size={22} />
-                <span className="text-[13px] font-semibold" style={{ color: "var(--text-1)" }}>EMET</span>
+                <span className="text-[13.5px] font-semibold" style={{ color: "var(--text-1)" }}>EMET</span>
               </div>
               <span className="text-[12px]" style={{ color: "var(--text-2)" }}>
                 Sistema operativo para organizaciones
@@ -259,7 +259,7 @@ export default async function LandingPage() {
               <Link href="/contact" className="hover:underline">Contacto</Link>
             </nav>
           </div>
-          <p className="text-[11.5px] text-center mt-6 max-w-[440px] mx-auto" style={{ color: "var(--text-2)" }}>
+          <p className="text-[12px] text-center mt-6 max-w-[440px] mx-auto" style={{ color: "var(--text-2)" }}>
             EMET es un software SaaS para organizaciones, desarrollado por Samu Chan.
           </p>
         </footer>

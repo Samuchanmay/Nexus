@@ -109,7 +109,7 @@ export function OnboardingDemos({ userId }: { userId: string }) {
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--accent)" }} />
-            <span className="text-[13px] font-bold text-text-1">Recorridos</span>
+            <span className="text-[13.5px] font-bold text-text-1">Recorridos</span>
           </div>
           <button
             className="text-[12.5px] text-text-3 hover:text-text-1 transition-colors"
@@ -121,8 +121,8 @@ export function OnboardingDemos({ userId }: { userId: string }) {
 
         {/* Título del demo */}
         <div className="px-5 pt-4">
-          <h2 className="text-[18px] font-bold text-text-1">{demo.title}</h2>
-          {demo.description && <p className="text-[13px] text-text-2 mt-1">{demo.description}</p>}
+          <h2 className="text-[19px] font-bold text-text-1">{demo.title}</h2>
+          {demo.description && <p className="text-[13.5px] text-text-2 mt-1">{demo.description}</p>}
         </div>
 
         {/* Pantalla */}

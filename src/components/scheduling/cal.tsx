@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    EMET Scheduling System Â· cal
    Pickers tipo Cal.com: recurrencia, zona horaria y disponibilidad.
@@ -63,7 +63,7 @@ export function RecurrencePicker({
 
       <SchedulingOverlay open={open} onClose={() => setOpen(false)} ariaLabel={title} width={360}>
         <div className="w-full flex flex-col gap-5" style={{ padding: "28px 32px 26px" }}>
-          <p className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--text-1)]">{title}</p>
+          <p className="text-[16px] font-semibold tracking-[-0.01em] text-[var(--text-1)]">{title}</p>
 
           <div className="flex flex-wrap gap-2">
             {(Object.keys(FREQ_LABEL) as RecurrenceFreq[]).map((f) => {
@@ -82,7 +82,7 @@ export function RecurrencePicker({
           {draft.freq !== "none" && (
             <>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[13px] font-semibold text-[var(--text-1)]">Cada</span>
+                <span className="text-[13.5px] font-semibold text-[var(--text-1)]">Cada</span>
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={() => set({ interval: Math.max(1, draft.interval - 1) })}
                     className="w-8 h-8 rounded-full text-[16px] font-semibold text-[var(--text-2)] hover:bg-[var(--surface-2)]">âˆ’</button>
@@ -90,13 +90,13 @@ export function RecurrencePicker({
                   <button type="button" onClick={() => set({ interval: draft.interval + 1 })}
                     className="w-8 h-8 rounded-full text-[16px] font-semibold text-[var(--text-2)] hover:bg-[var(--surface-2)]">+</button>
                 </div>
-                <span className="text-[13px] font-semibold text-[var(--text-1)] capitalize">
+                <span className="text-[13.5px] font-semibold text-[var(--text-1)] capitalize">
                   {draft.freq === "daily" ? "dÃ­as" : draft.freq === "weekly" ? "semanas" : draft.freq === "monthly" ? "meses" : "aÃ±os"}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[13px] font-semibold text-[var(--text-1)]">Fin</span>
+                <span className="text-[13.5px] font-semibold text-[var(--text-1)]">Fin</span>
                 <div className="flex gap-2">
                   <button type="button" data-ripple onClick={() => set({ endAfter: null, endDate: null })}
                     className={cx("px-3 h-8 rounded-full text-[12.5px] font-semibold transition-colors",
@@ -117,8 +117,8 @@ export function RecurrencePicker({
         </div>
 
         <div className="flex items-center justify-end gap-2 shrink-0" style={{ padding: "6px 32px 24px", borderTop: "0.5px solid var(--border)" }}>
-          <button type="button" onClick={() => setOpen(false)} className="btn-tertiary h-9 px-4 rounded-full text-[13px]">Cancelar</button>
-          <button type="button" onClick={() => { onChange(draft); setOpen(false); }} className="btn-primary h-9 px-5 rounded-full text-[13px]">Aplicar</button>
+          <button type="button" onClick={() => setOpen(false)} className="btn-tertiary h-9 px-4 rounded-full text-[13.5px]">Cancelar</button>
+          <button type="button" onClick={() => { onChange(draft); setOpen(false); }} className="btn-primary h-9 px-5 rounded-full text-[13.5px]">Aplicar</button>
         </div>
       </SchedulingOverlay>
     </>
@@ -169,7 +169,7 @@ export function TimezonePicker({
 
       <SchedulingOverlay open={open} onClose={() => setOpen(false)} ariaLabel={title} width={400}>
         <div className="w-full flex flex-col" style={{ padding: "28px 28px 0", minHeight: 0 }}>
-          <p className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--text-1)] mb-4">{title}</p>
+          <p className="text-[16px] font-semibold tracking-[-0.01em] text-[var(--text-1)] mb-4">{title}</p>
           <div className="relative mb-3">
             <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-3)]" />
             {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
@@ -179,7 +179,7 @@ export function TimezonePicker({
         </div>
         <div className="flex-1 overflow-y-auto nx-scroll min-h-0 px-2 pb-3" style={{ maxHeight: 300 }}>
           {filtered.length === 0 ? (
-            <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>Sin resultados</p>
+            <p className="text-[13.5px] text-center py-8" style={{ color: "var(--text-3)" }}>Sin resultados</p>
           ) : (
             filtered.map((z) => (
               <button key={z.value} type="button" onClick={() => { onChange(z.value); setOpen(false); }}
@@ -246,7 +246,7 @@ export function AvailabilityPicker({
 
       <SchedulingOverlay open={open} onClose={() => setOpen(false)} ariaLabel={title} width={380}>
         <div className="w-full flex flex-col gap-4" style={{ padding: "28px 28px 18px" }}>
-          <p className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--text-1)]">{title}</p>
+          <p className="text-[16px] font-semibold tracking-[-0.01em] text-[var(--text-1)]">{title}</p>
         </div>
         <div className="flex-1 overflow-y-auto nx-scroll min-h-0 px-2 pb-2" style={{ maxHeight: 320 }}>
           {dayKeys.map((key, i) => {
@@ -278,7 +278,7 @@ export function AvailabilityPicker({
                 {isOpen && day.on && (
                   <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-1">
                     <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)] mr-1">Inicio</span>
+                      <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-3)] mr-1">Inicio</span>
                       <Wheel items={hours} value={String(baseS.hour12)} itemH={34} visible={3}
                         onChange={(v) => setDay(key, { start: compose(Number(v), baseS.meridiem, Number(day.start.slice(3, 5))) })} />
                       <Wheel items={minutes} value={pad2(Number(day.start.slice(3, 5)))} itemH={34} visible={3}
@@ -287,7 +287,7 @@ export function AvailabilityPicker({
                         onChange={(v) => setDay(key, { start: compose(baseS.hour12, v, Number(day.start.slice(3, 5))) })} />
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)] mr-1">Fin</span>
+                      <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-3)] mr-1">Fin</span>
                       <Wheel items={hours} value={String(baseE.hour12)} itemH={34} visible={3}
                         onChange={(v) => setDay(key, { end: compose(Number(v), baseE.meridiem, Number(day.end.slice(3, 5))) })} />
                       <Wheel items={minutes} value={pad2(Number(day.end.slice(3, 5)))} itemH={34} visible={3}
@@ -302,8 +302,8 @@ export function AvailabilityPicker({
           })}
         </div>
         <div className="flex items-center justify-end gap-2 shrink-0" style={{ padding: "6px 28px 24px", borderTop: "0.5px solid var(--border)" }}>
-          <button type="button" onClick={() => setOpen(false)} className="btn-tertiary h-9 px-4 rounded-full text-[13px]">Cancelar</button>
-          <button type="button" onClick={() => { onChange(draft); setOpen(false); }} className="btn-primary h-9 px-5 rounded-full text-[13px]">Aplicar</button>
+          <button type="button" onClick={() => setOpen(false)} className="btn-tertiary h-9 px-4 rounded-full text-[13.5px]">Cancelar</button>
+          <button type="button" onClick={() => { onChange(draft); setOpen(false); }} className="btn-primary h-9 px-5 rounded-full text-[13.5px]">Aplicar</button>
         </div>
       </SchedulingOverlay>
     </>

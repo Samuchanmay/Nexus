@@ -171,7 +171,7 @@ function PausaActivaBody({ msg, onDismiss, onSnooze }: { msg: AssistantMessage; 
       {/* 4 — Explicación, con el tiempo trabajado como dato protagonista. */}
       <p className="text-[12.5px] leading-relaxed mt-3" style={{ color: "var(--text-3)" }}>
         {elapsed && (
-          <span className="block text-[20px] font-bold mb-1" style={{ color: "var(--text-1)" }}>{elapsed}</span>
+          <span className="block text-[19px] font-bold mb-1" style={{ color: "var(--text-1)" }}>{elapsed}</span>
         )}
         Llevas {elapsed ?? "un buen rato"} trabajando sin interrupciones. Una pausa de 10 a 15 minutos puede ayudarte
         a mantener la concentración durante el resto de la jornada.

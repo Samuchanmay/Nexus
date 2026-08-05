@@ -23,7 +23,7 @@ export function RouteError({ error, reset }: { error: Error & { digest?: string 
         <Icon name="alert" size={24} />
       </div>
       <p className="text-[16px] font-bold text-text-1">Algo salió mal</p>
-      <p className="text-[13px] max-w-[340px]" style={{ color: "var(--text-2)" }}>
+      <p className="text-[13.5px] max-w-[340px]" style={{ color: "var(--text-2)" }}>
         No se pudo cargar esta pantalla. Puedes intentar de nuevo — si el problema sigue, avísale al equipo técnico.
       </p>
       <button onClick={reset} className="btn-primary px-4 py-2 text-[13.5px] mt-1">

@@ -114,7 +114,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
         <div className="max-w-[340px] mx-auto rounded-lg p-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
           <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4"
             style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
-            <span className="text-[20px]">☕</span>
+            <span className="text-[19px]">☕</span>
           </div>
           <p className="text-[14px] font-bold mb-1.5">Pausa activa</p>
           <p className="text-[12.5px] leading-relaxed transition-opacity duration-300" style={{ color: "var(--text-2)" }}>
@@ -124,7 +124,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
       </div>
 
       <div className="card p-5 mb-6">
-        <p className="text-[13px] font-bold mb-3">Ritmo del aviso</p>
+        <p className="text-[13.5px] font-bold mb-3">Ritmo del aviso</p>
         <div className="grid sm:grid-cols-3 gap-2.5 mb-3">
           <label className="block">
             <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
@@ -132,7 +132,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
             </span>
             <input type="number" min={0.5} step={0.5} value={intervalHours}
               onChange={(e) => setIntervalHours(Number(e.target.value))}
-              className="field-input text-[13px] py-2" />
+              className="field-input text-[13.5px] py-2" />
           </label>
           <label className="block">
             <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
@@ -140,7 +140,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
             </span>
             <input type="number" min={1} value={windowMinutes}
               onChange={(e) => setWindowMinutes(Number(e.target.value))}
-              className="field-input text-[13px] py-2" />
+              className="field-input text-[13.5px] py-2" />
           </label>
           <label className="block">
             <span className="block text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>
@@ -205,7 +205,7 @@ export default function PausaActivaClient({ frases, intervalMin, windowMin, modo
       </div>
 
       <div className="card p-5">
-        <p className="text-[13px] font-bold mb-3">Agregar frase nueva</p>
+        <p className="text-[13.5px] font-bold mb-3">Agregar frase nueva</p>
         <div className="flex gap-2">
           <input className="field-input flex-1" placeholder="Ej. Momento de estirar las piernas — ¿bala time o taxito time? ☕"
             value={newTexto} onChange={(e) => setNewTexto(e.target.value)}

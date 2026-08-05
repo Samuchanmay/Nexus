@@ -536,14 +536,14 @@ export default function CalendarioClient({
               <div className="flex-1 grid gap-[4px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
                 {attendanceDays.map((d) => (
                   <span key={d.n}
-                    className="text-center text-[11px] font-bold tabular-nums"
+                    className="text-center text-[12px] font-bold tabular-nums"
                     style={{ color: d.date === today ? "var(--accent)" : d.isWeekend ? "var(--text-3)" : "var(--text-2)" }}>
                     {d.n}
                   </span>
                 ))}
               </div>
               <div className="w-[80px] shrink-0 text-right">
-                <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Asistencia</span>
+                <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Asistencia</span>
               </div>
             </div>
 
@@ -555,7 +555,7 @@ export default function CalendarioClient({
                   style={{ borderBottom: "1px solid var(--border)" }}>
                   <div className="flex items-center gap-2.5 w-[150px] shrink-0">
                     <Avatar name={u.display_name} color={u.nexus_color} size={32} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
-                    <p className="text-[13px] font-bold truncate" style={{ color: "var(--text-1)" }}>{u.display_name}</p>
+                    <p className="text-[13.5px] font-bold truncate" style={{ color: "var(--text-1)" }}>{u.display_name}</p>
                   </div>
                   <div className="flex-1 grid gap-[4px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
                     {cells.map((c, i) => (
@@ -573,7 +573,7 @@ export default function CalendarioClient({
                     <p className="text-[14px] font-bold tabular-nums" style={{ color: pct >= 80 ? "var(--ok)" : pct >= 60 ? "var(--warn)" : "var(--danger)" }}>
                       {conRegistro}/{habiles}
                     </p>
-                    <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>{pct}%</p>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>{pct}%</p>
                   </div>
                 </div>
               );
@@ -639,7 +639,7 @@ export default function CalendarioClient({
             {monthHolidays.map((h) => {
               const st = holidayStyle(h.kind);
               return (
-                <div key={h.date} className="flex items-center justify-between text-[13px]">
+                <div key={h.date} className="flex items-center justify-between text-[13.5px]">
                   <span className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: st.fg }} />
                     <span className="font-semibold">{h.name}</span>
@@ -660,7 +660,7 @@ export default function CalendarioClient({
       >
         <div className="flex flex-col gap-3 pb-2">
           {/* Información general */}
-          <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Información general</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Información general</p>
           <Field label="Título">
             <input className="field-input" placeholder="Ej. Graduación Enfermería"
               value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} />
@@ -698,7 +698,7 @@ export default function CalendarioClient({
           </Field>
 
           {/* Fecha y hora */}
-          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Fecha y hora</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Fecha y hora</p>
           <div>
             <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Rango de fechas</label>
             <DateRangeField start={eventForm.start} end={eventForm.end}
@@ -714,7 +714,7 @@ export default function CalendarioClient({
           </div>
 
           {/* Cliente y departamento */}
-          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Cliente y departamento</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Cliente y departamento</p>
           <Field label="Cliente (opcional)">
             <input className="field-input" placeholder="Ej. Hospital Juárez"
               value={eventForm.clientName} onChange={(e) => setEventForm({ ...eventForm, clientName: e.target.value })} />
@@ -725,7 +725,7 @@ export default function CalendarioClient({
           </Field>
 
           {/* Ubicación */}
-          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Ubicación</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Ubicación</p>
           <Field label="Tipo de ubicación">
             <Select
               value={eventForm.locationType} onChange={(v) => setEventForm({ ...eventForm, locationType: v as "interno" | "externo" })}
@@ -768,7 +768,7 @@ export default function CalendarioClient({
           )}
 
           {/* Descripción */}
-          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Descripción</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Descripción</p>
           <Field label="Notas (opcional)">
             <textarea className="field-input min-h-[60px] resize-none" placeholder="Contexto adicional…"
               value={eventForm.notes} onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })} />
@@ -779,7 +779,7 @@ export default function CalendarioClient({
           </Field>
 
           {/* Sincronización con Google Calendar (Fase 3) */}
-          <p className="text-[11px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Google Calendar</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Google Calendar</p>
           <div className="rounded-lg p-3" style={{ background: "var(--surface-2)" }}>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -789,7 +789,7 @@ export default function CalendarioClient({
                 className="w-4 h-4 rounded mt-0.5"
               />
               <div className="flex-1">
-                <p className="text-[13px] font-semibold" style={{ color: "var(--text-1)" }}>
+                <p className="text-[13.5px] font-semibold" style={{ color: "var(--text-1)" }}>
                   Sincronizar con Google Calendar
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
@@ -807,7 +807,7 @@ export default function CalendarioClient({
                     onChange={(e) => setEventForm({ ...eventForm, googleCalendarId: e.target.value })}
                   />
                 </Field>
-                <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>
+                <p className="text-[12px] mt-1" style={{ color: "var(--text-3)" }}>
                   Deja vacío para usar el calendario del equipo (el mismo que se ve en Calendario) — llena esto solo si quieres mandarlo a otro calendario específico
                 </p>
               </div>
@@ -889,7 +889,7 @@ export default function CalendarioClient({
                   </p>
                   {checkinStatus.coverage_status === "not_checked_in" && (
                     <>
-                      <p className="text-[13px]" style={{ color: "var(--text-2)" }}>
+                      <p className="text-[13.5px]" style={{ color: "var(--text-2)" }}>
                         No has iniciado cobertura
                       </p>
                       {gpsError && (
@@ -898,7 +898,7 @@ export default function CalendarioClient({
                         </p>
                       )}
                       {gpsCoords && (
-                        <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>
+                        <p className="text-[12px] mt-1" style={{ color: "var(--text-3)" }}>
                           GPS: {gpsCoords.lat.toFixed(4)}, {gpsCoords.lng.toFixed(4)}
                         </p>
                       )}
@@ -906,7 +906,7 @@ export default function CalendarioClient({
                   )}
                   {checkinStatus.coverage_status === "in_coverage" && (
                     <>
-                      <p className="text-[13px] font-semibold" style={{ color: "var(--ok)" }}>
+                      <p className="text-[13.5px] font-semibold" style={{ color: "var(--ok)" }}>
                         ✓ En cobertura
                       </p>
                       <p className="text-[12px] mt-1" style={{ color: "var(--text-2)" }}>
@@ -921,7 +921,7 @@ export default function CalendarioClient({
                   )}
                   {checkinStatus.coverage_status === "coverage_completed" && (
                     <>
-                      <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>
+                      <p className="text-[13.5px] font-semibold" style={{ color: "var(--text-2)" }}>
                         ✓ Cobertura completada
                       </p>
                       <p className="text-[12px] mt-1" style={{ color: "var(--text-2)" }}>
@@ -940,7 +940,7 @@ export default function CalendarioClient({
                 </div>
               ) : (
                 <div className="rounded-lg p-4" style={{ background: "var(--warn-tint)" }}>
-                  <p className="text-[13px]" style={{ color: "var(--warn)" }}>
+                  <p className="text-[13.5px]" style={{ color: "var(--warn)" }}>
                     No estás asignado como participante de este evento
                   </p>
                 </div>
@@ -977,7 +977,7 @@ export default function CalendarioClient({
             </>
           ) : (
             <div className="text-center py-4">
-              <p className="text-[13px]" style={{ color: "var(--text-3)" }}>
+              <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>
                 Cargando estado…
               </p>
             </div>

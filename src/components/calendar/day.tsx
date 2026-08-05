@@ -135,7 +135,7 @@ export function DayView({
                 >
                   <span className="block text-[12px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{ev.title}</span>
                   {height > 40 && (
-                    <span className="block text-[11px] truncate mt-0.5" style={{ color: "var(--text-2)" }}>{eventLabel(ev.kind)}</span>
+                    <span className="block text-[12px] truncate mt-0.5" style={{ color: "var(--text-2)" }}>{eventLabel(ev.kind)}</span>
                   )}
                 </button>
               );
@@ -155,7 +155,7 @@ export function DayView({
             </svg>
           </div>
           <p className="text-[16px] font-semibold text-text-1 mb-1">Tu día está libre</p>
-          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>No hay eventos programados para hoy.</p>
+          <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>No hay eventos programados para hoy.</p>
         </div>
       )}
     </div>

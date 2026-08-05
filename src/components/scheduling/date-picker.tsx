@@ -236,7 +236,7 @@ export function DateRangeCalendar({
       style={{ borderRadius: 24, border: "0.5px solid var(--border)", background: "var(--surface)", padding: "24px 24px 18px" }}>
       <DateGrid ym={ym} onYm={setYm} range={{ start, end } satisfies RangeState} isBlocked={isBlocked} onPick={click} />
       {legend && (
-        <div className="flex flex-wrap items-center gap-3 pt-4 text-[11.5px]" style={{ color: "var(--text-3)" }}>
+        <div className="flex flex-wrap items-center gap-3 pt-4 text-[12px]" style={{ color: "var(--text-3)" }}>
           <span className="flex items-center gap-1.5">
             <i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "var(--accent)" }} /> Seleccionado
           </span>

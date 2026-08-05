@@ -54,8 +54,9 @@
      "a ojo" pantalla por pantalla. Esta escala no inventa números nuevos:
      toma los tamaños que YA existen y les da nombre, para que el próximo
      componente nuevo tenga de dónde tomar en vez de escribir otro más.
-     Retrofit de lo existente a estos tokens queda para FASE W2/W3 — esta
-     ronda solo pone la base. */
+     Retrofit W2/W3 aplicado (2026-08-05): los tamaños sueltos se
+     normalizaron a la escala (ver docs/design/TYPOGRAPHY.md — excepciones
+     deliberadas: <11px micro-densidad del calendario y ≥34px tier hero). */
   --fs-2xs: 12px;
   --fs-xs: 12px;
   --fs-sm: 12px;
@@ -277,7 +278,7 @@ body {
 .btn-tertiary:hover { background: var(--surface-2); color: var(--text-1); }
 .btn-tertiary:disabled { opacity: .45; }
 
-.pill { @apply text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap; }
+.pill { @apply text-2xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap; }
 .field-input {
   @apply w-full rounded-sm px-3.5 py-3 text-[15px] outline-none;
   border: 1px solid var(--border-2);
@@ -496,6 +497,9 @@ html{ scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
   animation:nx-ripple-grow .55s var(--ease) forwards;
 }
 @keyframes nx-ripple-grow{ to{ transform:scale(1); opacity:0; } }
+@media (prefers-reduced-motion: reduce){
+  .nx-ripple{ animation:none; opacity:0; }
+}
 
 /* ── Toast de error/atención: pequeño shake para diferenciar del éxito ── */
 .nx-toast-shake{ animation: nx-shake .42s cubic-bezier(.36,.07,.19,.97) both; }

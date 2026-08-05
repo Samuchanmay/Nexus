@@ -99,7 +99,7 @@ function MfaRow({ color, role }: { color: string; role: string }) {
             </button>
           )}
           {status === "on" && required && (
-            <span className="ml-auto text-[11px]" style={{ color: "var(--text-3)" }}>Obligatoria para tu rol</span>
+            <span className="ml-auto text-[12px]" style={{ color: "var(--text-3)" }}>Obligatoria para tu rol</span>
           )}
         </div>
       </InfoRow>
@@ -252,7 +252,7 @@ export function ProfileModal({
               onChange={(e) => { const f = e.target.files?.[0]; if (f) setCropFile(f); e.target.value = ""; }}
             />
           </div>
-          <p className="text-[17px] font-bold text-text-1 mt-2.5">{name}</p>
+          <p className="text-[16px] font-bold text-text-1 mt-2.5">{name}</p>
           <span className="mt-1 mb-4 px-2.5 py-0.5 rounded-full text-[12px] font-semibold"
             style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}>
             {(data?.honorific ? `${data.honorific} ` : "") + (data?.title || roleLabel)}
@@ -328,8 +328,8 @@ export function ProfileModal({
 
         <div className="flex items-center justify-end gap-2 px-5 h-16 border-t border-border">
           {saved && <span className="text-[12px] font-semibold mr-auto flex items-center gap-1" style={{ color: "var(--ok)" }}><Icon name="check" size={12} /> Guardado</span>}
-          <button onClick={onClose} className="btn-secondary h-9 px-4 text-[13px]">Cerrar</button>
-          <button onClick={save} disabled={saving || loading} className="btn-primary h-9 px-4 text-[13px]">
+          <button onClick={onClose} className="btn-secondary h-9 px-4 text-[13.5px]">Cerrar</button>
+          <button onClick={save} disabled={saving || loading} className="btn-primary h-9 px-4 text-[13.5px]">
             {saving ? "Guardando…" : "Guardar"}
           </button>
         </div>

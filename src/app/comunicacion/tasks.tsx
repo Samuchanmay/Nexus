@@ -345,7 +345,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
               </span>
             )}
           </div>
-          <p className="text-[13px] text-text-3">
+          <p className="text-[13.5px] text-text-3">
             {assignments.length} tarea{assignments.length !== 1 ? "s" : ""} · {inProgress} en curso · {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""}
           </p>
         </div>
@@ -404,7 +404,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
                   <span className={`shrink-0 ${m.animated ? "nx-msg-icon-bounce" : ""}`} style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
                     <Icon name={m.icon} size={16} />
                   </span>
-                  <p className="text-[13px] font-semibold flex-1"
+                  <p className="text-[13.5px] font-semibold flex-1"
                     style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-1)" }}>
                     {m.text}
                   </p>
@@ -425,7 +425,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
               color: d.today ? "#fff" : "var(--text-2)",
             }}>
             <p className="text-[12px] font-semibold opacity-80">{d.l}</p>
-            <p className="text-[17px] font-bold tabular-nums mt-1">{d.n}</p>
+            <p className="text-[16px] font-bold tabular-nums mt-1">{d.n}</p>
             {d.has && !d.today && <span className="block mx-auto mt-1.5 h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />}
           </Link>
         ))}
@@ -440,8 +440,8 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
               {activeTask ? "En curso ahora" : "En pausa"}
             </p>
           </div>
-          <h3 className="text-[17px] font-bold text-text-1">{current.title}</h3>
-          <p className="text-[13px] text-text-3 mt-0.5">
+          <h3 className="text-[16px] font-bold text-text-1">{current.title}</h3>
+          <p className="text-[13.5px] text-text-3 mt-0.5">
             {typeLabel[current.type] ?? current.type}
             {current.requester ? ` · ${current.requester}` : ""}
           </p>
@@ -531,7 +531,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
       {/* Comenzar jornada rápido si aún no hay entrada hoy */}
       {!day.hasEntry && (
         <Link href="/fichar"
-          className="btn-primary inline-flex items-center gap-1.5 h-9 px-4 text-[13px]">
+          className="btn-primary inline-flex items-center gap-1.5 h-9 px-4 text-[13.5px]">
           <Icon name="clock" size={15} /> Comenzar jornada
         </Link>
       )}

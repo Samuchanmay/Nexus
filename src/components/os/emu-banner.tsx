@@ -137,7 +137,7 @@ export function EmuBanner({ userId, role }: { userId: string; role: string }) {
         </span>
         <p className="text-[12.5px] font-semibold flex-1 min-w-0 truncate">{decision.message}</p>
         {decision.offerAutoRemind && (
-          <span className="hidden sm:inline text-[11px] shrink-0" style={{ color: "var(--text-3)" }} title="Se te ha recordado varias veces">
+          <span className="hidden sm:inline text-[12px] shrink-0" style={{ color: "var(--text-3)" }} title="Se te ha recordado varias veces">
             · insistente
           </span>
         )}

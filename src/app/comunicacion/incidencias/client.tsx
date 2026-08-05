@@ -43,7 +43,7 @@ export default function IncidenciasClient({ userId, incidents }: { userId: strin
       </header>
 
       <button onClick={() => setOpen(true)}
-        className="btn-primary btn-ok w-full py-3.5 text-[14.5px] mb-6 flex items-center justify-center gap-2">
+        className="btn-primary btn-ok w-full py-3.5 text-[14px] mb-6 flex items-center justify-center gap-2">
         <IconPlus className="w-4 h-4" /> Nueva incidencia
       </button>
 

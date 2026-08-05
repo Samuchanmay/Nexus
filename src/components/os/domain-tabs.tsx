@@ -26,9 +26,9 @@ export function DomainTabs({ domain, role }: { domain: string; role: Role }) {
         const on = pathname === v.href || pathname.startsWith(v.href + "/");
         return (
           <Link
-            key={v.key} href={v.href} role="tab" aria-selected={on}
+            key={v.key} href={v.href} role="tab" aria-selected={on} data-ripple
             className={cx(
-              "flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors shrink-0",
+              "flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[13.5px] font-semibold whitespace-nowrap transition-colors shrink-0",
               on ? "bg-accent text-white shadow-sm" : "text-text-2 hover:bg-hover"
             )}
           >

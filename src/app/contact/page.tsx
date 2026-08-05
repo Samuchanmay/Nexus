@@ -19,7 +19,7 @@ export default function ContactPage() {
       <div className="relative z-[1] w-full max-w-[520px] py-8">
         <div className="flex items-center gap-3 mb-6 justify-center">
           <EmetMark size={36} />
-          <p className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>EMET</p>
+          <p className="text-[13.5px] font-semibold" style={{ color: "var(--text-2)" }}>EMET</p>
         </div>
 
         <div className="card p-6 sm:p-8">
@@ -28,7 +28,7 @@ export default function ContactPage() {
             ¿Preguntas sobre EMET? Escríbenos y te respondemos lo antes posible.
           </p>
 
-          <p className="text-[13px] mb-6 text-center rounded-sm px-4 py-3" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+          <p className="text-[13.5px] mb-6 text-center rounded-sm px-4 py-3" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
             Correo directo:{" "}
             <a href="mailto:samuel.chan@cert.edu.mx" style={{ color: "var(--accent)" }}>
               samuel.chan@cert.edu.mx
@@ -60,12 +60,12 @@ export default function ContactPage() {
                 style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }}
               />
             </label>
-            <button type="submit" className="btn-primary w-full py-3 text-[14.5px] font-semibold">
+            <button type="submit" className="btn-primary w-full py-3 text-[14px] font-semibold">
               Enviar mensaje
             </button>
           </form>
 
-          <p className="text-[11.5px] mt-5 text-center" style={{ color: "var(--text-2)" }}>
+          <p className="text-[12px] mt-5 text-center" style={{ color: "var(--text-2)" }}>
             Al enviar, se abrirá tu cliente de correo con el mensaje ya redactado.
           </p>
         </div>

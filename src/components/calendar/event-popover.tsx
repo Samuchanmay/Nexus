@@ -63,7 +63,7 @@ export function DayPopover({
         </div>
         <div className="px-3 pb-4 flex flex-col gap-1">
           {events.length === 0 && (
-            <p className="text-[13px] py-4 text-center" style={{ color: "var(--text-3)" }}>Sin eventos este día.</p>
+            <p className="text-[13.5px] py-4 text-center" style={{ color: "var(--text-3)" }}>Sin eventos este día.</p>
           )}
           {events.map((ev) => (
             <button

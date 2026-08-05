@@ -154,7 +154,7 @@ export function ConversationSearch({
                   <Icon name="search" size={14} />
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[11.5px] font-bold" style={{ color: "var(--text-2)" }}>{h.sender_name}</span>
+                  <span className="block text-[12px] font-bold" style={{ color: "var(--text-2)" }}>{h.sender_name}</span>
                   <span className="block text-[12.5px] leading-snug truncate" style={{ color: "var(--text-1)" }}>{h.content}</span>
                 </span>
                 <span className="text-[10.5px] shrink-0 pt-0.5" style={{ color: "var(--text-3)" }}>{timeOnly(h.created_at)}</span>

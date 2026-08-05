@@ -422,7 +422,7 @@ export default function ChatShell({
             <div className="px-4 md:px-5 pt-4 md:pt-6 pb-4 shrink-0 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-[20px] font-bold tracking-tight">Chat</p>
+                  <p className="text-[19px] font-bold tracking-tight">Chat</p>
                   <p className="text-[12px]" style={{ color: "var(--text-2)" }}>Mensajes con tu equipo</p>
                 </div>
               </div>
@@ -543,14 +543,14 @@ export default function ChatShell({
                   {filteredConversations.map(renderRow)}
 
                   {filteredConversations.length === 0 && messageHits.length === 0 && (
-                    <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
+                    <p className="text-[13.5px] text-center py-8" style={{ color: "var(--text-3)" }}>
                       {search ? `Nadie coincide con "${search}"` : "No hay conversaciones aquí."}
                     </p>
                   )}
 
                   {messageHits.length > 0 && (
                     <div className="pt-3">
-                      <p className="text-[11px] font-bold uppercase tracking-wide px-2 pb-1.5" style={{ color: "var(--text-3)" }}>Mensajes</p>
+                      <p className="text-[12px] font-bold uppercase tracking-wide px-2 pb-1.5" style={{ color: "var(--text-3)" }}>Mensajes</p>
                       {messageHits.map((hit) => (
                         <button
                           key={hit.id}
@@ -662,20 +662,20 @@ function ChatEmptyState({ onNew, onNewGroup, onFocusSearch }: {
           <button
             onClick={onNew}
             data-ripple
-            className="nx-new-btn h-10 px-4 rounded-full flex items-center gap-2 text-[13px] font-semibold text-white cursor-pointer"
+            className="nx-new-btn h-10 px-4 rounded-full flex items-center gap-2 text-[13.5px] font-semibold text-white cursor-pointer"
           >
             <Icon name="plus" size={15} aria-hidden /> Crear chat
           </button>
           <button
             onClick={onFocusSearch}
-            className="h-10 px-4 rounded-full flex items-center gap-2 text-[13px] font-semibold cursor-pointer transition-all duration-150 hover:bg-hover active:scale-[.97]"
+            className="h-10 px-4 rounded-full flex items-center gap-2 text-[13.5px] font-semibold cursor-pointer transition-all duration-150 hover:bg-hover active:scale-[.97]"
             style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
           >
             <Icon name="search" size={14} aria-hidden /> Buscar compañero
           </button>
           <button
             onClick={onNewGroup}
-            className="h-10 px-4 rounded-full flex items-center gap-2 text-[13px] font-semibold cursor-pointer transition-all duration-150 hover:bg-hover active:scale-[.97]"
+            className="h-10 px-4 rounded-full flex items-center gap-2 text-[13.5px] font-semibold cursor-pointer transition-all duration-150 hover:bg-hover active:scale-[.97]"
             style={{ background: "var(--surface-2)", color: "var(--text-1)" }}
           >
             <Icon name="users" size={14} aria-hidden /> Crear grupo
@@ -788,7 +788,7 @@ function NewConversationSheet({
           />
         ))}
         {filtered.length === 0 && (
-          <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>
+          <p className="text-[13.5px] text-center py-8" style={{ color: "var(--text-3)" }}>
             Nadie coincide con &ldquo;{search}&rdquo;
           </p>
         )}

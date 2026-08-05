@@ -33,7 +33,7 @@ function ActionButton({ icon, label, background, onClick }: {
       style={{ width: ACTION_W, background }}
     >
       <Icon name={icon} size={20} aria-hidden />
-      <span className="text-[11px] font-semibold leading-tight select-none">{label}</span>
+      <span className="text-[12px] font-semibold leading-tight select-none">{label}</span>
     </button>
   );
 }
@@ -123,12 +123,12 @@ export function ConversationRow({
             <p className={`text-[15px] truncate ${unread ? "font-bold" : "font-semibold"}`}>{name}</p>
           </div>
           {typingLabel ? (
-            <p className="text-[13px] leading-snug truncate inline-flex items-center" style={{ color: "var(--accent)" }}>{typingLabel}
+            <p className="text-[13.5px] leading-snug truncate inline-flex items-center" style={{ color: "var(--accent)" }}>{typingLabel}
               {recording ? <RecordingDot /> : <TypingDots />}
             </p>
           ) : (
             <p
-              className="text-[13px] leading-snug truncate"
+              className="text-[13.5px] leading-snug truncate"
               style={{ color: unread ? "var(--text-2)" : "var(--text-3)" }}
             >
               {preview}
@@ -136,7 +136,7 @@ export function ConversationRow({
           )}
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0 self-start pt-0.5">
-          <span className="text-[11.5px]" style={{ color: unread ? "var(--accent)" : "var(--text-3)" }}>{time}</span>
+          <span className="text-[12px]" style={{ color: unread ? "var(--accent)" : "var(--text-3)" }}>{time}</span>
           {unread && (
             unreadCount > 0 ? (
               <span

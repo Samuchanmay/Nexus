@@ -50,7 +50,7 @@ export function CalendarRightPanel({
         <div className="flex items-center justify-between mb-2">
           <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--accent)" }}>Hoy</p>
           {todayEvents.length > 0 && (
-            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ color: "var(--accent)", background: "var(--accent-tint)" }}>
+            <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ color: "var(--accent)", background: "var(--accent-tint)" }}>
               {todayEvents.length}
             </span>
           )}
@@ -63,7 +63,7 @@ export function CalendarRightPanel({
               <button key={ev.id} type="button" onClick={() => onEventClick?.(ev)}
                 className="flex items-center gap-2.5 text-left px-2 py-2 rounded-[8px] border transition-colors hover:bg-hover"
                 style={{ borderColor: "var(--border)" }}>
-                <span className="w-9 shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: "var(--text-3)" }}>
+                <span className="w-9 shrink-0 text-[12px] font-semibold tabular-nums" style={{ color: "var(--text-3)" }}>
                   {ev.allDay ? "" : ev.start.slice(11, 16)}
                 </span>
                 <span className="w-1 self-stretch rounded-full shrink-0" style={{ background: eventColor(ev.kind), minHeight: 14 }} />
@@ -80,7 +80,7 @@ export function CalendarRightPanel({
         <div className="flex items-center justify-between mb-2">
           <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Próximos</p>
           {upcoming.length > 0 && (
-            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ color: "var(--text-2)", background: "var(--surface-2)" }}>
+            <span className="text-[12px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ color: "var(--text-2)", background: "var(--surface-2)" }}>
               {upcoming.length}
             </span>
           )}
@@ -93,13 +93,13 @@ export function CalendarRightPanel({
               <button key={ev.id} type="button" onClick={() => onEventClick?.(ev)}
                 className="flex items-center gap-2.5 text-left px-2 py-2 rounded-[8px] border transition-colors hover:bg-hover"
                 style={{ borderColor: "var(--border)" }}>
-                <span className="w-9 shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: "var(--text-3)" }}>
+                <span className="w-9 shrink-0 text-[12px] font-semibold tabular-nums" style={{ color: "var(--text-3)" }}>
                   {ev.start.slice(11, 16)}
                 </span>
                 <span className="w-1 self-stretch rounded-full shrink-0" style={{ background: eventColor(ev.kind), minHeight: 14 }} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[12.5px] font-semibold truncate">{ev.title}</span>
-                  <span className="block text-[11px] capitalize" style={{ color: "var(--text-2)" }}>
+                  <span className="block text-[12px] capitalize" style={{ color: "var(--text-2)" }}>
                     {dayLongLabel(ev.start.slice(0, 10))} · {eventLabel(ev.kind)}
                   </span>
                 </span>

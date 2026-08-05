@@ -134,7 +134,7 @@ export function SlidingSegments({ options, value, onChange, badge }: {
           style={{ color: value === o ? "var(--text-1)" : "var(--text-2)" }}>
           {o}
           {badge?.(o) != null && (
-            <span className="text-[11px] font-bold tabular-nums min-w-[18px] h-[18px] px-1 rounded-full grid place-items-center"
+            <span className="text-[12px] font-bold tabular-nums min-w-[18px] h-[18px] px-1 rounded-full grid place-items-center"
               style={{ background: value === o ? "var(--accent-tint)" : "var(--surface-3)", color: value === o ? "var(--accent)" : "var(--text-3)" }}>
               {badge!(o)}
             </span>
@@ -318,7 +318,7 @@ export function MenuItem({ icon, children, onClick, danger, href, download }: {
   icon?: React.ReactNode; children: React.ReactNode; onClick?: () => void; danger?: boolean;
   href?: string; download?: string;
 }) {
-  const cls = "w-full flex items-center gap-2.5 px-3.5 h-11 text-[13px] font-semibold text-left transition-colors hover:bg-hover";
+  const cls = "w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-left transition-colors hover:bg-hover";
   const style = { color: danger ? "var(--danger)" : "var(--text-1)" };
   if (href) {
     return <a href={href} download={download} onClick={onClick} className={cls} style={style}>{icon}{children}</a>;
@@ -442,7 +442,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer }: {
           <div className="w-[34px] h-[5px] rounded-[3px] mx-auto mt-3" style={{ background: "var(--surface-3)" }} />
           <div className="flex items-center justify-between px-5 pt-4">
             <h2 className="text-[19px] font-bold tracking-tight">{title}</h2>
-            {subtitle && <p className="text-[13px] mt-1" style={{ color: "var(--text-2)" }}>{subtitle}</p>}
+            {subtitle && <p className="text-[13.5px] mt-1" style={{ color: "var(--text-2)" }}>{subtitle}</p>}
           </div>
         </div>
         <div className={footer ? "px-5 pt-4 pb-4 overflow-y-auto flex-1 min-h-0" : "px-5 pt-4"}>{children}</div>

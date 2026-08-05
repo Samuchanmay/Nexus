@@ -169,13 +169,13 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                     <div className="flex items-center justify-between mb-2.5">
                       <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: presence.color }} />
-                        <span className="text-[13px] font-bold" style={{ color: "var(--text-2)" }}>Hoy · {presence.label}</span>
+                        <span className="text-[13.5px] font-bold" style={{ color: "var(--text-2)" }}>Hoy · {presence.label}</span>
                       </div>
                       <span className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
                         {new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
                       </span>
                     </div>
-                    <p className="text-[30px] font-bold tabular-nums leading-none">
+                    <p className="text-[28px] font-bold tabular-nums leading-none">
                       {sel.today.noRegistroSalida ? "—" : sel.today.firstIn ? fmtMin(sel.today.totalMin) : "—"}
                     </p>
                     <div className="mt-3">
@@ -196,18 +196,18 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
 
             {/* Tareas activas */}
             <section>
-              <h3 className="text-[13px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
+              <h3 className="text-[13.5px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
                 Tareas activas ({sel.tasks.length})
               </h3>
               {sel.tasks.length === 0
-                ? <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin tareas activas — disponible para asignar</p>
+                ? <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>Sin tareas activas — disponible para asignar</p>
                 : (
                   <div className="flex flex-col gap-2">
                     {sel.tasks.map((t, i) => (
                       <div key={i} className="rounded-sm px-3.5 py-2.5 flex items-center gap-2"
                         style={{ background: "var(--surface-2)" }}>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold truncate flex items-center gap-1">
+                          <p className="text-[13.5px] font-semibold truncate flex items-center gap-1">
                             {t.is_lead && <Icon name="star" size={12} style={{ color: "var(--warn)" }} />}
                             {t.title}
                           </p>
@@ -226,15 +226,15 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
 
             {/* Vacaciones próximas */}
             <section>
-              <h3 className="text-[13px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
+              <h3 className="text-[13.5px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
                 Vacaciones próximas
               </h3>
               {sel.upcomingVacs.length === 0
-                ? <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin vacaciones programadas</p>
+                ? <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>Sin vacaciones programadas</p>
                 : (
                   <div className="flex flex-col gap-1.5">
                     {sel.upcomingVacs.map((v, i) => (
-                      <div key={i} className="flex items-center justify-between text-[13px]">
+                      <div key={i} className="flex items-center justify-between text-[13.5px]">
                         <span className="tabular-nums">{dmy(v.start_date)} → {dmy(v.end_date)}</span>
                         <Pill tone={v.status === "Aprobada" ? "ok" : "warn"}>{v.status}</Pill>
                       </div>
@@ -246,12 +246,12 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
             {/* Incidencias pendientes */}
             {sel.pendingIncs.length > 0 && (
               <section>
-                <h3 className="text-[13px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
+                <h3 className="text-[13.5px] font-bold mb-2.5" style={{ color: "var(--text-3)" }}>
                   Incidencias pendientes
                 </h3>
                 <div className="flex flex-col gap-1.5">
                   {sel.pendingIncs.map((inc, i) => (
-                    <div key={i} className="flex items-center justify-between text-[13px]">
+                    <div key={i} className="flex items-center justify-between text-[13.5px]">
                       <span>{KIND_LABELS[inc.kind]} · <span className="tabular-nums">{dmy(inc.start_date)}{inc.end_date !== inc.start_date ? ` → ${dmy(inc.end_date)}` : ""}</span></span>
                       <Pill tone={INCIDENT_TONE[inc.status]}>{inc.status}</Pill>
                     </div>

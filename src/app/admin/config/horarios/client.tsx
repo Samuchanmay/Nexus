@@ -181,7 +181,7 @@ export default function HorariosClient({ team, schedules, adminId, embedded }: {
                 right={
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      <p className="text-[13px] font-bold tabular-nums">{fmtTime(current.start_time)}</p>
+                      <p className="text-[13.5px] font-bold tabular-nums">{fmtTime(current.start_time)}</p>
                       <p className="text-[12px]" style={{ color: isOverride ? "var(--accent)" : "var(--text-3)" }}>
                         {fmtMin(current.target_min)}{isOverride ? " · temporal" : ""}
                       </p>

@@ -57,13 +57,13 @@ export function CalendarHeader({
 
   const today = onToday ? (
     <button type="button" onClick={onToday}
-      className="h-9 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover active:scale-95"
+      className="h-9 px-4 rounded-lg text-[13.5px] font-semibold transition-all duration-200 hover:bg-hover active:scale-95"
       style={{ color: "var(--text-2)", background: "var(--surface-2)" }}>
       Hoy
     </button>
   ) : todayHref ? (
     <Link href={todayHref}
-      className="h-9 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover"
+      className="h-9 px-4 rounded-lg text-[13.5px] font-semibold transition-all duration-200 hover:bg-hover"
       style={{ color: "var(--text-2)", background: "var(--surface-2)" }}>
       Hoy
     </Link>
@@ -74,7 +74,7 @@ export function CalendarHeader({
       {/* Barra superior: Título + Navegación */}
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-[32px] font-bold tracking-tight capitalize text-text-1 leading-none" aria-live="polite">
+          <h1 className="text-[28px] font-bold tracking-tight capitalize text-text-1 leading-none" aria-live="polite">
             {title}
           </h1>
           {subtitle && (

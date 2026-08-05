@@ -95,7 +95,7 @@ export default function EstadosClient({ states, adminId, embedded }: { states: E
                     style={{ background: `color-mix(in srgb, ${row.color} 16%, transparent)`, color: row.color }}>
                     <Icon name="clock" size={15} />
                   </span>
-                  <p className="text-[14.5px] font-bold truncate">{row.nombre}</p>
+                  <p className="text-[14px] font-bold truncate">{row.nombre}</p>
                   <label className="relative w-5 h-5 rounded-sm border shrink-0 cursor-pointer overflow-hidden"
                     style={{ borderColor: "var(--border)" }} title="Cambiar color">
                     <span className="absolute inset-0" style={{ background: row.color }} />
@@ -146,7 +146,7 @@ export default function EstadosClient({ states, adminId, embedded }: { states: E
       </div>
 
       <div className="card p-5">
-        <p className="text-[13px] font-bold mb-3">Agregar estado nuevo</p>
+        <p className="text-[13.5px] font-bold mb-3">Agregar estado nuevo</p>
         <div className="grid md:grid-cols-[1fr_80px_auto] gap-2.5">
           <input className="field-input" placeholder="Nombre del estado"
             value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />

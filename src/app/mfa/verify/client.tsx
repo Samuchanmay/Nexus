@@ -74,17 +74,17 @@ export default function MfaVerifyClient({ redirectTo }: { redirectTo: string }) 
           style={{ background: "linear-gradient(150deg,#7B7AFF,#5856D6)", boxShadow: "0 8px 24px rgba(88,86,214,.35)" }}>
           <Icon name="lock" size={26} />
         </div>
-        <h1 className="text-[22px] font-bold tracking-tight text-center mb-1">Verifica tu identidad</h1>
+        <h1 className="text-[21px] font-bold tracking-tight text-center mb-1">Verifica tu identidad</h1>
         <p className="text-[13.5px] text-center mb-6" style={{ color: "var(--text-2)" }}>
           {mode === "totp" ? "Escribe el código de tu app de autenticación." : "Escribe uno de tus códigos de respaldo."}
         </p>
 
         {loading ? (
-          <p className="text-[13px] text-center" style={{ color: "var(--text-3)" }}>Cargando…</p>
+          <p className="text-[13.5px] text-center" style={{ color: "var(--text-3)" }}>Cargando…</p>
         ) : mode === "totp" ? (
           <div className="flex flex-col gap-4">
             <input
-              className="field-input text-center tracking-[0.3em] font-mono text-[18px]"
+              className="field-input text-center tracking-[0.3em] font-mono text-[19px]"
               inputMode="numeric" maxLength={6} placeholder="000000" autoFocus
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -111,7 +111,7 @@ export default function MfaVerifyClient({ redirectTo }: { redirectTo: string }) 
               onChange={(e) => setRecoveryCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && confirmRecovery()}
             />
-            <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
               Al usarlo, tu autenticador actual queda desactivado y tendrás que dar de alta uno nuevo.
             </p>
             {error && <p className="text-[12.5px]" style={{ color: "var(--danger)" }}>{error}</p>}

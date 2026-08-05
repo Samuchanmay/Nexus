@@ -53,7 +53,7 @@ const AREA_TIPO: Record<string, "coordinacion" | "departamento" | null> = {
     reales en vez de solo etiqueta de bloque de datos. */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-wide pt-3"
+    <p className="text-[12px] font-bold uppercase tracking-wide pt-3"
       style={{ color: "var(--text-3)", borderTop: "0.5px solid var(--border)" }}>
       {children}
     </p>
@@ -109,7 +109,7 @@ export default function EmpleadosClient({
         <IconUserPlus className="w-[18px] h-[18px]" />
       </button>
       <button onClick={() => { setAttemptedSave(false); setOpen(true); }} aria-label="Nuevo colaborador" title="Nuevo colaborador"
-        className="hidden sm:flex btn-primary h-8 px-3.5 text-[13px] items-center gap-1.5 shrink-0">
+        className="hidden sm:flex btn-primary h-8 px-3.5 text-[13.5px] items-center gap-1.5 shrink-0">
         <IconUserPlus className="w-3.5 h-3.5 shrink-0" /> Nuevo colaborador
       </button>
     </>
@@ -441,24 +441,24 @@ export default function EmpleadosClient({
             <div className="flex items-center gap-2 flex-wrap mt-1.5">
               {u.title && (
                 <span
-                  className="text-[13px] font-medium truncate max-w-[200px]"
+                  className="text-[13.5px] font-medium truncate max-w-[200px]"
                   style={{ color: "var(--text-2)" }}
                   title={u.title}
                 >{u.title}</span>
               )}
               {u.title && dept && (
-                <span className="text-[13px]" style={{ color: "var(--text-3)" }}>·</span>
+                <span className="text-[13.5px]" style={{ color: "var(--text-3)" }}>·</span>
               )}
               {dept && (
                 <span
-                  className="text-[13px] font-medium truncate max-w-[160px]"
+                  className="text-[13.5px] font-medium truncate max-w-[160px]"
                   style={{ color: "var(--text-3)" }}
                   title={dept}
                 >{dept}</span>
               )}
               {!u.onboarded && (
                 <span
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  className="inline-flex items-center gap-1 text-[12px] font-semibold px-2 py-0.5 rounded-full"
                   style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
                   title="Aún no ha iniciado sesión — perfil incompleto"
                 >
@@ -534,7 +534,7 @@ export default function EmpleadosClient({
           <p className="text-[14px] font-bold leading-tight text-text-1">
             {g.label}
           </p>
-          <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
+          <span className="text-[13.5px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
             {filtered.length}
           </span>
         </button>
@@ -546,12 +546,12 @@ export default function EmpleadosClient({
             <div className="p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-3 transition-opacity duration-200 items-start"
               style={{ opacity: isCollapsed ? 0 : 1 }}>
               {filtered.length === 0 ? (
-                <p className="text-[13px] py-3 sm:col-span-2" style={{ color: "var(--text-3)" }}>Sin registros</p>
+                <p className="text-[13.5px] py-3 sm:col-span-2" style={{ color: "var(--text-3)" }}>Sin registros</p>
               ) : toShow.map((u) => <Row key={u.id} u={u} />)}
               {hasMore && (
                 <button
                   onClick={() => setVisibleCounts((v) => ({ ...v, [g.label]: shown + PAGE_SIZE }))}
-                  className="btn-tertiary h-9 px-4 text-[13px] w-fit sm:col-span-2"
+                  className="btn-tertiary h-9 px-4 text-[13.5px] w-fit sm:col-span-2"
                 >
                   Mostrar más ({filtered.length - shown} restantes)
                 </button>
@@ -569,7 +569,7 @@ export default function EmpleadosClient({
       
       {/* Header compacto */}
       <header className="pt-6 pb-5">
-        <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Directorio</h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-text-1 leading-none">Directorio</h1>
         <div className="flex items-center gap-4 mt-3">
           <span className="flex items-center gap-1.5 text-[14px] font-medium" style={{ color: "var(--text-2)" }}>
             <span className="w-2 h-2 rounded-full" style={{ background: "var(--ok)" }} />
@@ -619,7 +619,7 @@ export default function EmpleadosClient({
             <button 
               key={c.key} 
               onClick={() => setRoleFilter(c.key)}
-              className="px-4 py-2 rounded-full text-[13px] font-semibold transition-all duration-200 shrink-0 whitespace-nowrap"
+              className="px-4 py-2 rounded-full text-[13.5px] font-semibold transition-all duration-200 shrink-0 whitespace-nowrap"
               style={roleFilter === c.key
                 ? { 
                     background: "var(--accent)", 
@@ -633,7 +633,7 @@ export default function EmpleadosClient({
                   }}
             >
               {c.label}
-              <span className="ml-1.5 text-[11px] opacity-70">{c.count}</span>
+              <span className="ml-1.5 text-[12px] opacity-70">{c.count}</span>
             </button>
           ))}
         </div>
@@ -871,14 +871,14 @@ export default function EmpleadosClient({
                     <IconBuilding className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                     <div className="min-w-0">
                       <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Departamento</p>
-                      <p className="text-[13px] font-semibold truncate">{(editing.area_id ? areas.find((a) => a.id === editing.area_id)?.nombre : editing.area) ?? "—"}</p>
+                      <p className="text-[13.5px] font-semibold truncate">{(editing.area_id ? areas.find((a) => a.id === editing.area_id)?.nombre : editing.area) ?? "—"}</p>
                     </div>
                   </div>
                   <a href={`mailto:${editing.email}`} className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm hover:bg-hover transition-colors" style={{ background: "var(--surface-2)" }}>
                     <IconMail className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                     <div className="min-w-0">
                       <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Correo</p>
-                      <p className="text-[13px] font-semibold truncate">{editing.email}</p>
+                      <p className="text-[13.5px] font-semibold truncate">{editing.email}</p>
                     </div>
                   </a>
                   <div className="grid grid-cols-2 gap-2">
@@ -886,14 +886,14 @@ export default function EmpleadosClient({
                       <IconPhone className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                       <div className="min-w-0">
                         <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Teléfono</p>
-                        <p className="text-[13px] font-semibold truncate">{editing.phone ?? "—"}</p>
+                        <p className="text-[13.5px] font-semibold truncate">{editing.phone ?? "—"}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm" style={{ background: "var(--surface-2)" }}>
                       <IconClipboard className="w-4 h-4 shrink-0 text-[var(--text-3)]" />
                       <div className="min-w-0">
                         <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Extensión</p>
-                        <p className="text-[13px] font-semibold truncate">{editing.extension ?? "—"}</p>
+                        <p className="text-[13.5px] font-semibold truncate">{editing.extension ?? "—"}</p>
                       </div>
                     </div>
                   </div>

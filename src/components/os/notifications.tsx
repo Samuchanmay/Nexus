@@ -329,7 +329,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                           </span>
                           <span className="flex-1 min-w-0">
                             <span className="flex items-center gap-1.5">
-                              <span className="block text-[13px] font-semibold text-text-1 truncate">{n.title}</span>
+                              <span className="block text-[13.5px] font-semibold text-text-1 truncate">{n.title}</span>
                               {!n.read && <span className="h-[6px] w-[6px] rounded-full shrink-0" style={{ background: "var(--accent)" }} />}
                             </span>
                             {n.body && <span className="block text-[12px] text-text-3 mt-0.5 line-clamp-2">{n.body}</span>}

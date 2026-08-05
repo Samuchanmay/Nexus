@@ -158,8 +158,8 @@ export function EditAttendanceSheet({
       <div className="card p-6 w-full max-w-md">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="text-[17px] font-bold">Corregir asistencia</p>
-            <p className="text-[13px] mt-0.5" style={{ color: "var(--text-2)" }}>{userName} · {date}</p>
+            <p className="text-[16px] font-bold">Corregir asistencia</p>
+            <p className="text-[13.5px] mt-0.5" style={{ color: "var(--text-2)" }}>{userName} · {date}</p>
           </div>
           <button
             onClick={onClose}
@@ -200,7 +200,7 @@ export function EditAttendanceSheet({
             <div className="rounded-m p-3 flex items-start gap-2" style={{ background: "var(--warn-tint)" }}>
               <Icon name="alert" size={16} className="shrink-0 mt-0.5" style={{ color: "var(--warn)" }} />
               <div className="flex-1">
-                <p className="text-[13px] font-semibold" style={{ color: "var(--warn)" }}>
+                <p className="text-[13.5px] font-semibold" style={{ color: "var(--warn)" }}>
                   Vas a cambiar el periodo del día (AM/PM)
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
@@ -231,7 +231,7 @@ export function EditAttendanceSheet({
               <p className="text-[12.5px] font-semibold" style={{ color: "var(--text-2)" }}>
                 Total trabajado
               </p>
-              <p className="text-[20px] font-bold tabular-nums mt-1" style={{ color: "var(--text-1)" }}>
+              <p className="text-[19px] font-bold tabular-nums mt-1" style={{ color: "var(--text-1)" }}>
                 {Math.floor(duracionMin / 60)}h {duracionMin % 60}m
               </p>
             </div>
@@ -241,7 +241,7 @@ export function EditAttendanceSheet({
             <div className="rounded-m p-3 flex items-start gap-2" style={{ background: "var(--danger-tint)" }}>
               <Icon name="alert" size={16} className="shrink-0 mt-0.5" style={{ color: "var(--danger)" }} />
               <div>
-                <p className="text-[13px] font-semibold" style={{ color: "var(--danger)" }}>
+                <p className="text-[13.5px] font-semibold" style={{ color: "var(--danger)" }}>
                   La salida es anterior a la entrada
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
@@ -255,7 +255,7 @@ export function EditAttendanceSheet({
             <div className="rounded-m p-3 flex items-start gap-2" style={{ background: "var(--warn-tint)" }}>
               <Icon name="alert" size={16} className="shrink-0 mt-0.5" style={{ color: "var(--warn)" }} />
               <div>
-                <p className="text-[13px] font-semibold" style={{ color: "var(--warn)" }}>
+                <p className="text-[13.5px] font-semibold" style={{ color: "var(--warn)" }}>
                   Jornada mayor a 16 horas
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>
@@ -269,7 +269,7 @@ export function EditAttendanceSheet({
             <div className="rounded-m p-3 flex items-start gap-2" style={{ background: "var(--warn-tint)" }}>
               <Icon name="alert" size={16} className="shrink-0 mt-0.5" style={{ color: "var(--warn)" }} />
               <div>
-                <p className="text-[13px] font-semibold" style={{ color: "var(--warn)" }}>
+                <p className="text-[13.5px] font-semibold" style={{ color: "var(--warn)" }}>
                   Jornada menor a 15 minutos
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>

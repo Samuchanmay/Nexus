@@ -52,7 +52,7 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
     <>
       {/* Header compacto */}
       <header className="pt-6 pb-5">
-        <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Biblioteca</h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-text-1 leading-none">Biblioteca</h1>
         <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
           Todo el conocimiento generado por el equipo
         </p>
@@ -84,25 +84,25 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
       {/* Filtros discretos */}
       <div className="flex flex-wrap gap-2 mb-6">
         <button onClick={() => setTypeFilter("")}
-          className="text-[13px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
+          className="text-[13.5px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
           style={{
             background: typeFilter === "" ? "var(--accent)" : "var(--surface-2)",
             color: typeFilter === "" ? "#fff" : "var(--text-2)",
             boxShadow: typeFilter === "" ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
           }}>
           Todos
-          <span className="ml-1.5 text-[11px] opacity-70">{items.length}</span>
+          <span className="ml-1.5 text-[12px] opacity-70">{items.length}</span>
         </button>
         {types.filter((t) => counts.has(t.key)).map((t) => (
           <button key={t.key} onClick={() => setTypeFilter(t.key)}
-            className="text-[13px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
+            className="text-[13.5px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
             style={{
               background: typeFilter === t.key ? "var(--accent)" : "var(--surface-2)",
               color: typeFilter === t.key ? "#fff" : "var(--text-2)",
               boxShadow: typeFilter === t.key ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
             }}>
             {t.label}
-            <span className="ml-1.5 text-[11px] opacity-70">{counts.get(t.key)}</span>
+            <span className="ml-1.5 text-[12px] opacity-70">{counts.get(t.key)}</span>
           </button>
         ))}
       </div>
@@ -116,7 +116,7 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
           >
             <Icon name="book" size={32} className="text-text-3" />
           </div>
-          <h2 className="text-[18px] font-semibold text-text-1 mb-1">
+          <h2 className="text-[19px] font-semibold text-text-1 mb-1">
             {items.length === 0 ? "Aún no hay actividades archivadas" : "Sin resultados"}
           </h2>
           <p className="text-[14px] text-text-3 max-w-[360px] mx-auto">
@@ -157,8 +157,8 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
                         <span className="text-[12px] text-text-3">{r?.requester_area ?? "—"}</span>
                         {it.evidences.length > 0 && (
                           <>
-                            <span className="text-[11px] text-text-3">·</span>
-                            <span className="text-[11px] text-text-3">{it.evidences.length} evidencia{it.evidences.length === 1 ? "" : "s"}</span>
+                            <span className="text-[12px] text-text-3">·</span>
+                            <span className="text-[12px] text-text-3">{it.evidences.length} evidencia{it.evidences.length === 1 ? "" : "s"}</span>
                           </>
                         )}
                       </div>
@@ -180,19 +180,19 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
                     {lead ? (
                       <>
                         <Avatar name={lead.display_name} color={lead.nexus_color} avatarUrl={lead.avatar_url} size={24} birthday={isBirthdayToday(lead.birth_date, todayISO())} />
-                        <span className="text-[13px] font-medium text-text-2 truncate hidden lg:block">{lead.display_name}</span>
+                        <span className="text-[13.5px] font-medium text-text-2 truncate hidden lg:block">{lead.display_name}</span>
                       </>
                     ) : (
-                      <span className="text-[13px] text-text-3">—</span>
+                      <span className="text-[13.5px] text-text-3">—</span>
                     )}
                   </div>
 
                   {/* Fecha */}
                   <div className="flex items-center">
                     {it.deadline ? (
-                      <span className="text-[13px] font-medium text-text-2">{dmy(it.deadline)}</span>
+                      <span className="text-[13.5px] font-medium text-text-2">{dmy(it.deadline)}</span>
                     ) : (
-                      <span className="text-[13px] text-text-3">—</span>
+                      <span className="text-[13.5px] text-text-3">—</span>
                     )}
                   </div>
                 </div>

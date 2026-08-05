@@ -98,7 +98,7 @@ export default function GpsClient({ zones, devices, adminId, embedded }: { zones
 
       <div className="flex flex-col gap-2.5 mb-6">
         {zones.length === 0 && (
-          <div className="card p-4 text-[13px]" style={{ color: "var(--text-3)" }}>
+          <div className="card p-4 text-[13.5px]" style={{ color: "var(--text-3)" }}>
             No hay zonas configuradas todavía — mientras tanto se usa una zona de respaldo fija en el código.
           </div>
         )}
@@ -198,7 +198,7 @@ export default function GpsClient({ zones, devices, adminId, embedded }: { zones
       </div>
 
       <div className="card p-5">
-        <p className="text-[13px] font-bold mb-3">Agregar zona nueva</p>
+        <p className="text-[13.5px] font-bold mb-3">Agregar zona nueva</p>
         <div className="grid md:grid-cols-[1.3fr_1fr_1fr_90px_auto] gap-2.5">
           <input className="field-input" placeholder="Nombre (ej. Oficina Caucel)"
             value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />

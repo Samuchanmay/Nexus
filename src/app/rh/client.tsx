@@ -382,15 +382,15 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="card p-5 text-center">
-          <p className="text-[26px] font-bold tabular-nums">{totals.days}</p>
+          <p className="text-[28px] font-bold tabular-nums">{totals.days}</p>
           <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Días con registro</p>
         </div>
         <div className="card p-5 text-center">
-          <p className="text-[26px] font-bold tabular-nums">{fmtMin(totals.min)}</p>
+          <p className="text-[28px] font-bold tabular-nums">{fmtMin(totals.min)}</p>
           <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Horas del equipo</p>
         </div>
         <div className="card p-5 text-center">
-          <p className="text-[26px] font-bold tabular-nums" style={{ color: totals.extra > 0 ? "var(--ok)" : undefined }}>
+          <p className="text-[28px] font-bold tabular-nums" style={{ color: totals.extra > 0 ? "var(--ok)" : undefined }}>
             {totals.extra > 0 ? `+${fmtMin(totals.extra)}` : "—"}
           </p>
           <p className="text-[12px] font-semibold mt-0.5" style={{ color: "var(--text-3)" }}>Tiempo extra</p>
@@ -527,7 +527,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
             />
           </div>
           <button
-            className="btn-primary px-5 py-2.5 text-[13px]" disabled={!reportUserId}
+            className="btn-primary px-5 py-2.5 text-[13.5px]" disabled={!reportUserId}
             onClick={() => {
               const m = team.find((t) => t.id === reportUserId);
               if (m) printIndividualReport(m, vacations);
@@ -540,7 +540,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
             Resumen y movimientos de todo el equipo, listo para imprimir o guardar como PDF.
           </p>
           <button
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-semibold shrink-0"
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[13.5px] font-semibold shrink-0"
             style={{ background: "var(--purple-tint)", color: "var(--purple)" }}
             onClick={() => printTeamReport(team, vacations)}>
             <IconDownload className="w-3.5 h-3.5" /> Reporte general (todos)
@@ -571,7 +571,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
                     <div className="flex items-center gap-3">
                       <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={30} birthday={isBirthdayToday(v.users?.birth_date, todayISO())} />
                       <div>
-                        <p className="text-[13px] font-bold">{v.users?.full_name}</p>
+                        <p className="text-[13.5px] font-bold">{v.users?.full_name}</p>
                         <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)}</p>
                       </div>
                     </div>

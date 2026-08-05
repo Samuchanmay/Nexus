@@ -148,7 +148,7 @@ export function EmptyState({ icon, title, hint, action }: {
   return (
     <div className="card px-6 py-12 text-center">
       {icon && <div className="mx-auto mb-3 w-10 h-10 flex items-center justify-center" style={{ color: "var(--text-3)" }}>{icon}</div>}
-      <p className="text-[14.5px] font-semibold" style={{ color: "var(--text-2)" }}>{title}</p>
+      <p className="text-[14px] font-semibold" style={{ color: "var(--text-2)" }}>{title}</p>
       {hint && <p className="text-[12.5px] mt-1 max-w-[320px] mx-auto" style={{ color: "var(--text-3)" }}>{hint}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>

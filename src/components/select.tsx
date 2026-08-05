@@ -87,7 +87,7 @@ export function Select({
         </div>
         <div className="flex-1 overflow-y-auto nx-scroll px-2 pb-3">
           {filtered.length === 0 ? (
-            <p className="text-[13px] text-center py-8" style={{ color: "var(--text-3)" }}>{emptyLabel}</p>
+            <p className="text-[13.5px] text-center py-8" style={{ color: "var(--text-3)" }}>{emptyLabel}</p>
           ) : (
             filtered.map((o) => (
               <button

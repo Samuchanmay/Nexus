@@ -283,12 +283,12 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             value={selectedDate}
             onChange={handleDateChange}
             maxDate={today}
-            className="field-input px-3 py-2 text-[13px]"
+            className="field-input px-3 py-2 text-[13.5px]"
           />
           <div className="w-full sm:w-[300px] flex justify-end">
             {view === "tabla" && (
               <a href={dayCsvHref} download={`asistencia-${selectedDate}.csv`}
-                className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap flex items-center gap-1.5"
+                className="btn-secondary px-4 py-2.5 text-[13.5px] whitespace-nowrap flex items-center gap-1.5"
                 onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${selectedDate}.csv`); }}>
                 <IconDownload className="w-3.5 h-3.5" /> CSV del día
               </a>
@@ -296,7 +296,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             {view === "semana" && (
               <div className="flex items-center gap-2">
                 <XlsxWeeklyReportButton blocks={weekBlocks} adminId={adminId} />
-                <button className="btn-secondary px-4 py-2.5 text-[13px] whitespace-nowrap" disabled={sending} onClick={enviarReporte}>
+                <button className="btn-secondary px-4 py-2.5 text-[13.5px] whitespace-nowrap" disabled={sending} onClick={enviarReporte}>
                   {sending ? "Enviando…" : "Enviar ahora"}
                 </button>
               </div>
@@ -360,7 +360,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             label={`Envío automático los lunes ${reportEnabled ? "activado" : "desactivado"}`} />
           <div className="flex items-center gap-2 flex-1 min-w-[220px]">
             <input
-              className="field-input flex-1 text-[13px]" placeholder="correo@cert.edu.mx (deja vacío para el predeterminado)"
+              className="field-input flex-1 text-[13.5px]" placeholder="correo@cert.edu.mx (deja vacío para el predeterminado)"
               value={reportEmail} onChange={(e) => setReportEmail(e.target.value)}
               onBlur={() => { if (reportEmail !== reportSettings.email) saveReportSettings({ email: reportEmail }); }}
             />
@@ -383,7 +383,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                     status={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay).color} statusLabel={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay).label} />
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[14.5px] font-bold">{u.display_name}</p>
+                      <p className="text-[14px] font-bold">{u.display_name}</p>
                       {incidentsOf(day).length > 0 && (
                         <span title={incidentsOf(day).map((m) => `${REASON_LABEL[m.reason] ?? m.reason} · ${fmtTime(m.time)}`).join(", ")}
                           className="px-1.5 py-[1px] rounded-full text-[12px] font-bold"
@@ -423,7 +423,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                     const pct = day.targetMin > 0 ? Math.min(100, Math.round((day.totalMin / day.targetMin) * 100)) : 0;
                     return (
                       <div className="mb-3">
-                        <p className="text-[26px] font-bold tabular-nums leading-none">
+                        <p className="text-[28px] font-bold tabular-nums leading-none">
                           {day.noRegistroSalida ? "—" : day.firstIn ? fmtMin(day.totalMin) : "—"}
                         </p>
                         <div className="mt-2.5">
@@ -616,7 +616,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             </a>
           </div>
           {weekRows.length === 0 ? (
-            <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin registros en las últimas 8 semanas.</p>
+            <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>Sin registros en las últimas 8 semanas.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[12.5px]">
@@ -656,7 +656,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {block.days.map((d) => (
                                   <div key={d.date} className="rounded-m px-3 py-2" style={{ background: "var(--surface-2)" }}>
-                                    <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>{d.dayLabel} {dmy(d.date)}</p>
+                                    <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>{d.dayLabel} {dmy(d.date)}</p>
                                     {d.horasTrabajadas != null ? (
                                       <p className="text-[12.5px] font-semibold">{d.horasTrabajadas} h{d.horasExtra ? ` (+${d.horasExtra} extra)` : ""}</p>
                                     ) : (

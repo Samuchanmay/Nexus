@@ -97,7 +97,7 @@ export default function ConfigHub(props: {
     <>
       {/* Header compacto */}
       <header className="pt-6 pb-5">
-        <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Configuración</h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-text-1 leading-none">Configuración</h1>
         <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
           Administra los ajustes del sistema
         </p>
@@ -109,7 +109,7 @@ export default function ConfigHub(props: {
         <nav className={`flex-col gap-5 ${selected ? "hidden md:flex" : "flex"}`}>
           {GROUPS.map((group) => (
             <div key={group}>
-              <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-3" style={{ color: "var(--text-3)" }}>
+              <p className="text-[12px] font-bold uppercase tracking-wider mb-2 px-3" style={{ color: "var(--text-3)" }}>
                 {group}
               </p>
               <div className="flex flex-col gap-0.5">
@@ -123,7 +123,7 @@ export default function ConfigHub(props: {
                       : { color: "var(--text-2)" }}
                   >
                     <Icon name={s.icon} size={16} />
-                    <span className="text-[13px] font-semibold truncate flex-1">{s.title}</span>
+                    <span className="text-[13.5px] font-semibold truncate flex-1">{s.title}</span>
                     {selected === s.id && (
                       <Icon name="chevron" size={12} style={{ transform: "rotate(90deg)" }} />
                     )}
@@ -135,7 +135,7 @@ export default function ConfigHub(props: {
 
           {/* Otros accesos */}
           <div className="pt-4" style={{ borderTop: "1px solid var(--border)" }}>
-            <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-3" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px] font-bold uppercase tracking-wider mb-2 px-3" style={{ color: "var(--text-3)" }}>
               Otros accesos
             </p>
             <div className="flex flex-col gap-0.5">
@@ -147,7 +147,7 @@ export default function ConfigHub(props: {
                   style={{ color: "var(--text-2)" }}
                 >
                   <Icon name={it.icon} size={16} />
-                  <span className="text-[13px] font-semibold truncate flex-1">{it.title}</span>
+                  <span className="text-[13.5px] font-semibold truncate flex-1">{it.title}</span>
                 </Link>
               ))}
             </div>
@@ -174,8 +174,8 @@ export default function ConfigHub(props: {
                   <Icon name={active.icon} size={18} />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-[20px] font-bold text-text-1">{active.title}</h2>
-                  <p className="text-[13px] truncate" style={{ color: "var(--text-2)" }}>{active.desc}</p>
+                  <h2 className="text-[19px] font-bold text-text-1">{active.title}</h2>
+                  <p className="text-[13.5px] truncate" style={{ color: "var(--text-2)" }}>{active.desc}</p>
                 </div>
               </div>
             </div>

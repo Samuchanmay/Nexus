@@ -60,7 +60,7 @@ function MiniMonthHeatmap({
   return (
     <div>
       <button type="button" onClick={() => onMonthClick?.(ym)}
-        className="text-[13px] font-bold capitalize mb-2 px-2 py-1 rounded-lg transition-all hover:bg-hover"
+        className="text-[13.5px] font-bold capitalize mb-2 px-2 py-1 rounded-lg transition-all hover:bg-hover"
         style={isCurrentMonth ? { color: "var(--accent)" } : undefined}>
         {MONTHS[month - 1]}
       </button>

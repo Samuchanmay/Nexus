@@ -68,7 +68,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
       <header className="pt-6 pb-5">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Incidencias</h1>
+            <h1 className="text-[28px] font-bold tracking-tight text-text-1 leading-none">Incidencias</h1>
             <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
               Las incidencias autorizadas nunca generan falta
             </p>
@@ -91,34 +91,34 @@ export default function IncAdminClient({ incidents, team, adminId }: {
             <Icon name="clock" size={18} className="text-warn" />
           </div>
           <p className="text-[28px] font-bold tabular-nums text-text-1">{pending.length}</p>
-          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Pendientes</p>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Pendientes</p>
         </div>
         <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
           <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: "var(--ok-tint)" }}>
             <Icon name="check" size={18} className="text-ok" />
           </div>
           <p className="text-[28px] font-bold tabular-nums text-text-1">{incidents.filter(i => i.status === "Autorizado").length}</p>
-          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Autorizadas</p>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Autorizadas</p>
         </div>
         <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
           <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: "var(--danger-tint)" }}>
             <Icon name="x" size={18} className="text-danger" />
           </div>
           <p className="text-[28px] font-bold tabular-nums text-text-1">{incidents.filter(i => i.status === "Rechazado").length}</p>
-          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Rechazadas</p>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Rechazadas</p>
         </div>
         <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
           <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: "var(--accent-tint)" }}>
             <Icon name="calendar" size={18} className="text-accent" />
           </div>
           <p className="text-[28px] font-bold tabular-nums text-text-1">{incidents.length}</p>
-          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Este mes</p>
+          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Este mes</p>
         </div>
       </div>
 
       {/* Pendientes */}
       <div className="mb-8">
-        <h2 className="text-[18px] font-bold text-text-1 mb-4">
+        <h2 className="text-[19px] font-bold text-text-1 mb-4">
           Pendientes
           {pending.length > 0 && <span className="ml-2 text-[14px] font-semibold" style={{ color: "var(--text-3)" }}>({pending.length})</span>}
         </h2>
@@ -127,7 +127,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
             <div className="w-16 h-16 rounded-2xl grid place-items-center mb-4 mx-auto" style={{ background: "var(--ok-tint)" }}>
               <Icon name="check" size={32} className="text-ok" />
             </div>
-            <h3 className="text-[18px] font-semibold text-text-1 mb-1">Sin incidencias pendientes</h3>
+            <h3 className="text-[19px] font-semibold text-text-1 mb-1">Sin incidencias pendientes</h3>
             <p className="text-[14px] text-text-3 max-w-[360px] mx-auto">
               Las incidencias nuevas aparecerán aquí para revisión.
             </p>
@@ -143,20 +143,20 @@ export default function IncAdminClient({ incidents, team, adminId }: {
                       {KIND_LABELS[i.kind]}
                     </span>
                   </div>
-                  <p className="text-[13px]" style={{ color: "var(--text-2)" }}>
+                  <p className="text-[13.5px]" style={{ color: "var(--text-2)" }}>
                     {dmy(i.start_date)}{i.end_date !== i.start_date && ` → ${dmy(i.end_date)}`}
                     {i.note && ` · ${i.note}`}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button 
-                    className="h-9 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200"
+                    className="h-9 px-4 rounded-lg text-[13.5px] font-semibold transition-all duration-200"
                     style={{ background: "var(--danger-tint)", color: "var(--danger)" }}
                     onClick={() => decide(i.id, "Rechazado")}>
                     Rechazar
                   </button>
                   <button 
-                    className="h-9 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200"
+                    className="h-9 px-4 rounded-lg text-[13.5px] font-semibold transition-all duration-200"
                     style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
                     onClick={() => decide(i.id, "Autorizado")}>
                     Autorizar
@@ -171,7 +171,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
       {/* Historial */}
       {rest.length > 0 && (
         <div>
-          <h2 className="text-[18px] font-bold text-text-1 mb-4">
+          <h2 className="text-[19px] font-bold text-text-1 mb-4">
             Historial
             <span className="ml-2 text-[14px] font-semibold" style={{ color: "var(--text-3)" }}>({rest.length})</span>
           </h2>

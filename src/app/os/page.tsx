@@ -57,7 +57,7 @@ function Today() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ok opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-ok"></span>
                 </span>
-                <span className="text-[22px] font-semibold text-ok">Trabajando</span>
+                <span className="text-[21px] font-semibold text-ok">Trabajando</span>
               </div>
               <div className="text-[64px] font-bold text-text-1 leading-none tabular-nums">
                 3h 37min
@@ -73,7 +73,7 @@ function Today() {
                 style={{ width: '52%' }}
               />
             </div>
-            <div className="flex items-center justify-between text-[13px] text-text-3">
+            <div className="flex items-center justify-between text-[13.5px] text-text-3">
               <span>Entrada 8:12</span>
               <span className="font-semibold text-text-2">52% del objetivo</span>
             </div>
@@ -82,16 +82,16 @@ function Today() {
           {/* Info adicional */}
           <div className="grid grid-cols-3 gap-6 pt-6 border-t border-border">
             <div>
-              <div className="text-[13px] text-text-3 mb-1">Salida estimada</div>
-              <div className="text-[20px] font-semibold text-text-1">5:00 p.m.</div>
+              <div className="text-[13.5px] text-text-3 mb-1">Salida estimada</div>
+              <div className="text-[19px] font-semibold text-text-1">5:00 p.m.</div>
             </div>
             <div>
-              <div className="text-[13px] text-text-3 mb-1">Tiempo restante</div>
-              <div className="text-[20px] font-semibold text-text-1">4h 23min</div>
+              <div className="text-[13.5px] text-text-3 mb-1">Tiempo restante</div>
+              <div className="text-[19px] font-semibold text-text-1">4h 23min</div>
             </div>
             <div>
-              <div className="text-[13px] text-text-3 mb-1">Descanso</div>
-              <div className="text-[20px] font-semibold text-text-1">30 min</div>
+              <div className="text-[13.5px] text-text-3 mb-1">Descanso</div>
+              <div className="text-[19px] font-semibold text-text-1">30 min</div>
             </div>
           </div>
 
@@ -115,8 +115,8 @@ function Today() {
         {/* Actividades */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[22px] font-bold text-text-1">Mis actividades</h2>
-            <button className="text-[13px] font-semibold text-accent hover:text-accent/80 transition-colors">
+            <h2 className="text-[21px] font-bold text-text-1">Mis actividades</h2>
+            <button className="text-[13.5px] font-semibold text-accent hover:text-accent/80 transition-colors">
               Ver todas →
             </button>
           </div>
@@ -130,8 +130,8 @@ function Today() {
         {/* Solicitudes */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[22px] font-bold text-text-1">Solicitudes</h2>
-            <button className="text-[13px] font-semibold text-accent hover:text-accent/80 transition-colors">
+            <h2 className="text-[21px] font-bold text-text-1">Solicitudes</h2>
+            <button className="text-[13.5px] font-semibold text-accent hover:text-accent/80 transition-colors">
               Ver bandeja →
             </button>
           </div>
@@ -146,8 +146,8 @@ function Today() {
       {/* Equipo */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-[22px] font-bold text-text-1">Equipo</h2>
-          <button className="h-9 px-4 rounded-lg border border-border text-[13px] font-semibold text-text-2 hover:bg-hover transition-colors">
+          <h2 className="text-[21px] font-bold text-text-1">Equipo</h2>
+          <button className="h-9 px-4 rounded-lg border border-border text-[13.5px] font-semibold text-text-2 hover:bg-hover transition-colors">
             Ver asistencia
           </button>
         </div>
@@ -183,8 +183,8 @@ function MetricCard({ label, value, icon, color }: { label: string; value: strin
           <Icon name={icon} size={20} />
         </span>
       </div>
-      <div className="text-[32px] font-bold text-text-1 leading-none tabular-nums">{value}</div>
-      <div className="text-[13px] text-text-3 mt-2">{label}</div>
+      <div className="text-[28px] font-bold text-text-1 leading-none tabular-nums">{value}</div>
+      <div className="text-[13.5px] text-text-3 mt-2">{label}</div>
     </div>
   );
 }
@@ -203,7 +203,7 @@ function ActivityRow({ title, state, who, color, pct }: {
           />
         </div>
       </div>
-      <span className="text-[13px] font-semibold px-3 py-1 rounded-full" style={{ background: `${color}15`, color }}>
+      <span className="text-[13.5px] font-semibold px-3 py-1 rounded-full" style={{ background: `${color}15`, color }}>
         {state}
       </span>
       <Avatar name={who} color={color} size={32} />
@@ -223,7 +223,7 @@ function RequestRow({ title, who, prio }: { title: string; who: string; prio: st
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-text-1 truncate group-hover:text-accent transition-colors">{title}</p>
-        <p className="text-[13px] text-text-3 truncate mt-0.5">{who}</p>
+        <p className="text-[13.5px] text-text-3 truncate mt-0.5">{who}</p>
       </div>
       <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: `${color}15`, color }}>
         {prio}
@@ -238,8 +238,8 @@ function StatusChip({ label, count, color }: { label: string; count: number; col
       className="flex items-center gap-2 px-4 py-2.5 rounded-full transition-all duration-200 hover:scale-105 cursor-pointer"
       style={{ background: `${color}15`, border: `1.5px solid ${color}30` }}
     >
-      <span className="text-[20px] font-bold tabular-nums" style={{ color }}>{count}</span>
-      <span className="text-[13px] font-semibold" style={{ color }}>{label}</span>
+      <span className="text-[19px] font-bold tabular-nums" style={{ color }}>{count}</span>
+      <span className="text-[13.5px] font-semibold" style={{ color }}>{label}</span>
     </div>
   );
 }
@@ -252,16 +252,16 @@ function TeamMemberRow({ name, role, status, statusColor, color, time }: {
       <Avatar name={name} color={color} size={48} />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold text-text-1 truncate">{name}</p>
-        <p className="text-[13px] text-text-3 truncate">{role}</p>
+        <p className="text-[13.5px] text-text-3 truncate">{role}</p>
       </div>
       <div className="flex items-center gap-2">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: statusColor }}></span>
           <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: statusColor }}></span>
         </span>
-        <span className="text-[13px] font-semibold" style={{ color: statusColor }}>{status}</span>
+        <span className="text-[13.5px] font-semibold" style={{ color: statusColor }}>{status}</span>
       </div>
-      <div className="text-[13px] font-semibold text-text-2 tabular-nums w-20 text-right">{time}</div>
+      <div className="text-[13.5px] font-semibold text-text-2 tabular-nums w-20 text-right">{time}</div>
     </div>
   );
 }

@@ -196,7 +196,7 @@ export default function FicharClient({
       <div className="w-full max-w-[420px] rounded-[22px] p-6" style={{ background: "var(--surface)", boxShadow: "var(--shadow-2)" }}>
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-1 mb-3.5 text-[13px] font-semibold"
+          className="flex items-center gap-1 mb-3.5 text-[13.5px] font-semibold"
           style={{ color: "var(--text-2)" }}
         >
           <Icon name="chevron" size={14} style={{ transform: "rotate(180deg)" }} /> Volver
@@ -280,7 +280,7 @@ export default function FicharClient({
             <button
               disabled={!puedeRegistrar}
               onClick={registrar}
-              className="w-full mt-4 h-12 rounded-[14px] text-[14.5px] font-bold transition-opacity"
+              className="w-full mt-4 h-12 rounded-[14px] text-[14px] font-bold transition-opacity"
               style={{
                 background: "var(--accent)", color: "#fff",
                 opacity: puedeRegistrar ? 1 : 0.4,

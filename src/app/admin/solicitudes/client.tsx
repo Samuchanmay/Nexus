@@ -205,7 +205,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
           </div>
           
           {/* Mensaje */}
-          <h2 className="text-[18px] font-semibold text-text-1 mb-1">
+          <h2 className="text-[19px] font-semibold text-text-1 mb-1">
             {tab === "Por revisar" ? "Todo está al día" : tab === "Aprobadas" ? "Sin solicitudes aprobadas" : "Sin solicitudes rechazadas"}
           </h2>
           <p className="text-[14px] text-text-3 text-center max-w-[360px] mb-8">
@@ -231,7 +231,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                   <Icon name="clock" size={20} className="text-accent" />
                 </div>
                 <h3 className="text-[15px] font-semibold text-text-1 mb-1">Responde rápido</h3>
-                <p className="text-[13px] text-text-3">
+                <p className="text-[13.5px] text-text-3">
                   Mantén el flujo del equipo revisando las solicitudes a tiempo.
                 </p>
               </div>
@@ -250,7 +250,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                   <Icon name="users" size={20} className="text-purple" />
                 </div>
                 <h3 className="text-[15px] font-semibold text-text-1 mb-1">Trabajo colaborativo</h3>
-                <p className="text-[13px] text-text-3">
+                <p className="text-[13.5px] text-text-3">
                   Asigna solicitudes según la disponibilidad y especialidad del equipo.
                 </p>
               </div>
@@ -306,12 +306,12 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
                   </div>
 
                   {/* Título */}
-                  <h3 className="text-[18px] font-semibold text-text-1 leading-snug mb-2 group-hover:text-accent transition-colors">
+                  <h3 className="text-[19px] font-semibold text-text-1 leading-snug mb-2 group-hover:text-accent transition-colors">
                     {r.title}
                   </h3>
 
                   {/* Metadata */}
-                  <div className="flex items-center gap-3 flex-wrap text-[13px] text-text-3">
+                  <div className="flex items-center gap-3 flex-wrap text-[13.5px] text-text-3">
                     <span className="font-medium">
                       {(r.users?.honorific ? r.users.honorific + " " : "") + (r.users?.full_name ?? r.requester_name ?? "Solicitante")}
                     </span>
@@ -337,7 +337,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
 
                   {/* Notas */}
                   {r.notes && (
-                    <p className="text-[13px] text-text-2 mt-3 line-clamp-2">{r.notes}</p>
+                    <p className="text-[13.5px] text-text-2 mt-3 line-clamp-2">{r.notes}</p>
                   )}
                 </div>
 
@@ -419,7 +419,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
               </div>
             </div>
             {sel.event_date && (
-              <label className="flex items-center gap-2.5 text-[13px] font-semibold cursor-pointer">
+              <label className="flex items-center gap-2.5 text-[13.5px] font-semibold cursor-pointer">
                 <input type="checkbox" checked={addToCalendar} onChange={(e) => setAddToCalendar(e.target.checked)}
                   className="w-[18px] h-[18px] accent-[var(--accent)]" />
                 Crear evento en Google Calendar
@@ -438,7 +438,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
         )}
         {sel && rejecting && (
           <div className="flex flex-col gap-3">
-            <p className="text-[13px]" style={{ color: "var(--text-2)" }}>
+            <p className="text-[13.5px]" style={{ color: "var(--text-2)" }}>
               El solicitante verá este motivo en su portal.
             </p>
             <textarea className="field-input resize-none" rows={3} placeholder="Motivo del rechazo…"

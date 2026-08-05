@@ -71,7 +71,7 @@ export function MonthView({
         {/* Días de la semana */}
         <div className="grid grid-cols-7 gap-2 mb-3">
           {DOW.map((d) => (
-            <p key={d} className="text-center text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{d}</p>
+            <p key={d} className="text-center text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{d}</p>
           ))}
         </div>
         
@@ -105,7 +105,7 @@ export function MonthView({
                 {/* Número del día */}
                 <div className="flex items-center justify-between">
                   <span 
-                    className="text-[13px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
+                    className="text-[13.5px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
                     style={{
                       color: isToday ? "#fff" : c.inMonth ? "var(--text-1)" : "var(--text-3)",
                       background: isToday ? "var(--accent)" : "transparent",

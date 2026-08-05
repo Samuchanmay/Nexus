@@ -170,7 +170,7 @@ export default function ColoresClient({ areas, rhColor, embedded }: { areas: Dep
           <ColorPreviewCard name={addForm.nombre.trim() || "Nuevo grupo"} color={nextColor} />
           <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Se asigna automáticamente al siguiente grupo que agregues</p>
         </div>
-        <p className="text-[13px] font-bold mb-3">Agregar coordinación o departamento</p>
+        <p className="text-[13.5px] font-bold mb-3">Agregar coordinación o departamento</p>
         <div className="grid md:grid-cols-[1fr_180px_auto] gap-2.5">
           <input className="field-input" placeholder="Nombre"
             value={addForm.nombre} onChange={(e) => setAddForm({ ...addForm, nombre: e.target.value })} />

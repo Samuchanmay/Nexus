@@ -77,7 +77,7 @@ export function AgendaView({
           </svg>
         </div>
         <p className="text-[16px] font-semibold text-text-1 mb-1">Tu agenda está libre</p>
-        <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Sin eventos en los próximos {rangeDays} días.</p>
+        <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>Sin eventos en los próximos {rangeDays} días.</p>
       </div>
     );
   }
@@ -89,14 +89,14 @@ export function AgendaView({
         if (days.length === 0) return null;
         return (
           <div key={label}>
-            <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "var(--text-3)" }}>{label}</p>
+            <p className="text-[12px] font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "var(--text-3)" }}>{label}</p>
             <div className="flex flex-col gap-1">
               {days.map(({ date, events }) => (
                 <div key={date} className="rounded-xl overflow-hidden" style={{ background: "var(--surface)" }}>
                   <button type="button" onClick={() => onDayClick?.(date)}
                     className="w-full text-left px-4 py-2.5 transition-colors hover:bg-hover"
                     style={{ borderBottom: events.length > 0 ? "1px solid var(--border)" : "none" }}>
-                    <p className="text-[13px] font-bold capitalize">{dayLongLabel(date)}</p>
+                    <p className="text-[13.5px] font-bold capitalize">{dayLongLabel(date)}</p>
                   </button>
                   {events.length > 0 && (
                     <div className="flex flex-col">
@@ -111,8 +111,8 @@ export function AgendaView({
                           </span>
                           <span className="w-1 self-stretch rounded-full shrink-0" style={{ background: eventColor(ev.kind), minHeight: 16 }} />
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[13px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{ev.title}</span>
-                            <span className="block text-[11px] mt-0.5" style={{ color: "var(--text-3)" }}>{eventLabel(ev.kind)}</span>
+                            <span className="block text-[13.5px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{ev.title}</span>
+                            <span className="block text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>{eventLabel(ev.kind)}</span>
                           </span>
                         </button>
                       ))}

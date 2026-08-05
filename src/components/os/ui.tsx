@@ -31,9 +31,10 @@ export function Button({
 }: {
   variant?: BtnVariant; size?: BtnSize; icon?: string; iconRight?: string; children?: ReactNode;
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
-  const pad = size === "sm" ? "h-8 px-3 text-[13px] gap-1.5" : "h-10 px-4 text-[14px] gap-2";
+  const pad = size === "sm" ? "h-8 px-3 text-[13.5px] gap-1.5" : "h-10 px-4 text-[14px] gap-2";
   return (
     <button
+      data-ripple
       className={cx(
         "inline-flex items-center justify-center rounded-sm font-semibold whitespace-nowrap",
         "transition-all duration-150 ease-apple active:scale-[.97]",
@@ -56,6 +57,7 @@ export function IconButton({ icon, label, className, size = 18, ...rest }: {
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
+      data-ripple
       aria-label={label} title={label}
       className={cx(
         "inline-grid place-items-center h-9 w-9 rounded-sm text-text-2",
@@ -136,7 +138,7 @@ export function SkelList({ rows = 4, avatar = false }: { rows?: number; avatar?:
 export function Field({ label, hint, children }: { label?: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
-      {label && <span className="block mb-1.5 text-[13px] font-semibold text-text-2">{label}</span>}
+      {label && <span className="block mb-1.5 text-[13.5px] font-semibold text-text-2">{label}</span>}
       {children}
       {hint && <span className="block mt-1 text-[12px] text-text-3">{hint}</span>}
     </label>
@@ -198,7 +200,7 @@ export function SegmentPill({ active, children, ...rest }: { active?: boolean; c
   return (
     <button
       className={cx(
-        "h-8 px-3.5 rounded-full text-[13px] font-semibold transition-colors duration-150",
+        "h-8 px-3.5 rounded-full text-[13.5px] font-semibold transition-colors duration-150",
         active ? "bg-accent text-white" : "bg-surface-2 text-text-2 border border-border hover:bg-hover"
       )}
       {...rest}
@@ -228,7 +230,7 @@ export function EmptyState({ icon = "sparkle", title, hint, action }: {
         <Icon name={icon} size={24} />
       </div>
       <p className="text-[15px] font-bold text-text-1">{title}</p>
-      {hint && <p className="mt-1 text-[13px] text-text-3 max-w-[300px]">{hint}</p>}
+      {hint && <p className="mt-1 text-[13.5px] text-text-3 max-w-[300px]">{hint}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -252,7 +254,7 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
           <Icon name={icon} size={14} />
         </span>
         <div className="flex items-center gap-1.5">
-          <p className="text-[13px] font-bold leading-snug text-text-1 flex-1 min-w-0">{label}</p>
+          <p className="text-[13.5px] font-bold leading-snug text-text-1 flex-1 min-w-0">{label}</p>
           <span className="shrink-0 h-5 min-w-[20px] px-1.5 rounded-full grid place-items-center text-[12px] font-bold"
             style={{ background: t.bg, color: t.fg }}>
             {value}
@@ -269,8 +271,8 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
           </span>
           {delta && <span className="text-[12px] font-semibold" style={{ color: "var(--ok)" }}>{delta}</span>}
         </div>
-        <p className="mt-3 text-[26px] font-bold leading-none text-text-1">{value}</p>
-        <p className="mt-1 text-[13px] text-text-3">{label}</p>
+        <p className="mt-3 text-[28px] font-bold leading-none text-text-1">{value}</p>
+        <p className="mt-1 text-[13.5px] text-text-3">{label}</p>
       </div>
     </Card>
   );

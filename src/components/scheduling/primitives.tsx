@@ -89,18 +89,18 @@ export function PickerFooter({
       style={{ padding: "14px 28px 22px", borderTop: "0.5px solid var(--border)" }}>
       <div className="flex items-center gap-2">
         <button type="button" onClick={onCancel}
-          className="btn-tertiary h-9 px-3 rounded-full text-[13px]">
+          className="btn-tertiary h-9 px-3 rounded-full text-[13.5px]">
           Cancelar
         </button>
         {onToday && (
           <button type="button" onClick={onToday}
-            className="btn-tertiary h-9 px-3 rounded-full text-[13px]">
+            className="btn-tertiary h-9 px-3 rounded-full text-[13.5px]">
             Hoy
           </button>
         )}
       </div>
       <button type="button" onClick={onApply} data-ripple
-        className="btn-primary h-9 px-5 rounded-full text-[13px]">
+        className="btn-primary h-9 px-5 rounded-full text-[13.5px]">
         {applyLabel}
       </button>
     </div>

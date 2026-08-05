@@ -203,7 +203,7 @@ export function DateGrid({
         {DOW.map((d) => (
           <div
             key={d}
-            className="flex items-center justify-center text-[11px] font-medium uppercase tracking-[.08em] text-[var(--text-3)]"
+            className="flex items-center justify-center text-[12px] font-medium uppercase tracking-[.08em] text-[var(--text-3)]"
             style={{ height: DAY_CELL }}
           >
             {d}

@@ -250,7 +250,7 @@ export default async function AdminDashboard() {
       <div className="space-y-0.5">
         <ContextHeader input={contextInput} />
         {alerts.length > 0 && (
-          <p className="text-[13px] text-text-3">
+          <p className="text-[13.5px] text-text-3">
             {alerts.length} alerta{alerts.length > 1 ? "s" : ""} de equipo requiere{alerts.length > 1 ? "n" : ""} tu atención.
           </p>
         )}
@@ -264,7 +264,7 @@ export default async function AdminDashboard() {
             return (
               <div key={i} className="flex items-center gap-2.5 py-2 border-b border-border last:border-0">
                 <span className="shrink-0" style={{ color }}><Icon name={a.icon} size={15} /></span>
-                <p className="text-[13px] font-semibold flex-1 min-w-0 truncate text-text-1">{a.text}</p>
+                <p className="text-[13.5px] font-semibold flex-1 min-w-0 truncate text-text-1">{a.text}</p>
                 {a.href && (
                   <Link href={a.href} className="shrink-0 text-[12.5px] font-semibold" style={{ color }}>
                     Ver →
@@ -292,7 +292,7 @@ export default async function AdminDashboard() {
                 <span className={`shrink-0 ${m.animated ? "nx-msg-icon-bounce" : ""}`} style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-2)" }}>
                   <Icon name={m.icon} size={16} />
                 </span>
-                <p className="text-[13px] font-semibold flex-1"
+                <p className="text-[13.5px] font-semibold flex-1"
                   style={{ color: m.tone === "danger" ? "var(--danger)" : m.tone === "warn" ? "var(--warn)" : "var(--text-1)" }}>
                   {m.text}
                 </p>
@@ -356,7 +356,7 @@ export default async function AdminDashboard() {
               <div key={p.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <Avatar name={p.display_name} color={p.nexus_color ?? undefined} size={24} avatarUrl={p.avatar_url} birthday={isBirthdayToday(p.birth_date, todayISO())} status={p.display.color ?? undefined} statusLabel={p.display.label} />
-                  <span className="text-[13px] font-semibold text-text-1">{p.display_name}</span>
+                  <span className="text-[13.5px] font-semibold text-text-1">{p.display_name}</span>
                 </div>
                 <span className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
                   {p.display.color && <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.display.color }} />}
@@ -389,7 +389,7 @@ export default async function AdminDashboard() {
             {(myActionsToday ?? []).map((a) => (
               <div key={a.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                 <span className="w-5 text-center shrink-0 flex justify-center" style={{ color: "var(--ok)" }}><Icon name="check" size={13} /></span>
-                <p className="text-[13px] flex-1 min-w-0 truncate text-text-1">
+                <p className="text-[13.5px] flex-1 min-w-0 truncate text-text-1">
                   {a.action}{a.detail ? ` — ${a.detail}` : ""}
                 </p>
                 <span className="text-[12px] font-semibold tabular-nums shrink-0 text-text-3">{meridaClock(a.created_at)}</span>

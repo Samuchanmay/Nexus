@@ -100,13 +100,13 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
           </p>
         </div>
         <div className="card px-5 py-3 text-center shrink-0">
-          <p className="text-[23px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>{balance}</p>
+          <p className="text-[24px] font-bold tabular-nums" style={{ color: "var(--ok)" }}>{balance}</p>
           <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>días disponibles</p>
         </div>
       </header>
 
       <button onClick={() => setOpen(true)}
-        className="btn-primary btn-ok w-full py-3.5 text-[14.5px] mb-6 flex items-center justify-center gap-2">
+        className="btn-primary btn-ok w-full py-3.5 text-[14px] mb-6 flex items-center justify-center gap-2">
         <IconPlus className="w-4 h-4" /> Solicitar vacaciones
       </button>
 
@@ -148,7 +148,7 @@ export default function VacacionesClient({ userId, displayName, balance, hireDat
             />
           </div>
           {days > 0 && (
-            <div className="rounded-sm px-4 py-3 text-[13px] font-semibold"
+            <div className="rounded-sm px-4 py-3 text-[13.5px] font-semibold"
               style={{
                 background: overBalance ? "var(--danger-tint)" : "var(--ok-tint)",
                 color: overBalance ? "var(--danger)" : "var(--ok)",

@@ -93,7 +93,7 @@ export default async function ActividadesEmpleado() {
 
       <div className="flex flex-col gap-2.5 mb-7">
         {active.length === 0 ? (
-          <div className="card p-6 text-center text-[13px]" style={{ color: "var(--text-3)" }}>
+          <div className="card p-6 text-center text-[13.5px]" style={{ color: "var(--text-3)" }}>
             Sin actividades activas por ahora
           </div>
         ) : active.map((r) => <Card key={r.assignmentId} r={r} />)}

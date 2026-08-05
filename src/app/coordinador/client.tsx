@@ -149,7 +149,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
       <>
         <header className="pt-2 pb-1">
           <ContextHeader input={contextInput} />
-          <p className="text-[13px] text-text-3">
+          <p className="text-[13.5px] text-text-3">
             {areaLabel} · Solicita apoyo del equipo de Comunicación
           </p>
         </header>
@@ -165,7 +165,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
           <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
             Mis solicitudes
           </p>
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums"
+          <span className="text-[12px] font-bold px-2 py-0.5 rounded-full tabular-nums"
             style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
             {requests.length}
           </span>
@@ -179,7 +179,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
               <IconClipboard className="w-7 h-7" />
             </div>
             <p className="text-[15px] font-bold">Aún no tienes solicitudes</p>
-            <p className="mt-1 text-[13px] max-w-[320px]" style={{ color: "var(--text-3)" }}>
+            <p className="mt-1 text-[13.5px] max-w-[320px]" style={{ color: "var(--text-3)" }}>
               Crea la primera con el botón de arriba y el equipo de Comunicación la revisará.
             </p>
           </div>
@@ -200,7 +200,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
                         {STATUS_LABELS[effectiveStatus(r)]}
                       </span>
                     </div>
-                    <h3 className="text-[15.5px] font-semibold leading-snug group-hover:text-accent transition-colors">
+                    <h3 className="text-[15px] font-semibold leading-snug group-hover:text-accent transition-colors">
                       {r.title}
                     </h3>
                     {r.event_date && (
@@ -252,7 +252,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
     <>
       <header className="pt-6 pb-5">
         <button onClick={() => step === 1 ? resetWizard() : setStep(step - 1)}
-          className="flex items-center gap-1 text-[13px] font-semibold mb-5 transition-opacity hover:opacity-80"
+          className="flex items-center gap-1 text-[13.5px] font-semibold mb-5 transition-opacity hover:opacity-80"
           style={{ color: "var(--accent)" }}>
           <IconChevronLeft className="w-4 h-4" /> {step === 1 ? "Cancelar" : "Atrás"}
         </button>
@@ -265,7 +265,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
         <h1 className="text-[28px] font-bold tracking-tight">
           {step === 1 ? "¿Qué necesitas?" : step === 2 ? "Cuéntanos el detalle" : "Confirma tu solicitud"}
         </h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>
+        <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>
           {step === 1 ? "Elige el tipo de apoyo que requieres del equipo" :
            step === 2 ? "Cuanto más contexto des, más rápido lo aprueban" :
            "Revisa que todo esté correcto antes de enviar"}
@@ -360,7 +360,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
             <textarea className="field-input resize-none" rows={3} placeholder="Todo lo que Comunicación deba saber"
               value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
-          <button className="h-12 rounded-xl bg-accent text-white font-semibold text-[14.5px]
+          <button className="h-12 rounded-xl bg-accent text-white font-semibold text-[14px]
             shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5
             disabled:opacity-45 disabled:pointer-events-none"
             disabled={!form.title.trim() || !form.date || tooSoon}
@@ -378,7 +378,7 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
               {subtypes.map((s) => <Pill key={s} tone="muted">{s}</Pill>)}
             </div>
             <p className="text-[16px] font-bold mb-3">{form.title}</p>
-            <div className="flex flex-col gap-1.5 text-[13px]">
+            <div className="flex flex-col gap-1.5 text-[13.5px]">
               <p><span style={{ color: "var(--text-3)" }}>Fecha:</span> {form.date ? dmy(form.date) : "—"}{form.time && ` · ${fmtTime(form.time)}`}</p>
               {form.location && <p><span style={{ color: "var(--text-3)" }}>Lugar:</span> {form.location}</p>}
               {form.notes && <p><span style={{ color: "var(--text-3)" }}>Detalles:</span> {form.notes}</p>}

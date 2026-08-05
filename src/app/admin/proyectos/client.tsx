@@ -288,7 +288,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       <header className="pt-4 pb-6 md:pt-8 md:pb-8">
         <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
           <div>
-            <h1 className="text-[32px] md:text-[40px] font-bold tracking-tight text-text-1 leading-none">Actividades</h1>
+            <h1 className="text-[28px] md:text-[40px] font-bold tracking-tight text-text-1 leading-none">Actividades</h1>
             <p className="text-[15px] md:text-[16px] mt-2" style={{ color: "var(--text-2)" }}>
               Gestiona las actividades y proyectos del equipo
             </p>
@@ -325,7 +325,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
 
             {/* Escritorio */}
             <div className="hidden md:flex items-center gap-2">
-              <button className="h-9 px-3 rounded-lg text-[13px] font-medium text-text-2 hover:bg-hover transition-colors flex items-center gap-1.5"
+              <button className="h-9 px-3 rounded-lg text-[13.5px] font-medium text-text-2 hover:bg-hover transition-colors flex items-center gap-1.5"
                 onClick={() => {
                   if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv");
                   const link = document.createElement('a');
@@ -373,14 +373,14 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
               }}
             />
             <button
-              className="relative z-10 h-8 px-4 rounded-lg text-[13px] font-semibold transition-colors"
+              className="relative z-10 h-8 px-4 rounded-lg text-[13.5px] font-semibold transition-colors"
               style={{ color: view === "Lista" ? "var(--text-1)" : "var(--text-3)" }}
               onClick={() => setView("Lista")}
             >
               Lista
             </button>
             <button
-              className="relative z-10 h-8 px-4 rounded-lg text-[13px] font-semibold transition-colors"
+              className="relative z-10 h-8 px-4 rounded-lg text-[13.5px] font-semibold transition-colors"
               style={{ color: view === "Pipeline" ? "var(--text-1)" : "var(--text-3)" }}
               onClick={() => setView("Pipeline")}
             >
@@ -399,7 +399,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                 icon={<Icon name="layers" size={22} />}
                 title="Sin actividades activas"
                 hint="Aprueba una solicitud o añade una directamente."
-                action={<button className="btn-primary text-[13px] px-4 py-2" onClick={openAdd}>+ Añadir proyecto</button>}
+                action={<button className="btn-primary text-[13.5px] px-4 py-2" onClick={openAdd}>+ Añadir proyecto</button>}
               />
             </div>
           ) : (
@@ -425,7 +425,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
 
           {done.length > 0 && (
             <>
-              <h2 className="text-[18px] font-bold mb-3" style={{ color: "var(--text-2)" }}>Cerrados</h2>
+              <h2 className="text-[19px] font-bold mb-3" style={{ color: "var(--text-2)" }}>Cerrados</h2>
               <div className="flex flex-col opacity-60">
                 {done.map((p) => (
                   <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} />
@@ -483,7 +483,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                   <input type="checkbox" className="hidden" checked={assignees.includes(m.id)} onChange={() => toggleAssignee(m.id)} />
                   <CheckBox checked={assignees.includes(m.id)} />
                   <Avatar name={m.display_name} color={m.nexus_color} avatarUrl={m.avatar_url} size={26} birthday={isBirthdayToday(m.birth_date, todayISO())} />
-                  <span className="text-[13px] font-medium flex-1">{m.display_name}</span>
+                  <span className="text-[13.5px] font-medium flex-1">{m.display_name}</span>
                   {assignees.includes(m.id) && (
                     assignees.length > 1 ? (
                       <button className="text-[12px] font-semibold shrink-0"
@@ -555,7 +555,7 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted }: {
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-[15px] font-semibold text-text-1 truncate group-hover:text-accent transition-colors">{title}</h3>
             {pending.length > 0 && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
+              <span className="inline-flex items-center gap-1 text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>
                 <Icon name="lock" size={10} /> Bloqueada
               </span>
             )}
@@ -563,7 +563,7 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted }: {
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[12px] text-text-3">{p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</span>
             {asgs.length > 1 && (
-              <span className="text-[11px] text-text-3">+{asgs.length - 1}</span>
+              <span className="text-[12px] text-text-3">+{asgs.length - 1}</span>
             )}
           </div>
         </div>
@@ -581,10 +581,10 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted }: {
         {lead ? (
           <>
             <Avatar name={lead.display_name} color={lead.nexus_color} avatarUrl={lead.avatar_url} size={24} birthday={isBirthdayToday(lead.birth_date, todayISO())} />
-            <span className="text-[13px] font-medium text-text-2 truncate hidden lg:block">{lead.display_name}</span>
+            <span className="text-[13.5px] font-medium text-text-2 truncate hidden lg:block">{lead.display_name}</span>
           </>
         ) : (
-          <span className="text-[13px] text-text-3">Sin asignar</span>
+          <span className="text-[13.5px] text-text-3">Sin asignar</span>
         )}
       </div>
 
@@ -593,10 +593,10 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted }: {
         {p.deadline ? (
           <>
             <Icon name="calendar" size={13} className="text-text-3" />
-            <span className="text-[13px] font-medium text-text-2">{formatDate(p.deadline)}</span>
+            <span className="text-[13.5px] font-medium text-text-2">{formatDate(p.deadline)}</span>
           </>
         ) : (
-          <span className="text-[13px] text-text-3">—</span>
+          <span className="text-[13.5px] text-text-3">—</span>
         )}
       </div>
 
@@ -674,7 +674,7 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
       urgente: "var(--danger)",
     };
     return (priority as Priority) !== "normal" ? (
-      <span className="text-[11px] font-semibold capitalize" style={{ color: colors[priority] || "var(--text-2)" }}>
+      <span className="text-[12px] font-semibold capitalize" style={{ color: colors[priority] || "var(--text-2)" }}>
         {priority}
       </span>
     ) : null;
@@ -683,7 +683,7 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
   const RequestCard = ({ r }: { r: PendingRequestRow }) => (
     <Link href="/admin/solicitudes" className="group block p-4 rounded-2xl bg-surface hover:bg-surface-2 border border-border hover:border-border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex items-center gap-2 flex-wrap mb-2">
-        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+        <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
           {typeLabel[r.type] ?? r.type}
         </span>
         <PriorityPill priority={r.priority} />
@@ -700,7 +700,7 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
     return (
       <div className="group p-4 rounded-2xl bg-surface hover:bg-surface-2 border border-border hover:border-border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer">
         <div className="flex items-center gap-2 flex-wrap mb-2">
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+          <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
             {p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}
           </span>
           <PriorityPill priority={p.priority} />
@@ -715,7 +715,7 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
             </span>
           ) : <span className="text-[12px] text-text-3">Sin asignar</span>}
           {p.deadline && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-text-3">
+            <span className="inline-flex items-center gap-1 text-[12px] font-medium text-text-3">
               <Icon name="calendar" size={11} /> {formatDate(p.deadline)}
             </span>
           )}
@@ -753,7 +753,7 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-                <span className="text-[13px] font-semibold text-text-1">{stage.label}</span>
+                <span className="text-[13.5px] font-semibold text-text-1">{stage.label}</span>
               </div>
               <span className="text-[12px] font-bold tabular-nums px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
                 {total}
