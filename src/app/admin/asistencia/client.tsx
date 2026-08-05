@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, Pill, SlidingSegments, useToast } from "@/components/ui";
+import { Avatar, Pill, SlidingSegments, useToast, DatePicker } from "@/components/ui";
 import { IconDownload, IconClock, IconX } from "@/components/icons";
 import { usePersistedView } from "@/lib/persisted-view";
 import { PageHeader, Switch } from "@/components/shared";
@@ -177,8 +177,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
   // Estado para edición de asistencia (siempre disponible para el admin)
   const [editingPerson, setEditingPerson] = useState<PersonDay | null>(null);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
+  const handleDateChange = (newDate: string) => {
     router.push(`/admin/asistencia?date=${newDate}`);
   };
 
@@ -280,13 +279,11 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "semana"}
             onChange={(v) => setView(v === "Tabla" ? "tabla" : v === "Gantt" ? "gantt" : "semana")}
           />
-          <input
-            type="date"
+          <DatePicker
             value={selectedDate}
             onChange={handleDateChange}
-            max={today}
+            maxDate={today}
             className="field-input px-3 py-2 text-[13px]"
-            style={{ width: "auto" }}
           />
           <div className="w-full sm:w-[300px] flex justify-end">
             {view === "tabla" && (

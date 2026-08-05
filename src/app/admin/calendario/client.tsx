@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, SlidingSegments, Sheet, DateRangeField, Select, useToast } from "@/components/ui";
+import { Avatar, SlidingSegments, Sheet, DateRangeField, Select, useToast, TimePicker } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, dayLongLabel, weekRangeLabel, weekStartOf, daysInRange } from "@/lib/calendar-core";
 import { shiftMonth } from "@/lib/calendar-grid";
@@ -696,12 +696,10 @@ export default function CalendarioClient({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Hora inicio (opcional)">
-              <input type="time" className="field-input" value={eventForm.startTime}
-                onChange={(e) => setEventForm({ ...eventForm, startTime: e.target.value })} />
+              <TimePicker value={eventForm.startTime} onChange={(v) => setEventForm({ ...eventForm, startTime: v })} />
             </Field>
             <Field label="Hora fin (opcional)">
-              <input type="time" className="field-input" value={eventForm.endTime}
-                onChange={(e) => setEventForm({ ...eventForm, endTime: e.target.value })} />
+              <TimePicker value={eventForm.endTime} onChange={(v) => setEventForm({ ...eventForm, endTime: v })} />
             </Field>
           </div>
 
