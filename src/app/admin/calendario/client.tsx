@@ -95,6 +95,59 @@ export default function CalendarioClient({
   });
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false);
 
+  // ── FASE 6 (auditoría 4 ago 2026): event_history en crear/editar + pantalla ──
+  // La tabla y las políticas ya existían (migración 0029) pero solo se
+  // escribía desde los RPC de check-in/out — crear/editar un evento nunca
+  // dejaba rastro ahí (sí queda en admin_activity_log, el log genérico del
+  // sitio, pero no en el historial *del evento* que alguien vería al abrirlo).
+  type EventHistoryRow = {
+    id: string; action: string; details: string | null; created_at: string;
+    admin: { display_name: string } | { display_name: string }[] | null;
+  };
+  const [eventHistory, setEventHistory] = useState<EventHistoryRow[]>([]);
+  const [eventHistoryLoading, setEventHistoryLoading] = useState(false);
+  const [eventHistoryOpen, setEventHistoryOpen] = useState(false);
+
+  const loadEventHistory = async (eventId: string) => {
+    setEventHistoryLoading(true);
+    const { data, error } = await createClient()
+      .from("event_history")
+      .select("id, action, details, created_at, admin:admin_id(display_name)")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false });
+    setEventHistoryLoading(false);
+    if (!error && data) setEventHistory(data as unknown as EventHistoryRow[]);
+  };
+  const historyAdminName = (row: EventHistoryRow) => Array.isArray(row.admin) ? row.admin[0]?.display_name : row.admin?.display_name;
+
+  /** Compara el evento antes/después del guardado y arma un resumen legible
+      para event_history — mismo patrón que attendance_corrections.details. */
+  const buildEventChanges = (
+    before: InstitutionalEvent | null,
+    payload: { title: string; status: string; priority: string; start_date: string; end_date: string;
+      start_time: string | null; end_time: string | null; department_id: string | null; owner_id: string | null;
+      location_type: string; location_name: string | null },
+  ): string[] => {
+    if (!before) return [];
+    const deptName = (id: string | null | undefined) => id ? (departments ?? []).find((d) => d.id === id)?.nombre ?? "desconocido" : "sin departamento";
+    const ownerName = (id: string | null | undefined) => id ? team.find((t) => t.id === id)?.display_name ?? "desconocido" : "sin responsable";
+    const changes: string[] = [];
+    if (before.title !== payload.title) changes.push(`Título: "${before.title}" → "${payload.title}"`);
+    if (before.status !== payload.status) changes.push(`Estado: ${before.status} → ${payload.status}`);
+    if (before.priority !== payload.priority) changes.push(`Prioridad: ${before.priority} → ${payload.priority}`);
+    if (before.start_date !== payload.start_date || before.end_date !== payload.end_date)
+      changes.push(`Fechas: ${before.start_date}–${before.end_date} → ${payload.start_date}–${payload.end_date}`);
+    if ((before.start_time ?? null) !== payload.start_time || (before.end_time ?? null) !== payload.end_time)
+      changes.push(`Horario: ${before.start_time ?? "—"}-${before.end_time ?? "—"} → ${payload.start_time ?? "—"}-${payload.end_time ?? "—"}`);
+    if ((before.department_id ?? null) !== payload.department_id)
+      changes.push(`Departamento: ${deptName(before.department_id)} → ${deptName(payload.department_id)}`);
+    if ((before.owner_id ?? null) !== payload.owner_id)
+      changes.push(`Responsable: ${ownerName(before.owner_id)} → ${ownerName(payload.owner_id)}`);
+    if (before.location_type !== payload.location_type || (before.location_name ?? null) !== payload.location_name)
+      changes.push(`Ubicación cambiada`);
+    return changes;
+  };
+
   // ── FASE 5 (auditoría 4 ago 2026): UI de participantes de eventos ──
   // event_participants/get_event_participants ya existían a nivel de BD
   // (migración 0029) pero sin ningún input — el admin no tenía forma de
@@ -119,9 +172,12 @@ export default function CalendarioClient({
   useEffect(() => {
     if (eventSheetOpen && editingEvent) {
       loadParticipants(editingEvent.id);
+      loadEventHistory(editingEvent.id);
       setAddParticipantId(""); setAddParticipantRole("participante");
     } else {
       setParticipants([]);
+      setEventHistory([]);
+      setEventHistoryOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventSheetOpen, editingEvent?.id]);
@@ -318,25 +374,48 @@ export default function CalendarioClient({
       return { error: null };
     }, { ok: editingEvent ? "Evento institucional actualizado" : "Evento institucional agregado" });
     if (ok) {
+      const sb = createClient();
+      // FASE 6 (auditoría 4 ago 2026): id del evento resuelto una sola vez —
+      // lo usan tanto el sync de Google como el nuevo insert a event_history.
+      const { data: savedEventId } = editingEvent
+        ? { data: editingEvent.id }
+        : await sb.from("institutional_events").select("id").order("created_at", { ascending: false }).limit(1).single();
+
       // Si está activada la sincronización con Google, sincronizar el evento
-      if (eventForm.syncToGoogle) {
-        const sb = createClient();
-        const { data: eventId } = editingEvent
-          ? { data: editingEvent.id }
-          : await sb.from("institutional_events").select("id").order("created_at", { ascending: false }).limit(1).single();
-        
-        if (eventId) {
-          const { data: syncResult, error: syncError } = await sb.functions.invoke("gcal-sync-event", {
-            body: { eventId, action: editingEvent ? "update" : "create" },
-          });
-          if (syncError || !syncResult?.ok) {
-            toast("Evento guardado, pero no se pudo sincronizar con Google Calendar", "warn");
-          } else {
-            toast(`Evento guardado y sincronizado con Google Calendar`, "ok");
-          }
+      if (eventForm.syncToGoogle && savedEventId) {
+        const { data: syncResult, error: syncError } = await sb.functions.invoke("gcal-sync-event", {
+          body: { eventId: savedEventId, action: editingEvent ? "update" : "create" },
+        });
+        if (syncError || !syncResult?.ok) {
+          toast("Evento guardado, pero no se pudo sincronizar con Google Calendar", "warn");
+        } else {
+          toast(`Evento guardado y sincronizado con Google Calendar`, "ok");
         }
       }
-      
+
+      // event_history del propio evento — antes solo se escribía desde
+      // check-in/out; crear/editar quedaba solo en el log genérico del sitio.
+      if (savedEventId && adminId) {
+        if (editingEvent) {
+          const changes = buildEventChanges(editingEvent, {
+            title: payload.title, status: payload.status, priority: payload.priority,
+            start_date: payload.start_date, end_date: payload.end_date,
+            start_time: payload.start_time, end_time: payload.end_time,
+            department_id: payload.department_id, owner_id: payload.owner_id,
+            location_type: payload.location_type, location_name: payload.location_name,
+          });
+          if (changes.length > 0) {
+            await sb.from("event_history").insert({
+              event_id: savedEventId, admin_id: adminId, action: "Editó evento", details: changes.join(". "),
+            });
+          }
+        } else {
+          await sb.from("event_history").insert({
+            event_id: savedEventId, admin_id: adminId, action: "Creó evento", details: `"${payload.title}"`,
+          });
+        }
+      }
+
       setEventSheetOpen(false);
       if (adminId) logAdminAction(createClient(), adminId, editingEvent ? "Editó evento institucional" : "Agregó evento institucional", eventForm.title.trim());
       router.refresh();
@@ -956,6 +1035,35 @@ export default function CalendarioClient({
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Historial (FASE 6) — solo disponible con el evento ya guardado */}
+          {editingEvent && (
+            <>
+              <button type="button" onClick={() => setEventHistoryOpen((o) => !o)}
+                className="flex items-center justify-between text-[12px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>
+                <span>Historial {eventHistory.length > 0 ? `(${eventHistory.length})` : ""}</span>
+                <Icon name="chevron" size={12} style={{ transform: eventHistoryOpen ? "rotate(90deg)" : undefined }} />
+              </button>
+              {eventHistoryOpen && (
+                <div className="flex flex-col gap-1.5">
+                  {eventHistoryLoading && <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Cargando…</p>}
+                  {!eventHistoryLoading && eventHistory.length === 0 && (
+                    <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Sin movimientos registrados.</p>
+                  )}
+                  {eventHistory.map((h) => (
+                    <div key={h.id} className="rounded-sm px-2.5 py-2" style={{ background: "var(--surface-2)" }}>
+                      <p className="text-[12.5px]">
+                        <span className="font-semibold">{h.action}</span>
+                        {" · "}
+                        <span style={{ color: "var(--text-3)" }}>{historyAdminName(h) ?? "—"} · {new Date(h.created_at).toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                      </p>
+                      {h.details && <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>{h.details}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Botones */}
