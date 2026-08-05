@@ -80,6 +80,10 @@ function messagePreview(m?: EnlaceMessage | null): string {
 
 type PersonLite = ParticipantLite & { role?: "admin" | "member"; muted?: boolean; last_seen_at?: string | null };
 
+/** Recibo de lectura por miembro (tabla message_reads, migración 0037) —
+    alimenta el "Leído por …" de las burbujas propias en grupos. */
+type MessageRead = { message_id: string; user_id: string; read_at: string };
+
 export default function EnlaceConversationClient({
   myId, myRole, initialMuted, initialMutedUntil, conversation, participants, initialMessages, hasMoreOlder,
   attachmentsByMessage: initialAttachments, reactionsByMessage: initialReactions,
@@ -107,6 +111,8 @@ export default function EnlaceConversationClient({
   const { messages, setMessages, send, sendSticker, sendLocation, retry } = useOutbox(conversation.id, myId, initialMessages);
   const [attachmentsByMessage, setAttachmentsByMessage] = useState(initialAttachments);
   const [reactionsByMessage, setReactionsByMessage] = useState(initialReactions);
+  // Quién leyó cada mensaje visible — para "Leído por …" en grupos.
+  const [readersByMessage, setReadersByMessage] = useState<Record<string, MessageRead[]>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [pinnedMessage, setPinnedMessage] = useState(initialPinnedMessage);
   // Silencio: un booleano (siempre) + una fecha de vencimiento (por duración).
@@ -221,13 +227,26 @@ export default function EnlaceConversationClient({
   }, [conversation.id]);
 
   // Marca "leído" los mensajes ajenos que ya están en pantalla al abrir —
-  // simplificación consciente (ver message-state.ts): no hay observer de
-  // scroll por mensaje individual, se marca el lote visible al entrar.
+  // lote vía RPC (reemplaza el bucle por mensaje de antes; la migración
+  // 0037 además registra el recibo individual en message_reads, que es lo
+  // que permite el "Leído por …" en grupos). En el mismo efecto se cargan
+  // los recibos del lote visible para las burbujas propias.
   useEffect(() => {
     const supabase = createClient();
     const unread = messages.filter((m) => m.sender_id !== myId && m.status !== "read" && !m.id.startsWith("local-"));
-    for (const m of unread.slice(-30)) {
-      supabase.rpc("nx_enlace_mark_read", { p_message_id: m.id });
+    const batch = unread.slice(-30).map((m) => m.id);
+    if (batch.length > 0) {
+      supabase.rpc("nx_enlace_mark_messages_read", { p_message_ids: batch });
+    }
+    const visible = messages.filter((m) => !m.id.startsWith("local-")).slice(-50).map((m) => m.id);
+    if (visible.length > 0) {
+      supabase.rpc("nx_enlace_message_reads", { p_message_ids: visible })
+        .then(({ data }) => {
+          if (!data) return;
+          const grouped: Record<string, MessageRead[]> = {};
+          for (const r of data as MessageRead[]) (grouped[r.message_id] ??= []).push(r);
+          setReadersByMessage(grouped);
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id]);
@@ -267,6 +286,15 @@ export default function EnlaceConversationClient({
       const next = { ...cur };
       for (const r of (reacts ?? []) as EnlaceReaction[]) (next[r.message_id] ??= []).push(r);
       return next;
+    });
+    // Recibos de lectura de la página anterior (para "Leído por …").
+    supabase.rpc("nx_enlace_message_reads", { p_message_ids: ids.filter((id) => !id.startsWith("local-")) }).then(({ data }) => {
+      if (!data) return;
+      setReadersByMessage((cur) => {
+        const next = { ...cur };
+        for (const r of data as MessageRead[]) (next[r.message_id] ??= []).push(r);
+        return next;
+      });
     });
 
     const el = scrollRef.current;
@@ -405,6 +433,33 @@ export default function EnlaceConversationClient({
               for (const r of (data ?? []) as EnlaceReaction[]) (grouped[r.message_id] ??= []).push(r);
               setReactionsByMessage(grouped);
             });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_reads" },
+        (payload) => {
+          // Sin columna de conversación en la tabla (igual que reactions):
+          // se descarta localmente si el mensaje no es de esta pantalla.
+          const row = payload.new as MessageRead;
+          if (!messagesRef.current.some((m) => m.id === row.message_id)) return;
+          setReadersByMessage((cur) => ({
+            ...cur,
+            [row.message_id]: [...(cur[row.message_id] ?? []).filter((r) => r.user_id !== row.user_id), row],
+          }));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "message_reads" },
+        (payload) => {
+          const row = payload.old as MessageRead;
+          setReadersByMessage((cur) => {
+            const list = cur[row.message_id];
+            if (!list) return cur;
+            const next = list.filter((r) => r.user_id !== row.user_id);
+            return next.length === list.length ? cur : { ...cur, [row.message_id]: next };
+          });
         }
       )
       .on(
@@ -654,6 +709,29 @@ export default function EnlaceConversationClient({
     setConfirmDelete(null);
   };
 
+  // "Eliminar para mí" (migración 0037): oculta el mensaje SOLO para el
+  // usuario actual vía RPC; la política RLS messages_select lo excluye de
+  // todos los SELECTs futuros. Quien lo ocultó deja de verlo; los demás lo
+  // siguen viendo con normalidad.
+  const hideMessage = async (id: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.rpc("nx_enlace_hide_message", { p_message_id: id });
+    if (error) {
+      toast("No se pudo ocultar el mensaje.", "danger");
+      setMenuFor(null);
+      return;
+    }
+    setMessages((cur) => cur.filter((m) => m.id !== id));
+    setReadersByMessage((cur) => {
+      if (!cur[id]) return cur;
+      const next = { ...cur };
+      delete next[id];
+      return next;
+    });
+    setMenuFor(null);
+    setConfirmDelete(null);
+  };
+
   const copyMessage = async (m: EnlaceMessage) => {
     const text = m.content ?? (m.type === "sticker" ? "Sticker" : "");
     try {
@@ -853,6 +931,12 @@ export default function EnlaceConversationClient({
             const isPinned = pinnedMessage?.id === m.id;
             const reactions = reactionsByMessage[m.id] ?? [];
             const repliedTo = m.reply_to_id ? messages.find((x) => x.id === m.reply_to_id) : null;
+            // "Leído por Ana, Luis +3" — solo en burbujas propias de grupos.
+            const readers = mine && conversation.type === "group" ? (readersByMessage[m.id] ?? []) : [];
+            const readersLabel = readers.length > 0
+              ? readers.slice(0, 2).map((r) => peopleById.get(r.user_id)?.display_name ?? "Alguien").join(", ")
+                + (readers.length > 2 ? ` +${readers.length - 2}` : "")
+              : null;
 
             if (m.type === "system") {
               return (
@@ -918,6 +1002,8 @@ export default function EnlaceConversationClient({
                     repliedTo={repliedTo}
                     reactionPickerOpen={reactionPickerFor === m.id}
                     menuOpen={menuFor === m.id}
+                    isGroup={conversation.type === "group"}
+                    readersLabel={readersLabel}
                     onOpenMenu={() => { setConfirmDelete(null); setMenuFor((v) => (v === m.id ? null : m.id)); }}
                     onTogglePin={() => togglePin(m.id)}
                     onReply={() => setReplyTo(m)}
@@ -946,6 +1032,7 @@ export default function EnlaceConversationClient({
                     onAskDelete={() => setConfirmDelete(m.id)}
                     onCancelDelete={() => setConfirmDelete(null)}
                     onDelete={() => deleteMessage(m.id)}
+                    onHide={() => hideMessage(m.id)}
                     onClose={() => { setMenuFor(null); setConfirmDelete(null); }}
                   />
                 )}
@@ -1115,12 +1202,13 @@ export default function EnlaceConversationClient({
 
 function MessageBubble({
   message: m, mine, myId, sender, showAvatar, showName, prevSameSender, attachment, urls,
-  isPinned, puedoFijar, reactions, repliedTo, reactionPickerOpen, menuOpen,
+  isPinned, puedoFijar, reactions, repliedTo, reactionPickerOpen, menuOpen, isGroup, readersLabel,
   onOpenMenu, onTogglePin, onReply, onOpenReactionPicker, onPickReaction, onRetry,
 }: {
   message: EnlaceMessage; mine: boolean; myId: string; sender?: PersonLite; showAvatar: boolean; showName: boolean;
   prevSameSender: boolean; attachment?: EnlaceAttachment; urls: Record<string, string>; isPinned: boolean; puedoFijar: boolean;
   reactions: EnlaceReaction[]; repliedTo?: EnlaceMessage | null; reactionPickerOpen: boolean; menuOpen: boolean;
+  isGroup: boolean; readersLabel: string | null;
   onOpenMenu: () => void; onTogglePin: () => void; onReply: () => void; onOpenReactionPicker: () => void;
   onPickReaction: (emoji: string) => void; onRetry: () => void;
 }) {
@@ -1331,7 +1419,18 @@ function MessageBubble({
                       <span className="text-[10px] opacity-60 select-none" title="Mensaje editado">editado</span>
                     )}
                     <span className="text-[10.5px] opacity-60 select-none">{timeOnly(m.created_at)}</span>
-                    {mine && <MessageStatusIcon status={m.status} readAt={m.read_at} onRetry={onRetry} tone={m.type === "sticker" ? undefined : "accent"} />}
+                    {mine && isGroup && readersLabel ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10.5px] leading-none select-none"
+                        style={{ color: "rgba(255,255,255,0.92)", opacity: 0.8 }}
+                        title="Leído por"
+                      >
+                        <Icon name="check" size={11} aria-hidden />
+                        <span className="truncate max-w-[160px]">Leído por {readersLabel}</span>
+                      </span>
+                    ) : (
+                      mine && <MessageStatusIcon status={m.status} readAt={m.read_at} onRetry={onRetry} tone={m.type === "sticker" ? undefined : "accent"} />
+                    )}
                   </div>
                 </div>
               </div>
@@ -1628,12 +1727,14 @@ function EditMessageInline({
 
 /** Menú flotante del mensaje (⋯ o clic derecho) — estilo WhatsApp/Signal:
     Reaccionar, Responder, Reenviar, Copiar, Fijar/Desfijar, Editar (solo
-    propios), ─, Eliminar, y al final una ficha informativa de envío/lectura.
-    El panel de confirmación de borrado se muestra en su lugar (mismo
-    popover), así el clic que abre "Eliminar" está pegado a su confirmación. */
+    propios), ─, "Eliminar para mí" (todos, migración 0037) y "Eliminar
+    para todos" (solo propios), y al final una ficha informativa de
+    envío/lectura. El panel de confirmación de borrado se muestra en su
+    lugar (mismo popover), así el clic que abre "Eliminar" está pegado a
+    su confirmación. */
 function MessageMenu({
   mine, editable, deletable, isPinned, puedoFijar, confirming, sentLabel, statusLabel, edited,
-  onReact, onReply, onCopy, onEdit, onTogglePin, onForward, onAskDelete, onCancelDelete, onDelete, onClose,
+  onReact, onReply, onCopy, onEdit, onTogglePin, onForward, onAskDelete, onCancelDelete, onDelete, onHide, onClose,
 }: {
   mine: boolean;
   editable: boolean;
@@ -1653,6 +1754,7 @@ function MessageMenu({
   onAskDelete: () => void;
   onCancelDelete: () => void;
   onDelete: () => void;
+  onHide: () => void;
   onClose: () => void;
 }) {
   const Item = ({ icon, label, danger, onClick }: { icon: string; label: string; danger?: boolean; onClick: () => void }) => (
@@ -1704,10 +1806,12 @@ function MessageMenu({
               <Item icon={isPinned ? "pinOff" : "pin"} label={isPinned ? "Desfijar mensaje" : "Fijar mensaje"} onClick={() => { onTogglePin(); onClose(); }} />
             )}
             {editable && <Item icon="pencil" label="Editar" onClick={() => { onEdit(); onClose(); }} />}
+            <div className="h-px my-1 mx-1" style={{ background: "var(--border)" }} />
+            <Item icon="slash" label="Eliminar para mí" onClick={() => { onHide(); onClose(); }} />
             {mine && deletable && (
               <>
                 <div className="h-px my-1 mx-1" style={{ background: "var(--border)" }} />
-                <Item icon="trash" label="Eliminar" danger onClick={onAskDelete} />
+                <Item icon="trash" label="Eliminar para todos" danger onClick={onAskDelete} />
               </>
             )}
             <div className="h-px my-1 mx-1" style={{ background: "var(--border)" }} />

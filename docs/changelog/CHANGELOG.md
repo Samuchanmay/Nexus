@@ -2,6 +2,24 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Chat Fase 3: "Leído por …" en grupos + "Eliminar para mí"
+
+### Qué cambió
+- **Migración 0037** (`supabase/migrations/0037_chat_reads_and_hidden.sql`):
+  - `message_reads(message_id, user_id, read_at)` — un recibo por lector por mensaje; alimenta el "Leído por Ana, Luis +3" bajo las burbujas propias en grupos. En directas no cambia nada (sigue el ✓✓ con hora de 0025).
+  - `message_hidden(user_id, message_id)` — "Eliminar para mí": borrado suave POR USUARIO. La política RLS `messages_select` se recrea para excluir de todos los SELECTs (feed, scroll, fijado) lo que el usuario ocultó; los demás lo siguen viendo.
+  - RPCs nuevos (patrón security definer): `nx_enlace_mark_messages_read(uuid[])` (lote, reemplaza el bucle por mensaje que hacía el cliente), `nx_enlace_message_reads(uuid[])` (recibos con membrecía explícita), `nx_enlace_hide_message(uuid)` / `nx_enlace_show_message(uuid)`. `nx_search_messages` (0036) se recrea para no devolver mensajes ocultados.
+  - `message_reads`/`message_hidden` agregadas a la publicación Realtime + `REPLICA IDENTITY FULL` (mismo criterio que 0026): "Leído por" se actualiza en vivo cuando otro miembro abre el chat.
+- **`src/app/chat/[id]/client.tsx`**: al abrir marca el lote visible con el RPC nuevo y carga los recibos; listener Realtime de `message_reads` (insert/delete) para lecturas en vivo; en grupos las burbujas propias muestran "Leído por …" (máx. 2 nombres + "+N") cuando hay lectores; `MessageMenu` gana "Eliminar para mí" (todos) y el de "Eliminar" propio pasa a llamarse "Eliminar para todos".
+- **`src/app/chat/[id]/page.tsx`**: sin cambios — el filtro de ocultados lo aplica la RLS en el SELECT del feed.
+
+### Para la nube
+- **Pendiente de aplicar en el SQL Editor de emet.uno**: `docs/MIGRACIONES-APLICAR-0037-CHAT-LECTURAS-Y-OCULTAR.sql` (idempotente).
+
+### Archivos
+- `supabase/migrations/0037_chat_reads_and_hidden.sql`, `docs/MIGRACIONES-APLICAR-0037-CHAT-LECTURAS-Y-OCULTAR.sql`
+- `src/app/chat/[id]/client.tsx`, `docs/03-ROADMAP.md`
+
 ## 2026-08-05 · Chat: búsqueda cross-conversación (cierre Fase 3 §16)
 
 ### Qué cambió

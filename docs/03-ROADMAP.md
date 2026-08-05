@@ -63,6 +63,8 @@ Documento vivo. Cada fila responde a código real: ✅ existe en el repo, 🟡 e
 | Cola offline con reenvío (`use-outbox`) | ✅ | `src/lib/chat/use-outbox.ts` |
 | Outbox: retry automático con backoff | 🟢 | Existe la cola; pulir reintentos programados |
 | Búsqueda global de mensajes | ✅ | `conversation-search` intra + cross-conversación con RPC `nx_search_messages` (0036, índice trigram), agrupada por conversación y con salto directo al mensaje (`/chat/:id?msg=…` + resaltado) |
+| "Leído por …" en grupos | ✅ | Tabla `message_reads` (por miembro) + RPCs `nx_enlace_mark_messages_read` / `nx_enlace_message_reads` (0037); bajo la burbuja propia "Leído por Ana, Luis +3". Directas siguen con ✓✓ + hora |
+| "Eliminar para mí" | ✅ | Tabla `message_hidden` (por usuario) + RPCs `nx_enlace_hide_message` / `nx_enlace_show_message` (0037); RLS de `messages` excluye lo ocultado para mí en feed, scroll, búsqueda y fijado |
 
 ### Chat · Niveles de pulido (dirección: mezcla Signal + WhatsApp Desktop + Apple Messages)
 
@@ -250,4 +252,4 @@ Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación
 
 ## Próximo hito sugerido
 
-Fase 2 quedó cerrada (2026-08-05) y la **búsqueda cross-conversación** del chat ya está ✅ (RPC 0036 + deep-link). Los siguientes items de la Fase 3: **"Leído por …" en grupos** (requiere tabla `message_reads`), **"eliminar para mí"** (estado por participante) y el retry con backoff del outbox.
+Fase 2 quedó cerrada (2026-08-05) y la **búsqueda cross-conversación** del chat ya está ✅ (RPC 0036 + deep-link). También quedaron ✅ **"Leído por …" en grupos** y **"eliminar para mí"** (migración 0037, docs `MIGRACIONES-APLICAR-0037-…sql` — pendiente de aplicar en el SQL Editor de emet.uno). Queda de la Fase 3 el retry con backoff del outbox.
