@@ -66,21 +66,22 @@ export function MonthView({
   };
 
   return (
-    <div className="card p-4 overflow-x-auto">
+    <div className="card p-5 overflow-x-auto">
       <div className={minWidth}>
-        <div className="grid grid-cols-7 gap-1.5 mb-2">
+        {/* Días de la semana */}
+        <div className="grid grid-cols-7 gap-2 mb-3">
           {DOW.map((d) => (
-            <p key={d} className="text-center text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>
+            <p key={d} className="text-center text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{d}</p>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5">
+        
+        {/* Celdas del calendario */}
+        <div className="grid grid-cols-7 gap-2">
           {cells.map((c) => {
             const evs = eventsByDate.get(c.date) ?? [];
             const tint = cellTint?.(c.date);
             const isToday = c.date === today;
             const isSelected = c.date === selectedDate;
-            // Un punto por color DISTINTO (máx 3) — nunca se repite el mismo
-            // color en la misma celda; "+n" cuenta los eventos que quedaron fuera.
             const dotColors = Array.from(new Set(evs.map((ev) => eventColor(ev.kind)))).slice(0, MAX_DOTS);
             const more = evs.length - dotColors.length;
             return (
@@ -91,32 +92,41 @@ export function MonthView({
                   else select(c.date);
                 }}
                 onMouseEnter={() => setCursor(c.date)}
-                className="rounded-sm p-1.5 min-h-[72px] flex flex-col gap-1 cursor-pointer transition-colors"
+                className="rounded-xl p-2.5 min-h-[88px] flex flex-col gap-1.5 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
                 style={{
                   background: tint ?? (isSelected ? "var(--accent-tint)" : "var(--surface-2)"),
                   opacity: c.inMonth ? 1 : 0.35,
+                  border: isToday ? "2px solid var(--accent)" : "2px solid transparent",
+                  boxShadow: isToday ? "0 0 0 4px var(--accent-tint)" : undefined,
                 }}
                 title={evs.length ? `${evs.length} evento${evs.length === 1 ? "" : "s"} · ${evs.slice(0, 4).map((ev) => ev.title).join(" · ")}` : undefined}
                 aria-current={isToday ? "date" : undefined}
               >
+                {/* Número del día */}
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-bold tabular-nums w-5 h-5 grid place-items-center rounded-full"
+                  <span 
+                    className="text-[13px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
                     style={{
-                      color: isToday ? "#fff" : c.inMonth ? "var(--text-2)" : "var(--text-3)",
+                      color: isToday ? "#fff" : c.inMonth ? "var(--text-1)" : "var(--text-3)",
                       background: isToday ? "var(--accent)" : "transparent",
                     }}>
                     {c.day}
                   </span>
+                  {/* Chip "+n" en vez de texto flotante */}
                   {more > 0 && (
-                    <span className="text-[11px] font-bold tabular-nums" style={{ color: "var(--text-2)" }}>
+                    <span 
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ background: "var(--surface-3)", color: "var(--text-2)" }}>
                       +{more}
                     </span>
                   )}
                 </div>
+                
+                {/* Puntos indicadores */}
                 {dotColors.length > 0 && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 mt-auto">
                     {dotColors.map((col, i) => (
-                      <span key={i} className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: col }} />
+                      <span key={i} className="w-2 h-2 rounded-full shrink-0" style={{ background: col }} />
                     ))}
                   </div>
                 )}
