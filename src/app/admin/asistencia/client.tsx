@@ -188,7 +188,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
   const confirmExit = async (p: PendingValidation) => {
     if (!resolveTime) { toast("Elige la hora antes de confirmar", "danger"); return; }
     setSavingResolve(true);
-    const res = await adminResolvePendingExit(createClient(), p.userId, p.date, resolveTime);
+    const res = await adminResolvePendingExit(createClient(), p.userId, p.date, resolveTime, adminId);
     setSavingResolve(false);
     if (!res.ok) { toast(res.error || "No se pudo confirmar", "danger"); return; }
     setPending((prev) => prev.filter((x) => x.id !== p.id));

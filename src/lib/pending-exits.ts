@@ -98,6 +98,9 @@ export async function resolvePendingExit(
   const { error: attErr } = await supabase.from("attendance").insert({
     user_id: userId, type: "Salida", reason: "Fin de jornada", date, time,
     lat: null, lng: null, distance_m: null, device_id: "jornada-pendiente-resuelta",
+    // FASE 9 (auditoría 4 ago 2026): marca explícita de origen — la propia
+    // persona confirmó una salida de un día pasado, no fue el checador en vivo.
+    source: "salida_pendiente_propia",
   });
   if (attErr) return { ok: false, error: attErr.message };
   const { error: peErr } = await supabase.from("pending_exits")
@@ -134,11 +137,14 @@ export async function requestRhValidation(
  * panel de Asistencia) y le notifica que ya quedó resuelto.
  */
 export async function adminResolvePendingExit(
-  supabase: SupabaseClient, userId: string, date: string, time: string,
+  supabase: SupabaseClient, userId: string, date: string, time: string, adminId?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { error: attErr } = await supabase.from("attendance").insert({
     user_id: userId, type: "Salida", reason: "Fin de jornada", date, time,
     lat: null, lng: null, distance_m: null, device_id: "jornada-pendiente-resuelta-admin",
+    // FASE 9 (auditoría 4 ago 2026): un admin confirmó la salida de otra
+    // persona — queda marcado quién lo hizo, no solo que fue "manual".
+    source: "salida_pendiente_admin", created_by: adminId ?? null,
   });
   if (attErr) return { ok: false, error: attErr.message };
   const { error: peErr } = await supabase.from("pending_exits")

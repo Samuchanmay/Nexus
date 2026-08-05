@@ -228,7 +228,9 @@ Deno.serve(async (req) => {
     // INSERT con fecha/hora explícitas — el UNIQUE constraint frena duplicados exactos
     const { data, error } = await supabase
       .from("attendance")
-      .insert({ user_id: profile.id, type, reason, date, time, lat, lng, distance_m: dist, device_id })
+      // FASE 9 (auditoría 4 ago 2026): source explícito — este es el único
+      // camino de fichaje real vía checador (GPS validado server-side).
+      .insert({ user_id: profile.id, type, reason, date, time, lat, lng, distance_m: dist, device_id, source: "checador" })
       .select("id, date, time")
       .single();
 

@@ -1,12 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { typeLabels } from "@/lib/types";
-import type { ActivityType, RequestStatus } from "@/lib/types";
+import type { ActivityType, RequestStatus, AttendanceRow, Schedule } from "@/lib/types";
 import { seniorityLabel, todayMerida, dmy } from "@/lib/tz";
 import { STATUS_TONE } from "@/lib/ui-maps";
 import { PageHeader } from "@/components/shared";
 import { IconClock, IconUsers, IconFolder } from "@/components/icons";
 import { PrintButton } from "./print-button";
 import { CsvLink } from "./csv-link";
+import { Pill } from "@/components/ui";
+import { stateAfter, summarizeDay, scheduleFor } from "@/lib/hours";
+import type { JornadaState } from "@/lib/hours";
+import { getAttendanceStatus, type IncidentKind, type BadgeVariant } from "@/lib/domain/attendance/status";
 
 /* ═══════════════════════════════════════════════════════════════
    Reportes — agregados reales de Solicitudes/Actividades.
@@ -66,8 +70,12 @@ const STATUS_ORDER: RequestStatus[] = ["solicitada", "aprobada", "cancelada"];
 export default async function Reportes() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const today = todayMerida();
 
-  const [{ data: requests }, { data: projects }, { data: logs }, { data: types }, { data: team }, { data: vacs }, meRes] = await Promise.all([
+  const [
+    { data: requests }, { data: projects }, { data: logs }, { data: types }, { data: team }, { data: vacs }, meRes,
+    { data: attToday }, { data: jornadaStatesRows }, { data: schedsRows }, { data: incsToday }, { data: holidayRows }, { data: restDaysToday }, { data: eventCoverageToday },
+  ] = await Promise.all([
     supabase.from("requests").select("id, type, requester_area, status, created_at"),
     supabase.from("projects").select("id, request_id, created_at, status"),
     supabase.from("task_time_logs").select("minutes, project_assignments(project_id, user_id)"),
@@ -76,6 +84,21 @@ export default async function Reportes() {
       .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("vacations").select("user_id, start_date, end_date, days, status").is("archived_at", null),
     user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+    // FASE 10 (auditoría 4 ago 2026): estado de asistencia de HOY por
+    // persona, con el mismo esquema de color (Pill/badgeVariant) que ya usa
+    // /admin/asistencia — antes reportes solo coloreaba el estado de la
+    // SOLICITUD (aprobada/cancelada/…), nunca el estado diario de asistencia.
+    supabase.from("attendance").select("*").eq("date", today).order("time"),
+    supabase.from("jornada_states").select("*").eq("activo", true),
+    supabase.from("schedules").select("*"),
+    supabase.from("incidents").select("user_id, kind, note, start_date, end_date").eq("status", "Autorizado")
+      .is("archived_at", null).lte("start_date", today).gte("end_date", today),
+    supabase.from("holidays").select("date").eq("date", today),
+    supabase.from("rest_days").select("user_id, note, start_date, end_date").lte("start_date", today).gte("end_date", today),
+    supabase.from("event_participants")
+      .select("user_id, institutional_events!inner(title, start_date, end_date, status)")
+      .eq("status", "confirmado").eq("institutional_events.status", "confirmado")
+      .lte("institutional_events.start_date", today).gte("institutional_events.end_date", today),
   ]);
   const adminId = meRes?.data?.id ?? "";
   const TYPE_LABEL = typeLabels((types ?? []) as ActivityType[]);
@@ -210,8 +233,55 @@ export default async function Reportes() {
   const minutesByTypeSorted = Object.entries(minutesByType).sort((a, b) => b[1] - a[1]);
   const maxMinutes = Math.max(1, ...Object.values(minutesByType));
 
+  /* FASE 10 (auditoría 4 ago 2026): estado de asistencia de HOY por persona,
+     con el MISMO resolver (getAttendanceStatus) y el mismo color por estado
+     (Pill/badgeVariant) que ya usa /admin/asistencia — antes esta pantalla
+     no mostraba en absoluto el estado diario de asistencia, y el único
+     "color por estado" que tenía era el de la solicitud (arriba). No se
+     inventa lógica de color nueva: se reutiliza el resolver central para
+     que ambas pantallas coincidan siempre. */
+  const vacationTodayOf = new Map(
+    (vacs ?? [])
+      .filter((v) => v.status === "Aprobada" && v.start_date <= today && v.end_date >= today)
+      .map((v) => [v.user_id, { start: v.start_date, end: v.end_date }]),
+  );
+  const incidentTodayOf = new Map((incsToday ?? []).map((i) => [i.user_id as string, { kind: i.kind as string, note: i.note as string | null }]));
+  const restDayTodayOf = new Map((restDaysToday ?? []).map((r) => [r.user_id as string, { note: r.note as string | null }]));
+  const isHolidayToday = (holidayRows ?? []).length > 0;
+  type EventCoverageRow = { user_id: string; institutional_events: { title: string } | { title: string }[] | null };
+  const externalEventTodayOf = new Map(((eventCoverageToday ?? []) as unknown as EventCoverageRow[]).flatMap((r) => {
+    const ev = Array.isArray(r.institutional_events) ? r.institutional_events[0] : r.institutional_events;
+    return ev ? [[r.user_id, { title: ev.title }] as const] : [];
+  }));
+  const jornadaStatesActive = (jornadaStatesRows ?? []) as JornadaState[];
+  const attTodayRows = (attToday ?? []) as AttendanceRow[];
+
+  const attendanceToday = (team ?? []).map((u) => {
+    const sched = scheduleFor((schedsRows ?? []) as Schedule[], u.id, today);
+    const myRows = attTodayRows.filter((r) => r.user_id === u.id);
+    const day = summarizeDay(today, myRows, sched ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" }, jornadaStatesActive);
+    const last = day.movements.at(-1);
+    const liveState = day.isOpen && last ? stateAfter(last) : null;
+    const inc = incidentTodayOf.get(u.id) ?? null;
+    const status = getAttendanceStatus({
+      date: today, today, firstIn: day.firstIn, isOpen: day.isOpen, noRegistroSalida: day.noRegistroSalida,
+      liveStateName: liveState, vacation: vacationTodayOf.get(u.id) ?? null,
+      incident: inc ? { kind: inc.kind as IncidentKind, note: inc.note } : null,
+      isHoliday: isHolidayToday, restDay: restDayTodayOf.get(u.id) ?? null,
+      externalEvent: externalEventTodayOf.get(u.id) ?? null, isBusinessDay: true,
+    });
+    return { name: u.display_name, label: status.label, tone: status.badgeVariant as BadgeVariant, color: status.color };
+  });
+  const attendanceByStatus = new Map<string, { label: string; tone: BadgeVariant; color: string; count: number }>();
+  for (const p of attendanceToday) {
+    const key = p.label;
+    const acc = attendanceByStatus.get(key) ?? { label: p.label, tone: p.tone, color: p.color, count: 0 };
+    acc.count += 1;
+    attendanceByStatus.set(key, acc);
+  }
+  const attendanceStatusBars = [...attendanceByStatus.values()].sort((a, b) => b.count - a.count);
+
   /* Vacaciones — saldo, antigüedad y próximo periodo por persona */
-  const today = todayMerida();
   const vacsByUser = new Map<string, { start_date: string; end_date: string; days: number; status: string }[]>();
   for (const v of (vacs ?? [])) {
     const list = vacsByUser.get(v.user_id) ?? [];
@@ -342,6 +412,38 @@ export default async function Reportes() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Estado de asistencia — hoy (FASE 10, auditoría 4 ago 2026): mismo
+          resolver y mismo color por estado que /admin/asistencia. */}
+      <div className="card p-5 mb-6">
+        <h2 className="text-[15px] font-bold text-text-1 mb-4">
+          Estado de asistencia — hoy
+          {attendanceToday.length > 0 && (
+            <span className="text-[13.5px] font-medium ml-2" style={{ color: "var(--text-3)" }}>
+              · {attendanceToday.length} persona{attendanceToday.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </h2>
+        {attendanceToday.length === 0 ? (
+          <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>
+        ) : (
+          <>
+            <div className="space-y-3 mb-5">
+              {attendanceStatusBars.map((s) => (
+                <Bar key={s.label} label={s.label} count={s.count} total={attendanceToday.length} color={s.color} />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {attendanceToday.map((p) => (
+                <div key={p.name} className="flex items-center gap-1.5 rounded-full pl-2.5 pr-1 py-1" style={{ background: "var(--surface-2)" }}>
+                  <span className="text-[12.5px] font-semibold">{p.name}</span>
+                  <Pill tone={p.tone}>{p.label}</Pill>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Distribuciones - Solo barras, sin donuts */}
