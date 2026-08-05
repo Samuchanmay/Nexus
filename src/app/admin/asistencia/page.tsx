@@ -83,7 +83,7 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
   const selectedDate = params.date ?? today; // Fecha seleccionada (por defecto hoy)
   const since = addDays(today, -56); // 8 semanas
 
-  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }, { data: incs }, { data: holidayRows }, { data: restDayRows }, { data: vacsHist }, { data: incsHist }, { data: holidaysHist }, { data: restDaysHist }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }, { data: incs }, { data: holidayRows }, { data: restDayRows }, { data: vacsHist }, { data: incsHist }, { data: holidaysHist }, { data: restDaysHist }, { data: eventCoverage }] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area, title, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", selectedDate).order("time"),
     supabase.from("schedules").select("*"),
@@ -123,6 +123,14 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
       .is("archived_at", null).gte("end_date", since),
     supabase.from("holidays").select("date").gte("date", since),
     supabase.from("rest_days").select("user_id, note, start_date, end_date").gte("end_date", since),
+    // FASE 8 (auditoría 4 ago 2026): participantes CONFIRMADOS de eventos
+    // CONFIRMADOS que caen en selectedDate — el resolver antes no tenía
+    // forma de saber "está cubriendo un evento hoy".
+    supabase.from("event_participants")
+      .select("user_id, institutional_events!inner(title, start_date, end_date, status)")
+      .eq("status", "confirmado")
+      .eq("institutional_events.status", "confirmado")
+      .lte("institutional_events.start_date", selectedDate).gte("institutional_events.end_date", selectedDate),
   ]);
   // "Próximo" = arranca en los próximos 3 días (mismo umbral que "Saldo
   // bajo" en Vacaciones admin) — ventana corta, solo lo inminente.
@@ -139,6 +147,12 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
   const isHoliday = (holidayRows ?? []).length > 0;
   const incidentOf = new Map((incs ?? []).map((i) => [i.user_id as string, { kind: i.kind as string, note: i.note as string | null }]));
   const restDayOf = new Map((restDayRows ?? []).map((r) => [r.user_id as string, { note: r.note as string | null }]));
+  // FASE 8: mismo patrón que los mapas de arriba, pero para cobertura de eventos.
+  type EventCoverageRow = { user_id: string; institutional_events: { title: string } | { title: string }[] | null };
+  const externalEventOf = new Map(((eventCoverage ?? []) as unknown as EventCoverageRow[]).flatMap((r) => {
+    const ev = Array.isArray(r.institutional_events) ? r.institutional_events[0] : r.institutional_events;
+    return ev ? [[r.user_id, { title: ev.title }] as const] : [];
+  }));
 
   // ── Lookups históricos (8 semanas) para el motivo de ausencia del Excel/
   // reporte semanal (Task 5) — un usuario puede tener varias vacaciones/
@@ -198,6 +212,7 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
         vacation: vacationOf.get(u.id) ?? { today: false, soonDays: null, startDate: null, endDate: null },
         incident: incidentOf.get(u.id) ?? null,
         restDay: restDayOf.get(u.id) ?? null,
+        externalEvent: externalEventOf.get(u.id) ?? null,
       },
       schedule,
       day: {

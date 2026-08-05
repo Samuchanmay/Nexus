@@ -13,6 +13,12 @@
 //   3. Diálogo de "jornada pendiente": si un día pasado quedó
 //      abierto sin salida, se pregunta al iniciar sesión — nunca se
 //      etiqueta directamente "No registró salida".
+//   4. FASE 7 (auditoría 4 ago 2026) — Cobertura de eventos del día:
+//      si la persona está confirmada como participante de un evento
+//      institucional que cae hoy, se le avisa aquí mismo con botón
+//      "Iniciar cobertura" — antes el check-in de eventos (RPC ya
+//      existente desde 0030) solo era alcanzable a mano desde
+//      /admin/calendario, nadie se enteraba de que tenía cobertura.
 // ══════════════════════════════════════════════════════════
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -23,7 +29,7 @@ import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida } from "@/lib/tz";
 import { getOldestPendingExit, resolvePendingExit, type PendingExit } from "@/lib/pending-exits";
 import { Field, Input, Button } from "./ui";
-import { TimePicker } from "@/components/ui";
+import { TimePicker, useToast } from "@/components/ui";
 import { Icon } from "./icons";
 
 const HEARTBEAT_MS = 3 * 60 * 1000;
@@ -142,6 +148,81 @@ export function JornadaWatcher({ userId }: { userId: string }) {
     setPending(null);
   };
 
+  // ── 4. Cobertura de eventos del día (FASE 7) ──
+  type TodayCoverage = {
+    eventId: string; title: string; locationType: string; locationName: string | null;
+    allowAnyLocation: boolean;
+    coverageStatus: "not_checked_in" | "in_coverage" | "coverage_completed";
+    checkInAt: string | null;
+  };
+  const toast = useToast();
+  const [todayEvents, setTodayEvents] = useState<TodayCoverage[]>([]);
+  const [eventBusyId, setEventBusyId] = useState<string | null>(null);
+  const dismissedEventsRef = useRef<Set<string>>(new Set());
+
+  const loadTodayEvents = async () => {
+    const supabase = createClient();
+    const today = todayMerida();
+    const { data: parts } = await supabase
+      .from("event_participants")
+      .select("event_id, status, institutional_events!inner(id, title, start_date, end_date, status, location_type, location_name, allow_any_location)")
+      .eq("user_id", userId).eq("status", "confirmado")
+      .eq("institutional_events.status", "confirmado")
+      .lte("institutional_events.start_date", today).gte("institutional_events.end_date", today);
+    if (!parts || parts.length === 0) { setTodayEvents([]); return; }
+
+    const rows = await Promise.all(parts.map(async (p) => {
+      const ev = Array.isArray(p.institutional_events) ? p.institutional_events[0] : p.institutional_events;
+      if (!ev) return null;
+      const { data: status } = await supabase.rpc("get_event_coverage_status", { p_event_id: ev.id, p_user_id: userId });
+      return {
+        eventId: ev.id, title: ev.title, locationType: ev.location_type, locationName: ev.location_name,
+        allowAnyLocation: ev.allow_any_location,
+        coverageStatus: (status?.coverage_status ?? "not_checked_in") as TodayCoverage["coverageStatus"],
+        checkInAt: status?.check_in_at ?? null,
+      } satisfies TodayCoverage;
+    }));
+    setTodayEvents(rows.filter((r): r is TodayCoverage => r !== null && !dismissedEventsRef.current.has(r.eventId)));
+  };
+
+  useEffect(() => { loadTodayEvents(); }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startCoverage = async (ev: TodayCoverage) => {
+    setEventBusyId(ev.eventId);
+    const supabase = createClient();
+    let coords: string | null = null;
+    if (ev.locationType === "externo" && !ev.allowAnyLocation && navigator.geolocation) {
+      coords = await new Promise<string | null>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve(`${pos.coords.latitude},${pos.coords.longitude}`),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 10000 },
+        );
+      });
+    }
+    const { data, error } = await supabase.rpc("event_check_in", {
+      p_event_id: ev.eventId, p_user_id: userId, p_coords: coords,
+      p_location_type: ev.locationType === "externo" ? "evento" : "oficina",
+    });
+    setEventBusyId(null);
+    if (error || !data?.ok) { toast(data?.error || "No se pudo iniciar cobertura", "danger"); return; }
+    toast(`Cobertura iniciada: ${ev.title}`, "ok");
+    await loadTodayEvents();
+  };
+  const finishCoverage = async (ev: TodayCoverage) => {
+    setEventBusyId(ev.eventId);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("event_check_out", { p_event_id: ev.eventId, p_user_id: userId });
+    setEventBusyId(null);
+    if (error || !data?.ok) { toast(data?.error || "No se pudo finalizar cobertura", "danger"); return; }
+    toast(`Cobertura finalizada · ${Math.floor(data.duration_min / 60)}h ${data.duration_min % 60}m`, "ok");
+    await loadTodayEvents();
+  };
+  const dismissEvent = (eventId: string) => {
+    dismissedEventsRef.current.add(eventId);
+    setTodayEvents((evs) => evs.filter((e) => e.eventId !== eventId));
+  };
+
   const dateLabel = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
 
   const REMINDER_COPY: Record<number, { title: string; body: string }> = {
@@ -152,8 +233,46 @@ export function JornadaWatcher({ userId }: { userId: string }) {
 
   return (
     <>
+      {(todayEvents.length > 0 || reminderLevel !== null) && (
+        <div className="fixed bottom-5 right-5 z-[80] flex flex-col gap-3 items-end">
+          {todayEvents.map((ev) => (
+            <div key={ev.eventId} className="max-w-[340px] w-[340px] card p-4 shadow-lg" style={{ animation: "nx-pop .2s ease-out" }}>
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 mt-0.5" style={{ color: "var(--accent)" }}><Icon name="pin" size={18} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13.5px] font-bold">Tienes cobertura de evento hoy</p>
+                  <p className="text-[12.5px] mt-0.5 truncate" style={{ color: "var(--text-2)" }}>
+                    {ev.title}{ev.locationName ? ` · ${ev.locationName}` : ""}
+                  </p>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--text-3)" }}>
+                    {ev.coverageStatus === "in_coverage" && ev.checkInAt
+                      ? `En cobertura desde ${new Date(ev.checkInAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`
+                      : ev.coverageStatus === "coverage_completed" ? "Cobertura completa" : "Aún no inicias"}
+                  </p>
+                </div>
+                <button onClick={() => dismissEvent(ev.eventId)} className="shrink-0" style={{ color: "var(--text-3)" }} aria-label="Ocultar">
+                  <Icon name="close" size={14} />
+                </button>
+              </div>
+              {ev.coverageStatus !== "coverage_completed" && (
+                <div className="flex gap-2 mt-3">
+                  {ev.coverageStatus === "not_checked_in" && (
+                    <Button variant="primary" size="sm" className="flex-1" disabled={eventBusyId === ev.eventId} onClick={() => startCoverage(ev)}>
+                      Iniciar cobertura
+                    </Button>
+                  )}
+                  {ev.coverageStatus === "in_coverage" && (
+                    <Button variant="primary" size="sm" className="flex-1" disabled={eventBusyId === ev.eventId} onClick={() => finishCoverage(ev)}>
+                      Finalizar cobertura
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
       {reminderLevel !== null && (
-        <div className="fixed bottom-5 right-5 z-[80] max-w-[340px] card p-4 shadow-lg" style={{ animation: "nx-pop .2s ease-out" }}>
+        <div className="max-w-[340px] card p-4 shadow-lg" style={{ animation: "nx-pop .2s ease-out" }}>
           <div className="flex items-start gap-3">
             <span className="shrink-0 mt-0.5" style={{ color: "var(--warn)" }}><Icon name="alarm" size={18} /></span>
             <div className="min-w-0">
@@ -165,6 +284,8 @@ export function JornadaWatcher({ userId }: { userId: string }) {
             <Button variant="subtle" size="sm" className="flex-1" onClick={() => setReminderLevel(null)}>Sigo trabajando</Button>
             <Button variant="primary" size="sm" className="flex-1" onClick={() => { setReminderLevel(null); router.push("/fichar"); }}>Registrar salida</Button>
           </div>
+        </div>
+      )}
         </div>
       )}
 

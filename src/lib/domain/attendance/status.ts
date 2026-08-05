@@ -20,7 +20,7 @@ export type IncidentKind =
 export type AttendanceStatusKey =
   | "trabajando" | "pausa"
   | "vacaciones" | "incapacidad" | "permiso" | "comision" | "home_office"
-  | "falta_justificada" | "dia_inhabil" | "descanso"
+  | "falta_justificada" | "dia_inhabil" | "descanso" | "evento_externo"
   | "falta_injustificada" | "sin_iniciar"
   | "no_registro_salida" | "pendiente_confirmar_salida" | "jornada_terminada"
   | "fuera_horario";
@@ -139,6 +139,11 @@ export interface ResolveInput {
   incident?: { kind: IncidentKind; note?: string | null } | null;
   isHoliday?: boolean;
   restDay?: { note?: string | null } | null;
+  /** FASE 8 (auditoría 4 ago 2026): la persona está confirmada como
+      participante de un evento institucional confirmado que cae en `date`
+      — antes nada cruzaba "¿tiene evento asignado hoy?" contra el estado
+      de asistencia; el sistema de eventos vivía completamente aparte. */
+  externalEvent?: { title: string } | null;
   isBusinessDay: boolean;
   scheduleEndPassedWithoutEntry?: boolean;
 }
@@ -175,6 +180,16 @@ export function getAttendanceStatus(input: ResolveInput): AttendanceStatus {
   }
   if (input.isHoliday) return finalize(eventStatus("dia_inhabil"));
   if (input.restDay) return finalize(eventStatus("descanso", input.restDay.note ?? undefined));
+  // Evento externo (FASE 8): no reordena las prioridades existentes (eso es
+  // decisión de producto aparte, ver FASE 11) — solo llena el hueco real:
+  // antes de esto, alguien cubriendo un evento sin fichar oficina cualquier
+  // día caía directo a "Falta injustificada" o "Sin iniciar".
+  if (input.externalEvent) {
+    return finalize({
+      key: "evento_externo", label: "Evento externo", icon: "pin", badgeVariant: "accent",
+      color: TOKEN.accent, reportLabel: "EVENTO EXTERNO", priority: 68, reason: input.externalEvent.title,
+    });
+  }
 
   // 3) Sin jornada y sin evento administrativo.
   if (!input.firstIn) {

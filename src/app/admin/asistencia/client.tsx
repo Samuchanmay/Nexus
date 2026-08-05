@@ -35,6 +35,7 @@ export interface PersonDay {
     vacation?: { today: boolean; soonDays: number | null; startDate?: string | null; endDate?: string | null };
     incident?: { kind: string; note: string | null } | null;
     restDay?: { note: string | null } | null;
+    externalEvent?: { title: string } | null;
   };
   schedule: { start_time: string; end_time: string; target_min: number };
   day: {
@@ -119,7 +120,8 @@ function estadoOf(
   day: PersonDay["day"], vacation?: Vacation,
   incident?: { kind: string; note: string | null } | null,
   isHoliday?: boolean, restDay?: { note: string | null } | null,
-): { color: string; label: string; tone: "ok" | "warn" | "muted" | "purple" | "danger" } {
+  externalEvent?: { title: string } | null,
+): { color: string; label: string; tone: "ok" | "warn" | "muted" | "purple" | "danger" | "accent" } {
   if (vacation?.today) return { color: "var(--purple)", label: "Vacaciones", tone: "purple" };
   if (!day.firstIn && vacation?.soonDays != null) return { color: "var(--purple)", label: soonLabel(vacation.soonDays), tone: "purple" };
   const last = day.movements.at(-1);
@@ -129,15 +131,15 @@ function estadoOf(
     date: today, today, firstIn: day.firstIn, isOpen: day.isOpen, noRegistroSalida: day.noRegistroSalida,
     liveStateName: liveState, liveStateColor: null,
     incident: incident ? { kind: incident.kind as IncidentKind, note: incident.note } : null,
-    isHoliday, restDay: restDay ?? null,
+    isHoliday, restDay: restDay ?? null, externalEvent: externalEvent ?? null,
     isBusinessDay: true,
   });
   if (day.noRegistroSalida) return { color: s.color, label: s.label, tone: "danger" };
   if (!day.firstIn) {
     // "muted" salvo que el resolver haya devuelto un evento administrativo
-    // (incidencia/feriado/descanso) con su propio tono — mismo mapeo de
-    // badgeVariant→tone que empleados/client.tsx (Task 3).
-    const tone = s.badgeVariant === "warn" ? "warn" : s.badgeVariant === "danger" ? "danger" : s.badgeVariant === "purple" ? "purple" : "muted";
+    // (incidencia/feriado/descanso/evento externo) con su propio tono —
+    // mismo mapeo de badgeVariant→tone que empleados/client.tsx (Task 3).
+    const tone = s.badgeVariant === "warn" ? "warn" : s.badgeVariant === "danger" ? "danger" : s.badgeVariant === "purple" ? "purple" : s.badgeVariant === "accent" ? "accent" : "muted";
     return { color: s.color, label: s.label, tone };
   }
   if (day.isOpen) return { color: s.color, label: s.label, tone: s.key === "trabajando" ? "ok" : "warn" };
@@ -146,15 +148,17 @@ function estadoOf(
 function estadoPill(
   day: PersonDay["day"], states: JornadaState[], vacation?: Vacation,
   incident?: { kind: string; note: string | null } | null, isHoliday?: boolean, restDay?: { note: string | null } | null,
+  externalEvent?: { title: string } | null,
 ) {
-  const e = estadoOf(day, vacation, incident, isHoliday, restDay);
+  const e = estadoOf(day, vacation, incident, isHoliday, restDay, externalEvent);
   return <Pill tone={e.tone}>{e.label}</Pill>;
 }
 function estadoStatus(
   day: PersonDay["day"], vacation?: Vacation,
   incident?: { kind: string; note: string | null } | null, isHoliday?: boolean, restDay?: { note: string | null } | null,
+  externalEvent?: { title: string } | null,
 ): { color: string; label: string } {
-  return estadoOf(day, vacation, incident, isHoliday, restDay);
+  return estadoOf(day, vacation, incident, isHoliday, restDay, externalEvent);
 }
 
 export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, selectedDate, adminId, pendingValidations, isHoliday = false }: {
@@ -380,7 +384,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                 <div className="flex items-center gap-3">
                   <Avatar name={u.display_name} color={u.nexus_color} size={38} avatarUrl={u.avatar_url}
                     birthday={isBirthdayToday(u.birth_date, todayISO())}
-                    status={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay).color} statusLabel={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay).label} />
+                    status={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay, u.externalEvent).color} statusLabel={estadoStatus(day, u.vacation, u.incident, isHoliday, u.restDay, u.externalEvent).label} />
                   <div>
                     <div className="flex items-center gap-1.5">
                       <p className="text-[14px] font-bold">{u.display_name}</p>
@@ -395,7 +399,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                     <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{u.title ?? u.area}</p>
                   </div>
                 </div>
-                {estadoPill(day, states, u.vacation, u.incident, isHoliday, u.restDay)}
+                {estadoPill(day, states, u.vacation, u.incident, isHoliday, u.restDay, u.externalEvent)}
               </div>
               {/* Botón de edición — siempre disponible para el admin */}
               {!u.vacation?.today && (
