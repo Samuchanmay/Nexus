@@ -2,6 +2,37 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Rediseño UI/UX: Portal Coordinador - Wizard 3 pasos + lista de solicitudes
+
+### Lista de solicitudes
+- **CTA primaria protagonista**: 48px de alto, radio 12px, `IconPlus`, glow de acento con hover elevado.
+- **Sección "Mis solicitudes"**: Label uppercase + badge con contador.
+- **Tarjetas Notion-style**: Radio 16px, hover con elevación 2px y sombra, título cambia a accent en hover.
+- **Badges semánticos** (patrón 10.8): Tipo en neutro, estado con color por `STATUS_TONE` (solicitada=warn, completada=ok, cancelada=danger…).
+- **Eliminar**: Botón ghost con `IconTrash`, aparece hover en danger; confirmación inline "¿Eliminar? Sí, eliminar / No".
+- **Estado vacío compacto**: Icono 64px `rounded-2xl` sobre accent-tint + copia humana.
+
+### Wizard (3 pasos)
+- **Header**: Título 28px tracking-tight + subtítulo contextual por paso.
+- **Barra de progreso**: Segmentos de 5px rounded-full, accent cuando completado.
+- **Paso 1 (tipo)**: Tarjetas con icono 48px en `rounded-2xl`, hover elevado, chip "mín. X días".
+- **Paso 2 (detalle)**: Chips multiselect con sombra al activarse, alerta de anticipación `rounded-xl` con `IconAlert`, pickers oficiales.
+- **Paso 3 (resumen)**: Tarjeta resumen + notice `--ok-tint` con `IconCheck` + envío con glow accent.
+- **Transiciones**: `fade-in slide-in-from-top-2` entre pasos.
+- **Sin tarjetas anidadas**: Se eliminó el `Card` contenedor (Regla 4).
+
+### Design System
+- **Patrón 10.11**: Wizard Multifase con Progressive Disclosure.
+
+### Archivos
+- `src/app/coordinador/client.tsx`, `docs/design/EMET-DESIGN-PRINCIPLES.md`.
+
+## 2026-08-05 · Migraciones pendientes 0025-0034 documentadas para Supabase
+
+- **Script único**: `docs/MIGRACIONES-APLICAR-0025-0034.sql` (0025→0034 en orden, aditivo/idempotente) listo para pegar en el SQL Editor.
+- **Guía actualizada**: `docs/MIGRACIONES-PENDIENTES-SUPABASE.md` con tabla de bloques, verificación post-aplicación y despliegue de Edge Functions `gcal-*`.
+- **Archivos**: `docs/MIGRACIONES-APLICAR-0025-0034.sql`, `docs/MIGRACIONES-PENDIENTES-SUPABASE.md`.
+
 ## 2026-08-05 · Rediseño UI/UX: Vistas del Calendario (Semana, Día, Agenda, Asistencia, Año + Panel derecho)
 
 ### Semana

@@ -957,6 +957,38 @@ Trabajando                 (22px, 600)
 Entrada 8:12               (13px, 500)
 ```
 
+### 10.11 Wizard Multifase con Progressive Disclosure (Coordinador)
+**Principio**: Un flujo largo se parte en pasos con una sola pregunta cada uno; el
+usuario nunca ve un formulario infinito.
+
+**Anatomía**:
+- **Barra de progreso**: 3 segmentos de `5px` con `rounded-full`; el tramo completado
+  usa `--accent`, el pendiente `--surface-3`. Transición 300ms.
+- **Hero del paso**: título `28px` bold `tracking-tight` + subtítulo de `13px` en
+  `--text-3` que explica POR QUÉ se pide este paso ("Cuanto más contexto des, más
+  rápido lo aprueban").
+- **Back / Cancelar**: ghost en `--accent` con `IconChevronLeft`, arriba a la
+  izquierda. "Atrás" en pasos 2-3, "Cancelar" en el paso 1 (resetea todo).
+- **Transición entre pasos**: `animate-in fade-in slide-in-from-top-2 duration-200`
+  (patrón 10.9) — el cambio de paso se siente, no se anuncia.
+- **Paso 1 — elección**: tarjetas de 44px+ con icono 48px en `rounded-2xl` sobre
+  `--accent-tint`, hover elevado (10.7); el mínimo de días como chip `rounded-full`
+  en la esquina.
+- **Paso 2 — formulario**: chips multiselect (activo = `--accent-tint` + borde
+  accent + sombra suave), pickers oficiales (`DatePicker`/`TimePicker`), alerta de
+  validación como tarjeta `rounded-xl` con `IconAlert` en `--danger-tint`/`--danger`.
+- **Paso 3 — confirmación**: tarjeta resumen + notice `--ok-tint` con `IconCheck` +
+  único CTA primario `h-12 rounded-xl` con glow accent.
+- **CTA primario**: `h-12 rounded-xl bg-accent text-white shadow-lg shadow-accent/20
+  hover:-translate-y-0.5` — el botón del paso 1 de la lista ("Nueva solicitud") usa
+  el mismo lenguaje con `IconPlus` centrado.
+
+**Reglas**:
+- El CTA de avanzar siempre está DISABLED hasta cumplir los mínimos del paso
+  (título, fecha, anticipación) — el sistema no castiga (Design for Humans #4).
+- Una sola acción principal por paso (Regla 2).
+- Cada paso se puede alcanzar solo en orden (sin saltos).
+
 ---
 
 ## 11. Implementación
