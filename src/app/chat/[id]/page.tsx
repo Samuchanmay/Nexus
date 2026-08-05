@@ -12,8 +12,14 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-export default async function EnlaceConversationPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EnlaceConversationPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ msg?: string }>;
+}) {
   const { id } = await params;
+  const { msg } = await searchParams;
   const supabase = await createClient();
   const user = await getAuthedUser();
   const { data: me } = await supabase.from("users").select("id").eq("auth_id", user!.id).single();
@@ -133,6 +139,7 @@ export default async function EnlaceConversationPage({ params }: { params: Promi
       recentFiles={recentFiles}
       creatorName={creatorName}
       otherProfile={otherProfile}
+      initialJumpTarget={msg ?? null}
     />
   );
 }

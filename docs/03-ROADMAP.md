@@ -62,7 +62,7 @@ Documento vivo. Cada fila responde a código real: ✅ existe en el repo, 🟡 e
 | Swipe actions estilo Signal | ✅ | `use-swipe-gesture` |
 | Cola offline con reenvío (`use-outbox`) | ✅ | `src/lib/chat/use-outbox.ts` |
 | Outbox: retry automático con backoff | 🟢 | Existe la cola; pulir reintentos programados |
-| Búsqueda global de mensajes | 🟡 | Hay `conversation-search`; falta búsqueda cross-conversación |
+| Búsqueda global de mensajes | ✅ | `conversation-search` intra + cross-conversación con RPC `nx_search_messages` (0036, índice trigram), agrupada por conversación y con salto directo al mensaje (`/chat/:id?msg=…` + resaltado) |
 
 ### Chat · Niveles de pulido (dirección: mezcla Signal + WhatsApp Desktop + Apple Messages)
 
@@ -173,7 +173,7 @@ Bloque de requisitos para que el chat deje de ser "un apartado de mensajería" y
 | Sub-punto | Estado | Notas |
 |---|---|---|
 | Texto dentro de la conversación | ✅ | `ConversationSearch` (debounce, salto + resaltado) |
-| Cross-conversación | 🟡 | Pendiente (ya en tabla Fase 3) |
+| Cross-conversación | ✅ | RPC `nx_search_messages` (0036) agrupado por conversación, deep-link `?msg=` con scroll + resaltado del mensaje exacto |
 | Por persona / archivo / fecha / reacción | 🟢 | Requiere filtros + índices |
 
 **17 · Mensajes fijados arriba** — ✅ `togglePin` + banner de pinned message en la conversación (con preview).
@@ -199,7 +199,7 @@ Bloque de requisitos para que el chat deje de ser "un apartado de mensajería" y
 
 | Área | Estado |
 |---|---|
-| Mensajería (tiempo real, estados, escribiendo/grabando, editar, eliminar 1/1, responder/reenviar/reacciones, búsqueda) | 🟡 Faltan: "eliminar para mí", miniatura en responder, búsqueda cross/persona/archivo/fecha/reacción |
+| Mensajería (tiempo real, estados, escribiendo/grabando, editar, eliminar 1/1, responder/reenviar/reacciones, búsqueda) | 🟡 Faltan: "eliminar para mí", miniatura en responder |
 | Notificaciones (push navegador, móvil, sonidos, vibración, badges, config por conversación) | 🟡 Push navegador ✅; silencio por duración ✅ (0025); móvil/APNs 🟢; sonidos/vibración/config 🟡🟢 |
 | Sincronización (realtime multi-dispositivo, cola offline, reconexión, sin pérdida) | 🟡 Realtime + outbox ✅; outbox multi-tab ✅ (BroadcastChannel); retry backoff 🟢 |
 | Archivos (WebP/AVIF compresión, video transcodificado + miniaturas, docs con preview, audio player, stickers y GIF) | 🟡 Imágenes WebP + audio player + stickers ✅; video/GIF 🟢; docs con preview 🟢; AVIF 🟢 |
@@ -250,6 +250,4 @@ Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación
 
 ## Próximo hito sugerido
 
-Fase 2 quedó cerrada (2026-08-05): retrofit tipográfico ✅ y ripple del menú ✅. Los siguientes items 🟡 con código a medias son de la Fase 3: **búsqueda cross-conversación** y el cierre del checklist del chat (§24).
-
-Para elevar el chat a plataforma de comunicación profesional, el siguiente bloque de trabajo (todos 🟡/🟢 del checklist §Chat): **"Leído por …" en grupos** (requiere tabla `message_reads`), **búsqueda cross-conversación**, y **"eliminar para mí"** (estado por participante).
+Fase 2 quedó cerrada (2026-08-05) y la **búsqueda cross-conversación** del chat ya está ✅ (RPC 0036 + deep-link). Los siguientes items de la Fase 3: **"Leído por …" en grupos** (requiere tabla `message_reads`), **"eliminar para mí"** (estado por participante) y el retry con backoff del outbox.

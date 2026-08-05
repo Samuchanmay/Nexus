@@ -1,12 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { TimePicker } from "@/components/select";
 import { useToast } from "@/components/ui";
 import { Button, Field } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
-import { fmtTime } from "@/lib/hours";
+import { fmtTime, scheduleFor } from "@/lib/hours";
 import { logAdminAction } from "@/lib/admin-log";
+import type { Schedule } from "@/lib/types";
 
 interface EditAttendanceSheetProps {
   open: boolean;
@@ -37,6 +38,27 @@ export function EditAttendanceSheet({
   const [confirmAmPm, setConfirmAmPm] = useState(false);
   const setEntrada = (v: string) => { setEntradaRaw(v); setConfirmAmPm(false); };
   const setSalida = (v: string) => { setSalidaRaw(v); setConfirmAmPm(false); };
+
+  // FASE 2 (auditoría 4 ago 2026): sugerir la hora inicial según el horario
+  // laboral vigente de la persona ese día, en vez del "08:00"/"17:00" fijo —
+  // solo cuando se está AGREGANDO el movimiento (no toca una hora ya
+  // registrada que el admin esté corrigiendo).
+  useEffect(() => {
+    let active = true;
+    createClient()
+      .from("schedules")
+      .select("id, user_id, start_time, end_time, target_min, tolerance_min, valid_from, valid_until")
+      .eq("user_id", userId)
+      .then(({ data }) => {
+        if (!active || !data) return;
+        const effective = scheduleFor(data as Schedule[], userId, date);
+        if (!effective) return;
+        if (!firstIn) setEntradaRaw(effective.start_time.slice(0, 5));
+        if (!lastOut) setSalidaRaw(effective.end_time.slice(0, 5));
+      });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, date]);
 
   // Validaciones inteligentes
   const entradaMin = timeToMin(entrada);
@@ -173,11 +195,13 @@ export function EditAttendanceSheet({
 
         <div className="space-y-4">
           <Field label="Hora de entrada">
-            <TimePicker value={entrada} onChange={setEntrada} />
+            {/* No puede quedar después de la salida del mismo día (FASE 2). */}
+            <TimePicker value={entrada} onChange={setEntrada} maxTime={salida || undefined} />
           </Field>
 
           <Field label="Hora de salida">
-            <TimePicker value={salida} onChange={setSalida} />
+            {/* No puede quedar antes de la entrada del mismo día (FASE 2). */}
+            <TimePicker value={salida} onChange={setSalida} minTime={entrada || undefined} />
           </Field>
 
           <Field label="Motivo">

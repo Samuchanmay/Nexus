@@ -83,7 +83,7 @@ type PersonLite = ParticipantLite & { role?: "admin" | "member"; muted?: boolean
 export default function EnlaceConversationClient({
   myId, myRole, initialMuted, initialMutedUntil, conversation, participants, initialMessages, hasMoreOlder,
   attachmentsByMessage: initialAttachments, reactionsByMessage: initialReactions,
-  initialPinnedMessage, recentFiles, creatorName, otherProfile,
+  initialPinnedMessage, recentFiles, creatorName, otherProfile, initialJumpTarget,
 }: {
   myId: string;
   myRole: "admin" | "member";
@@ -99,6 +99,9 @@ export default function EnlaceConversationClient({
   recentFiles: EnlaceAttachment[];
   creatorName: string | null;
   otherProfile: { area: string | null; phone: string | null; title: string | null } | null;
+  /** Deep-link de la búsqueda cross-conversación (?msg=...): al montar,
+      salta y resalta este mensaje aunque esté fuera de la página cargada. */
+  initialJumpTarget: string | null;
 }) {
   const router = useRouter();
   const { messages, setMessages, send, sendSticker, sendLocation, retry } = useOutbox(conversation.id, myId, initialMessages);
@@ -130,7 +133,7 @@ export default function EnlaceConversationClient({
   const toast = useToast();
 
   const [searchOpen, setSearchOpen] = useState(false);
-  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  const [jumpTarget, setJumpTarget] = useState<string | null>(initialJumpTarget);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -195,7 +198,12 @@ export default function EnlaceConversationClient({
   const puedoEscribir = conversation.type !== "announcement" || myRole === "admin";
 
   useEffect(() => {
+    // Deep-link (?msg=): el salto al mensaje ya está en vuelo (jumpTarget),
+    // no bajar al fondo — el scroll suave al mensaje sería cancelado por el
+    // salto instantáneo al último mensaje.
+    if (initialJumpTarget) return;
     bottomRef.current?.scrollIntoView({ block: "end" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -32,6 +32,12 @@ export function composeHHMM(hour12: number, minute: number, meridiem: "AM" | "PM
   return `${pad2(h24)}:${pad2(minute)}`;
 }
 
+/** Minutos desde medianoche, para comparar/clamp contra minTime/maxTime. */
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.slice(0, 5).split(":").map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+}
+
 /* Rueda individual: lista vertical con scroll-snap, máscara de gradiente y
    línea central. Dispara onChange solo al CRUZAR a otra opción (rAF-throttle). */
 export function Wheel({
@@ -102,9 +108,15 @@ export function Wheel({
 
 export function TimePicker({
   value, onChange, placeholder = "Seleccionar hora", className, disabled, stepMin = 10, title = "Selecciona una hora",
+  minTime, maxTime,
 }: {
   value: string; onChange: (v: string) => void; placeholder?: string; className?: string; disabled?: boolean;
   stepMin?: number; title?: string;
+  /** Límites HH:MM (24h) — auditoría 4 ago 2026, FASE 2: en vez de solo
+      bloquear el botón Guardar después, las ruedas se "clampan" en vivo al
+      límite en cuanto el usuario gira fuera de rango (ej. salida no puede
+      quedar antes de la entrada del mismo día). */
+  minTime?: string; maxTime?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [parts, setParts] = useState(() => parseHHMM(value || "08:00"));
@@ -114,8 +126,16 @@ export function TimePicker({
   const meridiem = ["AM", "PM"];
 
   const emit = (next: typeof parts) => {
-    setParts(next);
-    const composed = composeHHMM(next.hour12, next.minute, next.meridiem);
+    let composed = composeHHMM(next.hour12, next.minute, next.meridiem);
+    let clamped = next;
+    if (minTime && toMinutes(composed) < toMinutes(minTime)) {
+      clamped = parseHHMM(minTime);
+      composed = composeHHMM(clamped.hour12, clamped.minute, clamped.meridiem);
+    } else if (maxTime && toMinutes(composed) > toMinutes(maxTime)) {
+      clamped = parseHHMM(maxTime);
+      composed = composeHHMM(clamped.hour12, clamped.minute, clamped.meridiem);
+    }
+    setParts(clamped);
     if (composed !== value) onChange(composed);
   };
 
@@ -145,6 +165,16 @@ export function TimePicker({
             <Wheel items={minutes} value={pad2(parts.minute)} onChange={(v) => emit({ ...parts, minute: Number(v) })} />
             <Wheel items={meridiem} value={parts.meridiem} onChange={(v) => emit({ ...parts, meridiem: v as "AM" | "PM" })} />
           </div>
+
+          {(minTime || maxTime) && (
+            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
+              {minTime && maxTime
+                ? `Entre ${fmtTime(minTime)} y ${fmtTime(maxTime)}`
+                : minTime
+                ? `Desde ${fmtTime(minTime)}`
+                : `Hasta ${fmtTime(maxTime!)}`}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 shrink-0" style={{ padding: "6px 32px 24px", borderTop: "0.5px solid var(--border)" }}>

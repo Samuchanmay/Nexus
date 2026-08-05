@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PersonRow, EmptyState } from "@/components/shared";
 import { useToast, Sheet, CheckBox } from "@/components/ui";
-import { Button, Input } from "@/components/os/ui";
+import { Avatar, Button, Input } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { ConversationRowWithTyping } from "@/components/chat/conversation-row";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/chat/context-menu";
@@ -15,7 +15,16 @@ import type { EnlaceConversation } from "@/lib/types";
 export type ParticipantLite = { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null; last_seen_at?: string | null };
 export type MyConvState = { muted: boolean; muted_until: string | null; pinned: boolean; archived: boolean; last_read_at: string };
 
-type MessageHit = { id: string; conversation_id: string; content: string | null; sender_name: string };
+type MessageHit = {
+  id: string;
+  conversation_id: string;
+  content: string | null;
+  sender_name: string;
+  sender_id: string;
+  created_at: string;
+  conversation_type: string;
+  conversation_name: string | null;
+};
 
 function timeAgo(iso: string | null): string {
   if (!iso) return "";
@@ -229,9 +238,11 @@ export default function ChatShell({
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
   }, []);
 
-  // Búsqueda unificada — personas/grupos por nombre (en memoria, ya
-  // cargados) + mensajes (consulta a Supabase, con un pequeño debounce).
-  // Todo desde la misma caja, como pedía la referencia de Signal.
+  // Búsqueda cross-conversación (Fase 3): el RPC nx_search_messages (0036)
+  // devuelve los mensajes de TODAS mis conversaciones pre-unidos al remitente
+  // y a la conversación — un solo round-trip y apoyado por el índice trigram.
+  // Si la migración aún no está aplicada en la nube, cae a la consulta directa
+  // antigua (misma forma, sin agrupar por conversación).
   useEffect(() => {
     const q = search.trim();
     if (q.length < 2) { setMessageHits([]); setSearching(false); return; }
@@ -240,24 +251,40 @@ export default function ChatShell({
     const t = setTimeout(async () => {
       try {
         const supabase = createClient();
-        const { data } = await supabase
-          .from("messages")
-          .select("id, conversation_id, content, sender_id")
-          .ilike("content", `%${q}%`)
-          .eq("type", "text")
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .limit(8);
+        const { data: rpcData, error } = await supabase.rpc("nx_search_messages", { p_query: q, p_limit: 30 });
+        if (error) {
+          const { data } = await supabase
+            .from("messages")
+            .select("id, conversation_id, content, sender_id, created_at")
+            .ilike("content", `%${q}%`)
+            .eq("type", "text")
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false })
+            .limit(30);
+          if (!active) return;
+          const senderIds = Array.from(new Set((data ?? []).map((m) => m.sender_id)));
+          const { data: senders } = senderIds.length
+            ? await supabase.from("users_directory").select("id, display_name").in("id", senderIds)
+            : { data: [] as { id: string; display_name: string }[] };
+          if (!active) return;
+          const nameById = new Map((senders ?? []).map((s) => [s.id, s.display_name]));
+          setMessageHits((data ?? []).map((m) => ({
+            id: m.id, conversation_id: m.conversation_id, content: m.content,
+            sender_name: nameById.get(m.sender_id) ?? "Alguien", sender_id: m.sender_id,
+            created_at: m.created_at, conversation_type: "", conversation_name: null,
+          })));
+          return;
+        }
         if (!active) return;
-        const senderIds = Array.from(new Set((data ?? []).map((m) => m.sender_id)));
-        const { data: senders } = senderIds.length
-          ? await supabase.from("users_directory").select("id, display_name").in("id", senderIds)
-          : { data: [] as { id: string; display_name: string }[] };
-        if (!active) return;
-        const nameById = new Map((senders ?? []).map((s) => [s.id, s.display_name]));
-        setMessageHits((data ?? []).map((m) => ({
-          id: m.id, conversation_id: m.conversation_id, content: m.content,
-          sender_name: nameById.get(m.sender_id) ?? "Alguien",
+        setMessageHits(((rpcData ?? []) as Record<string, unknown>[]).map((r) => ({
+          id: r.message_id as string,
+          conversation_id: r.conversation_id as string,
+          content: r.content as string | null,
+          sender_name: r.sender_name as string,
+          sender_id: r.sender_id as string,
+          created_at: r.created_at as string,
+          conversation_type: r.conversation_type as string,
+          conversation_name: r.conversation_name as string | null,
         })));
       } finally {
         if (active) setSearching(false);
@@ -298,6 +325,19 @@ export default function ChatShell({
     () => conversations.filter((c) => stateFor(c.id).archived),
     [conversations, stateFor]
   );
+
+  // Resultados de mensajes agrupados por conversación — el header del grupo
+  // resuelve nombre/avatar con los mismos datos que la lista (máx. 3 hits por
+  // conversación para no aplastar la lista).
+  const groupedHits = useMemo(() => {
+    const groups = new Map<string, MessageHit[]>();
+    for (const h of messageHits) {
+      const arr = groups.get(h.conversation_id) ?? [];
+      arr.push(h);
+      groups.set(h.conversation_id, arr);
+    }
+    return Array.from(groups.entries());
+  }, [messageHits]);
 
   const patchState = (id: string, patch: Partial<MyConvState>) => {
     setMyState((cur) => ({ ...cur, [id]: { ...(cur[id] ?? DEFAULT_STATE), ...patch } }));
@@ -548,19 +588,37 @@ export default function ChatShell({
                     </p>
                   )}
 
-                  {messageHits.length > 0 && (
-                    <div className="pt-3">
-                      <p className="text-[12px] font-bold uppercase tracking-wide px-2 pb-1.5" style={{ color: "var(--text-3)" }}>Mensajes</p>
-                      {messageHits.map((hit) => (
-                        <button
-                          key={hit.id}
-                          onClick={() => router.push(`/chat/${hit.conversation_id}`)}
-                          className="w-full text-left px-2 py-2 rounded-m hover:bg-hover"
-                        >
-                          <p className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{hit.sender_name}</p>
-                          <p className="text-[12.5px] truncate">{hit.content}</p>
-                        </button>
-                      ))}
+                  {groupedHits.length > 0 && (
+                    <div className="pt-3 space-y-4">
+                      <p className="text-[12px] font-bold uppercase tracking-wide px-2" style={{ color: "var(--text-3)" }}>
+                        Mensajes
+                      </p>
+                      {groupedHits.map(([convId, hits]) => {
+                        const c = conversations.find((x) => x.id === convId);
+                        const disp = c
+                          ? conversationDisplay(c, myId, participants[c.id] ?? [])
+                          : { name: hits[0].conversation_name ?? "Conversación", avatarUrl: null, color: "#8E8E93" };
+                        return (
+                          <div key={convId}>
+                            <div className="flex items-center gap-2 px-2 pb-1">
+                              <Avatar name={disp.name} avatarUrl={disp.avatarUrl} color={disp.color} size={20} />
+                              <p className="text-[12px] font-semibold flex-1 min-w-0 truncate" style={{ color: "var(--text-2)" }}>{disp.name}</p>
+                              <span className="text-[10.5px] font-bold shrink-0" style={{ color: "var(--text-3)" }}>{hits.length}</span>
+                            </div>
+                            {hits.slice(0, 3).map((hit) => (
+                              <button
+                                key={hit.id}
+                                onClick={() => router.push(`/chat/${convId}?msg=${hit.id}`)}
+                                data-ripple
+                                className="w-full text-left px-2 py-2 rounded-m hover:bg-hover"
+                              >
+                                <p className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>{hit.sender_name}</p>
+                                <p className="text-[12.5px] truncate">{hit.content}</p>
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 

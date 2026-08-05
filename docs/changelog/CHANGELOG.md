@@ -2,6 +2,18 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Chat: búsqueda cross-conversación (cierre Fase 3 §16)
+
+### Qué cambió
+- **Migración 0036** (`supabase/migrations/0036_chat_search_messages.sql`): índice GIN trigram sobre `messages.content` + RPC `nx_search_messages(query, limit)`. Busca en TODAS las conversaciones del usuario con un solo round-trip, remitente y conversación pre-unidos, y escapa comodines SQL (`%`/`_`) para que se busque literal. Para la nube: `docs/MIGRACIONES-APLICAR-0036-CHAT-SEARCH.sql`.
+- **`src/app/chat/client.tsx`**: la caja "Buscar conversaciones y mensajes…" usa el RPC; resultados agrupados por conversación (avatar + nombre + conteo, máx. 3 hits por grupo). Cae a la consulta directa si la migración aún no está en la nube.
+- **Deep-link al mensaje exacto**: el hit navega a `/chat/:id?msg=…`; `page.tsx` pasa `initialJumpTarget` y el cliente de la conversación salta y resalta el mensaje aunque esté fuera de la página cargada (reusa la maquinaria de `loadMore`/`jumpTarget` existente).
+
+### Archivos
+- `supabase/migrations/0036_chat_search_messages.sql`, `docs/MIGRACIONES-APLICAR-0036-CHAT-SEARCH.sql`
+- `src/app/chat/client.tsx`, `src/app/chat/[id]/page.tsx`, `src/app/chat/[id]/client.tsx`
+- `docs/03-ROADMAP.md`
+
 ## 2026-08-05 · Fase 2 cerrada: retrofit tipográfico canónico + ripple global
 
 ### Retrofit tipográfico W2/W3 (normalización de tamaños sueltos)
