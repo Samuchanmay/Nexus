@@ -7,6 +7,7 @@ import { Button, Field } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { scheduleFor } from "@/lib/hours";
 import { logAdminAction } from "@/lib/admin-log";
+import { getErrorMessage } from "@/lib/errors";
 import type { Schedule, AttendanceReason } from "@/lib/types";
 
 interface EditAttendanceSheetProps {
@@ -193,7 +194,11 @@ export function EditAttendanceSheet({
       onSuccess();
       onClose();
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      // FIX RAÍZ (5 ago 2026): antes caía a String(err), que da literalmente
+      // "[object Object]" para errores de Postgrest/RLS (no son instancias
+      // de Error). getErrorMessage() extrae el .message real en todos los
+      // casos — ver src/lib/errors.ts.
+      const message = getErrorMessage(err, "No fue posible guardar la corrección.");
       console.error("[attendance-correction] No se pudo guardar:", err);
       toast(`No se pudo guardar: ${message}`, "danger");
     } finally {

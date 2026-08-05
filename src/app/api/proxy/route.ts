@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getErrorMessage } from "@/lib/errors";
 
 /**
  * Proxy de assets capturados por la extensión. El reproductor resuelve las
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
     return new NextResponse(body, { status: 200, headers });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error en el proxy." },
+      { error: getErrorMessage(err, "Error en el proxy.") },
       { status: 500 },
     );
   }

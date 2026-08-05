@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { getErrorMessage } from "@/lib/errors";
 
 /**
  * Crea (o actualiza) un demo capturado con la extensión.
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, demo_id: demoRow.id, screens: uploaded.length, status });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error interno." },
+      { error: getErrorMessage(err, "Error interno.") },
       { status: 500 },
     );
   }
