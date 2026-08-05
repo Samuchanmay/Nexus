@@ -43,7 +43,7 @@ export type InstitutionalEvent = {
 export default function CalendarioClient({
   ym, year, month, daysInMonth, today, prevHref, nextHref,
   team, attendance, vacations, holidays, deadlines, efemerides, gcalEvents, gcalError,
-  initialFocusDate, institutionalEvents, adminId,
+  initialFocusDate, institutionalEvents, departments, adminId,
 }: {
   ym: string; year: number; month: number; daysInMonth: number; today: string;
   prevHref: string; nextHref: string;
@@ -53,6 +53,7 @@ export default function CalendarioClient({
   gcalError?: string | null;
   initialFocusDate?: string;
   institutionalEvents?: InstitutionalEvent[];
+  departments?: { id: string; nombre: string; tipo: string }[];
   adminId?: string;
 }) {
   const router = useRouter();
@@ -720,8 +721,32 @@ export default function CalendarioClient({
               value={eventForm.clientName} onChange={(e) => setEventForm({ ...eventForm, clientName: e.target.value })} />
           </Field>
           <Field label="Departamento solicitante (opcional)">
-            <input className="field-input" placeholder="Ej. Enfermería"
-              value={eventForm.departmentId} onChange={(e) => setEventForm({ ...eventForm, departmentId: e.target.value })} />
+            {/* FASE 3 (auditoría 4 ago 2026): antes era <input> de texto libre
+                sobre una columna uuid FK a departments — cualquier valor
+                escrito a mano tronaba el guardado en Postgres. */}
+            <Select
+              value={eventForm.departmentId}
+              onChange={(v) => setEventForm({ ...eventForm, departmentId: v })}
+              title="Departamento solicitante"
+              placeholder="Sin departamento"
+              options={(departments ?? []).map((d) => ({
+                value: d.id, label: d.nombre, sublabel: d.tipo === "coordinacion" ? "Coordinación" : "Departamento",
+              }))}
+            />
+          </Field>
+          <Field label="Responsable (opcional)">
+            {/* Campo que ya se guardaba (owner_id) pero nunca tuvo input en
+                el form — el admin no tenía forma de asignarlo. */}
+            <Select
+              value={eventForm.ownerId}
+              onChange={(v) => setEventForm({ ...eventForm, ownerId: v })}
+              title="Responsable del evento"
+              placeholder="Sin responsable asignado"
+              options={team.map((t) => ({
+                value: t.id, label: t.display_name,
+                avatar: { name: t.display_name, color: t.nexus_color, avatarUrl: t.avatar_url },
+              }))}
+            />
           </Field>
 
           {/* Ubicación */}

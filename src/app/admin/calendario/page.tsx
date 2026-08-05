@@ -26,7 +26,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }, { data: efemSetting }, { data: activitySetting }, { data: instEvents }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }, { data: efemSetting }, { data: activitySetting }, { data: instEvents }, { data: departments }] = await Promise.all([
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", yLast).gte("end_date", yFirst),
@@ -41,6 +41,11 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
     // CERT" que vive en Google Calendar y solo se lee vía gcal-list-events).
     supabase.from("institutional_events").select("id, title, kind, start_date, end_date, notes, start_time, end_time, client_name, department_id, location_type, location_name, location_address, location_coords, location_radius, allow_any_location, owner_id, status, priority, description, sync_to_google, google_calendar_id")
       .lte("start_date", yLast).gte("end_date", yFirst).order("start_date"),
+    // Departamentos reales (FASE 3, auditoría 4 ago 2026) — el form de
+    // eventos guardaba "Departamento solicitante" como texto libre en una
+    // columna uuid FK a departments(id); cualquier valor no-UUID tronaba el
+    // guardado en Postgres. Ahora se elige de esta lista real.
+    supabase.from("departments").select("id, nombre, tipo").eq("activo", true).order("tipo").order("nombre"),
   ]);
   const { data: meRow } = user ? await supabase.from("users").select("id").eq("auth_id", user.id).single() : { data: null };
 
@@ -89,6 +94,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       gcalError={gcalError}
       initialFocusDate={initialFocusDate}
       institutionalEvents={(instEvents ?? []) as InstitutionalEvent[]}
+      departments={(departments ?? []) as { id: string; nombre: string; tipo: string }[]}
       adminId={meRow?.id ?? ""}
     />
   );
