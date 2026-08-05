@@ -2,6 +2,18 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-04 · Rediseño UI/UX: Módulo de Calendario - Estilo Apple Calendar
+
+### Mejoras de jerarquía visual y experiencia
+- **Header rediseñado**: Título 32px con subtítulo descriptivo, padding reducido para dar más espacio al calendario.
+- **Navegación mejorada**: Botones de 36px con bordes redondeados 8px, botón "Hoy" con fondo sutil.
+- **Segmented controls mejorados**: Border-radius 12px, padding 4px, sombra más pronunciada en el thumb.
+- **Botón "Crear evento"**: 40px alto, padding generoso, sombra con color de acento, hover con elevación.
+- **Dos barras de controles**: Separación clara entre navegación (arriba) y acciones (abajo).
+- **Animaciones mejoradas**: Transiciones de 200ms en hover, spring en segmented controls.
+- **Responsive**: Texto adaptativo en botón "Crear" (completo en desktop, corto en móvil).
+- **Archivos**: `src/components/calendar/header.tsx`, `src/app/globals.css`, `src/app/admin/calendario/client.tsx`.
+
 ## 2026-08-04 · Rediseño UI/UX: Módulo de Personas y Biblioteca - Estilo Linear/Notion
 
 ### Personas (Directorio)

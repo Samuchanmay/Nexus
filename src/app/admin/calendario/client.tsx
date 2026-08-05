@@ -502,8 +502,13 @@ export default function CalendarioClient({
         <SlidingSegments options={["Equipo", "Asistencia"]} value={view} onChange={(v) => setView(v as typeof view)} />
         <SlidingSegments options={[...GRANULARITIES]} value={granularity}
           onChange={(v) => setGranularity(v as Granularity)} />
-        <button onClick={openAddEvent} className="btn-primary h-8 px-3.5 text-[12.5px] flex items-center gap-1.5">
-          <Icon name="plus" size={13} /> Crear
+        <button 
+          onClick={openAddEvent} 
+          className="h-10 px-5 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
+        >
+          <Icon name="plus" size={16} />
+          <span className="hidden sm:inline">Crear evento</span>
+          <span className="sm:hidden">Crear</span>
         </button>
       </CalendarHeader>
 

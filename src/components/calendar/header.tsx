@@ -1,12 +1,15 @@
 "use client";
 import Link from "next/link";
 
-/* ── Calendar Engine · header compacto ──
-   (EMET-CALENDAR-ENGINE.md §14) — UNA sola barra para todas las vistas.
-   Botones de 32px cuadrados, título del mes/día/semana, flechas prev/next
-   y "Hoy". El selector de vista y la acción de crear van como children
-   (cada página decide), para no forzar un layout sobre pantallas que no
-   tienen vista (ej. el heatmap de Asistencia del admin). */
+/* ── Calendar Engine · header compacto rediseñado ──
+   (EMET-CALENDAR-ENGINE.md §14 + mejoras UX Ago 2026)
+   
+   Rediseño inspirado en Apple Calendar y Cron:
+   - Barra superior: título del período + navegación (← Hoy →)
+   - Barra inferior: tabs de vista + granularidad + acción principal
+   - Padding reducido para dar más espacio al calendario
+   - Jerarquía visual más clara con separación de controles
+*/
 
 export function CalendarHeader({
   title, subtitle, prevHref, nextHref, onPrev, onNext, onToday, todayHref, children,
@@ -21,7 +24,7 @@ export function CalendarHeader({
   todayHref?: string;
   children?: React.ReactNode;
 }) {
-  const navBtn = "w-8 h-8 grid place-items-center rounded-sm font-semibold text-[14px] transition-colors";
+  const navBtn = "w-9 h-9 grid place-items-center rounded-lg font-semibold text-[14px] transition-all duration-200";
   const navCls = `${navBtn} hover:bg-hover active:scale-95`;
 
   const prev = onPrev ? (
@@ -54,34 +57,47 @@ export function CalendarHeader({
 
   const today = onToday ? (
     <button type="button" onClick={onToday}
-      className="h-8 px-3 rounded-sm text-[12.5px] font-semibold transition-colors hover:bg-hover active:scale-95"
-      style={{ color: "var(--text-2)" }}>
+      className="h-9 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover active:scale-95"
+      style={{ color: "var(--text-2)", background: "var(--surface-2)" }}>
       Hoy
     </button>
   ) : todayHref ? (
     <Link href={todayHref}
-      className="h-8 px-3 rounded-sm text-[12.5px] font-semibold transition-colors hover:bg-hover"
-      style={{ color: "var(--text-2)" }}>
+      className="h-9 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover"
+      style={{ color: "var(--text-2)", background: "var(--surface-2)" }}>
       Hoy
     </Link>
   ) : null;
 
   return (
-    <header className="pt-7 pb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <h1 className="text-[26px] font-bold tracking-tight capitalize truncate" aria-live="polite">{title}</h1>
-        {subtitle && (
-          <p className="text-[13px] mt-1.5 hidden lg:block" style={{ color: "var(--text-2)" }}>{subtitle}</p>
-        )}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="flex items-center gap-1">
+    <header className="pt-6 pb-4">
+      {/* Barra superior: Título + Navegación */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[32px] font-bold tracking-tight capitalize text-text-1 leading-none" aria-live="polite">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-[14px] mt-2" style={{ color: "var(--text-2)" }}>{subtitle}</p>
+          )}
+        </div>
+        
+        {/* Controles de navegación */}
+        <div className="flex items-center gap-2">
           {prev}
           {today}
           {next}
         </div>
-        {children && <div className="flex items-center gap-2">{children}</div>}
       </div>
+
+      {/* Barra inferior: Tabs + Granularidad + Acción principal */}
+      {children && (
+        <div className="flex items-center justify-between gap-4 pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3">
+            {children}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

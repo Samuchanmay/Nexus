@@ -807,6 +807,56 @@ Si alguna falla, la pantalla debe simplificarse antes de mergear.
 
 ---
 
+### 10.6.4 Calendario con Header de Dos Barras
+**Principio**: Los calendarios deben dar máximo espacio a la cuadrícula, minimum a los controles.
+
+**Implementación**:
+```
+┌─────────────────────────────────────────────┐
+│ Agosto 2026                    ← [Hoy] →   │
+│ Calendario del equipo                       │
+├─────────────────────────────────────────────┤
+│ [Equipo | Asistencia] [Agenda|D|S|M|Año]   │
+│                                      [+ Crear]│
+├─────────────────────────────────────────────┤
+│                                             │
+│           [CUADRÍCULA DEL CALENDARIO]       │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+**Reglas**:
+- Título: 32px, bold
+- Subtítulo: 14px, color secundario
+- Padding del header: pt-6 pb-4 (compacto)
+- Botones de navegación: 36px, border-radius 8px
+- Botón "Hoy": fondo sutil (surface-2), 36px alto
+- Segmented controls: border-radius 12px, padding 4px
+- Sombra del thumb: 0 2px 8px rgba(0,0,0,0.12)
+- Botón principal: 40px alto, padding 20px, sombra con color de acento
+- Separador: border-bottom entre barras de controles
+
+**Ejemplo de código**:
+```jsx
+<CalendarHeader
+  title="Agosto 2026"
+  subtitle="Calendario del equipo"
+  onPrev={() => shiftFocus(-1)}
+  onNext={() => shiftFocus(1)}
+  onToday={goToday}
+>
+  <SlidingSegments options={["Equipo", "Asistencia"]} ... />
+  <SlidingSegments options={["Agenda", "Día", "Semana", "Mes", "Año"]} ... />
+  <button className="h-10 px-5 rounded-xl bg-accent ...">
+    <Icon name="plus" size={16} />
+    <span className="hidden sm:inline">Crear evento</span>
+    <span className="sm:hidden">Crear</span>
+  </button>
+</CalendarHeader>
+```
+
+---
+
 ### 10.7 Tarjetas con Hover Elevado
 **Principio**: Las tarjetas deben responder al hover de forma sutil.
 
