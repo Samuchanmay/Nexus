@@ -2,6 +2,21 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Fix: TimePicker no renderizaba las ruedas (hora · minuto · AM/PM)
+
+### Bug
+- **Síntoma**: Al abrir el TimePicker (Tiempo → Asistencia → Corregir → Seleccionar hora), el modal mostraba título y botones pero las **columnas de ruedas salían vacías**.
+
+### Causa raíz
+- **`Wheel` (ruedas iOS) colapsaba a `width: 0`**: todos sus hijos están posicionados en `absolute` (máscaras + scroll container), así que el div raíz no tiene ancho intrínseco; como item flex en `justify-between`, su base size era 0. Además `overflow-y:auto` computa `overflow-x:auto`, recortando los números.
+- Confirmado con render headless (Chrome + CSS compilado real): `w=0` antes, `w=72` después.
+
+### Fix
+- `minWidth: 72` en la raíz de `Wheel` (`src/components/scheduling/time-picker.tsx`). Cubre los 12 usos (TimePicker, DateTimePicker, editor de calendario) por ser el único componente de rueda.
+
+### Archivos
+- `src/components/scheduling/time-picker.tsx`, `docs/audits/time-picker-render-bug.md`.
+
 ## 2026-08-05 · Rediseño UI/UX: Portal Coordinador - Wizard 3 pasos + lista de solicitudes
 
 ### Lista de solicitudes

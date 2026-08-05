@@ -70,7 +70,7 @@ export function Wheel({
   };
 
   return (
-    <div className="relative select-none" style={{ height }}>
+    <div className="relative select-none" style={{ height, minWidth: 72 }}>
       <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2"
         style={{ height: itemH, background: "var(--surface-2)", borderRadius: 14 }} />
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[2]" style={{ height: pad, background: "linear-gradient(to bottom, var(--panel) 55%, transparent)" }} />
