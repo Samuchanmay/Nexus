@@ -2,6 +2,23 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Fix: la corrección de asistencia no se guardaba (RLS)
+
+### Bug
+- **Síntoma**: al guardar una corrección de entrada/salida aparecía "No se pudo guardar la corrección" (mensaje genérico que ocultaba el error real).
+
+### Causa raíz
+- **`public.attendance` no tiene política RLS de UPDATE y su única política de INSERT (`att_insert_own`) solo permite registros propios**. El admin escribe asistencia de OTRO empleado → RLS rechaza con `42501 new row violates row-level security policy`, que el catch convertía en el mensaje genérico.
+- Afectaba también a `adminResolvePendingExit` (mismo insert ajeno).
+
+### Solución
+- **Migración 0035**: políticas `att_admin_update` (UPDATE) y `att_admin_insert_any` (INSERT) para admin/rh, alineadas con `att_read`.
+- **Cliente** (`edit-attendance-sheet.tsx`): el toast muestra ahora el error real de Supabase + `console.error`, log del payload antes de escribir, y normalización `timeCol("HH:MM"|"HH:MM:SS") → "HH:MM:SS"` (defensiva contra el doble `:00`).
+- Verificado: el formato del TimePicker (`"HH:MM"` 24h) y `logAdminAction` (fire-and-forget) **no** eran la causa.
+
+### Archivos
+- `supabase/migrations/0035_attendance_admin_write_rls.sql`, `docs/MIGRACIONES-APLICAR-0035-ATTENDANCE-RLS.sql`, `docs/MIGRACIONES-PENDIENTES-SUPABASE.md`, `src/components/os/edit-attendance-sheet.tsx`, `docs/audits/attendance-correction-save.md`.
+
 ## 2026-08-05 · Fix: TimePicker no renderizaba las ruedas (hora · minuto · AM/PM)
 
 ### Bug

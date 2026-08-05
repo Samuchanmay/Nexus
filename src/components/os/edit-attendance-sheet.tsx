@@ -63,6 +63,8 @@ export function EditAttendanceSheet({
     setSaving(true);
     const supabase = createClient();
 
+    console.log("[attendance-correction] ANTES payload:", { userId, date, firstIn, lastOut, entrada, salida, motivo });
+
     try {
       const cambios: string[] = [];
 
@@ -72,7 +74,7 @@ export function EditAttendanceSheet({
         if (entrada !== firstIn) {
           const { error } = await supabase
             .from("attendance")
-            .update({ time: `${entrada}:00` })
+            .update({ time: timeCol(entrada) })
             .eq("user_id", userId)
             .eq("date", date)
             .eq("type", "Entrada")
@@ -87,7 +89,7 @@ export function EditAttendanceSheet({
           date,
           type: "Entrada",
           reason: "Entrada a trabajo",
-          time: `${entrada}:00`,
+          time: timeCol(entrada),
           distance_m: null,
         });
         if (error) throw error;
@@ -100,7 +102,7 @@ export function EditAttendanceSheet({
         if (salida !== lastOut) {
           const { error } = await supabase
             .from("attendance")
-            .update({ time: `${salida}:00` })
+            .update({ time: timeCol(salida) })
             .eq("user_id", userId)
             .eq("date", date)
             .eq("type", "Salida")
@@ -115,7 +117,7 @@ export function EditAttendanceSheet({
           date,
           type: "Salida",
           reason: "Fin de jornada",
-          time: `${salida}:00`,
+          time: timeCol(salida),
           distance_m: null,
         });
         if (error) throw error;
@@ -141,8 +143,9 @@ export function EditAttendanceSheet({
       onSuccess();
       onClose();
     } catch (err) {
-      console.error(err);
-      toast("No se pudo guardar la corrección", "danger");
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[attendance-correction] No se pudo guardar:", err);
+      toast(`No se pudo guardar: ${message}`, "danger");
     } finally {
       setSaving(false);
     }
@@ -293,6 +296,13 @@ export function EditAttendanceSheet({
 function timeToMin(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + (m || 0);
+}
+
+/** Normaliza "HH:MM" o "HH:MM:SS" al literal `time` de Postgres ("HH:MM:SS").
+    Evita el doble `:00` si el valor llega con segundos desde la BD. */
+function timeCol(t: string): string {
+  const [h, m] = t.split(":");
+  return `${h}:${m ?? "00"}:00`;
 }
 
 /** ¿El nuevo valor cae en el otro periodo del día (AM/PM) respecto al
