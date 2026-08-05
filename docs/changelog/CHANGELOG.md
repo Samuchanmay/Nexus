@@ -2,6 +2,44 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Rediseño UI/UX: Vistas del Calendario (Semana, Día, Agenda, Asistencia, Año + Panel derecho)
+
+### Semana
+- **Header sticky de días**: Día actual con círculo de acento + glow, demás días con hover sutil.
+- **Fila all-day mejorada**: Eventos como chips con borde-left de color y hover con elevación.
+- **Línea "ahora" rediseñada**: Roja con punto de 12px y glow suave para localizarla al instante.
+- **Eventos**: Border-radius 10px, borde-left 3px del color del tipo, altura mínima 24px.
+
+### Día
+- **Eventos all-day**: Chips con punto de color + borde-left, distinguibles de los horarios.
+- **Línea "ahora"**: Mismo patrón que Semana (punto + glow).
+- **Altura dinámica**: Mínimo 28px; si cabe, muestra título + tipo en dos líneas.
+- **Estado vacío**: Icono 64px con mensaje "Tu día está libre".
+
+### Agenda
+- **Agrupación editorial**: Hoy / Mañana / Esta semana / Después.
+- **Tarjetas por día**: Header clickable, eventos con franja vertical de color, hora en 12px.
+- **Estado vacío**: Icono 64px y copia humana.
+
+### Asistencia
+- **Celdas 24px**: Número de día, avatares 32px superpuestos.
+- **Resumen de asistencia**: Porcentaje con color semaforizado (≥80 ok, ≥60 warn, <60 danger).
+- **Leyenda compacta**: Chips de 16px por estado.
+
+### Año
+- **Heatmap de 12 meses**: Celdas con radio 6px, hover con escala y sombra.
+- **Mes actual**: Nombre en color de acento + celdas con glow.
+- **Día actual**: Outline de acento + glow de 3px.
+- **Separación entre meses reducida** para mejor densidad.
+
+### Panel derecho
+- **Secciones Hoy / Próximos**: Labels con badges de conteo; "Hoy" en color de acento.
+- **Tarjetas de evento**: Border 1px, padding 8px, hora en chip monospace, franja de color 4px.
+- **Espaciado 24-32px** entre bloques (gap-6).
+
+### Archivos
+- `src/components/calendar/week.tsx`, `day.tsx`, `agenda.tsx`, `year.tsx`, `right-panel.tsx`, `src/app/admin/calendario/client.tsx`.
+
 ## 2026-08-04 · Rediseño UI/UX: Módulo de Calendario - Estilo Apple Calendar
 
 ### Mejoras de jerarquía visual y experiencia
