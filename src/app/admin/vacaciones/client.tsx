@@ -311,35 +311,6 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     return alerts.slice(0, 3);
   }, [vacations, team, approvedUpcoming, todayIso]);
 
-  // ── Timeline de ocupación (60 días) — una fila por persona con vacación vigente/futura. ──
-  const timelineRows = useMemo(() => {
-    const byUser = new Map<string, { name: string; color: string | null; avatarUrl: string | null; bars: { leftPct: number; widthPct: number; label: string }[] }>();
-    for (const v of approvedUpcoming) {
-      const clampStart = v.start_date < todayIso ? todayIso : v.start_date;
-      const windowEnd = addDays(todayIso, TIMELINE_WINDOW - 1);
-      const clampEnd = v.end_date > windowEnd ? windowEnd : v.end_date;
-      if (clampStart > windowEnd || clampEnd < todayIso) continue;
-      const leftPct = (daysBetween(todayIso, clampStart) / TIMELINE_WINDOW) * 100;
-      const widthPct = Math.max(1.4, ((daysBetween(clampStart, clampEnd) + 1) / TIMELINE_WINDOW) * 100);
-      const key = v.user_id;
-      const entry = byUser.get(key) ?? { name: v.users?.display_name ?? "—", color: v.users?.nexus_color ?? null, avatarUrl: v.users?.avatar_url ?? null, bars: [] };
-      entry.bars.push({ leftPct, widthPct, label: `${dmy(v.start_date)} → ${dmy(v.end_date)}` });
-      byUser.set(key, entry);
-    }
-    return Array.from(byUser.values()).sort((a, b) => a.bars[0].leftPct - b.bars[0].leftPct);
-  }, [approvedUpcoming, todayIso]);
-
-  const occupancy = useMemo(() => {
-    const counts = Array.from({ length: TIMELINE_WINDOW }, () => 0);
-    for (const v of approvedUpcoming) {
-      for (let i = 0; i < TIMELINE_WINDOW; i++) {
-        const day = addDays(todayIso, i);
-        if (v.start_date <= day && day <= v.end_date) counts[i]++;
-      }
-    }
-    return counts;
-  }, [approvedUpcoming, todayIso]);
-
   const occupancyColor = (count: number) => {
     if (count === 0) return "var(--surface-2)";
     const available = team.length - count;
@@ -661,46 +632,6 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         </div>
       </div>
 
-      {/* Ocupación del equipo — timeline de 60 días, para detectar quién coincide/sale/regresa. */}
-      <h2 className="text-[15px] font-bold mb-1">Ocupación del equipo</h2>
-      <p className="text-[12px] mb-3" style={{ color: "var(--text-3)" }}>Próximos {TIMELINE_WINDOW} días · {shortDate(todayIso)} → {shortDate(addDays(todayIso, TIMELINE_WINDOW - 1))}</p>
-      <div className="card p-4 mb-7">
-        {timelineRows.length === 0 ? (
-          <p className="text-[12.5px] py-4 text-center" style={{ color: "var(--text-3)" }}>Nadie tiene vacaciones programadas en este periodo.</p>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-[140px] shrink-0" />
-              <div className="flex-1 h-2 rounded-full overflow-hidden flex">
-                {occupancy.map((c, i) => (
-                  <div key={i} className="h-full" style={{ width: `${100 / TIMELINE_WINDOW}%`, background: occupancyColor(c) }} title={`${shortDate(addDays(todayIso, i))} · ${c} fuera`} />
-                ))}
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              {timelineRows.map((row, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-[140px] shrink-0 flex items-center gap-2">
-                    <Avatar name={row.name} color={row.color} avatarUrl={row.avatarUrl} size={22} />
-                    <p className="text-[12px] font-semibold truncate">{row.name}</p>
-                  </div>
-                  <div className="flex-1 h-6 rounded-sm relative" style={{ background: "var(--surface-2)" }}>
-                    {row.bars.map((b, j) => (
-                      <div key={j} className="absolute top-0.5 bottom-0.5 rounded-sm" title={b.label}
-                        style={{ left: `${b.leftPct}%`, width: `${b.widthPct}%`, background: row.color ?? "#8E8E93" }} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center justify-between mt-3 pl-[152px]">
-              <p className="text-[12px]" style={{ color: "var(--text-3)" }}>Hoy</p>
-              <p className="text-[12px]" style={{ color: "var(--text-3)" }}>+{TIMELINE_WINDOW} días</p>
-            </div>
-          </>
-        )}
-      </div>
-
       {/* Cobertura del equipo — vista anual, colapsada por default (FASE P). */}
       <div className="card mb-7 overflow-hidden">
         <button className="w-full flex items-center justify-between gap-3 px-4 py-3" onClick={() => setCoverageOpen((o) => !o)}>
@@ -758,7 +689,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           <h2 className="text-[18px] font-bold text-text-1 mb-4">Próximamente</h2>
           <div className="flex flex-col gap-2">
             {proximamente.map(({ v, daysUntil }, i) => (
-              <div key={v.id} className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-hover transition-all duration-200">
+              <div key={v.id} className="group flex items-center gap-4 p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[15px] font-bold truncate text-text-1">{v.users?.display_name}</p>
@@ -800,7 +731,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           </div>
           <div className="flex flex-col gap-2">
             {(historyOpen ? rest : rest.slice(0, 5)).map((v) => (
-              <div key={v.id} className="group flex items-center justify-between gap-4 p-4 rounded-2xl hover:bg-hover transition-all duration-200">
+              <div key={v.id} className="group flex items-center justify-between gap-4 p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={36} />
                   <div className="min-w-0">

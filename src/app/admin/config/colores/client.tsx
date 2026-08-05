@@ -3,7 +3,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseMutation, PageHeader } from "@/components/shared";
 import { Select } from "@/components/ui";
-import { IconPlus } from "@/components/icons";
+import { IconPlus, IconCheck } from "@/components/icons";
 import { SectionIntro } from "@/components/config-intro";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
 import type { Department } from "@/lib/types";
@@ -32,12 +32,25 @@ function Swatches({ value, used, onPick }: {
   const available = PALETTE.filter((c) => !usedMap.has(c.toUpperCase()) || c.toUpperCase() === value.toUpperCase());
   const taken = PALETTE.filter((c) => usedMap.has(c.toUpperCase()) && c.toUpperCase() !== value.toUpperCase());
 
-  const Swatch = ({ c, disabled, title }: { c: string; disabled?: boolean; title: string }) => (
-    <button key={c} type="button" disabled={disabled} title={title} onClick={() => onPick(c)}
-      className="w-6 h-6 rounded-full shrink-0 disabled:opacity-25 disabled:cursor-not-allowed"
-      style={{ background: c, boxShadow: c.toUpperCase() === value.toUpperCase() ? "0 0 0 2px var(--surface-1), 0 0 0 4px var(--text-1)" : "none" }}
-    />
-  );
+  const Swatch = ({ c, disabled, title }: { c: string; disabled?: boolean; title: string }) => {
+    const selected = c.toUpperCase() === value.toUpperCase();
+    return (
+      <button key={c} type="button" disabled={disabled} title={title} onClick={() => onPick(c)}
+        className="w-6 h-6 rounded-full grid place-items-center shrink-0 transition-transform hover:scale-110 active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:scale-100"
+        style={{
+          background: c,
+          boxShadow: selected
+            ? "0 0 0 2px var(--surface-1), 0 0 0 4px var(--accent)"
+            : "inset 0 0 0 1px rgba(0,0,0,0.08)",
+        }}>
+        {selected && (
+          <span style={{ filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,0.65))" }}>
+            <IconCheck className="w-3 h-3 text-white" />
+          </span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-2 max-w-[300px]">

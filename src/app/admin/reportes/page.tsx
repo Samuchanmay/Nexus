@@ -3,6 +3,8 @@ import { typeLabels } from "@/lib/types";
 import type { ActivityType, RequestStatus } from "@/lib/types";
 import { seniorityLabel, todayMerida, dmy } from "@/lib/tz";
 import { STATUS_TONE } from "@/lib/ui-maps";
+import { PageHeader } from "@/components/shared";
+import { IconClock, IconUsers, IconFolder } from "@/components/icons";
 import { PrintButton } from "./print-button";
 import { CsvLink } from "./csv-link";
 
@@ -31,35 +33,6 @@ function Bar({ label, count, total, color }: { label: string; count: number; tot
   );
 }
 
-/** Donut de proporciones — lectura de "de qué tamaño es cada parte del
-    total" más rápida que una pila de barras. Puro SVG server-renderable,
-    sin librería de charts. */
-function Donut({ segments, size = 96, thickness = 12 }: {
-  segments: { value: number; color: string }[]; size?: number; thickness?: number;
-}) {
-  const total = segments.reduce((a, s) => a + s.value, 0);
-  const r = (size - thickness) / 2;
-  const c = 2 * Math.PI * r;
-  let offset = 0;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" style={{ transform: "rotate(-90deg)" }}>
-      {total === 0 ? (
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-2)" strokeWidth={thickness} />
-      ) : segments.filter((s) => s.value > 0).map((s, i) => {
-        const frac = s.value / total;
-        const dash = frac * c;
-        const el = (
-          <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={thickness}
-            strokeDasharray={`${dash} ${c - dash}`} strokeDashoffset={-offset}
-            strokeLinecap={segments.filter((x) => x.value > 0).length > 1 ? "butt" : "round"} />
-        );
-        offset += dash;
-        return el;
-      })}
-    </svg>
-  );
-}
-
 /** Sparkline de tendencia — misma idea que un mini gráfico de Excel: da
     "sensación" de momentum (subiendo/bajando) de un vistazo, sin ejes ni
     leyenda. Puro SVG, server-renderable. */
@@ -82,16 +55,6 @@ function Sparkline({ values, width = 160, height = 40, color = "var(--accent)" }
       <polyline points={points.join(" ")} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={(values.length - 1) * stepX} cy={lastY} r={3} fill={color} />
     </svg>
-  );
-}
-
-/** Encabezado de card con título discreto + botón de exportar a la derecha. */
-function CardHeader({ title, rows, filename, adminId }: { title: string; rows: (string | number)[][]; filename: string; adminId: string }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-[13px] font-bold" style={{ color: "var(--text-3)" }}>{title}</h2>
-      <CsvLink rows={rows} filename={filename} adminId={adminId} />
-    </div>
   );
 }
 
@@ -276,120 +239,115 @@ export default async function Reportes() {
   const vacUsedDays = vacRows.reduce((a, r) => a + Math.max(0, r.total - r.balance), 0);
   const vacPctUsed = vacTotalDays > 0 ? Math.round((vacUsedDays / vacTotalDays) * 100) : 0;
 
+  const vacCsvRows: (string | number)[][] = vacRows.map((r) => [r.name, r.balance, r.total, `${r.pctUsed}%`, r.seniority, r.next]);
+
   return (
     <>
-      {/* Header compacto */}
-      <header className="pt-6 pb-5">
-        <div className="flex items-start justify-between flex-wrap gap-4">
+      <PageHeader
+        title="Reportes"
+        subtitle={`${totalReqs} solicitud${totalReqs === 1 ? "" : "es"} en total · agregados reales de Solicitudes y Actividades`}
+      >
+        <PrintButton />
+      </PageHeader>
+
+      {/* Métrica protagonista + KPIs secundarios — cada uno en su tarjeta */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card p-5 md:row-span-2 flex flex-col justify-between">
+          <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Solicitudes totales</p>
+          <div className="mt-4">
+            <div className="flex items-baseline gap-3">
+              <span className="text-[56px] font-bold tabular-nums leading-none text-text-1">{totalReqs}</span>
+              <span className="text-[15px] font-medium" style={{ color: "var(--text-2)" }}>solicitudes</span>
+            </div>
+            <div className="flex items-center gap-2 text-[14px] mt-2">
+              <span style={{ color: trendUp ? "var(--ok)" : "var(--warn)" }}>
+                {trendUp ? "↑" : "↓"} {trendPct == null ? "nuevo" : `${trendPct > 0 ? "+" : ""}${trendPct}%`}
+              </span>
+              <span style={{ color: "var(--text-3)" }}>vs periodo anterior</span>
+            </div>
+          </div>
+        </div>
+        <div className="card p-5 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Reportes</h1>
-            <p className="text-[15px] mt-2" style={{ color: "var(--text-2)" }}>
-              {totalReqs} solicitud{totalReqs === 1 ? "" : "es"} en total
+            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Actividades creadas</p>
+            <p className="text-[28px] font-bold tabular-nums text-text-1 mt-1">{projs.length}</p>
+          </div>
+          <div className="w-12 h-12 rounded-xl grid place-items-center" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
+            <IconFolder className="w-5 h-5" />
+          </div>
+        </div>
+        <div className="card p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Tiempo prom. aprobación</p>
+            <p className="text-[28px] font-bold tabular-nums text-text-1 mt-1">
+              {avgApprovalHours == null ? "—" : avgApprovalHours < 24
+                ? `${avgApprovalHours.toFixed(1)}h`
+                : `${(avgApprovalHours / 24).toFixed(1)}d`}
             </p>
           </div>
-          <PrintButton />
+          <div className="w-12 h-12 rounded-xl grid place-items-center" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
+            <IconClock className="w-5 h-5" />
+          </div>
         </div>
-      </header>
-
-      {/* Métrica protagonista + KPIs secundarios */}
-      <div className="mb-8">
-        <div className="flex items-baseline gap-3 mb-2">
-          <span className="text-[56px] font-bold tabular-nums leading-none text-text-1">{totalReqs}</span>
-          <span className="text-[18px] font-medium" style={{ color: "var(--text-2)" }}>solicitudes</span>
-        </div>
-        <div className="flex items-center gap-2 text-[14px]">
-          <span style={{ color: trendUp ? "var(--ok)" : "var(--warn)" }}>
-            {trendUp ? "↑" : "↓"} {trendPct == null ? "nuevo" : `${trendPct > 0 ? "+" : ""}${trendPct}%`}
-          </span>
-          <span style={{ color: "var(--text-3)" }}>vs periodo anterior</span>
-        </div>
-      </div>
-
-      {/* KPIs secundarios en línea */}
-      <div className="flex items-center gap-8 mb-8 pb-8" style={{ borderBottom: "1px solid var(--border)" }}>
-        <div>
-          <p className="text-[24px] font-bold tabular-nums text-text-1">{projs.length}</p>
-          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Actividades creadas</p>
-        </div>
-        <div>
-          <p className="text-[24px] font-bold tabular-nums text-text-1">
-            {avgApprovalHours == null ? "—" : avgApprovalHours < 24
-              ? `${avgApprovalHours.toFixed(1)}h`
-              : `${(avgApprovalHours / 24).toFixed(1)}d`}
-          </p>
-          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Tiempo prom. aprobación</p>
-        </div>
-        <div>
-          <p className="text-[24px] font-bold tabular-nums text-text-1">{topAreas.length}</p>
-          <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Áreas solicitantes</p>
-        </div>
-      </div>
-
-      {/* Tendencia - Sparkline más grande */}
-      <div className="mb-8">
-        <h2 className="text-[18px] font-bold text-text-1 mb-4">Tendencia</h2>
-        <div className="flex items-center gap-6">
-          <Sparkline values={trendValues} width={240} height={60} color={trendUp ? "var(--ok)" : "var(--warn)"} />
+        <div className="card p-5 flex items-center justify-between gap-4">
           <div>
+            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Áreas solicitantes</p>
+            <p className="text-[28px] font-bold tabular-nums text-text-1 mt-1">{topAreas.length}</p>
+          </div>
+          <div className="w-12 h-12 rounded-xl grid place-items-center" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>
+            <IconUsers className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tendencia + Resumen */}
+      <div className="grid lg:grid-cols-3 gap-4 mb-6">
+        <div className="card p-5 lg:col-span-2">
+          <h2 className="text-[15px] font-bold text-text-1 mb-4">Tendencia</h2>
+          <div className="flex items-center gap-6">
+            <Sparkline values={trendValues} width={280} height={60} color={trendUp ? "var(--ok)" : "var(--warn)"} />
             <p className="text-[14px]" style={{ color: "var(--text-2)" }}>
               {trendTotal} solicitudes en las últimas {weeksBack} semanas
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Insights ejecutivos */}
-      <div className="mb-8">
-        <h2 className="text-[18px] font-bold text-text-1 mb-4">Resumen</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-            <p className="text-[12px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
-              Top empleado
-            </p>
-            {topEmployee ? (
-              <>
-                <p className="text-[16px] font-bold text-text-1 truncate">{topEmployee.name}</p>
-                <p className="text-[14px] tabular-nums mt-1" style={{ color: "var(--ok)" }}>{topEmployee.hours}h registradas</p>
-              </>
-            ) : (
-              <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
-            )}
-          </div>
-          <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-            <p className="text-[12px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
-              Área con más carga
-            </p>
-            {topAreas.length > 0 ? (
-              <>
-                <p className="text-[16px] font-bold text-text-1 truncate">{topAreas[0][0]}</p>
-                <p className="text-[14px] tabular-nums mt-1" style={{ color: "var(--accent)" }}>{topAreas[0][1]} solicitudes</p>
-              </>
-            ) : (
-              <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos</p>
-            )}
-          </div>
-          <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-            <p className="text-[12px] font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>
-              Cuello de botella
-            </p>
-            {bottleneck ? (
-              <>
-                <p className="text-[16px] font-bold text-text-1 truncate">{bottleneck.area}</p>
-                <p className="text-[14px] tabular-nums mt-1" style={{ color: "var(--warn)" }}>
-                  {bottleneck.hours < 24 ? `${bottleneck.hours}h` : `${(bottleneck.hours / 24).toFixed(1)}d`} prom. aprobación
-                </p>
-              </>
-            ) : (
-              <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos suficientes</p>
-            )}
+        <div className="card p-5">
+          <h2 className="text-[15px] font-bold text-text-1 mb-4">Resumen</h2>
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Top empleado</p>
+              {topEmployee ? (
+                <p className="text-[15px] font-bold text-text-1 truncate">{topEmployee.name} <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--ok)" }}>· {topEmployee.hours}h</span></p>
+              ) : (
+                <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin registros</p>
+              )}
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Área con más carga</p>
+              {topAreas.length > 0 ? (
+                <p className="text-[15px] font-bold text-text-1 truncate">{topAreas[0][0]} <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>· {topAreas[0][1]}</span></p>
+              ) : (
+                <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos</p>
+              )}
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Cuello de botella</p>
+              {bottleneck ? (
+                <p className="text-[15px] font-bold text-text-1 truncate">{bottleneck.area} <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--warn)" }}>
+                  {bottleneck.hours < 24 ? `${bottleneck.hours}h` : `${(bottleneck.hours / 24).toFixed(1)}d`}
+                </span></p>
+              ) : (
+                <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos suficientes</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Distribuciones - Solo barras, sin donuts */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        <div>
-          <h2 className="text-[18px] font-bold text-text-1 mb-4">Solicitudes por estado</h2>
+      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <div className="card p-5">
+          <h2 className="text-[15px] font-bold text-text-1 mb-4">Solicitudes por estado</h2>
           {totalStatus === 0 ? (
             <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
           ) : (
@@ -401,8 +359,8 @@ export default async function Reportes() {
           )}
         </div>
 
-        <div>
-          <h2 className="text-[18px] font-bold text-text-1 mb-4">Por tipo de apoyo</h2>
+        <div className="card p-5">
+          <h2 className="text-[15px] font-bold text-text-1 mb-4">Por tipo de apoyo</h2>
           {totalType === 0 ? (
             <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin solicitudes todavía.</p>
           ) : (
@@ -416,11 +374,11 @@ export default async function Reportes() {
       </div>
 
       {/* Áreas que más solicitan */}
-      <div className="mb-8">
-        <h2 className="text-[18px] font-bold text-text-1 mb-4">
+      <div className="card p-5 mb-6">
+        <h2 className="text-[15px] font-bold text-text-1 mb-4">
           Áreas que más solicitan
           {Object.keys(byArea).length > 0 && (
-            <span className="text-[14px] font-medium ml-2" style={{ color: "var(--text-3)" }}>
+            <span className="text-[13px] font-medium ml-2" style={{ color: "var(--text-3)" }}>
               · {Object.keys(byArea).length} en total
             </span>
           )}
@@ -428,7 +386,7 @@ export default async function Reportes() {
         {topAreas.length === 0 ? (
           <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin datos todavía.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
             {topAreas.map(([area, n], i) => (
               <Bar key={area} label={area} count={n} total={maxArea} color={COLORS[i % COLORS.length]} />
             ))}
@@ -437,12 +395,12 @@ export default async function Reportes() {
       </div>
 
       {/* Horas registradas por tipo */}
-      <div className="mb-8">
-        <h2 className="text-[18px] font-bold text-text-1 mb-4">Horas registradas por tipo</h2>
+      <div className="card p-5 mb-6">
+        <h2 className="text-[15px] font-bold text-text-1 mb-4">Horas registradas por tipo</h2>
         {minutesByTypeSorted.length === 0 ? (
           <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Aún no hay registros de tiempo.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
             {minutesByTypeSorted.slice(0, 6).map(([t, min]) => (
               <Bar key={t} label={TYPE_LABEL[t] ?? t} count={Math.round(min / 6) / 10}
                 total={maxMinutes / 60}
@@ -453,14 +411,17 @@ export default async function Reportes() {
       </div>
 
       {/* Vacaciones por persona */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[18px] font-bold text-text-1">Vacaciones por persona</h2>
-          {vacTotalDays > 0 && (
-            <span className="text-[13px] font-semibold" style={{ color: "var(--text-3)" }}>
-              {vacPctUsed}% del total usado
-            </span>
-          )}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <h2 className="text-[15px] font-bold text-text-1">Vacaciones por persona</h2>
+          <div className="flex items-center gap-3">
+            {vacTotalDays > 0 && (
+              <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-3)" }}>
+                {vacPctUsed}% del total usado
+              </span>
+            )}
+            <CsvLink rows={vacCsvRows} filename="vacaciones-por-persona" adminId={adminId} />
+          </div>
         </div>
         {vacRows.length === 0 ? (
           <p className="text-[14px]" style={{ color: "var(--text-3)" }}>Sin personal registrado todavía.</p>

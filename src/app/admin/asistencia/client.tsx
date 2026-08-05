@@ -276,7 +276,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
         <div className="flex items-center gap-2.5 flex-wrap">
           <SlidingSegments
             options={["Tabla", "Gantt", "Semana"]}
-            value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "semana"}
+            value={view === "tabla" ? "Tabla" : view === "gantt" ? "Gantt" : "Semana"}
             onChange={(v) => setView(v === "Tabla" ? "tabla" : v === "Gantt" ? "gantt" : "semana")}
           />
           <DatePicker

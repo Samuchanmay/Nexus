@@ -87,22 +87,28 @@ export function ThemeToggle() {
 }
 
 /* ── Selector deslizable (pastilla con spring real) ── */
-export function SlidingSegments({ options, value, onChange }: {
+export function SlidingSegments({ options, value, onChange, badge }: {
   options: string[]; value: string; onChange: (v: string) => void;
+  badge?: (o: string) => React.ReactNode;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const move = useCallback(() => {
     const wrap = wrapRef.current, thumb = thumbRef.current;
     if (!wrap || !thumb) return;
-    const btn = wrap.querySelector<HTMLButtonElement>(`[data-val="${value}"]`);
+    // Fallback defensivo: si value no coincide con ningún data-val exacto
+    // (por ejemplo un valor normalizado distinto), apuntar al primer option
+    // en vez de dejar el thumb congelado en una posición pasada (bug real
+    // en Asistencia donde "semana" != "Semana" dejaba el indicador en Gantt).
+    const match = options.includes(value) ? value : options[0];
+    const btn = wrap.querySelector<HTMLButtonElement>(`[data-val="${match}"]`);
     if (!btn) return;
     // offsetLeft/offsetWidth (en vez de getBoundingClientRect) porque son enteros
     // de layout ya resueltos por el motor — inmunes al zoom global (html{zoom:1.1})
     // y a redondeos de sub-píxel que antes dejaban la pastilla desfasada del texto.
     thumb.style.width = btn.offsetWidth + "px";
     thumb.style.transform = `translateX(${btn.offsetLeft}px)`;
-  }, [value]);
+  }, [value, options]);
   useEffect(() => {
     // Requiere doble medición: la primera puede correr antes de que la
     // fuente/layout terminen de asentarse (deja el thumb desfasado hasta el
@@ -124,9 +130,15 @@ export function SlidingSegments({ options, value, onChange }: {
       <div className="seg-thumb" ref={thumbRef} />
       {options.map((o) => (
         <button key={o} data-val={o} onClick={() => onChange(o)}
-          className="relative z-[1] px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold transition-colors"
+          className="relative z-[1] px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold transition-colors flex items-center gap-1.5"
           style={{ color: value === o ? "var(--text-1)" : "var(--text-2)" }}>
           {o}
+          {badge?.(o) != null && (
+            <span className="text-[11px] font-bold tabular-nums min-w-[18px] h-[18px] px-1 rounded-full grid place-items-center"
+              style={{ background: value === o ? "var(--accent-tint)" : "var(--surface-3)", color: value === o ? "var(--accent)" : "var(--text-3)" }}>
+              {badge!(o)}
+            </span>
+          )}
         </button>
       ))}
     </div>

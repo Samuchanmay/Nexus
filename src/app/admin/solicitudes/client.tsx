@@ -184,42 +184,13 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
           </div>
         </div>
 
-        {/* Tabs estilo Linear con contadores */}
-        <div className="relative inline-flex rounded-2xl p-1.5" style={{ background: "var(--surface-2)" }}>
-          <div 
-            className="absolute top-1.5 bottom-1.5 rounded-xl transition-all duration-200 ease-out"
-            style={{ 
-              background: "var(--surface)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
-            }}
-          />
-          {(["Por revisar", "Aprobadas", "Rechazadas"] as const).map((t, i) => {
-            const count = i === 0 ? counts.review : i === 1 ? counts.approved : counts.rejected;
-            const isActive = tab === t;
-            return (
-              <button
-                key={t}
-                className="relative z-10 h-9 px-5 rounded-xl text-[14px] font-semibold transition-colors flex items-center gap-2"
-                style={{ 
-                  color: isActive ? "var(--text-1)" : "var(--text-3)",
-                  background: isActive ? "var(--surface)" : "transparent"
-                }}
-                onClick={() => setTab(t)}
-              >
-                {t}
-                <span 
-                  className="text-[12px] font-bold tabular-nums px-2 py-0.5 rounded-full"
-                  style={{ 
-                    background: isActive ? "var(--accent-tint)" : "var(--surface-3)",
-                    color: isActive ? "var(--accent)" : "var(--text-3)"
-                  }}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Tabs — SlidingSegments oficial con contadores (Sprint UI/UX #7) */}
+        <SlidingSegments
+          options={["Por revisar", "Aprobadas", "Rechazadas"]}
+          value={tab}
+          onChange={(v) => setTab(v as typeof tab)}
+          badge={(t) => t === "Por revisar" ? counts.review : t === "Aprobadas" ? counts.approved : counts.rejected}
+        />
       </header>
 
       {/* Contenido */}

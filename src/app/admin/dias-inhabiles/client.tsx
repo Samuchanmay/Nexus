@@ -207,7 +207,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
           <h2 className="text-[14px] font-semibold mb-3" style={{ color: "var(--text-3)" }}>Descansos asignados</h2>
           <div className="flex flex-col gap-2">
             {restDays.map((r) => (
-              <div key={r.id} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-hover transition-all duration-200" style={{ background: "var(--surface-2)" }}>
+              <div key={r.id} className="group flex items-center justify-between p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="min-w-0 flex-1">
                   <span className="text-[14px] font-semibold">{r.userName}</span>
                   <span className="text-[13px] ml-2" style={{ color: "var(--text-2)" }}>
@@ -227,18 +227,20 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
         </div>
       )}
 
-      {/* Indicadores con más jerarquía */}
+      {/* Indicadores compactos — mismo lenguaje .card del resto del sistema */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {(Object.keys(HOLIDAY_KIND_LABEL) as HolidayKind[]).map((k) => {
           const KIcon = KIND_ICON[k];
           const st = holidayStyle(k);
           return (
-            <div key={k} className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-              <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: st.bg, color: st.fg }}>
-                <KIcon className="w-5 h-5" />
+            <div key={k} className="card px-4 py-3.5">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: st.bg, color: st.fg }}>
+                  <KIcon className="w-4 h-4" />
+                </div>
+                <p className="text-[12px] font-bold leading-tight" style={{ color: "var(--text-3)" }}>{HOLIDAY_KIND_LABEL[k]}</p>
               </div>
-              <p className="text-[28px] font-bold tabular-nums text-text-1">{kindCounts[k] ?? 0}</p>
-              <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>{HOLIDAY_KIND_LABEL[k]}</p>
+              <p className="text-[22px] font-bold tabular-nums text-text-1 leading-none">{kindCounts[k] ?? 0}</p>
             </div>
           );
         })}
@@ -269,7 +271,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
           <div className="grid grid-cols-7 gap-1.5 mb-2">
             {DOW.map((d) => <p key={d} className="text-center text-[12px] font-bold" style={{ color: "var(--text-3)" }}>{d}</p>)}
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1.5">
             {monthCells.map((c) => {
               const h = holidayOf.get(c.date);
               const style = h ? holidayStyle(h.kind) : null;
@@ -278,7 +280,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
                   key={c.date} type="button" disabled={!c.inMonth}
                   onClick={() => { if (h) openEdit(h); }}
                   title={h ? `${dmy(c.date)} · ${h.name} (${HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind})` : dmy(c.date)}
-                  className="rounded-sm p-2 min-h-[72px] flex flex-col items-start justify-start gap-1.5 transition-colors text-left"
+                  className="rounded-md px-2 py-1.5 min-h-[48px] flex flex-col items-start justify-start gap-1 transition-colors text-left"
                   style={{
                     background: h ? style!.bg : "var(--surface-2)",
                     opacity: c.inMonth ? 1 : 0.3,
@@ -288,7 +290,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
                   }}>
                   <p className="text-[12px] font-bold tabular-nums" style={{ color: h ? style!.fg : "var(--text-2)" }}>{c.day}</p>
                   {h && (
-                    <p className="text-[12px] font-semibold leading-tight line-clamp-2" style={{ color: style!.fg }}>{h.name}</p>
+                    <p className="text-[11px] font-semibold leading-tight line-clamp-2" style={{ color: style!.fg }}>{h.name}</p>
                   )}
                 </button>
               );
@@ -327,18 +329,18 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
                         key={c.date} type="button" disabled={!h}
                         onClick={() => { if (h) openEdit(h); }}
                         title={h ? `${dmy(c.date)} · ${h.name} (${HOLIDAY_KIND_LABEL[(h.kind as HolidayKind)] ?? h.kind})` : dmy(c.date)}
-                        className="relative aspect-square rounded-[3px] flex items-center justify-center text-[8.5px] font-semibold tabular-nums"
+                        className="relative aspect-square rounded-md flex items-center justify-center text-[8.5px] font-semibold tabular-nums transition-all hover:scale-110"
                         style={{
                           opacity: c.inMonth ? 1 : 0.25,
-                          color: "var(--text-3)",
+                          background: h
+                            ? `color-mix(in srgb, ${st!.fg} 26%, var(--surface-2))`
+                            : "transparent",
+                          color: h ? st!.fg : "var(--text-3)",
                           outline: c.date === today ? "1.5px solid var(--accent)" : undefined,
                           outlineOffset: "-1.5px",
                           cursor: h ? "pointer" : "default",
                         }}>
                         {c.day}
-                        {h && (
-                          <span className="absolute bottom-[1px] w-[3px] h-[3px] rounded-full" style={{ background: st!.fg }} />
-                        )}
                       </button>
                     );
                   })}
