@@ -69,17 +69,21 @@ export function WeekView({
       <div className="overflow-x-auto">
         <div className="min-w-[820px]">
           {/* Header sticky + fila allDay */}
-          <div className="grid sticky top-0 z-[50]" style={{ gridTemplateColumns: "56px repeat(7, 1fr)", background: "var(--surface)", borderBottom: "0.5px solid var(--border)" }}>
+          <div className="grid sticky top-0 z-[50]" style={{ gridTemplateColumns: "56px repeat(7, 1fr)", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
             <div />
             {weekDays.map((day, i) => {
               const isToday = day === today;
               return (
                 <button key={day} type="button" onClick={() => onDayClick?.(day)}
-                  className="flex flex-col items-center py-2 transition-colors hover:bg-hover"
+                  className="flex flex-col items-center py-3 transition-all hover:bg-hover"
                   aria-current={isToday ? "date" : undefined}>
-                  <span className="text-[11px] font-bold" style={{ color: "var(--text-3)" }}>{DOW[i]}</span>
-                  <span className="text-[13px] font-bold tabular-nums w-6 h-6 mt-0.5 grid place-items-center rounded-full"
-                    style={{ color: isToday ? "#fff" : "var(--text-1)", background: isToday ? "var(--accent)" : "transparent" }}>
+                  <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: isToday ? "var(--accent)" : "var(--text-3)" }}>{DOW[i]}</span>
+                  <span className="text-[15px] font-bold tabular-nums w-8 h-8 mt-1 grid place-items-center rounded-full transition-all"
+                    style={{ 
+                      color: isToday ? "#fff" : "var(--text-1)", 
+                      background: isToday ? "var(--accent)" : "transparent",
+                      boxShadow: isToday ? "0 0 0 3px var(--accent-tint)" : "none"
+                    }}>
                     {Number(day.slice(8, 10))}
                   </span>
                 </button>
@@ -87,14 +91,18 @@ export function WeekView({
             })}
           </div>
           {weekDays.some((d) => (eventsByDay.get(d) ?? []).some((ev) => ev.allDay)) && (
-            <div className="grid" style={{ gridTemplateColumns: "56px repeat(7, 1fr)", borderBottom: "0.5px solid var(--border)" }}>
+            <div className="grid" style={{ gridTemplateColumns: "56px repeat(7, 1fr)", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
               <div />
               {weekDays.map((day) => (
-                <div key={day} className="flex flex-col gap-1 p-1">
+                <div key={day} className="flex flex-col gap-1.5 p-2">
                   {(eventsByDay.get(day) ?? []).filter((ev) => ev.allDay).slice(0, 3).map((ev) => (
                     <button key={ev.id} type="button" onClick={() => onEventClick?.(ev)}
-                      className="text-[10.5px] font-semibold truncate px-1.5 py-0.5 rounded-[4px] text-left"
-                      style={{ background: `color-mix(in srgb, ${eventColor(ev.kind)} 14%, transparent)`, color: eventColor(ev.kind) }}>
+                      className="text-[11px] font-semibold truncate px-2 py-1 rounded-lg text-left transition-all hover:scale-[1.02] hover:shadow-md"
+                      style={{ 
+                        background: `color-mix(in srgb, ${eventColor(ev.kind)} 18%, transparent)`, 
+                        color: eventColor(ev.kind),
+                        borderLeft: `3px solid ${eventColor(ev.kind)}`
+                      }}>
                       {ev.title}
                     </button>
                   ))}
@@ -107,8 +115,8 @@ export function WeekView({
           <div className="relative grid" style={{ gridTemplateColumns: "56px repeat(7, 1fr)" }}>
             <div>
               {hours.map((h) => (
-                <div key={h} className="text-right pr-2.5 text-[11px] font-semibold tabular-nums"
-                  style={{ height: HOUR_HEIGHT_PX, color: "var(--text-3)" }}>
+                <div key={h} className="text-right pr-3 text-[12px] font-semibold tabular-nums"
+                  style={{ height: HOUR_HEIGHT_PX, color: "var(--text-3)", paddingTop: "4px" }}>
                   {String(h).padStart(2, "0")}:00
                 </div>
               ))}
@@ -122,14 +130,14 @@ export function WeekView({
               })));
               const isToday = day === today;
               return (
-                <div key={day} className="relative" style={{ borderLeft: "0.5px solid var(--border)" }}>
+                <div key={day} className="relative" style={{ borderLeft: "1px solid var(--border)" }}>
                   {hours.map((h) => (
-                    <div key={h} style={{ height: HOUR_HEIGHT_PX, borderBottom: "0.5px solid var(--border)" }} />
+                    <div key={h} style={{ height: HOUR_HEIGHT_PX, borderBottom: "1px solid var(--border)" }} />
                   ))}
                   {isToday && nowOffset != null && (
                     <div className="absolute left-0 right-0 pointer-events-none z-[70] flex items-center" style={{ top: nowOffset }}>
-                      <span className="w-1.5 h-1.5 rounded-full -ml-[3px]" style={{ background: "var(--ev-red)" }} />
-                      <span className="flex-1" style={{ height: 1.5, background: "var(--ev-red)" }} />
+                      <span className="w-3 h-3 rounded-full -ml-[6px] shadow-lg" style={{ background: "var(--ev-red)", boxShadow: "0 0 8px var(--ev-red)" }} />
+                      <span className="flex-1" style={{ height: 2, background: "var(--ev-red)", boxShadow: "0 0 4px var(--ev-red)" }} />
                     </div>
                   )}
                   {timed.map((ev) => {
@@ -138,19 +146,20 @@ export function WeekView({
                     const top = ((Math.max(startHour * 60, minutesOfDay(ev.start)) - startHour * 60) / 60) * HOUR_HEIGHT_PX;
                     const rawEnd = Math.max(minutesOfDay(ev.end), minutesOfDay(ev.start) + 30);
                     const bottom = ((Math.min(endHour * 60, rawEnd) - startHour * 60) / 60) * HOUR_HEIGHT_PX;
-                    const height = Math.max(18, bottom - top);
+                    const height = Math.max(24, bottom - top);
                     return (
                       <button key={ev.id} type="button" onClick={() => onEventClick?.(ev)}
-                        className="absolute rounded-[5px] text-left px-1.5 py-0.5 overflow-hidden"
+                        className="absolute rounded-lg text-left px-2 py-1 overflow-hidden transition-all hover:scale-[1.02] hover:shadow-lg"
                         style={{
                           top, height,
-                          left: `calc(${l.left}% + 2px)`, width: `calc(${l.width}% - 4px)`,
+                          left: `calc(${l.left}% + 3px)`, width: `calc(${l.width}% - 6px)`,
                           zIndex: l.zIndex,
-                          background: `color-mix(in srgb, ${eventColor(ev.kind)} 10%, var(--surface))`,
-                          borderLeft: `2.5px solid ${eventColor(ev.kind)}`,
+                          background: `color-mix(in srgb, ${eventColor(ev.kind)} 15%, var(--surface))`,
+                          borderLeft: `3px solid ${eventColor(ev.kind)}`,
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
                         }}
                         title={ev.title}>
-                        <span className="block text-[10.5px] font-semibold truncate">{ev.title}</span>
+                        <span className="block text-[11px] font-semibold truncate" style={{ color: "var(--text-1)" }}>{ev.title}</span>
                       </button>
                     );
                   })}

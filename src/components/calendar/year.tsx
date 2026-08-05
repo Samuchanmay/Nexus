@@ -49,6 +49,7 @@ function MiniMonthHeatmap({
   const lead = isoWeekday(first) === 0 ? 6 : isoWeekday(first) - 1;
   const start = addDays(first, -lead);
   const totalCells = Math.ceil((lead + daysInMonth) / 7) * 7;
+  const isCurrentMonth = ym === today.slice(0, 7);
 
   const cells = Array.from({ length: totalCells }, (_, i) => {
     const date = addDays(start, i);
@@ -59,10 +60,11 @@ function MiniMonthHeatmap({
   return (
     <div>
       <button type="button" onClick={() => onMonthClick?.(ym)}
-        className="text-[12.5px] font-bold capitalize mb-1.5 hover:underline">
+        className="text-[13px] font-bold capitalize mb-2 px-2 py-1 rounded-lg transition-all hover:bg-hover"
+        style={isCurrentMonth ? { color: "var(--accent)" } : undefined}>
         {MONTHS[month - 1]}
       </button>
-      <div className="grid grid-cols-7 gap-[3px]">
+      <div className="grid grid-cols-7 gap-[4px]">
         {cells.map((c) => {
           const events = c.inMonth ? (dayData.get(c.date) ?? []) : [];
           const count = events.length;
@@ -77,12 +79,13 @@ function MiniMonthHeatmap({
               disabled={!c.inMonth}
               onClick={() => onDayClick?.(c.date)}
               title={c.inMonth ? `${c.day} ${MONTHS[month - 1]} · ${count} evento${count === 1 ? "" : "s"}` : undefined}
-              className="aspect-square rounded-[2px] transition-transform hover:scale-125"
+              className="aspect-square rounded-md transition-all hover:scale-110 hover:shadow-md"
               style={{
                 background: count > 0 ? `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, var(--surface-2))` : "var(--surface-2)",
                 opacity: c.inMonth ? 1 : 0.25,
-                outline: isToday ? "1.5px solid var(--accent)" : "none",
+                outline: isToday ? "2px solid var(--accent)" : "none",
                 outlineOffset: 1,
+                boxShadow: isToday ? "0 0 0 3px var(--accent-tint)" : "none"
               }}
             />
           );
@@ -124,7 +127,7 @@ export function YearView({
 
   return (
     <div className="card p-4">
-      <div className="grid gap-x-6 gap-y-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+      <div className="grid gap-x-5 gap-y-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
         {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
           <MiniMonthHeatmap key={month} year={year} month={month} dayData={dayData} today={today}
             onMonthClick={onMonthClick} onDayClick={onDayClick} />

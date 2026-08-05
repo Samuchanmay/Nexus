@@ -530,61 +530,71 @@ export default function CalendarioClient({
       {view === "Asistencia" && (
         <div className="card p-5 overflow-x-auto">
           <div className={granularity === "Mes" ? "min-w-[720px]" : "min-w-0"}>
-            <div className="flex items-center gap-3 pb-2" style={{ borderBottom: "0.5px solid var(--border)" }}>
+            {/* Header con días */}
+            <div className="flex items-center gap-3 pb-3 mb-3" style={{ borderBottom: "1px solid var(--border)" }}>
               <div className="w-[150px] shrink-0" />
-              <div className="flex-1 grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
+              <div className="flex-1 grid gap-[4px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
                 {attendanceDays.map((d) => (
                   <span key={d.n}
-                    className="text-center text-[12px] font-bold tabular-nums"
+                    className="text-center text-[11px] font-bold tabular-nums"
                     style={{ color: d.date === today ? "var(--accent)" : d.isWeekend ? "var(--text-3)" : "var(--text-2)" }}>
                     {d.n}
                   </span>
                 ))}
               </div>
-              <div className="w-[70px] shrink-0" />
+              <div className="w-[80px] shrink-0 text-right">
+                <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Asistencia</span>
+              </div>
             </div>
 
-            {grid.map(({ user: u, cells, habiles, conRegistro }) => (
-              <div key={u.id} className="flex items-center gap-3 py-2.5"
-                style={{ borderBottom: "0.5px solid var(--border)" }}>
-                <div className="flex items-center gap-2.5 w-[150px] shrink-0">
-                  <Avatar name={u.display_name} color={u.nexus_color} size={28} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
-                  <p className="text-[12.5px] font-bold truncate">{u.display_name}</p>
+            {/* Filas de usuarios */}
+            {grid.map(({ user: u, cells, habiles, conRegistro }) => {
+              const pct = habiles > 0 ? Math.round((conRegistro / habiles) * 100) : 0;
+              return (
+                <div key={u.id} className="flex items-center gap-3 py-3 transition-colors hover:bg-hover rounded-lg"
+                  style={{ borderBottom: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-2.5 w-[150px] shrink-0">
+                    <Avatar name={u.display_name} color={u.nexus_color} size={32} avatarUrl={u.avatar_url} birthday={isBirthdayToday(u.birth_date, todayISO())} />
+                    <p className="text-[13px] font-bold truncate" style={{ color: "var(--text-1)" }}>{u.display_name}</p>
+                  </div>
+                  <div className="flex-1 grid gap-[4px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
+                    {cells.map((c, i) => (
+                      <div key={i} title={c.tip}
+                        className="h-6 rounded-md transition-all hover:scale-110"
+                        style={{
+                          background: CELL[c.kind].bg,
+                          border: CELL[c.kind].border,
+                          outline: attendanceDays[i].date === today ? "2px solid var(--accent)" : undefined,
+                          outlineOffset: attendanceDays[i].date === today ? "1px" : undefined,
+                        }} />
+                    ))}
+                  </div>
+                  <div className="w-[80px] shrink-0 text-right">
+                    <p className="text-[14px] font-bold tabular-nums" style={{ color: pct >= 80 ? "var(--ok)" : pct >= 60 ? "var(--warn)" : "var(--danger)" }}>
+                      {conRegistro}/{habiles}
+                    </p>
+                    <p className="text-[11px] font-semibold" style={{ color: "var(--text-3)" }}>{pct}%</p>
+                  </div>
                 </div>
-                <div className="flex-1 grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${attendanceDays.length}, minmax(0,1fr))` }}>
-                  {cells.map((c, i) => (
-                    <div key={i} title={c.tip}
-                      className="h-5 rounded-[4px]"
-                      style={{
-                        background: CELL[c.kind].bg,
-                        border: CELL[c.kind].border,
-                        outline: attendanceDays[i].date === today ? "2px solid var(--accent)" : undefined,
-                        outlineOffset: attendanceDays[i].date === today ? "1px" : undefined,
-                      }} />
-                  ))}
-                </div>
-                <div className="w-[70px] shrink-0 text-right">
-                  <p className="text-[12px] font-bold tabular-nums">{conRegistro}/{habiles}</p>
-                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}>días reg.</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3.5 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3.5 h-3 rounded-[3px]" style={{ background: CELL.fichaje.bg }} /> Con registro
+            {/* Leyenda compacta */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+              <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.fichaje.bg }} /> Con registro
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3.5 h-3 rounded-[3px]" style={{ background: CELL.vacacion.bg }} /> Vacaciones
+              <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.vacacion.bg }} /> Vacaciones
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3.5 h-3 rounded-[3px]" style={{ background: CELL.inhabil.bg, border: CELL.inhabil.border }} /> Día inhábil
+              <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.inhabil.bg, border: CELL.inhabil.border }} /> Día inhábil
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3.5 h-3 rounded-[3px]" style={{ background: CELL.sin.bg, border: CELL.sin.border }} /> Sin registro (informativo)
+              <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.sin.bg, border: CELL.sin.border }} /> Sin registro
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3.5 h-3 rounded-[3px]" style={{ background: CELL.off.bg }} /> Fin de semana
+              <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.off.bg }} /> Fin de semana
               </span>
             </div>
           </div>

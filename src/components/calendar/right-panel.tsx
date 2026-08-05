@@ -45,16 +45,24 @@ export function CalendarRightPanel({
   }, [visibleEvents, today, upcomingDays, upcomingLimit]);
 
   return (
-    <div className="flex flex-col gap-5 w-full lg:w-[280px] shrink-0">
+    <div className="flex flex-col gap-6 w-full lg:w-[280px] shrink-0">
       <div>
-        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Hoy</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--accent)" }}>Hoy</p>
+          {todayEvents.length > 0 && (
+            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ color: "var(--accent)", background: "var(--accent-tint)" }}>
+              {todayEvents.length}
+            </span>
+          )}
+        </div>
         {todayEvents.length === 0 ? (
           <p className="text-[12.5px] py-2" style={{ color: "var(--text-3)" }}>Tu día está libre.</p>
         ) : (
           <div className="flex flex-col gap-1">
             {todayEvents.map((ev) => (
               <button key={ev.id} type="button" onClick={() => onEventClick?.(ev)}
-                className="flex items-center gap-2.5 text-left px-1.5 py-1.5 rounded-[6px] transition-colors hover:bg-hover">
+                className="flex items-center gap-2.5 text-left px-2 py-2 rounded-[8px] border transition-colors hover:bg-hover"
+                style={{ borderColor: "var(--border)" }}>
                 <span className="w-9 shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: "var(--text-3)" }}>
                   {ev.allDay ? "" : ev.start.slice(11, 16)}
                 </span>
@@ -69,14 +77,26 @@ export function CalendarRightPanel({
       </div>
 
       <div>
-        <p className="text-[12px] font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-3)" }}>Próximos</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>Próximos</p>
+          {upcoming.length > 0 && (
+            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ color: "var(--text-2)", background: "var(--surface-2)" }}>
+              {upcoming.length}
+            </span>
+          )}
+        </div>
         {upcoming.length === 0 ? (
           <p className="text-[12.5px] py-2" style={{ color: "var(--text-3)" }}>Nada en los próximos {upcomingDays} días.</p>
         ) : (
           <div className="flex flex-col gap-1">
             {upcoming.map((ev) => (
               <button key={ev.id} type="button" onClick={() => onEventClick?.(ev)}
-                className="flex items-center gap-2.5 text-left px-1.5 py-1.5 rounded-[6px] transition-colors hover:bg-hover">
+                className="flex items-center gap-2.5 text-left px-2 py-2 rounded-[8px] border transition-colors hover:bg-hover"
+                style={{ borderColor: "var(--border)" }}>
+                <span className="w-9 shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: "var(--text-3)" }}>
+                  {ev.start.slice(11, 16)}
+                </span>
+                <span className="w-1 self-stretch rounded-full shrink-0" style={{ background: eventColor(ev.kind), minHeight: 14 }} />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[12.5px] font-semibold truncate">{ev.title}</span>
                   <span className="block text-[11px] capitalize" style={{ color: "var(--text-2)" }}>
