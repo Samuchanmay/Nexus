@@ -80,12 +80,33 @@ Deno.serve(async (req) => {
     const lastMonday = addDaysIso(thisMonday, -7);
     const lastSunday = addDaysIso(thisMonday, -1);
 
-    const [{ data: team }, { data: att }, { data: states } , { data: scheds }] = await Promise.all([
+    const [{ data: team }, { data: att }, { data: states } , { data: scheds }, { data: vacs }, { data: incs }] = await Promise.all([
       admin.from("users").select("id, display_name, full_name").eq("active", true).in("role", ["admin", "empleado"]),
       admin.from("attendance").select("user_id, date, time, type, reason").gte("date", lastMonday).lte("date", lastSunday).order("time"),
       admin.from("jornada_states").select("nombre, cuenta_tiempo").eq("activo", true),
       admin.from("schedules").select("user_id, target_min").is("valid_until", null),
+      // FASE 4 (auditoría 4 ago 2026): antes el objetivo semanal era siempre
+      // target_min × 5 fijo, sin importar si la persona estuvo de vacaciones
+      // o con una incidencia autorizada esa semana — el reporte la mostraba
+      // en "déficit" (rojo) por días que legítimamente no debía trabajar.
+      admin.from("vacations").select("user_id, start_date, end_date")
+        .eq("status", "Aprobada").is("archived_at", null)
+        .lte("start_date", lastSunday).gte("end_date", lastMonday),
+      admin.from("incidents").select("user_id, start_date, end_date")
+        .eq("status", "Autorizado")
+        .lte("start_date", lastSunday).gte("end_date", lastMonday),
     ]);
+
+    // Los 5 días hábiles (lun-vie) de la semana del reporte — el objetivo
+    // semanal siempre asumió exactamente estos 5, nunca contó sábados.
+    const weekdays = [0, 1, 2, 3, 4].map((i) => addDaysIso(lastMonday, i));
+    const rangeCoversDay = (ranges: { start_date: string; end_date: string }[], day: string) =>
+      ranges.some((r) => r.start_date <= day && r.end_date >= day);
+    const offDaysFor = (userId: string) => {
+      const myVacs = (vacs ?? []).filter((v) => v.user_id === userId);
+      const myIncs = (incs ?? []).filter((i) => i.user_id === userId);
+      return weekdays.filter((d) => rangeCoversDay(myVacs, d) || rangeCoversDay(myIncs, d)).length;
+    };
 
     const cuentaTiempo = new Map((states ?? []).map((s) => [s.nombre, s.cuenta_tiempo as boolean]));
     const SALIDA_REASON_TO_STATE: Record<string, string> = {
@@ -120,8 +141,14 @@ Deno.serve(async (req) => {
         if (dayMin > 0) { totalMin += dayMin; daysWorked++; }
       }
       const sched = (scheds ?? []).find((s) => s.user_id === u.id);
-      const targetMin = (sched?.target_min ?? 480) * 5; // objetivo semanal aprox (5 días)
-      return { name: u.display_name, totalMin, daysWorked, targetMin };
+      const perDayMin = sched?.target_min ?? 480;
+      const offDays = offDaysFor(u.id);
+      // Objetivo ajustado: los días de vacaciones/incidencia autorizada de
+      // esta semana ya no cuentan como "déficit" — antes siempre era
+      // perDayMin × 5 fijo sin importar si la persona tenía permiso legítimo
+      // de no trabajar esos días.
+      const targetMin = Math.max(0, 5 - offDays) * perDayMin;
+      return { name: u.display_name, totalMin, daysWorked, targetMin, offDays };
     }).filter((r) => r.daysWorked > 0 || true); // incluir a todos, aunque no hayan fichado (visibilidad de ausentismo)
 
     const fmtH = (min: number) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, "0")}m`;
@@ -131,10 +158,12 @@ Deno.serve(async (req) => {
       .map((r) => `
         <tr>
           <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB">${r.name}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;text-align:center">${r.daysWorked}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;text-align:center">
+            ${r.daysWorked}${r.offDays > 0 ? `<br><span style="font-size:11px;color:#A1A1A6">${r.offDays} vac/inc</span>` : ""}
+          </td>
           <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;text-align:right;font-weight:700">${fmtH(r.totalMin)}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;text-align:right;color:${r.totalMin < r.targetMin ? "#991B1B" : "#065F46"}">
-            ${r.totalMin < r.targetMin ? "−" : "+"}${fmtH(Math.abs(r.totalMin - r.targetMin))}
+            ${r.targetMin === 0 ? "—" : `${r.totalMin < r.targetMin ? "−" : "+"}${fmtH(Math.abs(r.totalMin - r.targetMin))}`}
           </td>
         </tr>`).join("");
 
