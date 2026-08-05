@@ -417,41 +417,66 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
 
   return (
     <>
-      <header className="pt-8 pb-1 flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-tight">Vacaciones</h1>
-          <p className="text-[14.5px] mt-1.5 font-semibold" style={{ color: pending.length > 0 ? "var(--warn)" : "var(--ok)" }}>
-            {heroHeadline}
-          </p>
-          <p className="text-[13px] mt-0.5" style={{ color: "var(--text-3)" }}>{heroSub}</p>
+      {/* Header compacto */}
+      <header className="pt-6 pb-5">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-[32px] font-bold tracking-tight text-text-1 leading-none">Vacaciones</h1>
+            <p className="text-[15px] mt-2" style={{ color: pending.length > 0 ? "var(--warn)" : "var(--text-2)" }}>
+              {heroHeadline}
+            </p>
+          </div>
+          <a href={vacCsvHref} download="vacaciones-registro.csv" 
+            className="h-10 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover flex items-center gap-2"
+            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+            onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "vacaciones-registro.csv"); }}>
+            <IconDownload className="w-4 h-4" /> Exportar
+          </a>
         </div>
-        <a href={vacCsvHref} download="vacaciones-registro.csv" className="btn-secondary px-4 py-2.5 text-[13px] flex items-center gap-1.5"
-          onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "vacaciones-registro.csv"); }}>
-          <IconDownload className="w-3.5 h-3.5" /> Exportar CSV
-        </a>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-5 mb-5">
-        <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="plane" size={13} /><span className="text-[12px] font-semibold">Pendientes</span></div>
-          <p className="text-[22px] font-bold tabular-nums" style={{ color: pending.length > 0 ? "var(--warn)" : undefined }}>{pending.length}</p>
+      {/* Indicadores con más jerarquía */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--warn-tint)" }}>
+              <Icon name="clock" size={18} className="text-warn" />
+            </div>
+          </div>
+          <p className="text-[28px] font-bold tabular-nums text-text-1">{pending.length}</p>
+          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Pendientes</p>
         </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="calendar" size={13} /><span className="text-[12px] font-semibold">Programadas</span></div>
-          <p className="text-[22px] font-bold tabular-nums">{futuras}</p>
+        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--ok-tint)" }}>
+              <Icon name="check" size={18} className="text-ok" />
+            </div>
+          </div>
+          <p className="text-[28px] font-bold tabular-nums text-text-1">{futuras}</p>
+          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Programadas</p>
         </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="alert" size={13} /><span className="text-[12px] font-semibold">Saldo bajo</span></div>
-          <p className="text-[22px] font-bold tabular-nums" style={{ color: criticos > 0 ? "var(--danger)" : undefined }}>{criticos}</p>
+        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--danger-tint)" }}>
+              <Icon name="alert" size={18} className="text-danger" />
+            </div>
+          </div>
+          <p className="text-[28px] font-bold tabular-nums text-text-1" style={{ color: criticos > 0 ? "var(--danger)" : undefined }}>{criticos}</p>
+          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Saldo bajo</p>
           {criticos > 0 && (
             <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-3)" }} title={criticosTeam.map((t) => t.display_name).join(", ")}>
               {criticosTeam.slice(0, 2).map((t) => t.display_name).join(", ")}{criticos > 2 ? ` +${criticos - 2}` : ""}
             </p>
           )}
         </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-1.5 mb-1.5" style={{ color: "var(--text-3)" }}><Icon name="alarm" size={13} /><span className="text-[12px] font-semibold">Próx. reinicio</span></div>
-          <p className="text-[22px] font-bold tabular-nums">{diasParaReinicio ?? "—"}{diasParaReinicio !== null && <span className="text-[12px] font-semibold ml-1" style={{ color: "var(--text-3)" }}>días</span>}</p>
+        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--accent-tint)" }}>
+              <Icon name="calendar" size={18} className="text-accent" />
+            </div>
+          </div>
+          <p className="text-[28px] font-bold tabular-nums text-text-1">{diasParaReinicio ?? "—"}</p>
+          <p className="text-[13px] mt-1" style={{ color: "var(--text-3)" }}>Próx. reinicio</p>
           {proximoReinicio && (
             <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-3)" }}>
               {proximoReinicio.t.display_name} · {shortDate(proximoReinicio.next)}
@@ -460,51 +485,65 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         </div>
       </div>
 
-      {/* Alertas inteligentes — filas delgadas, no tarjeta grande. */}
+      {/* Alertas de traslape - más visibles */}
       {smartAlerts.length > 0 && (
-        <div className="flex flex-col mb-5">
+        <div className="mb-6">
           {smartAlerts.map((a, i) => {
+            const bgColor = a.tone === "danger" ? "var(--danger-tint)" : a.tone === "warn" ? "var(--warn-tint)" : "var(--accent-tint)";
             const color = a.tone === "danger" ? "var(--danger)" : a.tone === "warn" ? "var(--warn)" : "var(--accent)";
             return (
-              <div key={i} className="flex items-center gap-2.5 py-2 border-b border-border last:border-0">
-                <span className="shrink-0" style={{ color }}><Icon name={a.icon} size={15} /></span>
-                <p className="text-[13px] font-semibold flex-1 min-w-0 text-text-1">{a.text}</p>
+              <div key={i} className="flex items-start gap-3 p-4 rounded-2xl mb-2" style={{ background: bgColor }}>
+                <div className="w-8 h-8 rounded-lg grid place-items-center shrink-0" style={{ background: color }}>
+                  <Icon name={a.icon} size={16} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold" style={{ color }}>{a.text}</p>
+                </div>
               </div>
             );
           })}
         </div>
       )}
 
-      <h2 className="text-[15px] font-bold mb-3">Pendientes {pending.length > 0 && `(${pending.length})`}</h2>
-      {pending.length === 0 && (
-        <div className="mb-6 flex items-center gap-2.5 rounded-m px-4 py-3" style={{ background: "var(--ok-tint)" }}>
-          <span style={{ color: "var(--ok)" }}><Icon name="check" size={16} /></span>
-          <div>
-            <p className="text-[13px] font-bold" style={{ color: "var(--ok)" }}>Todo al corriente</p>
-            <p className="text-[12px]" style={{ color: "var(--text-3)" }}>No hay solicitudes pendientes.</p>
-          </div>
-        </div>
-      )}
-      {pending.length > 0 && (
-        <div className="flex flex-col gap-2.5 mb-6">
-          {pending.map((v) => (
-            <div key={v.id} className="card px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-3">
-                <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} size={34} avatarUrl={v.users?.avatar_url} birthday={isBirthdayToday(v.users?.birth_date, todayISO())} />
-                <div>
-                  <p className="text-[14px] font-bold">{v.users?.full_name}</p>
-                  <p className="text-[12.5px]" style={{ color: "var(--text-2)" }}>
-                    {dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día hábil" : "días hábiles"}
-                  </p>
-                </div>
-              </div>
-              <button className="btn-primary px-5 py-2.5 text-[13px]" onClick={() => { setSel(v); setNote(""); }}>
-                Revisar
-              </button>
+      {/* Pendientes */}
+      <div className="mb-8">
+        <h2 className="text-[18px] font-bold text-text-1 mb-4">
+          Pendientes
+          {pending.length > 0 && <span className="ml-2 text-[14px] font-semibold" style={{ color: "var(--text-3)" }}>({pending.length})</span>}
+        </h2>
+        {pending.length === 0 ? (
+          <div className="flex items-center gap-3 p-5 rounded-2xl" style={{ background: "var(--ok-tint)" }}>
+            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--ok)" }}>
+              <Icon name="check" size={18} className="text-white" />
             </div>
-          ))}
-        </div>
-      )}
+            <div>
+              <p className="text-[15px] font-semibold" style={{ color: "var(--ok)" }}>Todo al corriente</p>
+              <p className="text-[13px]" style={{ color: "var(--text-3)" }}>No hay solicitudes pendientes.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {pending.map((v) => (
+              <div key={v.id} className="group flex items-center justify-between gap-4 p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
+                <div className="flex items-center gap-4">
+                  <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} size={48} avatarUrl={v.users?.avatar_url} birthday={isBirthdayToday(v.users?.birth_date, todayISO())} />
+                  <div>
+                    <p className="text-[16px] font-bold text-text-1">{v.users?.full_name}</p>
+                    <p className="text-[13px] mt-1" style={{ color: "var(--text-2)" }}>
+                      {dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día hábil" : "días hábiles"}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  className="h-10 px-6 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5"
+                  onClick={() => { setSel(v); setNote(""); }}>
+                  Revisar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Registrar vacaciones — acción rápida compacta, tipo Stripe. */}
       <div className="card p-4 mb-3">
@@ -562,41 +601,64 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         )}
       </div>
 
-      {/* Saldos del equipo — barra de progreso + semáforo de color. */}
-      <h2 className="text-[15px] font-bold mb-3">Equipo — saldo de vacaciones</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 mb-7">
-        {team.map((t) => {
-          const total = t.vacation_days_per_year || 0;
-          const used = Math.max(0, total - t.vacation_balance);
-          const pctUsed = total > 0 ? Math.round((used / total) * 100) : 0;
-          const pctAvailable = total > 0 ? Math.max(2, Math.round((t.vacation_balance / total) * 100)) : 0;
-          const color = balanceColor(pctUsed);
-          const seniority = seniorityLabel(t.hire_date);
-          return (
-            <div key={t.id} className="card p-4">
-              <div className="flex items-center gap-2.5 mb-3">
-                <Avatar name={t.display_name} color={t.nexus_color} size={32} avatarUrl={t.avatar_url} birthday={isBirthdayToday(t.birth_date, todayISO())} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold truncate">{t.display_name}</p>
-                  {seniority && <p className="text-[12px] truncate" style={{ color: "var(--text-3)" }}>{seniority}</p>}
+      {/* Saldos del equipo — con más contexto */}
+      <div className="mb-8">
+        <h2 className="text-[18px] font-bold text-text-1 mb-4">Equipo — saldo de vacaciones</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {team.map((t) => {
+            const total = t.vacation_days_per_year || 0;
+            const used = Math.max(0, total - t.vacation_balance);
+            const pctUsed = total > 0 ? Math.round((used / total) * 100) : 0;
+            const pctAvailable = total > 0 ? Math.max(2, Math.round((t.vacation_balance / total) * 100)) : 0;
+            const color = balanceColor(pctUsed);
+            const seniority = seniorityLabel(t.hire_date);
+            const nextReset = t.hire_date ? nextAnniversary(t.hire_date) : null;
+            return (
+              <div key={t.id} className="group p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar name={t.display_name} color={t.nexus_color} size={40} avatarUrl={t.avatar_url} birthday={isBirthdayToday(t.birth_date, todayISO())} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-bold truncate text-text-1">{t.display_name}</p>
+                    {seniority && <p className="text-[12px] truncate" style={{ color: "var(--text-3)" }}>{seniority}</p>}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[24px] font-bold tabular-nums leading-none" style={{ color }}>{t.vacation_balance}</p>
+                    <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}>disponibles</p>
+                  </div>
                 </div>
-                <p className="text-[20px] font-bold tabular-nums shrink-0" style={{ color }}>{t.vacation_balance}</p>
+                
+                {/* Barra de progreso */}
+                <div className="mb-3">
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${pctAvailable}%`, background: color, transition: "width .4s var(--ease)" }} />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>
+                      {used} usados de {total}
+                    </p>
+                    <p className="text-[12px] font-semibold" style={{ color }}>
+                      {pctUsed}% usado
+                    </p>
+                  </div>
+                </div>
+
+                {/* Información adicional */}
+                <div className="pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-3)" }}>
+                    <Icon name="calendar" size={12} />
+                    <span>Reinicia {nextReset ? shortDate(nextReset) : "—"}</span>
+                  </div>
+                  {t.lastReset && (
+                    <p className="text-[11px] mt-1" style={{ color: "var(--text-3)" }}
+                      title={`Ciclo anterior: ${t.lastReset.days_used} usados de ${t.lastReset.days_granted}${t.lastReset.days_forfeited > 0 ? ` · ${t.lastReset.days_forfeited} perdidos` : ""}`}>
+                      Último ciclo: {shortDate(t.lastReset.reset_at)}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }}>
-                <div className="h-full rounded-full" style={{ width: `${pctAvailable}%`, background: color, transition: "width .4s var(--ease)" }} />
-              </div>
-              <div className="flex items-center justify-between mt-1.5">
-                <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{used} usados de {total}</p>
-                {t.lastReset && (
-                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}
-                    title={`Ciclo anterior: ${t.lastReset.days_used} usados de ${t.lastReset.days_granted}${t.lastReset.days_forfeited > 0 ? ` · ${t.lastReset.days_forfeited} perdidos` : ""}`}>
-                    Reinició {shortDate(t.lastReset.reset_at)}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Ocupación del equipo — timeline de 60 días, para detectar quién coincide/sale/regresa. */}
@@ -690,79 +752,112 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         )}
       </div>
 
-      {/* Próximamente — quiénes salen pronto. */}
+      {/* Próximamente — quiénes salen pronto */}
       {proximamente.length > 0 && (
-        <>
-          <h2 className="text-[15px] font-bold mb-3">Próximamente</h2>
-          <div className="card p-2 mb-7">
+        <div className="mb-8">
+          <h2 className="text-[18px] font-bold text-text-1 mb-4">Próximamente</h2>
+          <div className="flex flex-col gap-2">
             {proximamente.map(({ v, daysUntil }, i) => (
-              <div key={v.id} className={`flex items-center gap-3 px-3 py-2.5 ${i < proximamente.length - 1 ? "border-b border-border" : ""}`}>
-                <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={28} />
+              <div key={v.id} className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-hover transition-all duration-200">
+                <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={40} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold truncate">{v.users?.display_name}</p>
-                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}>{dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día" : "días"}</p>
+                  <p className="text-[15px] font-bold truncate text-text-1">{v.users?.display_name}</p>
+                  <p className="text-[13px]" style={{ color: "var(--text-2)" }}>
+                    {dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día" : "días"}
+                  </p>
                 </div>
-                <p className="text-[12px] font-semibold shrink-0" style={{ color: daysUntil <= 3 ? "var(--accent)" : "var(--text-3)" }}>
-                  {daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : `en ${daysUntil} días`}
-                </p>
+                <div className="text-right shrink-0">
+                  <p className="text-[14px] font-semibold" style={{ color: daysUntil <= 3 ? "var(--accent)" : "var(--text-2)" }}>
+                    {daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : `En ${daysUntil} días`}
+                  </p>
+                  {daysUntil <= 3 && (
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--accent)" }}>¡Pronto!</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
 
+      {/* Historial */}
       {rest.length > 0 && (
-        <>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[15px] font-bold">Historial ({rest.length})</h2>
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[18px] font-bold text-text-1">
+              Historial
+              <span className="ml-2 text-[14px] font-semibold" style={{ color: "var(--text-3)" }}>({rest.length})</span>
+            </h2>
             {rest.length > 5 && (
-              <button className="text-[12px] font-semibold" style={{ color: "var(--accent)" }}
+              <button 
+                className="h-9 px-4 rounded-lg text-[13px] font-semibold transition-all duration-200 hover:bg-hover flex items-center gap-2"
+                style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
                 onClick={() => setHistoryOpen((o) => !o)}>
-                {historyOpen ? "Ocultar ↑" : `Ver todo ↓`}
+                {historyOpen ? "Ocultar" : `Ver todo`}
+                <Icon name={historyOpen ? "chevronUp" : "chevronDown"} size={14} />
               </button>
             )}
           </div>
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             {(historyOpen ? rest : rest.slice(0, 5)).map((v) => (
-              <div key={v.id} className="card px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={28} />
+              <div key={v.id} className="group flex items-center justify-between gap-4 p-4 rounded-2xl hover:bg-hover transition-all duration-200">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={36} />
                   <div className="min-w-0">
-                    <p className="text-[13.5px] font-bold truncate">{v.users?.display_name} · {dmy(v.start_date)} → {dmy(v.end_date)}</p>
+                    <p className="text-[14px] font-bold truncate text-text-1">{v.users?.display_name}</p>
                     <p className="text-[12px] truncate" style={{ color: "var(--text-2)" }}>
-                      {v.days} {v.days === 1 ? "día" : "días"}{v.admin_note && ` · ${v.admin_note}`}
+                      {dmy(v.start_date)} → {dmy(v.end_date)} · {v.days} {v.days === 1 ? "día" : "días"}
+                      {v.admin_note && ` · ${v.admin_note}`}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Pill tone={approvedPhaseTone(v)}>{approvedPhaseLabel(v)}</Pill>
+                  <span 
+                    className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{ 
+                      background: v.status === "Aprobada" ? "var(--ok-tint)" : v.status === "Pendiente" ? "var(--warn-tint)" : "var(--danger-tint)",
+                      color: v.status === "Aprobada" ? "var(--ok)" : v.status === "Pendiente" ? "var(--warn)" : "var(--danger)"
+                    }}>
+                    {v.status}
+                  </span>
                   {v.status === "Aprobada" && (
                     confirmCancelId === v.id ? (
                       <div className="flex items-center gap-1">
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" style={{ color: "var(--danger)" }}
+                        <button 
+                          className="h-8 px-3 rounded-lg text-[12px] font-semibold transition-all duration-200"
+                          style={{ background: "var(--danger-tint)", color: "var(--danger)" }}
                           disabled={cancelling} onClick={() => cancelVacation(v.id)}>
-                          {cancelling ? "Cancelando…" : "Sí, cancelar"}
+                          {cancelling ? "Cancelando…" : "Sí"}
                         </button>
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" onClick={() => setConfirmCancelId(null)}>
+                        <button 
+                          className="h-8 px-3 rounded-lg text-[12px] font-semibold transition-all duration-200 hover:bg-hover"
+                          style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+                          onClick={() => setConfirmCancelId(null)}>
                           No
                         </button>
                       </div>
                     ) : (
-                      <>
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" onClick={() => openEdit(v)}>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          className="h-8 px-3 rounded-lg text-[12px] font-semibold transition-all duration-200 hover:bg-hover"
+                          style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+                          onClick={() => openEdit(v)}>
                           Editar
                         </button>
-                        <button className="btn-tertiary px-2.5 py-1.5 text-[12px]" onClick={() => setConfirmCancelId(v.id)}>
+                        <button 
+                          className="h-8 px-3 rounded-lg text-[12px] font-semibold transition-all duration-200 hover:bg-hover"
+                          style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+                          onClick={() => setConfirmCancelId(v.id)}>
                           Cancelar
                         </button>
-                      </>
+                      </div>
                     )
                   )}
                 </div>
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
 
       <Sheet open={!!sel} onClose={() => setSel(null)} title="Decidir solicitud">
