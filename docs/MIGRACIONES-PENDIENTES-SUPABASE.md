@@ -1,93 +1,59 @@
 # Migraciones pendientes para Supabase (emet.uno)
 
-> **Instrucciones**: Copia y pega cada bloque en el **SQL Editor** del proyecto Supabase `emet.uno`. Ejecutar en orden (0025 primero, luego 0026).
+> **Estado**: 2026-08-05 — faltan por aplicar las migraciones **0025 a 0034** (aún NO están en la base de nube).
+>
+> **Instrucciones**: Abre el **SQL Editor** del proyecto `emet.uno`, copia TODO el contenido de
+> [`docs/MIGRACIONES-APLICAR-0025-0034.sql`](./MIGRACIONES-APLICAR-0025-0034.sql) y ejecuta en una sola
+> pasada. Los bloques van en orden (0025 → 0034) y son aditivos/idempotentes.
 
 ---
 
-## Migración 0025 — Silencio por duración + hora de lectura
+## Qué aplica cada bloque
 
-**Qué hace**:
-- Añade columna `muted_until` en `conversation_participants` (silenciar hasta fecha/hora específica)
-- Añade columna `read_at` en `messages` (hora exacta de lectura)
-- Crea RPCs: `nx_enlace_set_mute`, `nx_enlace_unmute`, `nx_enlace_mark_read`
+| Migración | Archivo | Qué hace |
+|---|---|---|
+| 0025 | `0025_chat_mute_duration_read_at.sql` | Silencio por duración (`muted_until`) + hora de lectura (`read_at`) + RPCs `nx_enlace_set_mute` / `nx_enlace_unmute` / `nx_enlace_mark_read` |
+| 0026 | `0026_chat_realtime_publication_fix.sql` | Añade `conversation_participants` y `push_subscriptions` a `supabase_realtime` + `REPLICA IDENTITY FULL` en las tablas del chat (mensajes en vivo, ticks de lectura) |
+| 0027 | `0027_attendance_corrections_history.sql` | Tabla `attendance_corrections` (historial de correcciones de asistencia por admin) |
+| 0028 | `0028_events_extended.sql` | Eventos ampliados: hora inicio/fin, cliente, departamento, ubicación + GPS, responsable, estado, prioridad |
+| 0029 | `0029_event_participants_attendance.sql` | `event_participants`, `event_attendance`, `event_history` + funciones de participación/asistencia |
+| 0030 | `0030_event_checkin_gps.sql` | `event_check_in` / `event_check_out` con validación GPS y duración automática + `get_event_coverage_status` / `get_event_coverage_summary` |
+| 0031 | `0031_google_calendar_sync.sql` | Campos de sync en `institutional_events`, `event_google_mapping`, `google_calendar_webhooks` |
+| 0032 | `0032_event_checkin_ownership_guard.sql` | Guard de seguridad: check-in/out solo del propio usuario o admin (`p_user_id = auth.uid()`) |
+| 0033 | `0033_chat_push_subscriptions.sql` | Tabla `push_subscriptions` (Web Push con la app cerrada) — ya la consumía `send-chat-push` |
+| 0034 | `0034_phone_self_editable.sql` | `phone` editable por el propio empleado (se quita de columnas protegidas del trigger de perfil) |
 
-**SQL**:
-```sql
--- 1. Columnas nuevas
-alter table conversation_participants add column if not exists muted_until timestamptz;
-alter table messages add column if not exists read_at timestamptz;
-
--- 2. RPC: silenciar con vencimiento (p_until = NULL → para siempre)
-create or replace function nx_enlace_set_mute(p_conversation_id uuid, p_until timestamptz default null)
-returns void language plpgsql security definer set search_path = public as $$
-begin
-  update conversation_participants
-  set muted = (p_until is null), muted_until = p_until
-  where conversation_id = p_conversation_id and user_id = my_user_id();
-end; $$;
-grant execute on function nx_enlace_set_mute(uuid, timestamptz) to authenticated;
-
--- 3. RPC: desactivar silencio
-create or replace function nx_enlace_unmute(p_conversation_id uuid)
-returns void language plpgsql security definer set search_path = public as $$
-begin
-  update conversation_participants
-  set muted = false, muted_until = null
-  where conversation_id = p_conversation_id and user_id = my_user_id();
-end; $$;
-grant execute on function nx_enlace_unmute(uuid) to authenticated;
-
--- 4. RPC: marcar leído con hora
-create or replace function nx_enlace_mark_read(p_message_id uuid)
-returns void language plpgsql security definer set search_path = public as $$
-begin
-  update messages
-  set status = 'read', read_at = coalesce(read_at, now())
-  where id = p_message_id and status in ('sent', 'delivered');
-end; $$;
-grant execute on function nx_enlace_mark_read(uuid) to authenticated;
-```
-
----
-
-## Migración 0026 — Fix Realtime (mensajes en vivo)
-
-**Qué hace**:
-- Añade `conversation_participants` y `push_subscriptions` a la publicación `supabase_realtime`
-- Activa `REPLICA IDENTITY FULL` en todas las tablas del chat (necesario para UPDATE/DELETE con filtros)
-
-**Sin esto**: los mensajes y estados (ticks de lectura, mute, pin, archivar) solo llegan al recargar la página.
-
-**SQL**:
-```sql
--- 1. Publicación: cubrir todas las tablas que el chat escucha
-alter publication supabase_realtime add table conversation_participants;
-alter publication supabase_realtime add table push_subscriptions;
-
--- 2. REPLICA IDENTITY FULL (necesario para filtros en columnas no-PK)
-alter table messages replica identity full;
-alter table conversations replica identity full;
-alter table conversation_participants replica identity full;
-alter table message_attachments replica identity full;
-alter table message_reactions replica identity full;
-alter table push_subscriptions replica identity full;
-```
+> Cada archivo individual está en `supabase/migrations/`. El script combinado se genera con:
+> `Get-Content supabase/migrations/00{25..34}_*.sql | ...` (o se regenera desde los 10 archivos si cambian).
 
 ---
 
 ## Verificación post-aplicación
 
-Después de aplicar ambas migraciones:
-
-1. **El chat debe volver a funcionar** (el código ya lee `muted_until`)
-2. **Mensajes en vivo**: enviar un mensaje entre dos cuentas → debe aparecer sin recargar
-3. **Ticks de lectura**: abrir en dos pestañas → marcar como leído debe reflejar el tick en vivo
-4. **Silencio por duración**: silenciar conversación por 8h → debe mostrar "Silenciado hasta HH:MM"
+1. **Chat en vivo**: enviar un mensaje entre dos cuentas → debe aparecer sin recargar. Ticks ✓✓→leído en dos pestañas.
+2. **Silencio por duración**: silenciar 8h → mostrar "Silenciado hasta HH:MM".
+3. **Asistencia**: el admin edita entrada/salida de un día pasado → queda registro en `attendance_corrections`.
+4. **Eventos**: crear un evento externo con ubicación → aparece con hora, cliente y departamento; añadir participante y hacer check-in desde su cuenta con GPS.
+5. **Teléfono**: un empleado (no admin) edita su `phone` desde su perfil → se guarda sin error.
 
 ---
 
+## Edge Functions de la Fase 3 (Google Calendar) — pendientes de desplegar
+
+No son SQL: viven en `supabase/functions/`. Si aún no están en la nube, desplegar con:
+
+```bash
+supabase functions deploy gcal-sync-event
+supabase functions deploy gcal-webhook
+supabase functions deploy gcal-register-webhook
+supabase functions deploy gcal-unregister-webhook
+supabase functions deploy gcal-create-event
+supabase functions deploy gcal-delete-event
+supabase functions deploy gcal-list-events
+```
+
 ## Archivos de referencia
 
-- `supabase/migrations/0025_chat_mute_duration_read_at.sql`
-- `supabase/migrations/0026_chat_realtime_publication_fix.sql`
-- `docs/PENDIENTE-REALTIME-CHAT.md` (diagnóstico completo)
+- `docs/MIGRACIONES-APLICAR-0025-0034.sql` — script único para pegar en el SQL Editor
+- `supabase/migrations/0025..0034_*.sql` — versiones individuales
+- `docs/PENDIENTE-REALTIME-CHAT.md` — diagnóstico del realtime del chat
