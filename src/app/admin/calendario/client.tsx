@@ -95,6 +95,58 @@ export default function CalendarioClient({
   });
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false);
 
+  // ── FASE 5 (auditoría 4 ago 2026): UI de participantes de eventos ──
+  // event_participants/get_event_participants ya existían a nivel de BD
+  // (migración 0029) pero sin ningún input — el admin no tenía forma de
+  // asignar a nadie a un evento, así que el check-in individual por RPC
+  // nunca se podía usar en la práctica (nadie llegaba a status "confirmado").
+  type EventParticipant = {
+    user_id: string; display_name: string; role: string; status: string;
+    check_in_at: string | null; check_out_at: string | null;
+  };
+  const [participants, setParticipants] = useState<EventParticipant[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [addParticipantId, setAddParticipantId] = useState("");
+  const [addParticipantRole, setAddParticipantRole] = useState<"responsable" | "participante">("participante");
+
+  const loadParticipants = async (eventId: string) => {
+    setParticipantsLoading(true);
+    const { data, error } = await createClient().rpc("get_event_participants", { p_event_id: eventId });
+    setParticipantsLoading(false);
+    if (!error && data) setParticipants(data as EventParticipant[]);
+  };
+
+  useEffect(() => {
+    if (eventSheetOpen && editingEvent) {
+      loadParticipants(editingEvent.id);
+      setAddParticipantId(""); setAddParticipantRole("participante");
+    } else {
+      setParticipants([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventSheetOpen, editingEvent?.id]);
+
+  const addParticipant = async () => {
+    if (!editingEvent || !addParticipantId) return;
+    const { error } = await createClient().from("event_participants").insert({
+      event_id: editingEvent.id, user_id: addParticipantId, role: addParticipantRole,
+    });
+    if (error) { toast(error.code === "23505" ? "Esa persona ya está asignada" : "No se pudo agregar", "danger"); return; }
+    if (adminId) logAdminAction(createClient(), adminId, "Agregó participante a evento", `${editingEvent.title} · ${team.find((t) => t.id === addParticipantId)?.display_name ?? ""}`);
+    setAddParticipantId("");
+    await loadParticipants(editingEvent.id);
+  };
+  const removeParticipant = async (userId: string) => {
+    if (!editingEvent) return;
+    await createClient().from("event_participants").delete().eq("event_id", editingEvent.id).eq("user_id", userId);
+    await loadParticipants(editingEvent.id);
+  };
+  const setParticipantStatus = async (userId: string, status: "pendiente" | "confirmado" | "cancelado") => {
+    if (!editingEvent) return;
+    await createClient().from("event_participants").update({ status }).eq("event_id", editingEvent.id).eq("user_id", userId);
+    await loadParticipants(editingEvent.id);
+  };
+
   // ── Check-in/out de eventos (Fase 2) ──
   const [checkinSheetOpen, setCheckinSheetOpen] = useState(false);
   const [checkinEvent, setCheckinEvent] = useState<InstitutionalEvent | null>(null);
@@ -838,6 +890,73 @@ export default function CalendarioClient({
               </div>
             )}
           </div>
+
+          {/* Participantes (FASE 5) — solo disponible con el evento ya guardado */}
+          <p className="text-[12px] font-bold uppercase tracking-wide mt-2" style={{ color: "var(--text-3)" }}>Participantes</p>
+          {!editingEvent ? (
+            <p className="text-[12.5px] rounded-sm p-3" style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
+              Guarda el evento primero para poder asignar participantes.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {participantsLoading && <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Cargando…</p>}
+              {!participantsLoading && participants.length === 0 && (
+                <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Nadie asignado todavía.</p>
+              )}
+              {participants.map((p) => (
+                <div key={p.user_id} className="flex items-center gap-2 rounded-sm px-2.5 py-2" style={{ background: "var(--surface-2)" }}>
+                  <Avatar name={p.display_name} color={team.find((t) => t.id === p.user_id)?.nexus_color ?? null} size={26} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold truncate">
+                      {p.display_name}
+                      {p.role === "responsable" && (
+                        <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>RESPONSABLE</span>
+                      )}
+                    </p>
+                    <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                      {p.check_in_at
+                        ? p.check_out_at ? `Cobertura completa` : `En cobertura desde ${p.check_in_at.slice(11, 16)}`
+                        : p.status === "confirmado" ? "Confirmado, sin check-in" : p.status === "cancelado" ? "Cancelado" : "Pendiente de confirmar"}
+                    </p>
+                  </div>
+                  {p.status !== "confirmado" && (
+                    <button type="button" onClick={() => setParticipantStatus(p.user_id, "confirmado")}
+                      className="text-[11px] font-bold px-2 py-1 rounded-full shrink-0" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
+                      Confirmar
+                    </button>
+                  )}
+                  <button type="button" onClick={() => removeParticipant(p.user_id)}
+                    className="h-6 w-6 rounded-full grid place-items-center shrink-0 hover:bg-hover" style={{ color: "var(--text-3)" }}
+                    aria-label={`Quitar a ${p.display_name}`}>
+                    <Icon name="close" size={13} />
+                  </button>
+                </div>
+              ))}
+
+              <div className="flex gap-2 items-end mt-1">
+                <div className="flex-1">
+                  <Select
+                    value={addParticipantId} onChange={setAddParticipantId}
+                    title="Agregar participante" placeholder="Elegir persona"
+                    options={team.filter((t) => !participants.some((p) => p.user_id === t.id)).map((t) => ({
+                      value: t.id, label: t.display_name, avatar: { name: t.display_name, color: t.nexus_color, avatarUrl: t.avatar_url },
+                    }))}
+                  />
+                </div>
+                <Select
+                  className="field-input flex items-center justify-between gap-2 text-left w-[132px] shrink-0"
+                  value={addParticipantRole} onChange={(v) => setAddParticipantRole(v as "responsable" | "participante")}
+                  title="Rol" searchable={false}
+                  options={[{ value: "participante", label: "Participante" }, { value: "responsable", label: "Responsable" }]}
+                />
+                <button type="button" onClick={addParticipant} disabled={!addParticipantId}
+                  className="text-[12.5px] font-semibold px-3 h-9 rounded-full shrink-0 disabled:opacity-50"
+                  style={{ background: "var(--accent)", color: "#fff" }}>
+                  Agregar
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Botones */}
           {editingEvent && confirmDeleteEvent ? (
