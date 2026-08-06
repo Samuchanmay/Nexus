@@ -13,6 +13,7 @@ import { useSupabaseMutation, Field } from "@/components/shared";
 import { IconTrash } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { logAdminAction } from "@/lib/admin-log";
+import { notifyUser } from "@/lib/notify";
 import { CalendarEngine, CalendarHeader, MonthView, WeekView, DayView, AgendaView, YearView, CalendarLegend, CalendarRightPanel, CalendarFilterBar } from "@/components/calendar";
 import type { CalendarEvent, CalendarLayer } from "@/components/calendar";
 
@@ -189,6 +190,10 @@ export default function CalendarioClient({
     });
     if (error) { toast(error.code === "23505" ? "Esa persona ya está asignada" : "No se pudo agregar", "danger"); return; }
     if (adminId) logAdminAction(createClient(), adminId, "Agregó participante a evento", `${editingEvent.title} · ${team.find((t) => t.id === addParticipantId)?.display_name ?? ""}`);
+    // Auditoría de notificaciones: agregar a alguien a un evento nunca lo
+    // invitaba de verdad — se enteraba solo si abría el Calendario por su
+    // cuenta y notaba que ya estaba ahí.
+    notifyUser(createClient(), addParticipantId, "Te invitaron a un evento", editingEvent.title, "info", "/comunicacion/calendario");
     setAddParticipantId("");
     await loadParticipants(editingEvent.id);
   };

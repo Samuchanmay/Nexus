@@ -52,12 +52,15 @@ export default async function EnlaceConversationPage({
   const [{ data: people }, { data: heartbeats }, { data: otherProfileRaw }, { data: creatorRaw }] = await Promise.all([
     userIds.length > 0
       ? supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color, presence_status").in("id", userIds)
-      : Promise.resolve({ data: [] as ParticipantLite[] }),
+      : Promise.resolve({ data: [] as (ParticipantLite & { presence_status?: string | null })[] }),
     // Presencia — reusa user_heartbeats, que ya alimenta la presencia del
     // dashboard admin; no es infraestructura nueva, solo un consumidor más.
+    // manual_status (FASE W7.1, legado) vive en user_heartbeats; el estado
+    // global "de verdad" vive en users_directory.presence_status y manda
+    // sobre el heartbeat (ver mapeo abajo).
     userIds.length > 0
-      ? supabase.from("user_heartbeats").select("user_id, last_seen_at").in("user_id", userIds)
-      : Promise.resolve({ data: [] as { user_id: string; last_seen_at: string }[] }),
+      ? supabase.from("user_heartbeats").select("user_id, last_seen_at, manual_status").in("user_id", userIds)
+      : Promise.resolve({ data: [] as { user_id: string; last_seen_at: string; manual_status: string | null }[] }),
     // Perfil del interlocutor en directas — para el panel contextual rico
     // (InfoPanel): área, puesto y teléfono del otro lado.
     otherUserId
@@ -74,12 +77,18 @@ export default async function EnlaceConversationPage({
 
   const roleByUser = new Map((participantRows ?? []).map((p) => [p.user_id, p.role as "admin" | "member"]));
   const lastSeenByUser = new Map((heartbeats ?? []).map((h) => [h.user_id, h.last_seen_at]));
-  const peopleWithRole = (people ?? []).map((p) => ({
-    ...p,
-    role: roleByUser.get(p.id) ?? "member",
-    last_seen_at: presenceVisible ? (lastSeenByUser.get(p.id) ?? null) : null,
-    manual_status: (p as unknown as { presence_status?: string }).presence_status ?? null,
-  }));
+  const manualStatusByUser = new Map((heartbeats ?? []).map((h) => [h.user_id, h.manual_status]));
+  const peopleWithRole = (people ?? []).map((p) => {
+    // presence_status (global, users_directory) manda; heartbeat.manual_status
+    // (legado, FASE W7.1) es el respaldo — mismo criterio que layout.tsx.
+    const { presence_status, ...rest } = p;
+    return {
+      ...rest,
+      role: roleByUser.get(p.id) ?? "member",
+      last_seen_at: presenceVisible ? (lastSeenByUser.get(p.id) ?? null) : null,
+      manual_status: presenceVisible ? (presence_status ?? manualStatusByUser.get(p.id) ?? null) : null,
+    };
+  });
 
   // Últimos PAGE_SIZE mensajes — el resto se trae bajo demanda al hacer
   // scroll hasta arriba (ver loadMore en client.tsx). Se pide PAGE_SIZE+1

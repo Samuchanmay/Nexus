@@ -58,8 +58,8 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
 
     const userIds = Array.from(new Set((participants ?? []).map((p) => p.user_id)));
     const { data: people } = userIds.length > 0
-      ? await supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color").in("id", userIds)
-      : { data: [] as ParticipantLite[] };
+      ? await supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color, presence_status").in("id", userIds)
+      : { data: [] as (ParticipantLite & { presence_status?: string | null })[] };
     const { data: heartbeats } = userIds.length > 0
       ? await supabase.from("user_heartbeats").select("user_id, last_seen_at, manual_status").in("user_id", userIds)
       : { data: [] as { user_id: string; last_seen_at: string; manual_status: string | null }[] };
@@ -71,17 +71,23 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
     for (const p of participants ?? []) {
       const person = peopleById.get(p.user_id);
       if (!person) continue;
+      // presence_status (global) manda; heartbeat.manual_status queda de
+      // respaldo legado — mismo criterio que myManualStatus arriba.
+      const { presence_status, ...personRest } = person;
       (participantsByConv[p.conversation_id] ??= []).push({
-        ...person,
+        ...personRest,
         last_seen_at: lastSeenByUser.get(person.id) ?? null,
-        manual_status: manualStatusByUser.get(person.id) ?? null,
+        manual_status: presence_status ?? manualStatusByUser.get(person.id) ?? null,
       });
     }
   }
 
-  // Mi propio estado de presencia (Fase 5) — alimenta el selector
-  // Activo/Ausente/No molestar/Desconectado del encabezado del chat.
-  // Prioridad: users.presence_status (nuevo) > user_heartbeats.manual_status (legacy).
+  // Mi propio estado de presencia — alimenta el selector del encabezado
+  // del chat. Fuente primaria: users.presence_status (FASE "Fase 5",
+  // global — también la usa el Shell fuera del chat). Si por lo que sea
+  // viniera null (fila vieja sin backfill), cae a user_heartbeats.manual_status
+  // (FASE W7.1, legado, valores 'ausente'/'no_molestar') — getPresenceInfo()
+  // en format-presence.ts entiende ambos espacios de valores.
   const { data: myHeartbeat } = await supabase
     .from("user_heartbeats").select("manual_status").eq("user_id", myId).maybeSingle();
   const myManualStatus = (profile.presence_status as "active" | "away" | "busy" | "offline" | null)

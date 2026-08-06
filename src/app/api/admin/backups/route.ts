@@ -69,13 +69,28 @@ export async function POST() {
     // respaldo debe capturar TODO, sin quedar recortado por la RLS de cada
     // tabla individual (que está pensada para el uso normal de la app, no
     // para exportación administrativa completa).
+    //
+    // Paginado explícito con .range(): PostgREST corta cualquier select sin
+    // límite en 1000 filas por defecto. Con las ~123 filas de hoy en
+    // `attendance` no se nota, pero en unos meses sí — sin esto el
+    // respaldo se vería "completo" y en realidad estaría silenciosamente
+    // truncado, el peor tipo de bug para algo que existe para poder
+    // confiar en él el día que se necesite restaurar.
+    const PAGE = 1000;
     const dump: Record<string, unknown[]> = {};
     const rowCounts: Record<string, number> = {};
     for (const table of BACKUP_TABLES) {
-      const { data, error } = await admin.from(table).select("*");
-      if (error) throw new Error(`lectura de ${table}: ${error.message}`);
-      dump[table] = data ?? [];
-      rowCounts[table] = (data ?? []).length;
+      const rows: unknown[] = [];
+      let from = 0;
+      for (;;) {
+        const { data, error } = await admin.from(table).select("*").range(from, from + PAGE - 1);
+        if (error) throw new Error(`lectura de ${table}: ${error.message}`);
+        rows.push(...(data ?? []));
+        if (!data || data.length < PAGE) break;
+        from += PAGE;
+      }
+      dump[table] = rows;
+      rowCounts[table] = rows.length;
     }
 
     const payload = {

@@ -23,6 +23,7 @@ import { ContextHeader } from "@/components/context-header";
 import type { ContextHeaderInput } from "@/lib/context-header";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { getAttendanceStatus } from "@/lib/domain/attendance/status";
+import { notifyUser, notifyAdmins } from "@/lib/notify";
 
 interface Task {
   assignmentId: string; isLead: boolean; projectId: string;
@@ -180,6 +181,27 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
     const { error } = await supabase.from("projects").update({ status: "en_revision" }).eq("id", t.projectId);
     if (error) { toast("No se pudo actualizar", "danger"); return; }
     toast("Enviado a revisión");
+
+    // Auditoría de notificaciones: esta era la brecha reportada — una
+    // actividad podía quedar "en_revision" sin que absolutamente nadie se
+    // enterara. Notifica a dos niveles, nunca solo uno: (1) al coordinador
+    // que originó la solicitud, si tiene cuenta interna (requester_id no es
+    // null solo cuando requester_type='interno' — ver requests.insert en
+    // admin/solicitudes/client.tsx); (2) a todos los admins, siempre, como
+    // red de seguridad para solicitudes externas/manuales sin requester_id.
+    // Nunca bloquea la acción principal (notifyUser/notifyAdmins ya
+    // atrapan sus propios errores).
+    const { data: prj } = await supabase
+      .from("projects")
+      .select("requests(requester_id)")
+      .eq("id", t.projectId)
+      .maybeSingle();
+    const requesterId = (prj?.requests as { requester_id: string | null } | null)?.requester_id ?? null;
+    if (requesterId) {
+      notifyUser(supabase, requesterId, "Actividad enviada a revisión", t.title, "request", `/admin/proyectos?task=${t.projectId}`);
+    }
+    notifyAdmins(supabase, `"${t.title}" está lista para revisión`, t.requester ? `Solicitado por ${t.requester}` : undefined, "request", `/admin/proyectos?task=${t.projectId}`);
+
     router.refresh();
   };
 

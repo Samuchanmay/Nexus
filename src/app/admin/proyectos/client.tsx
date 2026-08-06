@@ -16,6 +16,7 @@ import { fmtMin } from "@/lib/hours";
 import { dmy, todayMerida } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { usePersistedView } from "@/lib/persisted-view";
+import { notifyUser } from "@/lib/notify";
 
 /* ═══════════════════════════════════════════════════════════════
    Dependencias entre Actividades — Plano Maestro §04.
@@ -213,6 +214,19 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     if (error) { toast("No se pudo marcar como completada", "danger"); return; }
     if (adminId) logAdminAction(supabase, adminId, "Marcó actividad como completada", title);
     toast("Actividad completada");
+
+    // Auditoría de notificaciones: quien hizo el trabajo (los asignados de
+    // project_assignments) nunca se enteraba de que su actividad ya quedó
+    // aprobada — mismo hueco que markReview() en comunicacion/tasks.tsx,
+    // del otro lado del flujo. Se consulta aparte (no viene en el ProjectRow
+    // que ya tiene la fila en pantalla) para no tener que hacer pasar la
+    // lista de asignados por props hasta este punto.
+    const { data: assigned } = await supabase
+      .from("project_assignments").select("user_id").eq("project_id", projectId);
+    for (const a of assigned ?? []) {
+      notifyUser(supabase, a.user_id, "Tu actividad fue aprobada", title, "request", `/comunicacion?task=${projectId}`);
+    }
+
     router.refresh();
   };
 
@@ -276,6 +290,15 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     }
 
     if (adminId) logAdminAction(supabase, adminId, "Creó actividad directa", form.title.trim());
+
+    // Auditoría de notificaciones: cuando la actividad nace de una Solicitud
+    // aprobada SÍ se avisa a los asignados (admin/solicitudes/client.tsx),
+    // pero esta ruta paralela (creación directa por admin) los dejaba sin
+    // enterarse de que tenían trabajo nuevo — mismo criterio, mismo mensaje.
+    for (const uid of assignees) {
+      notifyUser(supabase, uid, "Te asignaron una actividad", form.title.trim(), "request", `/comunicacion?task=${prj.id}`);
+    }
+
     setCreating(false);
     setAddOpen(false);
     toast("Actividad creada");

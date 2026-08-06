@@ -176,6 +176,13 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     }, { ok: "Vacación cancelada — saldo reembolsado" });
     if (ok) {
       if (adminId) logAdminAction(createClient(), adminId, "Canceló vacación", target?.users?.display_name ?? undefined);
+      // Auditoría de notificaciones: cancelar reembolsaba el saldo pero
+      // nunca avisaba al empleado — se enteraba solo si volvía a mirar la
+      // pantalla de Vacaciones por su cuenta.
+      if (target?.user_id) {
+        notifyUser(createClient(), target.user_id, "Se canceló tu periodo de vacaciones",
+          `${dmy(target.start_date)} al ${dmy(target.end_date)} — saldo reembolsado`, "vacation", "/comunicacion/vacaciones");
+      }
       setConfirmCancelId(null);
     }
   };

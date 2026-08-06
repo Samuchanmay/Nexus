@@ -188,7 +188,8 @@ export default function EnlaceConversationClient({
   const title = conversation.type === "announcement" ? (conversation.name ?? "Anuncios")
     : conversation.type === "group" ? (conversation.name ?? "Grupo")
     : (other?.display_name ?? "Conversación");
-  const presence = other ? getPresenceInfo(other.last_seen_at, other.manual_status).label : null;
+  const otherPresence = other ? getPresenceInfo(other.last_seen_at, other.manual_status) : null;
+  const presence = otherPresence?.label ?? null;
   const subtitle = conversation.type === "announcement"
     ? (myRole === "admin" ? "Solo tú y otros admins pueden publicar" : "Solo administradores pueden publicar")
     : recordingText
@@ -822,15 +823,14 @@ export default function EnlaceConversationClient({
           <IconButton icon="chevron" label="Volver" onClick={(e) => { e?.stopPropagation(); router.push("/chat"); }} style={{ transform: "scaleX(-1)" }} className="md:hidden" />
           <div className="relative shrink-0">
             <Avatar name={title} avatarUrl={other?.avatar_url ?? conversation.avatar_url} color={other?.nexus_color ?? "#5856D6"} size={36} />
-            {conversation.type === "direct" && other?.last_seen_at && (
+            {conversation.type === "direct" && otherPresence?.dot && (
               <span
                 className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
                 style={{
-                  background: "var(--ok)",
+                  background: otherPresence.dot === "online" ? "var(--ok)" : otherPresence.dot === "away" ? "var(--warn)" : "var(--danger)",
                   borderColor: "var(--chat-header-bg)",
-                  opacity: Date.now() - new Date(other.last_seen_at).getTime() < 2 * 60 * 1000 ? 1 : 0,
                 }}
-                aria-label="En línea"
+                aria-label={presence ?? "En línea"}
               />
             )}
           </div>
