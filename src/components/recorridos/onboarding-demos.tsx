@@ -5,10 +5,11 @@
  * se muestran como tour guiado (título + descripción + miniaturas por
  * pantalla). Se ve una sola vez por usuario (marca en localStorage).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/os/ui";
 import { SerPlayerFrame } from "@/components/recorridos/ser-player";
+import { useTourPlayer } from "@/components/recorridos/use-tour-player";
 
 type DemoRow = { id: string; slug: string; title: string; description: string | null; target_role: string };
 type ScreenRow = { index: number; snapshot_url: string; thumbnail_url: string | null; interaction_ctx: Record<string, unknown> };
@@ -36,7 +37,6 @@ export function OnboardingDemos({ userId }: { userId: string }) {
   const [demos, setDemos] = useState<LoadedDemo[]>([]);
   const [open, setOpen] = useState(false);
   const [demoIdx, setDemoIdx] = useState(0);
-  const [screenIdx, setScreenIdx] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,11 +81,37 @@ export function OnboardingDemos({ userId }: { userId: string }) {
     setOpen(false);
   };
 
-  if (!open || demos.length === 0) return null;
+  const demo = demos[demoIdx] ?? null;
+  const tour = useTourPlayer({
+    total: demo?.screens.length ?? 0,
+    intervalMs: 3000,
+    resetKey: demo?.id,
+    onEnd: () => {
+      if (demoIdx < demos.length - 1) {
+        setDemoIdx(demoIdx + 1);
+        recordView(demos[demoIdx + 1].id, "abierta");
+      } else {
+        finish(true);
+      }
+    },
+  });
 
-  const demo = demos[demoIdx];
+  // Al volver a un demo anterior, quedarse en su última pantalla (el reset
+  // del hook por cambio de demo deja la primera).
+  const prevDemoIdx = useRef(demoIdx);
+  useEffect(() => {
+    const prev = prevDemoIdx.current;
+    prevDemoIdx.current = demoIdx;
+    if (prev > demoIdx && demo) {
+      tour.goTo(Math.max(demo.screens.length - 1, 0));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoIdx]);
+
+  if (!open || demos.length === 0 || !demo) return null;
+
   const totalScreens = Math.max(demo.screens.length, 1);
-  const isLast = demoIdx === demos.length - 1 && screenIdx === demo.screens.length - 1;
+  const isLast = demoIdx === demos.length - 1 && tour.isLast;
 
   // Branding / opciones guardadas por la extensión en la 1ª pantalla
   const options = (demo.screens[0]?.interaction_ctx?.tour_options ?? {}) as TourOptions;
@@ -95,17 +121,22 @@ export function OnboardingDemos({ userId }: { userId: string }) {
   const showStepNo = options.showStepNo !== false;
 
   // Portada: pantalla de presentación capturada sin URL ni snapshot
-  const currentCtx = (demo.screens[screenIdx]?.interaction_ctx ?? {}) as Record<string, unknown>;
+  const currentCtx = (demo.screens[tour.screenIdx]?.interaction_ctx ?? {}) as Record<string, unknown>;
   const isCover = !!currentCtx.cover;
   const coverTitle = typeof currentCtx.cover_title === "string" ? currentCtx.cover_title : demo.title;
   const coverText = typeof currentCtx.cover_text === "string" ? currentCtx.cover_text : "";
 
+  const jumpTo = (i: number) => {
+    tour.pause();
+    tour.goTo(i);
+  };
+
   const next = () => {
-    if (screenIdx < demo.screens.length - 1) {
-      setScreenIdx(screenIdx + 1);
+    tour.pause();
+    if (tour.screenIdx < demo.screens.length - 1) {
+      tour.next();
     } else if (demoIdx < demos.length - 1) {
       setDemoIdx(demoIdx + 1);
-      setScreenIdx(0);
       recordView(demos[demoIdx + 1].id, "abierta");
     } else {
       finish(true);
@@ -113,11 +144,11 @@ export function OnboardingDemos({ userId }: { userId: string }) {
   };
 
   const back = () => {
-    if (screenIdx > 0) {
-      setScreenIdx(screenIdx - 1);
+    tour.pause();
+    if (tour.screenIdx > 0) {
+      tour.prev();
     } else if (demoIdx > 0) {
       setDemoIdx(demoIdx - 1);
-      setScreenIdx(demos[demoIdx - 1].screens.length - 1);
     }
   };
 
@@ -159,15 +190,16 @@ export function OnboardingDemos({ userId }: { userId: string }) {
               <SerPlayerFrame
                 key={`${demo.id}:${demo.screens.length}`}
                 screens={demo.screens}
-                screenIdx={screenIdx}
+                screenIdx={tour.screenIdx}
                 className="w-full h-full"
               />
             </div>
           )}
           <p className="text-[12px] text-text-3 text-center mt-3">
             {demo.title}
-            {showStepNo && <> · Pantalla {screenIdx + 1} de {totalScreens}</>}
+            {showStepNo && <> · Pantalla {tour.screenIdx + 1} de {totalScreens}</>}
             {demos.length > 1 && <> · Demo {demoIdx + 1} de {demos.length}</>}
+            {tour.playing && <> · Reproduciendo</>}
           </p>
         </div>
 
@@ -177,9 +209,9 @@ export function OnboardingDemos({ userId }: { userId: string }) {
             {demo.screens.map((s, i) => (
               <button
                 key={i}
-                onClick={() => setScreenIdx(i)}
+                onClick={() => jumpTo(i)}
                 className={`shrink-0 w-16 h-10 rounded border overflow-hidden transition-opacity ${
-                  i === screenIdx ? "border-accent opacity-100" : "border-border opacity-50 hover:opacity-80"
+                  i === tour.screenIdx ? "border-accent opacity-100" : "border-border opacity-50 hover:opacity-80"
                 }`}
                 aria-label={`Pantalla ${i + 1}`}
               >
@@ -201,16 +233,23 @@ export function OnboardingDemos({ userId }: { userId: string }) {
           {demo.screens.map((_, i) => (
             <span
               key={i}
-              className={cxDot(i === screenIdx)}
-              style={i === screenIdx && accent !== "var(--accent)" ? { background: accent } : undefined}
+              className={cxDot(i === tour.screenIdx)}
+              style={i === tour.screenIdx && accent !== "var(--accent)" ? { background: accent } : undefined}
             />
           ))}
         </div>
 
         {/* Acciones */}
         <div className="flex items-center justify-between px-5 py-4 border-t border-border">
-          <Button variant="subtle" size="sm" disabled={demoIdx === 0 && screenIdx === 0} onClick={back}>
+          <Button variant="subtle" size="sm" disabled={demoIdx === 0 && tour.screenIdx === 0} onClick={back}>
             {prevText}
+          </Button>
+          <Button
+            variant={tour.playing ? "subtle" : "primary"} size="sm"
+            disabled={demo.screens.length <= 1}
+            onClick={() => (tour.playing ? tour.pause() : tour.play())}
+          >
+            {tour.playing ? "⏸ Pausar" : "▶ Reproducir"}
           </Button>
           <Button variant="primary" size="sm" onClick={next}>
             {isLast ? "Listo" : nextText}

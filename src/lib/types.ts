@@ -290,3 +290,31 @@ export interface EnlaceAttachment {
   medium_size?: number | null;
   medium_mime?: string | null;
 }
+
+/** FASE W8 — Bandeja interna de soporte (migración 0048). Alcance simple:
+    sin SLA, sin hilo de comentarios — un campo de respuesta del admin. */
+export type SupportTicketCategory = "tecnico" | "asistencia" | "nomina_rh" | "equipo_chat" | "cuenta" | "otro";
+export type SupportTicketStatus = "abierto" | "en_progreso" | "resuelto";
+
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  category: SupportTicketCategory;
+  title: string;
+  description: string;
+  status: SupportTicketStatus;
+  admin_id: string | null;
+  admin_response: string | null;
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+}
+
+export const SUPPORT_CATEGORY_LABEL: Record<SupportTicketCategory, string> = {
+  tecnico: "Problema técnico", asistencia: "Asistencia", nomina_rh: "Nómina / RH",
+  equipo_chat: "Equipo / Chat", cuenta: "Mi cuenta", otro: "Otro",
+};
+
+export const SUPPORT_STATUS_LABEL: Record<SupportTicketStatus, string> = {
+  abierto: "Abierto", en_progreso: "En progreso", resuelto: "Resuelto",
+};

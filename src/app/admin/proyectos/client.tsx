@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, Pill, Sheet, useToast, CheckBox, DatePicker, Menu, MenuItem, Select, SlidingSegments } from "@/components/ui";
+import { Avatar, Pill, Sheet, useToast, CheckBox, DatePicker, Menu, MenuItem, Select, SlidingSegments, TimePicker } from "@/components/ui";
 import { EmptyState, Field } from "@/components/shared";
 import { Icon } from "@/components/os/icons";
 import { IconDownload, IconTrash } from "@/components/icons";
@@ -319,7 +319,11 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
   // Evento vinculado — se edita aparte de lo de arriba porque vive en otra
   // tabla (institutional_events), con su propio guardado.
   const [eventPicked, setEventPicked] = useState(""); // id elegido en el <Select> cuando no hay vínculo todavía
-  const [eventForm2, setEventForm2] = useState({ title: "", start_date: "", end_date: "", location_name: "" });
+  // startTime/endTime en formato "HH:MM" (o "HH:MM:SS" tal cual viene de la
+  // BD — TimePicker recorta a los primeros 5 caracteres) — "" = sin hora
+  // definida (evento de todo el día). A pedido del usuario (6 ago 2026):
+  // la hora ya se edita también desde este atajo, no solo en Calendario.
+  const [eventForm2, setEventForm2] = useState({ title: "", start_date: "", end_date: "", startTime: "", endTime: "", location_name: "" });
   const [eventSaving, setEventSaving] = useState(false);
   type EventParticipant2 = { user_id: string; display_name: string; role: string; status: string };
   const [eventParticipants, setEventParticipants] = useState<EventParticipant2[]>([]);
@@ -344,11 +348,13 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     if (p.institutional_events) {
       setEventForm2({
         title: p.institutional_events.title, start_date: p.institutional_events.start_date,
-        end_date: p.institutional_events.end_date, location_name: p.institutional_events.location_name ?? "",
+        end_date: p.institutional_events.end_date,
+        startTime: p.institutional_events.start_time ?? "", endTime: p.institutional_events.end_time ?? "",
+        location_name: p.institutional_events.location_name ?? "",
       });
       loadEventParticipants(p.institutional_events.id);
     } else {
-      setEventForm2({ title: "", start_date: "", end_date: "", location_name: "" });
+      setEventForm2({ title: "", start_date: "", end_date: "", startTime: "", endTime: "", location_name: "" });
       setEventParticipants([]);
     }
   };
@@ -407,18 +413,26 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     router.refresh();
   };
 
-  /** Vincula un evento institucional YA existente (elegido en el picker). */
+  /** Vincula un evento institucional YA existente (elegido en el picker).
+      eventOptions solo trae id/title/start_date (lista liviana para el
+      <Select>) — tras vincular se vuelve a pedir la fila completa para que
+      el formulario muestre la hora y demás campos reales, no valores
+      aproximados/en blanco. */
   const linkExistingEvent = async () => {
     if (!editingProject || !eventPicked) return;
     const supabase = createClient();
     const { error } = await supabase.from("projects").update({ institutional_event_id: eventPicked }).eq("id", editingProject.id);
     if (error) { toast("No se pudo vincular el evento", "danger"); return; }
-    const picked = eventOptions.find((e) => e.id === eventPicked);
+    const { data: full } = await supabase.from("institutional_events")
+      .select("id, title, start_date, end_date, start_time, end_time, location_name").eq("id", eventPicked).single();
     toast("Evento vinculado");
     router.refresh();
-    setEditingProject({ ...editingProject, institutional_event_id: eventPicked,
-      institutional_events: { id: eventPicked, title: picked?.title ?? "", start_date: picked?.start_date ?? "", end_date: picked?.start_date ?? "", start_time: null, end_time: null, location_name: null } });
-    setEventForm2({ title: picked?.title ?? "", start_date: picked?.start_date ?? "", end_date: picked?.start_date ?? "", location_name: "" });
+    const linked: LinkedEvent = full ?? { id: eventPicked, title: "", start_date: "", end_date: "", start_time: null, end_time: null, location_name: null };
+    setEditingProject({ ...editingProject, institutional_event_id: eventPicked, institutional_events: linked });
+    setEventForm2({
+      title: linked.title, start_date: linked.start_date, end_date: linked.end_date,
+      startTime: linked.start_time ?? "", endTime: linked.end_time ?? "", location_name: linked.location_name ?? "",
+    });
     loadEventParticipants(eventPicked);
   };
 
@@ -441,7 +455,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     toast("Evento creado y vinculado");
     setEditingProject({ ...editingProject, institutional_event_id: ev.id,
       institutional_events: { id: ev.id, title: ev.title, start_date: ev.start_date, end_date: ev.end_date, start_time: null, end_time: null, location_name: null } });
-    setEventForm2({ title: ev.title, start_date: ev.start_date, end_date: ev.end_date, location_name: "" });
+    setEventForm2({ title: ev.title, start_date: ev.start_date, end_date: ev.end_date, startTime: "", endTime: "", location_name: "" });
     router.refresh();
   };
 
@@ -455,11 +469,12 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     router.refresh();
   };
 
-  /** Guarda los campos básicos del evento vinculado (título, fechas,
+  /** Guarda los campos básicos del evento vinculado (título, fechas, hora,
       ubicación) y avisa a los participantes — mismo criterio que
-      saveEvent() en admin/calendario/client.tsx. Campos avanzados (hora,
-      GPS, sincronización con Google, depto, owner) se quedan solo en
-      Calendario para no duplicar esa UI completa aquí. */
+      saveEvent() en admin/calendario/client.tsx. A pedido del usuario (6
+      ago 2026) la hora ya se edita también desde aquí, no solo en
+      Calendario; GPS, sincronización con Google, depto y owner siguen
+      siendo exclusivos de Calendario para no duplicar esa UI completa. */
   const saveEventEdit = async () => {
     const eventId = editingProject?.institutional_events?.id;
     if (!eventId || !editingProject) return;
@@ -469,6 +484,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     const { error } = await supabase.from("institutional_events").update({
       title: eventForm2.title.trim(), start_date: eventForm2.start_date,
       end_date: eventForm2.end_date || eventForm2.start_date,
+      start_time: eventForm2.startTime || null, end_time: eventForm2.endTime || null,
       location_name: eventForm2.location_name.trim() || null,
     }).eq("id", eventId);
     setEventSaving(false);
@@ -878,13 +894,23 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                       <DatePicker value={eventForm2.end_date} onChange={(v) => setEventForm2((f) => ({ ...f, end_date: v }))} />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Hora inicio (opcional)</label>
+                      <TimePicker value={eventForm2.startTime} onChange={(v) => setEventForm2((f) => ({ ...f, startTime: v }))} />
+                    </div>
+                    <div>
+                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Hora fin (opcional)</label>
+                      <TimePicker value={eventForm2.endTime} onChange={(v) => setEventForm2((f) => ({ ...f, endTime: v }))} />
+                    </div>
+                  </div>
                   <div>
                     <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Lugar (opcional)</label>
                     <input className="field-input" value={eventForm2.location_name}
                       onChange={(e) => setEventForm2((f) => ({ ...f, location_name: e.target.value }))} />
                   </div>
                   <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
-                    Hora, GPS, sincronización con Google y departamento se editan desde{" "}
+                    GPS, sincronización con Google y departamento se editan desde{" "}
                     <a href="/admin/calendario" className="font-semibold" style={{ color: "var(--accent)" }}>Calendario</a>.
                   </p>
 

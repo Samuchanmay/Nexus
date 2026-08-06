@@ -6,11 +6,18 @@ export const applyFadeInTransitionToNode = (node: Node, originialOpacity: string
   if (node.nodeType === 1) {
     const element = node as HTMLElement;
     element.style.opacity = "0";
-    element.style.transition = "opacity 0.3s ease-out";
+    element.style.transform = "translateY(-8px)";
+    element.style.transition = "opacity 0.35s ease-out, transform 0.35s ease-out";
     const timer = setTimeout(() => {
       element.style.opacity = originialOpacity;
+      element.style.transform = "translateY(0)";
       clearTimeout(timer);
-    }, 300);
+    }, 40);
+    const clearTimer = setTimeout(() => {
+      element.style.transition = "";
+      element.style.transform = "";
+      clearTimeout(clearTimer);
+    }, 450);
   }
 };
 
