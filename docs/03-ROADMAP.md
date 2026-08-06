@@ -61,7 +61,7 @@ Documento vivo. Cada fila responde a código real: ✅ existe en el repo, 🟡 e
 | Workspace premium (`.chat-ws`) | ✅ | Paleta Linear/Discord/Slack |
 | Swipe actions estilo Signal | ✅ | `use-swipe-gesture` |
 | Cola offline con reenvío (`use-outbox`) | ✅ | `src/lib/chat/use-outbox.ts` |
-| Outbox: retry automático con backoff | 🟢 | Existe la cola; pulir reintentos programados |
+| Outbox: retry automático con backoff | ✅ | Backoff exponencial (1s/2s/4s, cap 8s) + jitter ±20% para evitar thundering herd; retry al reconectar (`online` event) + botón manual de reintento |
 | Búsqueda global de mensajes | ✅ | `conversation-search` intra + cross-conversación con RPC `nx_search_messages` (0036, índice trigram), agrupada por conversación y con salto directo al mensaje (`/chat/:id?msg=…` + resaltado) |
 | "Leído por …" en grupos | ✅ | Tabla `message_reads` (por miembro) + RPCs `nx_enlace_mark_messages_read` / `nx_enlace_message_reads` (0037); bajo la burbuja propia "Leído por Ana, Luis +3". Directas siguen con ✓✓ + hora |
 | "Eliminar para mí" | ✅ | Tabla `message_hidden` (por usuario) + RPCs `nx_enlace_hide_message` / `nx_enlace_show_message` (0037); RLS de `messages` excluye lo ocultado para mí en feed, scroll, búsqueda y fijado |
@@ -252,4 +252,6 @@ Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación
 
 ## Próximo hito sugerido
 
-Fase 2 quedó cerrada (2026-08-05) y la **búsqueda cross-conversación** del chat ya está ✅ (RPC 0036 + deep-link). También quedaron ✅ **"Leído por …" en grupos** y **"eliminar para mí"** (migración 0037, docs `MIGRACIONES-APLICAR-0037-…sql` — pendiente de aplicar en el SQL Editor de emet.uno). Queda de la Fase 3 el retry con backoff del outbox.
+**Fase 3 completa** (2026-08-05): búsqueda cross-conversación ✅, "Leído por …" en grupos ✅, "eliminar para mí" ✅, outbox con retry y backoff ✅. Pendiente: aplicar la migración 0037 en el SQL Editor de emet.uno (`docs/MIGRACIONES-APLICAR-0037-CHAT-LECTURAS-Y-OCULTAR.sql`).
+
+Siguiente fase sugerida: **Fase 4 — IA y productividad** (resúmenes de conversación, búsqueda semántica, miniatura en responder).

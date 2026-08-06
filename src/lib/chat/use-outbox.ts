@@ -6,7 +6,18 @@ import { advance } from "./message-state";
 import { triggerChatPush } from "./push";
 
 const MAX_RETRIES = 3;
-const RETRY_DELAYS_MS = [800, 2500, 6000];
+// Backoff exponencial con jitter: 1s, 2s, 4s base ±20% aleatorio para
+// evitar que múltiples usuarios reintenten al mismo tiempo (thundering herd).
+// Cap en 8s para no bloquear la UI demasiado tiempo.
+const RETRY_BASE_MS = 1000;
+const RETRY_MAX_MS = 8000;
+const RETRY_JITTER = 0.2; // ±20%
+
+function computeRetryDelay(attempt: number): number {
+  const base = Math.min(RETRY_BASE_MS * Math.pow(2, attempt - 1), RETRY_MAX_MS);
+  const jitter = base * RETRY_JITTER * (Math.random() * 2 - 1);
+  return Math.round(base + jitter);
+}
 
 type PendingEntry = {
   message: EnlaceMessage;
@@ -114,7 +125,7 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
       post({ kind: "fail", conversationId, clientId: message.client_id! });
       return;
     }
-    const delay = RETRY_DELAYS_MS[Math.min(entry.attempts - 1, RETRY_DELAYS_MS.length - 1)];
+    const delay = computeRetryDelay(entry.attempts);
     entry.timer = setTimeout(() => attemptInsert(entry), delay);
   }, [patchMessage, post, conversationId]);
 

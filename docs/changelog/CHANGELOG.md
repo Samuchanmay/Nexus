@@ -2,7 +2,7 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
-## 2026-08-05 · Chat Fase 3: "Leído por …" en grupos + "Eliminar para mí"
+## 2026-08-05 · Chat Fase 3: "Leído por …" en grupos + "Eliminar para mí" + cierre Fase 3
 
 ### Qué cambió
 - **Migración 0037** (`supabase/migrations/0037_chat_reads_and_hidden.sql`):
@@ -11,6 +11,7 @@
   - RPCs nuevos (patrón security definer): `nx_enlace_mark_messages_read(uuid[])` (lote, reemplaza el bucle por mensaje que hacía el cliente), `nx_enlace_message_reads(uuid[])` (recibos con membrecía explícita), `nx_enlace_hide_message(uuid)` / `nx_enlace_show_message(uuid)`. `nx_search_messages` (0036) se recrea para no devolver mensajes ocultados.
   - `message_reads`/`message_hidden` agregadas a la publicación Realtime + `REPLICA IDENTITY FULL` (mismo criterio que 0026): "Leído por" se actualiza en vivo cuando otro miembro abre el chat.
 - **`src/app/chat/[id]/client.tsx`**: al abrir marca el lote visible con el RPC nuevo y carga los recibos; listener Realtime de `message_reads` (insert/delete) para lecturas en vivo; en grupos las burbujas propias muestran "Leído por …" (máx. 2 nombres + "+N") cuando hay lectores; `MessageMenu` gana "Eliminar para mí" (todos) y el de "Eliminar" propio pasa a llamarse "Eliminar para todos".
+- **`src/lib/chat/use-outbox.ts`**: backoff exponencial con jitter (1s/2s/4s, cap 8s, ±20% aleatorio) para evitar thundering herd cuando múltiples usuarios reintentan al mismo tiempo. **Cierra la Fase 3 del chat.**
 - **`src/app/chat/[id]/page.tsx`**: sin cambios — el filtro de ocultados lo aplica la RLS en el SELECT del feed.
 
 ### Para la nube
@@ -18,7 +19,7 @@
 
 ### Archivos
 - `supabase/migrations/0037_chat_reads_and_hidden.sql`, `docs/MIGRACIONES-APLICAR-0037-CHAT-LECTURAS-Y-OCULTAR.sql`
-- `src/app/chat/[id]/client.tsx`, `docs/03-ROADMAP.md`
+- `src/app/chat/[id]/client.tsx`, `src/lib/chat/use-outbox.ts`, `docs/03-ROADMAP.md`
 
 ## 2026-08-05 · Chat: búsqueda cross-conversación (cierre Fase 3 §16)
 
