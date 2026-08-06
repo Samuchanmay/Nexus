@@ -375,12 +375,11 @@ export default function EnlaceConversationClient({
     let active = true;
     const supabase = createClient();
     (async () => {
-      const entries = await Promise.all(
-        needed.map(async ({ key, path }) => {
-          const { data } = await supabase.storage.from("chat-files").createSignedUrl(path, 1800);
-          return [key, data?.signedUrl ?? null] as const;
-        })
-      );
+      // Una sola llamada firmando todos los paths en lote (createSignedUrls)
+      // en vez de una llamada createSignedUrl por adjunto — la respuesta
+      // preserva el mismo orden que los paths de entrada.
+      const { data } = await supabase.storage.from("chat-files").createSignedUrls(needed.map((n) => n.path), 1800);
+      const entries = needed.map((n, i) => [n.key, data?.[i]?.signedUrl ?? null] as const);
       if (!active) return;
       setSignedUrls((cur) => {
         const next = { ...cur };

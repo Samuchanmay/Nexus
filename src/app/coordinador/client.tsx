@@ -317,10 +317,10 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
             </div>
           </div>
           <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+            <label htmlFor="coord-title" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
               Título de la solicitud *
             </label>
-            <input className="field-input" placeholder="Ej. Cobertura del Festival de Primavera"
+            <input id="coord-title" className="field-input" placeholder="Ej. Cobertura del Festival de Primavera"
               value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-2.5">

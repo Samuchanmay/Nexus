@@ -59,8 +59,9 @@ export function CreatePollSheet({ open, onClose, onCreate }: {
     <Sheet open={open} onClose={() => { onClose(); }} title="Nueva encuesta" subtitle="Resultados en vivo para todos">
       <div className="flex flex-col gap-3 pb-2">
         <div>
-          <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Pregunta</label>
+          <label htmlFor="poll-question" className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Pregunta</label>
           <input
+            id="poll-question"
             className="field-input w-full" placeholder="¿Qué quieres preguntar?"
             value={question} onChange={(e) => setQuestion(e.target.value)}
             maxLength={200} autoFocus

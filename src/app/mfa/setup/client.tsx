@@ -125,10 +125,11 @@ export default function MfaSetupClient({ displayName, redirectTo }: { displayNam
             </div>
 
             <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+              <label htmlFor="mfa-code" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
                 2. Escribe el código de 6 dígitos que te dio la app
               </label>
               <input
+                id="mfa-code"
                 className="field-input text-center tracking-[0.3em] font-mono text-[19px]"
                 inputMode="numeric" maxLength={6} placeholder="000000"
                 value={code}

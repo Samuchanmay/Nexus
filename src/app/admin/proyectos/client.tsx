@@ -463,10 +463,18 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       }
     }
     // El responsable puede haber cambiado entre gente que YA estaba asignada
-    // (sin pasar por add/remove) — se corrige aparte, por si acaso.
-    for (const uid of editAssignees.filter((id) => !toAdd.includes(id))) {
-      await supabase.from("project_assignments").update({ is_lead: uid === editLead })
-        .eq("project_id", editingProject.id).eq("user_id", uid);
+    // (sin pasar por add/remove) — se corrige aparte, por si acaso. Dos
+    // updates en lote (uno para encender is_lead en el responsable, otro
+    // para apagarlo en el resto) en vez de un update por persona.
+    const unchangedAssignees = editAssignees.filter((id) => !toAdd.includes(id));
+    const toDemote = unchangedAssignees.filter((uid) => uid !== editLead);
+    if (unchangedAssignees.includes(editLead)) {
+      await supabase.from("project_assignments").update({ is_lead: true })
+        .eq("project_id", editingProject.id).eq("user_id", editLead);
+    }
+    if (toDemote.length > 0) {
+      await supabase.from("project_assignments").update({ is_lead: false })
+        .eq("project_id", editingProject.id).in("user_id", toDemote);
     }
 
     if (adminId) logAdminAction(supabase, adminId, "Editó actividad", title);
@@ -1234,9 +1242,12 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
     for (const p of projects) (m.get(p.status) ?? m.set(p.status, []).get(p.status)!).push(p);
     return m;
   }, [projects]);
-  const completadas = (byStage.get("completada") ?? [])
-    .slice()
-    .sort((a, b) => (b.completed_at ?? b.created_at).localeCompare(a.completed_at ?? a.created_at));
+  const completadas = useMemo(
+    () => (byStage.get("completada") ?? [])
+      .slice()
+      .sort((a, b) => (b.completed_at ?? b.created_at).localeCompare(a.completed_at ?? a.created_at)),
+    [byStage],
+  );
 
   // Colores por columna
   const columnColors: Record<string, string> = {

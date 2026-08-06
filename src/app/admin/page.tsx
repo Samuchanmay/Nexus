@@ -77,14 +77,6 @@ export default async function AdminDashboard() {
     supabase.from("rest_days").select("user_id").lte("start_date", today).gte("end_date", today),
   ]);
 
-  // Regreso de vacaciones: propias, que hayan terminado en los últimos 2
-  // días (no hoy — hoy todavía cuenta como "de vacaciones"). Consulta aparte
-  // y ligera, solo para el Context Header — no afecta el resto del panel.
-  const { data: myRecentVac } = await supabase.from("vacations").select("end_date")
-    .eq("user_id", me!.id).eq("status", "Aprobada").is("archived_at", null)
-    .gte("end_date", addDays(today, -2)).lt("end_date", today).limit(1);
-  const returnedRecently = (myRecentVac ?? []).length > 0;
-
   const states = (jornadaStates ?? []) as JornadaState[];
   const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
 
@@ -95,16 +87,21 @@ export default async function AdminDashboard() {
   const myLastResume = [...myDay.movements].reverse().find((m) => m.type === "Entrada");
   const myWorkStartTime = myLastResume?.time ?? myDay.firstIn ?? null;
 
-  // Asistente Contextual (Plano Maestro §11): antes solo se armaba en Mi Día
-  // del colaborador — el admin nunca lo veía porque su "Hoy" es otra página
-  // y nunca se conectó aquí. El admin también lleva actividades propias
-  // (cobertura, diseño, etc. — la bitácora de productividad ya lo asume),
-  // así que le aplican las mismas reglas: reunión por empezar, actividad
-  // por vencer, evidencia faltante, cumpleaños, pausa activa.
-  const { data: myAssignments } = await supabase
-    .from("project_assignments")
-    .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, event_date, event_time))")
-    .eq("user_id", me!.id);
+  // Regreso de vacaciones (propias, terminadas en los últimos 2 días),
+  // asignaciones propias (para el Asistente Contextual, Plano Maestro §11)
+  // y config de pausa activa: tres consultas independientes entre sí,
+  // batched en un solo round-trip en vez de tres awaits secuenciales.
+  const [{ data: myRecentVac }, { data: myAssignments }, { data: pausaFrases }, { data: pausaSettings }] = await Promise.all([
+    supabase.from("vacations").select("end_date")
+      .eq("user_id", me!.id).eq("status", "Aprobada").is("archived_at", null)
+      .gte("end_date", addDays(today, -2)).lt("end_date", today).limit(1),
+    supabase.from("project_assignments")
+      .select("id, is_lead, projects(id, status, priority, deadline, requests(title, type, event_date, event_time))")
+      .eq("user_id", me!.id),
+    supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
+    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
+  ]);
+  const returnedRecently = (myRecentVac ?? []).length > 0;
   const myProjectIds = [...new Set((myAssignments ?? [])
     .map((a) => (a.projects as unknown as { id: string } | null)?.id)
     .filter((id): id is string => !!id))];
@@ -126,10 +123,6 @@ export default async function AdminDashboard() {
       };
     })
     .filter((t): t is AssistantTask => t !== null && !["completada", "cancelada"].includes(t.status));
-  const [{ data: pausaFrases }, { data: pausaSettings }] = await Promise.all([
-    supabase.from("pausa_activa_frases").select("texto").eq("activo", true).order("orden"),
-    supabase.from("app_settings").select("key, value").in("key", ["pausa_activa_interval_min", "pausa_activa_window_min", "pausa_activa_modo"]),
-  ]);
   const pausaSettingsMap = new Map((pausaSettings ?? []).map((s) => [s.key, s.value]));
   const assistantMessages = contextualMessages({
     today, nowMin: nowMeridaMinutes(), tasks: myAssistantTasks,

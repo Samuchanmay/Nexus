@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile, Department } from "@/lib/types";
@@ -361,20 +361,38 @@ export default function EmpleadosClient({
     return u.area;
   };
 
-  const administradores = users.filter((u) => u.role === "admin");
-  const equipo = users.filter((u) => u.role === "empleado");
-  const coordinadores = users.filter((u) => u.role === "coordinador");
-
   type GroupKey = "admin" | "equipo" | "coordinador" | "departamento" | "rh";
-  const groups: { key: GroupKey; label: string; list: UserProfile[] }[] = [
-    { key: "admin", label: "Administrador", list: administradores },
-    { key: "equipo", label: "Equipo", list: equipo },
-    { key: "coordinador", label: "Coordinadores Licenciatura", list: coordinadores.filter((u) => (u.nivel ?? "licenciatura") === "licenciatura") },
-    { key: "coordinador", label: "Coordinadores Centro Educativo", list: coordinadores.filter((u) => u.nivel === "centro_educativo") },
-    { key: "coordinador", label: "Coordinadores Posgrados", list: coordinadores.filter((u) => u.nivel === "posgrado") },
-    { key: "departamento", label: "Departamentos", list: users.filter((u) => u.role === "departamento") },
-    { key: "rh", label: "RH", list: users.filter((u) => u.role === "rh") },
-  ];
+  // Directorio completo (puede ser cientos de personas) recorrido ~7 veces
+  // con .filter() — antes se recalculaba en CADA render (p.ej. cada tecla al
+  // escribir en el buscador), aunque ninguno de estos grupos depende de
+  // `search`. Memoizado por `users` para que solo se recalcule cuando
+  // cambia el directorio de verdad.
+  const { administradores, equipo, coordinadores, groups, ROLE_CHIPS } = useMemo(() => {
+    const administradores = users.filter((u) => u.role === "admin");
+    const equipo = users.filter((u) => u.role === "empleado");
+    const coordinadores = users.filter((u) => u.role === "coordinador");
+    const departamentos = users.filter((u) => u.role === "departamento");
+    const rh = users.filter((u) => u.role === "rh");
+    const groups: { key: GroupKey; label: string; list: UserProfile[] }[] = [
+      { key: "admin", label: "Administrador", list: administradores },
+      { key: "equipo", label: "Equipo", list: equipo },
+      { key: "coordinador", label: "Coordinadores Licenciatura", list: coordinadores.filter((u) => (u.nivel ?? "licenciatura") === "licenciatura") },
+      { key: "coordinador", label: "Coordinadores Centro Educativo", list: coordinadores.filter((u) => u.nivel === "centro_educativo") },
+      { key: "coordinador", label: "Coordinadores Posgrados", list: coordinadores.filter((u) => u.nivel === "posgrado") },
+      { key: "departamento", label: "Departamentos", list: departamentos },
+      { key: "rh", label: "RH", list: rh },
+    ];
+    const ROLE_CHIPS: { key: typeof roleFilter; label: string; count: number }[] = [
+      { key: "todos", label: "Todos", count: users.length },
+      { key: "admin", label: "Administrador", count: administradores.length },
+      { key: "equipo", label: "Equipo", count: equipo.length },
+      { key: "coordinador", label: "Coordinadores", count: coordinadores.length },
+      { key: "departamento", label: "Departamentos", count: departamentos.length },
+      { key: "rh", label: "RH", count: rh.length },
+    ];
+    return { administradores, equipo, coordinadores, groups, ROLE_CHIPS };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users]);
 
   const q = search.trim().toLowerCase();
   // Búsqueda inteligente: nombre, correo, puesto, departamento Y el rol
@@ -390,15 +408,6 @@ export default function EmpleadosClient({
     return [u.full_name, u.display_name, u.email, u.title, dept, ROLE_LABELS[u.role]]
       .some((v) => (v ?? "").toLowerCase().includes(q));
   };
-
-  const ROLE_CHIPS: { key: typeof roleFilter; label: string; count: number }[] = [
-    { key: "todos", label: "Todos", count: users.length },
-    { key: "admin", label: "Administrador", count: administradores.length },
-    { key: "equipo", label: "Equipo", count: equipo.length },
-    { key: "coordinador", label: "Coordinadores", count: coordinadores.length },
-    { key: "departamento", label: "Departamentos", count: users.filter((u) => u.role === "departamento").length },
-    { key: "rh", label: "RH", count: users.filter((u) => u.role === "rh").length },
-  ];
 
   // Tarjeta de Equipo — vuelve al lenguaje de tarjeta individual (borde muy
   // sutil, fondo apenas distinto al canvas, padding generoso, hover ligero)

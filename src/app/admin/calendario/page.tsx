@@ -26,7 +26,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: incs }, { data: rests }, { data: projects }, { data: efemSetting }, { data: activitySetting }, { data: instEvents }, { data: departments }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: incs }, { data: rests }, { data: projects }, { data: efemSetting }, { data: activitySetting }, { data: instEvents }, { data: departments }, { data: meRow }] = await Promise.all([
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", yLast).gte("end_date", yFirst),
@@ -54,8 +54,8 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
     // columna uuid FK a departments(id); cualquier valor no-UUID tronaba el
     // guardado en Postgres. Ahora se elige de esta lista real.
     supabase.from("departments").select("id, nombre, tipo").eq("activo", true).order("tipo").order("nombre"),
+    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
-  const { data: meRow } = user ? await supabase.from("users").select("id").eq("auth_id", user.id).single() : { data: null };
 
   const efemerides = efemSetting?.value ? await getTodayEfemerides(efemSetting.value) : [];
 

@@ -64,10 +64,10 @@ export default function OnboardingClient({
 
         <div className="flex flex-col gap-4">
           <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+            <label htmlFor="onboarding-displayname" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
               ¿Cómo quieres que te llamen?
             </label>
-            <input className="field-input" value={displayName}
+            <input id="onboarding-displayname" className="field-input" value={displayName}
               onChange={(e) => setDisplayName(e.target.value)} placeholder="Tu nombre" />
           </div>
 
@@ -91,10 +91,10 @@ export default function OnboardingClient({
           )}
 
           <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+            <label htmlFor="onboarding-roletitle" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
               Tu cargo o rol (opcional)
             </label>
-            <input className="field-input" value={roleTitle}
+            <input id="onboarding-roletitle" className="field-input" value={roleTitle}
               onChange={(e) => setRoleTitle(e.target.value)}
               placeholder={isEquipo ? "Ej. Productor Multimedia" : "Ej. Coordinador en Enfermería y Nutrición"} />
           </div>

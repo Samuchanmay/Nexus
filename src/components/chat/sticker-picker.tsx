@@ -64,10 +64,13 @@ export function StickerPicker({ open, onClose, onPick, onPickImage }: {
         .order("created_at", { ascending: false }).limit(40);
       const rows = (data ?? []) as EmuSticker[];
       setGallery(rows);
-      const entries = await Promise.all(rows.map(async (r) => {
-        const { data: signed } = await supabase.storage.from("chat-files").createSignedUrl(r.image_path, 1800);
-        return [r.image_path, signed?.signedUrl ?? ""] as const;
-      }));
+      if (rows.length === 0) return;
+      // Una sola llamada en lote (createSignedUrls) para toda la galería en
+      // vez de una createSignedUrl por sticker — misma respuesta, mismo
+      // orden que los paths de entrada.
+      const { data: signed } = await supabase.storage.from("chat-files")
+        .createSignedUrls(rows.map((r) => r.image_path), 1800);
+      const entries = rows.map((r, i) => [r.image_path, signed?.[i]?.signedUrl ?? ""] as const);
       setUrls((u) => ({ ...u, ...Object.fromEntries(entries) }));
     })();
   }, [tab, loadedGallery]);

@@ -22,16 +22,19 @@ export default async function EnlaceConversationPage({
   const { msg } = await searchParams;
   const supabase = await createClient();
   const user = await getAuthedUser();
-  const { data: me } = await supabase.from("users").select("id").eq("auth_id", user!.id).single();
+  // `me` y `conversation` no dependen entre sí — un solo round-trip en vez
+  // de dos awaits secuenciales.
+  const [{ data: me }, { data: conversation }] = await Promise.all([
+    supabase.from("users").select("id").eq("auth_id", user!.id).single(),
+    // RLS (conversations_select) ya exige ser participante — si no lo soy,
+    // o la conversación no existe, esto simplemente no devuelve fila.
+    supabase
+      .from("conversations")
+      .select("id, type, name, avatar_url, created_by, last_message_at, last_message_preview, last_message_sender_id, created_at, pinned_message_id, pinned_by, pinned_at")
+      .eq("id", id)
+      .maybeSingle(),
+  ]);
   const myId = me!.id;
-
-  // RLS (conversations_select) ya exige ser participante — si no lo soy,
-  // o la conversación no existe, esto simplemente no devuelve fila.
-  const { data: conversation } = await supabase
-    .from("conversations")
-    .select("id, type, name, avatar_url, created_by, last_message_at, last_message_preview, last_message_sender_id, created_at, pinned_message_id, pinned_by, pinned_at")
-    .eq("id", id)
-    .maybeSingle();
 
   if (!conversation) notFound();
 
@@ -49,7 +52,7 @@ export default async function EnlaceConversationPage({
   const otherUserId = conversation.type === "direct"
     ? (participantRows ?? []).find((p) => p.user_id !== myId)?.user_id ?? null
     : null;
-  const [{ data: people }, { data: heartbeats }, { data: otherProfileRaw }, { data: creatorRaw }] = await Promise.all([
+  const [{ data: people }, { data: heartbeats }, { data: otherProfileRaw }, { data: creatorRaw }, { data: presenceSetting }] = await Promise.all([
     userIds.length > 0
       ? supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color, presence_status").in("id", userIds)
       : Promise.resolve({ data: [] as (ParticipantLite & { presence_status?: string | null })[] }),
@@ -69,10 +72,9 @@ export default async function EnlaceConversationPage({
     conversation.created_by
       ? supabase.from("users_directory").select("display_name").eq("id", conversation.created_by).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("app_settings").select("value").eq("key", "chat_presence_visible").maybeSingle(),
   ]);
 
-  const { data: presenceSetting } = await supabase
-    .from("app_settings").select("value").eq("key", "chat_presence_visible").maybeSingle();
   const presenceVisible = (presenceSetting?.value ?? "true") === "true";
 
   const roleByUser = new Map((participantRows ?? []).map((p) => [p.user_id, p.role as "admin" | "member"]));
