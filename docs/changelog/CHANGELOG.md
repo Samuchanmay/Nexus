@@ -2,6 +2,27 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Chat Fase 5: IA configurable (resúmenes + búsqueda semántica)
+
+### Qué cambió
+- **Migración 0040** (`supabase/migrations/0040_ai_configuration.sql`):
+  - Settings en `app_settings` para API keys de IA (OpenAI, Anthropic, OpenRouter)
+  - RPCs `nx_get_ai_config()` y `nx_set_ai_config(key, value)` (solo admin)
+  - Tabla `message_embeddings` para búsqueda semántica (requiere pgvector)
+  - RPC `nx_search_messages_semantic()` para buscar por similitud de embeddings
+- **UI de configuración** (`/admin/config/ia`): el admin puede configurar las API keys de los 3 proveedores, elegir el modelo para resúmenes y embeddings, y seleccionar el proveedor activo.
+- **Edge Function `ai-summarize`**: genera resúmenes de conversaciones usando el proveedor configurado (OpenAI/Anthropic/OpenRouter). Si no hay API key, devuelve 503.
+- **Edge Function `ai-embed`**: genera embeddings de mensajes para búsqueda semántica (solo admin puede ejecutarla masivamente).
+- **Hub de configuración actualizado**: nueva sección "IA y automatización" en el grupo "Avanzado".
+
+### Archivos
+- `supabase/migrations/0040_ai_configuration.sql`, `docs/MIGRACIONES-APLICAR-0040-AI-CONFIG.sql`
+- `supabase/functions/ai-summarize/index.ts`, `supabase/functions/ai-embed/index.ts`
+- `src/app/admin/config/ia/page.tsx`, `src/app/admin/config/ia/client.tsx`
+- `src/app/api/admin/ai-config/route.ts`
+- `src/app/admin/config/hub-client.tsx` (nueva sección "IA y automatización")
+- `docs/03-ROADMAP.md`
+
 ## 2026-08-05 · Chat Fase 5: estados de presencia (Activo/Ausente/No molestar)
 
 ### Qué cambió

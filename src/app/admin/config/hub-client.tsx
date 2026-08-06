@@ -15,7 +15,7 @@ import PausaActivaClient from "./pausa-activa/client";
 import type { PausaFraseRow } from "./pausa-activa/page";
 import ColoresClient from "./colores/client";
 
-type SectionId = "estados-jornada" | "dispositivos" | "horarios" | "gps" | "tipos-actividad" | "pausa-activa" | "colores";
+type SectionId = "estados-jornada" | "dispositivos" | "horarios" | "gps" | "tipos-actividad" | "pausa-activa" | "colores" | "ia";
 
 const SECTIONS: { id: SectionId; title: string; desc: string; icon: string; group: string }[] = [
   { id: "estados-jornada", title: "Estados de jornada", icon: "toggle", group: "Jornada y asistencia",
@@ -32,9 +32,11 @@ const SECTIONS: { id: SectionId; title: string; desc: string; icon: string; grou
     desc: "Frases y ritmo del aviso de pausa activa que muestra el Asistente." },
   { id: "colores", title: "Colores de equipo", icon: "palette", group: "Actividades y equipo",
     desc: "El color fijo de cada coordinación/departamento y de RH — ninguno se repite." },
+  { id: "ia", title: "IA y automatización", icon: "sparkle", group: "Avanzado",
+    desc: "Configura proveedores de IA para resúmenes de conversación y búsqueda semántica." },
 ];
 
-const GROUPS = ["Jornada y asistencia", "Actividades y equipo"];
+const GROUPS = ["Jornada y asistencia", "Actividades y equipo", "Avanzado"];
 
 type QuickLink = { href: string; title: string; desc: string; icon: string };
 const QUICK_LINKS: { title: string; items: QuickLink[] }[] = [
@@ -91,6 +93,19 @@ export default function ConfigHub(props: {
           windowMin={props.pausaWindowMin} modo={props.pausaModo} embedded />
       );
       case "colores": return <ColoresClient areas={props.coloresAreas} rhColor={props.rhColor} embedded />;
+      case "ia": return (
+        <div className="text-[13.5px] text-text-2">
+          <p className="mb-3">Configura los proveedores de IA desde la página dedicada:</p>
+          <a
+            href="/admin/config/ia"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-white"
+            style={{ background: "var(--accent)" }}
+          >
+            <Icon name="sparkle" size={16} />
+            Ir a configuración de IA
+          </a>
+        </div>
+      );
       default: return null;
     }
   };
