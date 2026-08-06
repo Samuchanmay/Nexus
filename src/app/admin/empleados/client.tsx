@@ -993,25 +993,25 @@ export default function EmpleadosClient({
                 <SectionLabel>Información personal</SectionLabel>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
-                    <input className="field-input" value={editForm.fullName}
+                    <label htmlFor="emp-full-fullname" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
+                    <input id="emp-full-fullname" className="field-input" value={editForm.fullName}
                       onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
-                    <input className="field-input" value={editForm.displayName}
+                    <label htmlFor="emp-full-displayname" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
+                    <input id="emp-full-displayname" className="field-input" value={editForm.displayName}
                       onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
-                    <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
+                    <label htmlFor="emp-full-honorific" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
+                    <input id="emp-full-honorific" className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
                       value={editForm.honorific} onChange={(e) => setEditForm({ ...editForm, honorific: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
-                    <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
+                    <label htmlFor="emp-full-title" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                    <input id="emp-full-title" className="field-input" placeholder="Ej. Coordinador en Enfermería"
                       value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
                   </div>
                 </div>
@@ -1020,8 +1020,8 @@ export default function EmpleadosClient({
                     Ahora es un campo editable normal: si se deja en blanco, se
                     guarda null y el Directorio no la muestra (nunca se inventa). */}
                 <div>
-                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Área</label>
-                  <input className="field-input" placeholder="Ej. Comunicación — déjalo vacío si no aplica"
+                  <label htmlFor="emp-full-area" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Área</label>
+                  <input id="emp-full-area" className="field-input" placeholder="Ej. Comunicación — déjalo vacío si no aplica"
                     value={editForm.area} onChange={(e) => setEditForm({ ...editForm, area: e.target.value })} />
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -1030,8 +1030,8 @@ export default function EmpleadosClient({
                     <p className="field-input flex items-center" style={{ color: "var(--text-3)" }}>{editing.email}</p>
                   </div>
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Teléfono</label>
-                    <input className="field-input" value={editForm.phone}
+                    <label htmlFor="emp-full-phone" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Teléfono</label>
+                    <input id="emp-full-phone" className="field-input" value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
                   </div>
                 </div>
