@@ -11,67 +11,162 @@
     <h1>Recorridos EMET</h1>
   </header>
 
-  <!-- ── Vista 1: configurar y arrancar una grabación nueva ── -->
-  <section id="setup-view">
-    <label>
-      Título del recorrido
-      <input id="f-title" type="text" placeholder="Cómo fichar tu entrada" />
-    </label>
-    <label>
-      Slug (URL)
-      <input id="f-slug" type="text" placeholder="como-fichar-tu-entrada" />
-    </label>
-    <label>
-      Descripción (opcional)
-      <textarea id="f-description" rows="2" placeholder="Qué aprende el empleado en este recorrido"></textarea>
-    </label>
-    <label>
-      Dirigido a
-      <select id="f-role">
-        <option value="todos">Todos</option>
-        <option value="empleado">Empleados</option>
-        <option value="admin">Admin</option>
-        <option value="rh">RH</option>
-        <option value="coordinador">Coordinadores</option>
-        <option value="departamento">Departamentos</option>
-      </select>
-    </label>
-    <label>
-      Estado al terminar
-      <select id="f-status">
-        <option value="borrador">Borrador (revisar antes de publicar)</option>
-        <option value="publicado">Publicado (visible de inmediato)</option>
-      </select>
-    </label>
-    <label>
-      Servidor de EMET
-      <input id="f-server" type="text" placeholder="https://emet.uno" />
-    </label>
-    <button id="btn-start" class="primary">Iniciar grabación</button>
-    <p class="hint">
-      Abre la pestaña donde vas a grabar antes de iniciar. Cada clic en
-      «Capturar pantalla» guarda el estado actual de esa pestaña como un
-      paso del recorrido.
-    </p>
+  <!-- ── Tabs de navegación ── -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="record">Grabar</button>
+    <button class="tab" data-tab="library">Mis recorridos</button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- TAB 1: GRABAR                                                 -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section id="tab-record" class="tab-content active">
+    <!-- Vista: configurar y arrancar una grabación nueva -->
+    <div id="setup-view">
+      <label>
+        Título del recorrido
+        <input id="f-title" type="text" placeholder="Cómo fichar tu entrada" />
+      </label>
+      <label>
+        Slug (URL)
+        <input id="f-slug" type="text" placeholder="como-fichar-tu-entrada" />
+      </label>
+      <label>
+        Descripción (opcional)
+        <textarea id="f-description" rows="2" placeholder="Qué aprende el empleado en este recorrido"></textarea>
+      </label>
+      <label>
+        Dirigido a
+        <select id="f-role">
+          <option value="todos">Todos</option>
+          <option value="empleado">Empleados</option>
+          <option value="admin">Admin</option>
+          <option value="rh">RH</option>
+          <option value="coordinador">Coordinadores</option>
+          <option value="departamento">Departamentos</option>
+        </select>
+      </label>
+      <label>
+        Estado al terminar
+        <select id="f-status">
+          <option value="borrador">Borrador (revisar antes de publicar)</option>
+          <option value="publicado">Publicado (visible de inmediato)</option>
+        </select>
+      </label>
+      <label>
+        Servidor de EMET
+        <input id="f-server" type="text" placeholder="https://emet.uno" />
+      </label>
+      <button id="btn-start" class="primary">Iniciar grabación</button>
+      <p class="hint">
+        Abre la pestaña donde vas a grabar antes de iniciar. Cada clic en
+        «Capturar pantalla» guarda el estado actual de esa pestaña como un
+        paso del recorrido.
+      </p>
+    </div>
+
+    <!-- Vista: grabación en curso -->
+    <div id="recording-view" class="hidden">
+      <div class="rec-title">
+        <span class="rec-dot"></span>
+        <strong id="rec-title-text">—</strong>
+      </div>
+      <p class="rec-count"><span id="rec-count">0</span> pantalla(s) capturadas</p>
+      <ol id="rec-list" class="rec-list"></ol>
+      <div class="rec-actions">
+        <button id="btn-capture" class="primary">Capturar pantalla actual</button>
+        <button id="btn-undo" class="subtle">Deshacer última</button>
+      </div>
+      <div class="rec-actions">
+        <button id="btn-finish" class="primary">Finalizar y guardar</button>
+        <button id="btn-cancel" class="danger">Cancelar grabación</button>
+      </div>
+    </div>
   </section>
 
-  <!-- ── Vista 2: grabación en curso ── -->
-  <section id="recording-view" class="hidden">
-    <div class="rec-title">
-      <span class="rec-dot"></span>
-      <strong id="rec-title-text">—</strong>
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- TAB 2: MIS RECORRIDOS                                         -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section id="tab-library" class="tab-content">
+    <div id="library-empty" class="empty-state">
+      <p class="empty-icon">📹</p>
+      <p class="empty-title">No hay recorridos guardados</p>
+      <p class="empty-hint">Graba tu primer recorrido en la pestaña "Grabar"</p>
     </div>
-    <p class="rec-count"><span id="rec-count">0</span> pantalla(s) capturadas</p>
-    <ol id="rec-list" class="rec-list"></ol>
-    <div class="rec-actions">
-      <button id="btn-capture" class="primary">Capturar pantalla actual</button>
-      <button id="btn-undo" class="subtle">Deshacer última</button>
-    </div>
-    <div class="rec-actions">
-      <button id="btn-finish" class="primary">Finalizar y subir</button>
-      <button id="btn-cancel" class="danger">Cancelar grabación</button>
-    </div>
+
+    <div id="library-list" class="library-list hidden"></div>
   </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- EDITOR DE RECORRIDO (overlay)                                 -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div id="editor-overlay" class="overlay hidden">
+    <div class="editor-panel">
+      <header class="editor-header">
+        <h2 id="editor-title">Editar recorrido</h2>
+        <button id="editor-close" class="icon-btn" title="Cerrar">✕</button>
+      </header>
+
+      <div class="editor-body">
+        <!-- Metadata -->
+        <div class="editor-section">
+          <h3>Información</h3>
+          <label>
+            Título
+            <input id="edit-title" type="text" />
+          </label>
+          <label>
+            Descripción
+            <textarea id="edit-description" rows="2"></textarea>
+          </label>
+          <label>
+            Dirigido a
+            <select id="edit-role">
+              <option value="todos">Todos</option>
+              <option value="empleado">Empleados</option>
+              <option value="admin">Admin</option>
+              <option value="rh">RH</option>
+              <option value="coordinador">Coordinadores</option>
+              <option value="departamento">Departamentos</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Screens -->
+        <div class="editor-section">
+          <h3>Pantallas (<span id="edit-screen-count">0</span>)</h3>
+          <ol id="edit-screens-list" class="edit-screens-list"></ol>
+        </div>
+      </div>
+
+      <footer class="editor-footer">
+        <button id="editor-delete" class="danger">Eliminar recorrido</button>
+        <button id="editor-save" class="primary">Guardar cambios</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- PREVIEW DE RECORRIDO (overlay)                                -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div id="preview-overlay" class="overlay hidden">
+    <div class="preview-panel">
+      <header class="preview-header">
+        <button id="preview-prev" class="icon-btn" title="Anterior">◀</button>
+        <span id="preview-counter">1 / 1</span>
+        <button id="preview-next" class="icon-btn" title="Siguiente">▶</button>
+        <button id="preview-close" class="icon-btn" title="Cerrar">✕</button>
+      </header>
+
+      <div class="preview-body">
+        <div id="preview-container" class="preview-container">
+          <img id="preview-image" class="preview-image" />
+          <div id="preview-highlights" class="preview-highlights"></div>
+        </div>
+        <p id="preview-caption" class="preview-caption"></p>
+      </div>
+    </div>
+  </div>
 
   <p id="status-line" class="status hidden"></p>
 

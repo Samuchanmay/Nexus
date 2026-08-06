@@ -1,10 +1,12 @@
 // ══════════════════════════════════════════════════════════════════
-//  EMET Recorridos — lógica del popup
+//  EMET Recorridos — lógica del popup (v2 con biblioteca y editor)
 //  ══════════════════════════════════════════════════════════════════
 //  El popup de una extensión se destruye cada vez que se cierra, así que
 //  TODO el estado de la grabación en curso vive en chrome.storage.local
 //  bajo la clave "recording" — sobrevive a que el usuario cierre el
 //  popup para navegar entre pantallas de la app y lo vuelva a abrir.
+//
+//  Los recorridos terminados se guardan en "library" como un array.
 //
 //  Contrato de subida (POST {server}/api/demos/ingest, ver
 //  src/app/api/demos/ingest/route.ts): requiere sesión de admin ya
@@ -19,6 +21,12 @@ const DEFAULT_SERVER = "https://emet.uno";
 const $ = (id) => document.getElementById(id);
 
 const els = {
+  // Tabs
+  tabs: document.querySelectorAll('.tab'),
+  tabRecord: $('tab-record'),
+  tabLibrary: $('tab-library'),
+  
+  // Setup view
   setupView: $("setup-view"),
   recordingView: $("recording-view"),
   title: $("f-title"),
@@ -28,6 +36,8 @@ const els = {
   status: $("f-status"),
   server: $("f-server"),
   btnStart: $("btn-start"),
+  
+  // Recording view
   recTitleText: $("rec-title-text"),
   recCount: $("rec-count"),
   recList: $("rec-list"),
@@ -35,9 +45,42 @@ const els = {
   btnUndo: $("btn-undo"),
   btnFinish: $("btn-finish"),
   btnCancel: $("btn-cancel"),
+  
+  // Library
+  libraryEmpty: $("library-empty"),
+  libraryList: $("library-list"),
+  
+  // Editor
+  editorOverlay: $("editor-overlay"),
+  editorTitle: $("editor-title"),
+  editorClose: $("editor-close"),
+  editTitle: $("edit-title"),
+  editDescription: $("edit-description"),
+  editRole: $("edit-role"),
+  editScreenCount: $("edit-screen-count"),
+  editScreensList: $("edit-screens-list"),
+  editorDelete: $("editor-delete"),
+  editorSave: $("editor-save"),
+  
+  // Preview
+  previewOverlay: $("preview-overlay"),
+  previewPrev: $("preview-prev"),
+  previewNext: $("preview-next"),
+  previewClose: $("preview-close"),
+  previewCounter: $("preview-counter"),
+  previewImage: $("preview-image"),
+  previewHighlights: $("preview-highlights"),
+  previewCaption: $("preview-caption"),
+  
   statusLine: $("status-line"),
 };
 
+// ── Estado global ────────────────────────────────────────────────
+let currentEditingTour = null;
+let currentPreviewTour = null;
+let currentPreviewIndex = 0;
+
+// ── Utilidades ───────────────────────────────────────────────────
 function showStatus(message, kind) {
   els.statusLine.textContent = message;
   els.statusLine.className = `status ${kind}`;
@@ -76,7 +119,36 @@ async function getStoredServer() {
   return server_base || DEFAULT_SERVER;
 }
 
-// ── Vista: alterna entre "configurar" y "grabando" ─────────────────
+async function getLibrary() {
+  const { library } = await chrome.storage.local.get("library");
+  return library || [];
+}
+
+async function setLibrary(library) {
+  await chrome.storage.local.set({ library });
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────
+els.tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.tab;
+    
+    els.tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    
+    els.tabRecord.classList.remove('active');
+    els.tabLibrary.classList.remove('active');
+    
+    if (target === 'record') {
+      els.tabRecord.classList.add('active');
+    } else {
+      els.tabLibrary.classList.add('active');
+      renderLibrary();
+    }
+  });
+});
+
+// ── Vista: alterna entre "configurar" y "grabando" ───────────────
 function renderSetup() {
   els.setupView.classList.remove("hidden");
   els.recordingView.classList.add("hidden");
@@ -107,8 +179,7 @@ function renderRecording(recording) {
   });
 }
 
-// ── Captura: inyecta content-capture.js en la pestaña activa y llama
-//    a la función global que expone ──────────────────────────────────
+// ── Captura: inyecta content-capture.js en la pestaña activa ─────
 async function captureCurrentScreen() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.id) throw new Error("No se encontró una pestaña activa.");
@@ -134,8 +205,6 @@ async function captureCurrentScreen() {
   try {
     thumbnail = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
   } catch (e) {
-    // La miniatura es decorativa (se ve en el listado del admin); si falla
-    // no se aborta la captura, solo se sube sin miniatura para ese paso.
     console.warn("[recorridos] no se pudo capturar miniatura:", e);
   }
 
@@ -143,6 +212,8 @@ async function captureCurrentScreen() {
     snapshot,
     thumbnail,
     interaction_ctx: { url: tab.url, captured_at: new Date().toISOString() },
+    highlights: [],
+    blurs: [],
   };
 }
 
@@ -167,20 +238,388 @@ async function uploadRecording(recording) {
   try {
     data = await res.json();
   } catch {
-    // Respuesta sin JSON (por ejemplo un 502 de un proxy intermedio): se
-    // arma un mensaje explícito en vez de dejar `data` vacío en silencio.
     data = { error: `El servidor respondió ${res.status} sin cuerpo JSON.` };
   }
 
   if (!res.ok) {
-    // Mismo criterio que el resto de EMET (src/lib/errors.ts): mostrar el
-    // mensaje real que mandó el backend, nunca un objeto crudo.
     throw new Error(data.error || `Error ${res.status} al subir el recorrido.`);
   }
   return data;
 }
 
-// ── Eventos de UI ────────────────────────────────────────────────
+// ── Biblioteca ───────────────────────────────────────────────────
+async function renderLibrary() {
+  const library = await getLibrary();
+  
+  if (library.length === 0) {
+    els.libraryEmpty.classList.remove("hidden");
+    els.libraryList.classList.add("hidden");
+    return;
+  }
+  
+  els.libraryEmpty.classList.add("hidden");
+  els.libraryList.classList.remove("hidden");
+  els.libraryList.innerHTML = "";
+  
+  library.forEach((tour, index) => {
+    const item = document.createElement("div");
+    item.className = "library-item";
+    
+    const screenCount = tour.screens?.length || 0;
+    const date = new Date(tour.created_at).toLocaleDateString('es-MX', { 
+      day: '2-digit', month: 'short', year: 'numeric' 
+    });
+    
+    item.innerHTML = `
+      <div class="library-item-header">
+        <span class="library-item-title">${tour.title}</span>
+        <span class="library-item-badge ${tour.status}">${tour.status}</span>
+      </div>
+      <div class="library-item-meta">
+        <span>${screenCount} pantalla${screenCount !== 1 ? 's' : ''}</span>
+        <span>${date}</span>
+      </div>
+      <div class="library-item-actions">
+        <button class="subtle" data-action="preview">Ver</button>
+        <button class="subtle" data-action="edit">Editar</button>
+        <button class="subtle" data-action="upload">Subir</button>
+        <button class="danger" data-action="delete">Eliminar</button>
+      </div>
+    `;
+    
+    item.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        if (action === 'preview') openPreview(tour);
+        else if (action === 'edit') openEditor(tour, index);
+        else if (action === 'upload') uploadTour(tour, index);
+        else if (action === 'delete') deleteTour(tour, index);
+      });
+    });
+    
+    els.libraryList.appendChild(item);
+  });
+}
+
+// ── Editor ───────────────────────────────────────────────────────
+function openEditor(tour, index) {
+  currentEditingTour = { ...tour, index };
+  
+  els.editorTitle.textContent = "Editar recorrido";
+  els.editTitle.value = tour.title;
+  els.editDescription.value = tour.description || "";
+  els.editRole.value = tour.target_role;
+  
+  renderEditorScreens(tour.screens || []);
+  
+  els.editorOverlay.classList.remove("hidden");
+}
+
+function renderEditorScreens(screens) {
+  els.editScreenCount.textContent = screens.length;
+  els.editScreensList.innerHTML = "";
+  
+  screens.forEach((screen, i) => {
+    const item = document.createElement("div");
+    item.className = "edit-screen-item";
+    
+    const highlightCount = screen.highlights?.length || 0;
+    const blurCount = screen.blurs?.length || 0;
+    
+    item.innerHTML = `
+      ${screen.thumbnail ? `<img src="${screen.thumbnail}" />` : ''}
+      <div class="edit-screen-item-info">
+        <div class="edit-screen-item-title">Pantalla ${i + 1}</div>
+        <div class="edit-screen-item-meta">
+          ${highlightCount > 0 ? `${highlightCount} highlight${highlightCount !== 1 ? 's' : ''}` : ''}
+          ${blurCount > 0 ? `${blurCount} blur${blurCount !== 1 ? 's' : ''}` : ''}
+          ${highlightCount === 0 && blurCount === 0 ? 'Sin ediciones' : ''}
+        </div>
+      </div>
+      <div class="edit-screen-item-actions">
+        <button class="subtle" data-action="edit-screen" title="Editar highlights/blurs">✏️</button>
+        <button class="subtle" data-action="move-up" title="Mover arriba" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="subtle" data-action="move-down" title="Mover abajo" ${i === screens.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="danger" data-action="delete-screen" title="Eliminar pantalla">🗑️</button>
+      </div>
+    `;
+    
+    item.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if (action === 'edit-screen') editScreen(i);
+        else if (action === 'move-up') moveScreen(i, i - 1);
+        else if (action === 'move-down') moveScreen(i, i + 1);
+        else if (action === 'delete-screen') deleteScreen(i);
+      });
+    });
+    
+    els.editScreensList.appendChild(item);
+  });
+}
+
+async function editScreen(index) {
+  const tour = currentEditingTour;
+  const screen = tour.screens[index];
+  
+  // Abrir la pestaña donde se capturó esta pantalla
+  const url = screen.interaction_ctx?.url;
+  if (!url) {
+    showStatus("No se puede editar esta pantalla (sin URL).", "error");
+    return;
+  }
+  
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.id) {
+    showStatus("No se encontró una pestaña activa.", "error");
+    return;
+  }
+  
+  // Navegar a la URL de la pantalla
+  await chrome.tabs.update(tab.id, { url });
+  
+  // Esperar a que cargue
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Inyectar el modo de selección
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ["select-mode.js"],
+  });
+  
+  // Entrar en modo highlight
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => {
+      window.__emetRecorridosEnterSelectMode('highlight');
+    },
+  });
+  
+  showStatus("Modo edición activado. Haz clic en elementos para resaltarlos o ocultarlos. Presiona 'H' para highlight, 'B' para blur, 'Esc' para terminar.", "info");
+  
+  // Cerrar el editor
+  els.editorOverlay.classList.add("hidden");
+  
+  // Monitorear cuando el usuario termine el modo de selección
+  const checkInterval = setInterval(async () => {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => !window.__emetRecorridosSelectMode,
+    });
+    
+    if (result && result[0] && result[0].result) {
+      clearInterval(checkInterval);
+      
+      // Obtener los elementos seleccionados
+      const selectedResult = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.__emetRecorridosExitSelectMode(),
+      });
+      
+      if (selectedResult && selectedResult[0]) {
+        const selectedElements = selectedResult[0].result || [];
+        
+        // Separar highlights y blurs
+        const highlights = selectedElements.filter(e => e.type === 'highlight');
+        const blurs = selectedElements.filter(e => e.type === 'blur');
+        
+        // Actualizar la pantalla
+        tour.screens[index].highlights = highlights;
+        tour.screens[index].blurs = blurs;
+        
+        // Guardar en la biblioteca
+        const library = await getLibrary();
+        library[tour.index] = tour;
+        await setLibrary(library);
+        
+        // Reabrir el editor
+        openEditor(tour, tour.index);
+        
+        showStatus(`Pantalla ${index + 1} actualizada: ${highlights.length} highlights, ${blurs.length} blurs.`, "ok");
+      }
+    }
+  }, 1000);
+}
+
+function moveScreen(fromIndex, toIndex) {
+  const tour = currentEditingTour;
+  const screens = tour.screens;
+  
+  if (toIndex < 0 || toIndex >= screens.length) return;
+  
+  const [screen] = screens.splice(fromIndex, 1);
+  screens.splice(toIndex, 0, screen);
+  
+  renderEditorScreens(screens);
+}
+
+function deleteScreen(index) {
+  const tour = currentEditingTour;
+  
+  if (!confirm(`¿Eliminar pantalla ${index + 1}?`)) return;
+  
+  tour.screens.splice(index, 1);
+  renderEditorScreens(tour.screens);
+}
+
+els.editorClose.addEventListener("click", () => {
+  els.editorOverlay.classList.add("hidden");
+  currentEditingTour = null;
+});
+
+els.editorSave.addEventListener("click", async () => {
+  if (!currentEditingTour) return;
+  
+  const tour = currentEditingTour;
+  tour.title = els.editTitle.value.trim();
+  tour.description = els.editDescription.value.trim();
+  tour.target_role = els.editRole.value;
+  tour.updated_at = new Date().toISOString();
+  
+  const library = await getLibrary();
+  library[tour.index] = tour;
+  await setLibrary(library);
+  
+  els.editorOverlay.classList.add("hidden");
+  currentEditingTour = null;
+  
+  renderLibrary();
+  showStatus("Recorrido actualizado.", "ok");
+});
+
+els.editorDelete.addEventListener("click", async () => {
+  if (!currentEditingTour) return;
+  
+  if (!confirm("¿Eliminar este recorrido permanentemente?")) return;
+  
+  const library = await getLibrary();
+  library.splice(currentEditingTour.index, 1);
+  await setLibrary(library);
+  
+  els.editorOverlay.classList.add("hidden");
+  currentEditingTour = null;
+  
+  renderLibrary();
+  showStatus("Recorrido eliminado.", "ok");
+});
+
+// ── Preview ──────────────────────────────────────────────────────
+function openPreview(tour) {
+  currentPreviewTour = tour;
+  currentPreviewIndex = 0;
+  
+  renderPreview();
+  
+  els.previewOverlay.classList.remove("hidden");
+}
+
+function renderPreview() {
+  const tour = currentPreviewTour;
+  const screen = tour.screens[currentPreviewIndex];
+  
+  els.previewCounter.textContent = `${currentPreviewIndex + 1} / ${tour.screens.length}`;
+  
+  if (screen.thumbnail) {
+    els.previewImage.src = screen.thumbnail;
+    els.previewImage.style.display = "block";
+  } else {
+    els.previewImage.style.display = "none";
+  }
+  
+  // Renderizar highlights y blurs
+  els.previewHighlights.innerHTML = "";
+  
+  // Calcular escala de la imagen
+  const imgRect = els.previewImage.getBoundingClientRect();
+  const containerRect = els.previewHighlights.parentElement.getBoundingClientRect();
+  
+  const scaleX = imgRect.width / (screen.snapshot?.viewport?.width || 1920);
+  const scaleY = imgRect.height / (screen.snapshot?.viewport?.height || 1080);
+  
+  // Renderizar highlights
+  (screen.highlights || []).forEach(h => {
+    const div = document.createElement("div");
+    div.className = "preview-highlight";
+    div.style.left = `${h.rect.left * scaleX}px`;
+    div.style.top = `${h.rect.top * scaleY}px`;
+    div.style.width = `${h.rect.width * scaleX}px`;
+    div.style.height = `${h.rect.height * scaleY}px`;
+    els.previewHighlights.appendChild(div);
+  });
+  
+  // Renderizar blurs
+  (screen.blurs || []).forEach(b => {
+    const div = document.createElement("div");
+    div.className = "preview-blur";
+    div.style.left = `${b.rect.left * scaleX}px`;
+    div.style.top = `${b.rect.top * scaleY}px`;
+    div.style.width = `${b.rect.width * scaleX}px`;
+    div.style.height = `${b.rect.height * scaleY}px`;
+    els.previewHighlights.appendChild(div);
+  });
+  
+  els.previewCaption.textContent = screen.interaction_ctx?.url || "";
+  
+  // Actualizar botones de navegación
+  els.previewPrev.disabled = currentPreviewIndex === 0;
+  els.previewNext.disabled = currentPreviewIndex === tour.screens.length - 1;
+}
+
+els.previewPrev.addEventListener("click", () => {
+  if (currentPreviewIndex > 0) {
+    currentPreviewIndex--;
+    renderPreview();
+  }
+});
+
+els.previewNext.addEventListener("click", () => {
+  if (currentPreviewTour && currentPreviewIndex < currentPreviewTour.screens.length - 1) {
+    currentPreviewIndex++;
+    renderPreview();
+  }
+});
+
+els.previewClose.addEventListener("click", () => {
+  els.previewOverlay.classList.add("hidden");
+  currentPreviewTour = null;
+});
+
+// ── Subir recorrido ──────────────────────────────────────────────
+async function uploadTour(tour, index) {
+  if (!confirm(`¿Subir "${tour.title}" al servidor?`)) return;
+  
+  showStatus("Subiendo recorrido...", "info");
+  
+  try {
+    const data = await uploadRecording(tour);
+    
+    // Marcar como subido
+    const library = await getLibrary();
+    library[index].uploaded = true;
+    library[index].uploaded_at = new Date().toISOString();
+    await setLibrary(library);
+    
+    renderLibrary();
+    showStatus(`Recorrido subido (${data.screens} pantallas, estado: ${data.status}).`, "ok");
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : "No se pudo subir el recorrido.", "error");
+  }
+}
+
+// ── Eliminar recorrido ───────────────────────────────────────────
+async function deleteTour(tour, index) {
+  if (!confirm(`¿Eliminar "${tour.title}" permanentemente?`)) return;
+  
+  const library = await getLibrary();
+  library.splice(index, 1);
+  await setLibrary(library);
+  
+  renderLibrary();
+  showStatus("Recorrido eliminado.", "ok");
+}
+
+// ── Eventos de UI (grabación) ────────────────────────────────────
 els.btnStart.addEventListener("click", async () => {
   clearStatus();
   const title = els.title.value.trim();
@@ -202,6 +641,7 @@ els.btnStart.addEventListener("click", async () => {
     status: els.status.value,
     server,
     screens: [],
+    created_at: new Date().toISOString(),
   };
   await setStoredRecording(recording);
   renderRecording(recording);
@@ -240,25 +680,33 @@ els.btnFinish.addEventListener("click", async () => {
   const recording = await getStoredRecording();
   if (!recording) return renderSetup();
   if (recording.screens.length === 0) {
-    return showStatus("Captura al menos una pantalla antes de subir.", "error");
+    return showStatus("Captura al menos una pantalla antes de guardar.", "error");
   }
-  els.btnFinish.disabled = true;
-  els.btnCancel.disabled = true;
-  showStatus("Subiendo recorrido…", "info");
-  try {
-    const data = await uploadRecording(recording);
-    await setStoredRecording(null);
-    renderSetup();
-    showStatus(
-      `Recorrido subido (${data.screens} pantallas, estado: ${data.status}). Revísalo en /preptour.`,
-      "ok",
-    );
-  } catch (err) {
-    showStatus(err instanceof Error ? err.message : "No se pudo subir el recorrido.", "error");
-  } finally {
-    els.btnFinish.disabled = false;
-    els.btnCancel.disabled = false;
-  }
+  
+  // Guardar en la biblioteca
+  const library = await getLibrary();
+  library.push({
+    ...recording,
+    id: crypto.randomUUID(),
+    updated_at: new Date().toISOString(),
+  });
+  await setLibrary(library);
+  
+  // Limpiar la grabación en curso
+  await setStoredRecording(null);
+  renderSetup();
+  
+  // Limpiar el formulario
+  els.title.value = "";
+  els.slug.value = "";
+  els.description.value = "";
+  
+  showStatus(`Recorrido guardado en "Mis recorridos" (${recording.screens.length} pantallas).`, "ok");
+  
+  // Cambiar a la pestaña de biblioteca
+  setTimeout(() => {
+    document.querySelector('.tab[data-tab="library"]').click();
+  }, 1000);
 });
 
 els.btnCancel.addEventListener("click", async () => {
