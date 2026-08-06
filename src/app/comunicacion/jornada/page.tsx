@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { summarizeDay, fmtMin, fmtTime, scheduleFor } from "@/lib/hours";
-import { getAttendanceStatus } from "@/lib/domain/attendance/status";
+import { getAttendanceStatus, type IncidentKind, type ResolveInput } from "@/lib/domain/attendance/status";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { Pill } from "@/components/ui";
@@ -9,7 +9,19 @@ import { syncPendingExits, getPendingExitsMap, exitPillFor } from "@/lib/pending
 import { ResolvePendingExit } from "@/components/os/resolve-pending-exit";
 import { RequestAttendanceCorrection } from "@/components/os/request-attendance-correction";
 import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
+import { AutoRefresh } from "@/components/shared/auto-refresh";
 import { DomainTabs } from "@/components/os/domain-tabs";
+
+// La corrección la aplica el admin y esta página la sirve el server —
+// nunca cachear para que el historial refleje siempre el último dato.
+export const dynamic = "force-dynamic";
+
+/** Motivos administrativos que explican una ausencia real (lo que prioriza el
+    resolver antes de "Sin iniciar"/falta) — se usan para el badge del historial. */
+const REASON_KEYS = new Set<string>([
+  "vacaciones", "incapacidad", "permiso", "comision", "home_office",
+  "falta_justificada", "dia_inhabil", "descanso", "evento_externo",
+]);
 
 export default async function Jornada() {
   const supabase = await createClient();
@@ -22,17 +34,31 @@ export default async function Jornada() {
   const role = profile!.role === "admin" ? "admin" : "empleado";
 
   const since = addDays(todayMerida(), -30);
-  const [{ data: att }, { data: sched }, { data: hols }, { data: jornadaStates }] = await Promise.all([
+  const [{ data: att }, { data: sched }, { data: hols }, { data: jornadaStates }, { data: myVacs }, { data: myIncs }, { data: myRests }] = await Promise.all([
     supabase.from("attendance").select("*").eq("user_id", profile!.id)
       .gte("date", since).order("date", { ascending: false }).order("time"),
     supabase.from("schedules").select("*").eq("user_id", profile!.id),
     supabase.from("holidays").select("date"),
     supabase.from("jornada_states").select("*").eq("activo", true),
+    // Motivos reales (vacaciones/incidencia/descanso aprobados o autorizados)
+    // que caen en la ventana — para que nunca se muestre "Sin iniciar" cuando
+    // existe una razón conocida (mismo resolver que el resto de EMET).
+    supabase.from("vacations").select("start_date, end_date")
+      .eq("user_id", profile!.id).eq("status", "Aprobada").is("archived_at", null)
+      .lte("start_date", todayMerida()).gte("end_date", since),
+    supabase.from("incidents").select("kind, note, start_date, end_date")
+      .eq("user_id", profile!.id).eq("status", "Autorizado").is("archived_at", null)
+      .lte("start_date", todayMerida()).gte("end_date", since),
+    supabase.from("rest_days").select("note, start_date, end_date")
+      .eq("user_id", profile!.id).lte("start_date", todayMerida()).gte("end_date", since),
   ]);
   const states = (jornadaStates ?? []) as JornadaState[];
 
   const scheds = (sched ?? []) as Schedule[];
   const holidaySet = new Set((hols ?? []).map((h) => h.date as string));
+  const myVacsRows = (myVacs ?? []) as { start_date: string; end_date: string }[];
+  const myIncsRows = (myIncs ?? []) as { kind: IncidentKind; note: string | null; start_date: string; end_date: string }[];
+  const myRestsRows = (myRests ?? []) as { note: string | null; start_date: string; end_date: string }[];
   const rows = (att ?? []) as AttendanceRow[];
   const dates = [...new Set(rows.map((r) => r.date))];
   const days = dates.map((d) => summarizeDay(
@@ -40,6 +66,20 @@ export default async function Jornada() {
   ));
   const totalMin = days.reduce((s, d) => s + d.totalMin, 0);
   const totalExtra = days.reduce((s, d) => s + d.extraMin, 0);
+
+  /** Motivos administrativos vigentes en `date` — mismas prioridades que el
+      resolver central: una razón conocida nunca deja que caiga a "Sin iniciar". */
+  const reasonInputsFor = (date: string): Pick<ResolveInput, "vacation" | "incident" | "isHoliday" | "restDay"> => {
+    const vac = myVacsRows.find((v) => v.start_date <= date && v.end_date >= date) ?? null;
+    const inc = myIncsRows.find((i) => i.start_date <= date && i.end_date >= date) ?? null;
+    const rd = myRestsRows.find((r) => r.start_date <= date && r.end_date >= date) ?? null;
+    return {
+      vacation: vac ? { start: vac.start_date, end: vac.end_date } : null,
+      incident: inc ? { kind: inc.kind, note: inc.note } : null,
+      isHoliday: holidaySet.has(date),
+      restDay: rd ? { note: rd.note } : null,
+    };
+  };
 
   // Días pasados que quedaron abiertos: nunca se muestran directamente como
   // "No registró salida" — se dan de alta en pending_exits (si no existían
@@ -57,7 +97,8 @@ export default async function Jornada() {
   const todayTargetMin = todayEntry?.targetMin ?? todaySchedule.target_min;
   const todayPresence = getAttendanceStatus({
     date: todayIso, today: todayIso, firstIn: todayEntry?.firstIn ?? null, isOpen: todayEntry?.isOpen ?? false,
-    noRegistroSalida: false, liveStateName: null, liveStateColor: null, isBusinessDay: true,
+    noRegistroSalida: false, liveStateName: null, liveStateColor: null,
+    ...reasonInputsFor(todayIso), isBusinessDay: true,
   });
   const todayStatus = todayPresence.label;
   const todayStatusColor = !todayEntry ? "var(--text-3)"
@@ -65,6 +106,7 @@ export default async function Jornada() {
 
   return (
     <>
+      <AutoRefresh />
       <DomainTabs domain="tiempo" role={role} />
       
       {/* Header compacto */}
@@ -127,9 +169,23 @@ export default async function Jornada() {
             const dateObj = new Date(d.date + "T00:00:00");
             const isHoliday = holidaySet.has(d.date);
             const label = dateObj.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
+
+            // Motivo real del día (Vacaciones/Permiso/Incapacidad/Día inhábil/
+            // Descanso) vía el resolver central — un día sin fichar pero con
+            // razón conocida nunca debe quedar como "Sin registros".
+            const dayReason = (() => {
+              const wd = dateObj.getDay();
+              const s = getAttendanceStatus({
+                date: d.date, today: todayIso, firstIn: d.firstIn, isOpen: d.isOpen, noRegistroSalida: d.noRegistroSalida,
+                liveStateName: null, liveStateColor: null,
+                ...reasonInputsFor(d.date), isBusinessDay: wd !== 0 && wd !== 6,
+              });
+              return REASON_KEYS.has(s.key) ? s : null;
+            })();
             
             // Color según cumplimiento
-            const dayColor = isHoliday ? "var(--accent)" 
+            const dayColor = dayReason ? dayReason.color
+              : isHoliday ? "var(--accent)" 
               : d.noRegistroSalida ? "var(--danger)"
               : d.isOpen ? "var(--ok)"
               : d.metTarget ? "var(--ok)" 
@@ -158,8 +214,11 @@ export default async function Jornada() {
                       </span>
                     )}
                     
-                    {/* Badge de estado */}
-                    {isHoliday
+                    {/* Badge de estado — motivo real (vacaciones/permiso/etc.)
+                        antes que el matiz de cumplimiento */}
+                    {dayReason
+                      ? <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: dayReason.badgeVariant === "muted" ? "var(--surface-2)" : `var(--${dayReason.badgeVariant}-tint)`, color: dayReason.color }}>{dayReason.label}</span>
+                      : isHoliday
                       ? <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>Inhábil</span>
                       : d.noRegistroSalida 
                         ? <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "var(--danger-tint)", color: "var(--danger)" }}>Pendiente</span>

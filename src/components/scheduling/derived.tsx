@@ -21,7 +21,7 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 
 /* ── DateTimePicker ── */
 export function DateTimePicker({
-  value, onChange, className, placeholder = "Selecciona fecha y hora", title = "Selecciona fecha y hora", stepMin = 10,
+  value, onChange, className, placeholder = "Selecciona fecha y hora", title = "Selecciona fecha y hora", stepMin = 5,
 }: {
   value: string | null; onChange: (v: string) => void; className?: string;
   placeholder?: string; title?: string; stepMin?: number;

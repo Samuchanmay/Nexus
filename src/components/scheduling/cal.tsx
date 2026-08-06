@@ -222,7 +222,7 @@ export function AvailabilityPicker({
       return { ...d, [key]: next };
     });
 
-  const stepMin = 30;
+  const stepMin = 5;
   const minutes = useMemo(() => Array.from({ length: 60 / stepMin }, (_, i) => pad2(i * stepMin)), [stepMin]);
   const hours = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
   const meridiem = ["AM", "PM"];

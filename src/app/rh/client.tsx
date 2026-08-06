@@ -154,9 +154,10 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
 const PERIODS = ["Semana", "Quincena", "Mes", "Trimestre"];
 const PERIOD_DAYS: Record<string, number> = { Semana: 7, Quincena: 15, Mes: 30, Trimestre: 92 };
 
-export default function RHClient({ team, attendance, schedules, vacations, holidays, states }: {
+export default function RHClient({ team, attendance, schedules, vacations, holidays, states, incidents }: {
   team: Member[]; attendance: AttendanceRow[]; schedules: Schedule[];
   vacations: Vacation[]; holidays: { date: string; name: string }[]; states: JornadaState[];
+  incidents: { user_id: string; kind: string; note: string | null; start_date: string; end_date: string }[];
 }) {
   const [period, setPeriod] = usePersistedView("rh.period", PERIODS, "Quincena");
 
@@ -267,6 +268,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
   /** Motivo de ausencia para un día usando el Attendance Status Resolver. */
   const absenceReasonFor = (userId: string, date: string): string | undefined => {
     const vac = vacations.find((v) => v.user_id === userId && v.start_date <= date && v.end_date >= date && v.status === "Aprobada");
+    const inc = incidents.find((i) => i.user_id === userId && i.start_date <= date && i.end_date >= date);
     const isHoliday = holidays.some((h) => h.date === date);
     const wd = new Date(date + "T12:00:00Z").getUTCDay();
     const s = getAttendanceStatus({
@@ -276,7 +278,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       isOpen: false,
       noRegistroSalida: false,
       vacation: vac ? { start: vac.start_date, end: vac.end_date } : null,
-      incident: null,
+      incident: inc ? { kind: inc.kind as IncidentKind, note: inc.note } : null,
       isHoliday,
       restDay: wd === 0 ? { note: "Descanso" } : null,
       isBusinessDay: wd !== 0,
@@ -365,7 +367,7 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
     }
     
     return blocks.sort((a, b) => b.weekStart.localeCompare(a.weekStart) || a.name.localeCompare(b.name));
-  }, [attendance, team, schedules, states, vacations, holidays, period]);
+  }, [attendance, team, schedules, states, vacations, holidays, incidents, period]);
 
   return (
     <>

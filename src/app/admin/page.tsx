@@ -169,6 +169,7 @@ export default async function AdminDashboard() {
       // hoy — kind:"permiso" ya solo afecta la etiqueta/tono, nunca cuál
       // usuario aparece marcado.
       incident: onIncident.has(u.id) && !firstIn ? { kind: "permiso" } : null,
+      isHoliday: !!holidayToday,
       isBusinessDay: true,
     });
     const status = done ? "Terminó" : presenceStatus.label;

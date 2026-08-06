@@ -11,7 +11,7 @@ import EquipoClient, { type TeamMember } from "./client";
 export default async function Equipo() {
   const supabase = await createClient();
   const today = todayMerida();
-  const [{ data: team }, { data: assignments }, { data: att }, { data: scheds }, { data: vacs }, { data: incs }, { data: jornadaStates }, { data: activityTypes }] =
+  const [{ data: team }, { data: assignments }, { data: att }, { data: scheds }, { data: vacs }, { data: incs }, { data: jornadaStates }, { data: activityTypes }, { data: hols }, { data: restDays }] =
     await Promise.all([
       supabase.from("users").select("id, display_name, full_name, nexus_color, specialties, area, avatar_url, birth_date")
         .eq("active", true).in("role", ["admin", "empleado"]),
@@ -21,10 +21,14 @@ export default async function Equipo() {
       supabase.from("schedules").select("*"),
       supabase.from("vacations").select("user_id, start_date, end_date, status")
         .in("status", ["Aprobada", "Pendiente"]).is("archived_at", null).gte("end_date", today).order("start_date").limit(40),
+      // Autorizado + Pendiente: lo Pendiente alimenta el panel contextual; lo
+      // Autorizado explica el estado del día (permiso/incapacidad hoy) en el resolver.
       supabase.from("incidents").select("user_id, kind, start_date, end_date, status")
-        .eq("status", "Pendiente").order("start_date"),
+        .in("status", ["Autorizado", "Pendiente"]).order("start_date"),
       supabase.from("jornada_states").select("*").eq("activo", true),
       supabase.from("activity_types").select("*"),
+      supabase.from("holidays").select("date"),
+      supabase.from("rest_days").select("user_id, note, start_date, end_date"),
     ]);
   const states = (jornadaStates ?? []) as JornadaState[];
   const stateColor = new Map(states.map((s) => [s.nombre, s.color]));
@@ -71,6 +75,10 @@ export default async function Equipo() {
         .map((v) => ({ start_date: v.start_date, end_date: v.end_date, status: v.status })),
       pendingIncs: (incs ?? []).filter((i) => i.user_id === u.id)
         .map((i) => ({ kind: i.kind as Incident["kind"], start_date: i.start_date, end_date: i.end_date, status: i.status as Incident["status"] })),
+      todayIncident: (incs ?? []).find((i) => i.user_id === u.id && i.status === "Autorizado" && i.start_date <= today && i.end_date >= today)
+        ?.kind as Incident["kind"] ?? null,
+      todayRestDay: (restDays ?? []).find((r) => r.user_id === u.id && r.start_date <= today && r.end_date >= today)?.note as string | null ?? null,
+      isHolidayToday: (hols ?? []).some((h) => h.date === today),
     };
   });
 

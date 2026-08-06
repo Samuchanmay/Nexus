@@ -37,6 +37,9 @@ export interface TeamMember {
   };
   upcomingVacs: { start_date: string; end_date: string; status: string }[];
   pendingIncs: { kind: Incident["kind"]; start_date: string; end_date: string; status: Incident["status"] }[];
+  todayIncident: Incident["kind"] | null;
+  todayRestDay: string | null;
+  isHolidayToday: boolean;
 }
 
 // Carga expresada como sensación, no como número suelto — entendible sin
@@ -87,7 +90,10 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                   const presence = getAttendanceStatus({
                     date: today, today, firstIn: u.today.firstIn, isOpen: u.today.isOpen, noRegistroSalida: u.today.noRegistroSalida,
                     liveStateName: u.today.stateName, liveStateColor: u.today.stateColor,
-                    vacation: vac.today ? { start: today, end: today } : null, isBusinessDay: true,
+                    vacation: vac.today ? { start: today, end: today } : null,
+                    incident: u.todayIncident ? { kind: u.todayIncident } : null,
+                    isHoliday: u.isHolidayToday, restDay: u.todayRestDay ? { note: u.todayRestDay } : null,
+                    isBusinessDay: true,
                   });
                   const showSoon = vac.soonDays != null && !vac.today;
                   return (
@@ -149,7 +155,10 @@ export default function EquipoClient({ members, today }: { members: TeamMember[]
                 const presence = getAttendanceStatus({
                   date: today, today, firstIn: sel.today.firstIn, isOpen: sel.today.isOpen, noRegistroSalida: sel.today.noRegistroSalida,
                   liveStateName: sel.today.stateName, liveStateColor: sel.today.stateColor,
-                  vacation: vac.today ? { start: today, end: today } : null, isBusinessDay: true,
+                  vacation: vac.today ? { start: today, end: today } : null,
+                  incident: sel.todayIncident ? { kind: sel.todayIncident } : null,
+                  isHoliday: sel.isHolidayToday, restDay: sel.todayRestDay ? { note: sel.todayRestDay } : null,
+                  isBusinessDay: true,
                 });
                 if (vac.today) {
                   const current = sel.upcomingVacs.find((v) => v.status === "Aprobada" && v.start_date <= today && v.end_date >= today);

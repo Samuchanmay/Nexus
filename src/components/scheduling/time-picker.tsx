@@ -107,7 +107,7 @@ export function Wheel({
 }
 
 export function TimePicker({
-  value, onChange, placeholder = "Seleccionar hora", className, disabled, stepMin = 10, title = "Selecciona una hora",
+  value, onChange, placeholder = "Seleccionar hora", className, disabled, stepMin = 5, title = "Selecciona una hora",
   minTime, maxTime,
 }: {
   value: string; onChange: (v: string) => void; placeholder?: string; className?: string; disabled?: boolean;

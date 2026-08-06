@@ -7,7 +7,7 @@ import { todayMerida, addDays } from "@/lib/tz";
 export default async function RHDashboard() {
   const supabase = await createClient();
   const since = addDays(todayMerida(), -92);
-  const [{ data: team }, { data: att }, { data: scheds }, { data: vacs }, { data: hols }, { data: jornadaStates }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: scheds }, { data: vacs }, { data: hols }, { data: jornadaStates }, { data: incs }] = await Promise.all([
     supabase.from("users").select("id, full_name, display_name, nexus_color, avatar_url, birth_date, area, title, vacation_balance, vacation_days_per_year, hire_date, vacation_balance_reset")
       .eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").gte("date", since).order("date").order("time"),
@@ -15,6 +15,9 @@ export default async function RHDashboard() {
     supabase.from("vacations").select("*, users(full_name, display_name, nexus_color, avatar_url, birth_date)").is("archived_at", null).order("start_date", { ascending: false }),
     supabase.from("holidays").select("date, name"),
     supabase.from("jornada_states").select("*").eq("activo", true),
+    supabase.from("incidents").select("user_id, kind, note, start_date, end_date")
+      .eq("status", "Autorizado").is("archived_at", null)
+      .lte("start_date", todayMerida()).gte("end_date", since),
   ]);
   return (
     <RHClient
@@ -27,6 +30,7 @@ export default async function RHDashboard() {
       vacations={(vacs ?? []) as unknown as Vacation[]}
       holidays={(hols ?? []) as { date: string; name: string }[]}
       states={(jornadaStates ?? []) as JornadaState[]}
+      incidents={(incs ?? []) as { user_id: string; kind: string; note: string | null; start_date: string; end_date: string }[]}
     />
   );
 }
