@@ -1114,17 +1114,17 @@ export default function EmpleadosClient({
                 <SectionLabel>Configuración</SectionLabel>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                    <label htmlFor="emp-full-days-per-year" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
                       Días asignados/año
                     </label>
-                    <input type="number" className="field-input" value={editForm.daysPerYear}
+                    <input id="emp-full-days-per-year" type="number" className="field-input" value={editForm.daysPerYear}
                       onChange={(e) => setEditForm({ ...editForm, daysPerYear: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
+                    <label htmlFor="emp-full-balance" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
                       Saldo actual (días)
                     </label>
-                    <input type="number" className="field-input" value={editForm.balance}
+                    <input id="emp-full-balance" type="number" className="field-input" value={editForm.balance}
                       onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })} />
                   </div>
                 </div>
