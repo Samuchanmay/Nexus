@@ -70,14 +70,17 @@ let currentPreviewIndex = 0;
 chrome.runtime.onMessage.addListener((msg) => {
   if (!msg || msg.type !== "recording-updated") return;
   const editing = !els.recordingView.classList.contains("hidden");
-  if (!editing) return;
-  getStoredRecording().then((recording) => {
-    if (recording) renderRecording(recording);
-  });
+  if (editing) {
+    getStoredRecording().then((recording) => {
+      if (recording) renderRecording(recording);
+    });
+  }
   if (msg.captured) {
     showStatus(`Pantalla ${msg.index + 1} capturada (atajo).`, "ok");
   } else if (msg.error) {
     showStatus(msg.error, "error");
+  } else if (msg.cancelled) {
+    showStatus("Captura cancelada.", "info");
   }
 });
 
@@ -248,6 +251,27 @@ async function captureCurrentScreen() {
     highlights: [],
     blurs: [],
   };
+}
+
+// ── Countdown de preparación pre-captura ─────────────────────────
+async function runCountdown(seconds = 3) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.id) return true;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["countdown.js"],
+    });
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (secs) => window.__emetRecorridosCountdown(secs),
+      args: [seconds],
+    });
+    return !!(results && results[0] && results[0].result);
+  } catch (e) {
+    console.warn("[recorridos] no se pudo mostrar el contador:", e);
+    return true; // si el contador falla, no bloquear la captura
+  }
 }
 
 // ── Subida final ─────────────────────────────────────────────────
@@ -689,6 +713,11 @@ els.btnCapture.addEventListener("click", async () => {
   try {
     const recording = await getStoredRecording();
     if (!recording) return renderSetup();
+    const proceed = await runCountdown();
+    if (!proceed) {
+      showStatus("Captura cancelada.", "info");
+      return;
+    }
     const screen = await captureCurrentScreen();
     recording.screens.push(screen);
     await setStoredRecording(recording);

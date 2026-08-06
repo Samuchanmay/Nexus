@@ -91,12 +91,39 @@ async function captureCurrentScreen() {
   };
 }
 
+// ── Countdown de preparación pre-captura ─────────────────────────
+async function runCountdown(seconds = 3) {
+  const tab = await getActiveTab();
+  if (!tab || !tab.id) return true;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["countdown.js"],
+    });
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (secs) => window.__emetRecorridosCountdown(secs),
+      args: [seconds],
+    });
+    return !!(results && results[0] && results[0].result);
+  } catch (e) {
+    console.warn("[recorridos] no se pudo mostrar el contador:", e);
+    return true;
+  }
+}
+
 // ── Atajo: capturar pantalla ──────────────────────────────────────
 async function handleCapture() {
   const recording = await getStoredRecording();
   if (!recording) {
     // Sin grabación en curso: abre el popup para que empiece una.
     await openPopup();
+    return;
+  }
+
+  const proceed = await runCountdown();
+  if (!proceed) {
+    notifyPopup({ cancelled: true });
     return;
   }
 

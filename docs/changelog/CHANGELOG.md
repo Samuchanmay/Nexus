@@ -2,6 +2,18 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-06 · Extensión de recorridos: contador de preparación pre-captura
+
+### Qué cambió
+- **Contador 3-2-1** (`countdown.js`): antes de cada captura (botón o atajo `Ctrl+Shift+E`) aparece un overlay centrado en la página para que el cursor y las ventanas flotantes queden fuera del área a capturar. `Enter`/"Capturar ahora" captura al instante; `Esc`/"Cancelar" aborta. El overlay se elimina justo antes de tomar la captura, así que nunca sale en la pantalla guardada.
+- Si el contador no puede inyectarse (página no-web), la captura continúa normal sin bloquear.
+
+### Archivos
+- `recorridos-extension/countdown.js` (nuevo)
+- `recorridos-extension/popup.js`, `background.js`
+- `recorridos-extension/manifest.json` (versión 1.2.0)
+- `recorridos-extension/README.md`
+
 ## 2026-08-06 · Extensión de recorridos v4: pulido (rediseño + atajos de teclado + editor)
 
 ### Qué cambió

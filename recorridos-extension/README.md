@@ -48,6 +48,17 @@ página, sin tener el popup abierto:
 El popup se refresca solo cuando capturas con el atajo. Si no hay una
 grabación en curso, el atajo de captura simplemente abre el popup.
 
+## Contador de preparación
+
+Cada captura (botón o atajo) muestra un contador 3-2-1 centrado en la
+página para que tengas el cursor y las ventanas fuera del área a capturar:
+
+- `Enter` (o botón "Capturar ahora") — captura de inmediato.
+- `Esc` (o botón "Cancelar") — aborta la captura.
+
+El contador es solo visual: la captura se toma justo al terminar, así que
+el overlay nunca sale en la pantalla guardada.
+
 ## Editor de pasos
 
 Desde "Mis recorridos" → "Editar" puedes:
@@ -96,6 +107,7 @@ recorridos-extension/
 ├── background.js        Service worker: captura con Ctrl+Shift+E y abre popup
 ├── popup.html/.css/.js  UI del popup y orquestación de captura/subida/edición
 ├── content-capture.js   Serializador DOM → SerNode, inyectado bajo demanda
+├── countdown.js         Contador 3-2-1 de preparación antes de cada captura
 ├── select-mode.js       Modo selección: highlights/blurs por clic sobre el DOM
 └── README.md
 ```
