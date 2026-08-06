@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "EMET Recorridos — Grabadora de demos",
+  "version": "1.0.0",
+  "description": "Captura pantallas de EMET paso a paso y las sube como un recorrido (demo) para el onboarding de empleados.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Recorridos EMET"
+  },
+  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+  "host_permissions": [
+    "https://emet.uno/*",
+    "http://localhost:3000/*",
+    "http://localhost/*",
+    "http://127.0.0.1:3000/*"
+  ]
+}

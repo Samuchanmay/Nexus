@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Recorridos EMET</title>
+<link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="hd">
+    <span class="hd-dot"></span>
+    <h1>Recorridos EMET</h1>
+  </header>
+
+  <!-- ── Vista 1: configurar y arrancar una grabación nueva ── -->
+  <section id="setup-view">
+    <label>
+      Título del recorrido
+      <input id="f-title" type="text" placeholder="Cómo fichar tu entrada" />
+    </label>
+    <label>
+      Slug (URL)
+      <input id="f-slug" type="text" placeholder="como-fichar-tu-entrada" />
+    </label>
+    <label>
+      Descripción (opcional)
+      <textarea id="f-description" rows="2" placeholder="Qué aprende el empleado en este recorrido"></textarea>
+    </label>
+    <label>
+      Dirigido a
+      <select id="f-role">
+        <option value="todos">Todos</option>
+        <option value="empleado">Empleados</option>
+        <option value="admin">Admin</option>
+        <option value="rh">RH</option>
+        <option value="coordinador">Coordinadores</option>
+        <option value="departamento">Departamentos</option>
+      </select>
+    </label>
+    <label>
+      Estado al terminar
+      <select id="f-status">
+        <option value="borrador">Borrador (revisar antes de publicar)</option>
+        <option value="publicado">Publicado (visible de inmediato)</option>
+      </select>
+    </label>
+    <label>
+      Servidor de EMET
+      <input id="f-server" type="text" placeholder="https://emet.uno" />
+    </label>
+    <button id="btn-start" class="primary">Iniciar grabación</button>
+    <p class="hint">
+      Abre la pestaña donde vas a grabar antes de iniciar. Cada clic en
+      «Capturar pantalla» guarda el estado actual de esa pestaña como un
+      paso del recorrido.
+    </p>
+  </section>
+
+  <!-- ── Vista 2: grabación en curso ── -->
+  <section id="recording-view" class="hidden">
+    <div class="rec-title">
+      <span class="rec-dot"></span>
+      <strong id="rec-title-text">—</strong>
+    </div>
+    <p class="rec-count"><span id="rec-count">0</span> pantalla(s) capturadas</p>
+    <ol id="rec-list" class="rec-list"></ol>
+    <div class="rec-actions">
+      <button id="btn-capture" class="primary">Capturar pantalla actual</button>
+      <button id="btn-undo" class="subtle">Deshacer última</button>
+    </div>
+    <div class="rec-actions">
+      <button id="btn-finish" class="primary">Finalizar y subir</button>
+      <button id="btn-cancel" class="danger">Cancelar grabación</button>
+    </div>
+  </section>
+
+  <p id="status-line" class="status hidden"></p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
