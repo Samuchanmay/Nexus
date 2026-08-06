@@ -203,6 +203,24 @@ export default function EnlaceConversationClient({
   // messages_insert, FASE W6 cierre).
   const puedoEscribir = conversation.type !== "announcement" || myRole === "admin";
 
+  // Estado "Conectado" — muestra un toast breve al volver online después de
+  // estar desconectado (mismo patrón que Signal/WhatsApp).
+  const [showOnlineToast, setShowOnlineToast] = useState(false);
+  const onlineToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const onOnline = () => {
+      setShowOnlineToast(true);
+      if (onlineToastTimer.current) clearTimeout(onlineToastTimer.current);
+      onlineToastTimer.current = setTimeout(() => setShowOnlineToast(false), 2000);
+    };
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      if (onlineToastTimer.current) clearTimeout(onlineToastTimer.current);
+    };
+  }, []);
+
   useEffect(() => {
     // Deep-link (?msg=): el salto al mensaje ya está en vuelo (jumpTarget),
     // no bajar al fondo — el scroll suave al mensaje sería cancelado por el
@@ -380,6 +398,11 @@ export default function EnlaceConversationClient({
               setArrivalKey(row.id);
               if (arrivalTimer.current) clearTimeout(arrivalTimer.current);
               arrivalTimer.current = setTimeout(() => setArrivalKey((k) => (k === row.id ? null : k)), 450);
+              // Vibración sutil (20ms) al recibir mensaje — misma duración
+              // que el háptico del swipe (spec chat §3: feedback táctil
+              // consistente). navigator.vibrate es no-op en iOS Safari y
+              // desktop, así que no necesita feature detection.
+              if ("vibrate" in navigator) navigator.vibrate(20);
               if (document.visibilityState === "visible") {
                 playMessageReceived();
               } else {
@@ -1053,6 +1076,16 @@ export default function EnlaceConversationClient({
           </button>
         )}
 
+        {showOnlineToast && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 z-[6] h-8 px-4 rounded-full text-[12px] font-semibold text-white inline-flex items-center gap-1.5 pointer-events-none"
+            style={{ bottom: 140, background: "var(--ok)", boxShadow: "0 4px 12px rgba(48,209,88,0.35)", animation: "nx-menu-in .2s var(--ease)" }}
+          >
+            <Icon name="check" size={12} />
+            Conectado
+          </div>
+        )}
+
         {upload.error && (
           <div className="mt-2 shrink-0 flex items-center gap-2 rounded-[10px] px-3 py-2" style={{ background: "var(--danger-tint)" }}>
             <Icon name="close" size={13} style={{ color: "var(--danger)" }} />
@@ -1063,13 +1096,26 @@ export default function EnlaceConversationClient({
         )}
 
         {replyTo && (
-          <div className="mt-2 shrink-0 flex items-center gap-2 rounded-[12px] px-3 py-2" style={{ background: "var(--surface-2)" }}>
-            <Icon name="reply" size={14} style={{ color: "var(--accent)", flexShrink: 0 }} aria-hidden />
-            <span className="text-[12px] flex-1 truncate">
-              <span className="font-semibold" style={{ color: "var(--accent)" }}>Respondiendo: </span>
-              {messagePreview(replyTo)}
-            </span>
-            <button onClick={() => setReplyTo(null)}><Icon name="close" size={12} style={{ color: "var(--text-3)" }} /></button>
+          <div className="mt-2 shrink-0 rounded-[12px] px-3 py-2" style={{ background: "var(--surface-2)", borderLeft: "3px solid var(--accent)" }}>
+            <div className="flex items-start gap-2">
+              <Avatar
+                name={peopleById.get(replyTo.sender_id)?.display_name ?? "?"}
+                avatarUrl={peopleById.get(replyTo.sender_id)?.avatar_url}
+                color={peopleById.get(replyTo.sender_id)?.nexus_color}
+                size={24}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold truncate" style={{ color: "var(--accent)" }}>
+                  {replyTo.sender_id === myId ? "Tú" : (peopleById.get(replyTo.sender_id)?.display_name ?? "Alguien")}
+                </p>
+                <p className="text-[12px] truncate" style={{ color: "var(--text-2)" }}>
+                  {messagePreview(replyTo)}
+                </p>
+              </div>
+              <button onClick={() => setReplyTo(null)} className="shrink-0 p-1 -m-1 rounded-full hover:bg-hover">
+                <Icon name="close" size={12} style={{ color: "var(--text-3)" }} />
+              </button>
+            </div>
           </div>
         )}
 

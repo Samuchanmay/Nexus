@@ -252,6 +252,6 @@ Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación
 
 ## Próximo hito sugerido
 
-**Fase 3 completa** (2026-08-05): búsqueda cross-conversación ✅, "Leído por …" en grupos ✅, "eliminar para mí" ✅, outbox con retry y backoff ✅. Pendiente: aplicar la migración 0037 en el SQL Editor de emet.uno (`docs/MIGRACIONES-APLICAR-0037-CHAT-LECTURAS-Y-OCULTAR.sql`).
+**Fase 4 completa** (2026-08-05): miniatura en responder ✅, estado "Conectado" ✅, vibración al recibir ✅. Pendiente: aplicar las migraciones 0025-0038 en el SQL Editor de emet.uno (ver `docs/DEPLOY-INFRASTRUCTURE.md`).
 
-Siguiente fase sugerida: **Fase 4 — IA y productividad** (resúmenes de conversación, búsqueda semántica, miniatura en responder).
+Siguiente fase sugerida: **Fase 5 — IA y productividad** (resúmenes de conversación, búsqueda semántica, estados de presencia).

@@ -2,6 +2,16 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Chat Fase 4: miniatura en responder + estado "Conectado" + vibración
+
+### Qué cambió
+- **Miniatura en responder** (estilo Signal/WhatsApp): la barra de respuesta ahora muestra avatar del remitente, nombre (en grupos), preview del contenido y borde izquierdo de color. Reemplaza el texto plano "Respondiendo: ..." por un preview rico y visual.
+- **Estado "Conectado"**: al volver online después de estar desconectado, aparece un toast verde "✓ Conectado" durante 2 segundos (mismo patrón que Signal/WhatsApp). No interfiere con la UI, se desvanece automáticamente.
+- **Vibración al recibir mensaje**: al recibir un mensaje nuevo de otro usuario (conversación no silenciada), el dispositivo vibra 20ms (mismo duration que el háptico del swipe). `navigator.vibrate` es no-op en iOS Safari y desktop, así que no necesita feature detection.
+
+### Archivos
+- `src/app/chat/[id]/client.tsx`
+
 ## 2026-08-05 · Infraestructura documentada para despliegue
 
 ### Documentos creados
