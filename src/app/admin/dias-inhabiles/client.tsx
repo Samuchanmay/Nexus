@@ -396,7 +396,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
           ) : (
             <div className="flex gap-2.5 mt-1">
               {editing && (
-                <button className="btn-secondary px-3.5 py-3 text-[14px] flex items-center gap-1.5" onClick={() => setConfirmDelete(true)}>
+                <button className="btn-secondary px-3.5 py-3 text-[14px] flex items-center gap-1.5" onClick={() => setConfirmDelete(true)} aria-label="Eliminar día inhábil">
                   <IconTrash className="w-3.5 h-3.5" />
                 </button>
               )}

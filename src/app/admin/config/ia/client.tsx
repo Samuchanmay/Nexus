@@ -114,8 +114,9 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">API Key</label>
+            <label htmlFor="ai-openai-key" className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">API Key</label>
             <input
+              id="ai-openai-key"
               type="password"
               value={config.ai_openai_api_key}
               onChange={(e) => setConfig((prev) => ({ ...prev, ai_openai_api_key: e.target.value }))}
@@ -135,8 +136,9 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
             )}
           </div>
           <div>
-            <label className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo para resúmenes</label>
+            <label htmlFor="ai-openai-summary-model" className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo para resúmenes</label>
             <select
+              id="ai-openai-summary-model"
               value={config.ai_openai_model}
               onChange={(e) => updateConfig("ai_openai_model", e.target.value)}
               disabled={saving === "ai_openai_model"}
@@ -148,8 +150,9 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
             </select>
           </div>
           <div>
-            <label className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo para embeddings</label>
+            <label htmlFor="ai-openai-embeddings-model" className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo para embeddings</label>
             <select
+              id="ai-openai-embeddings-model"
               value={config.ai_openai_embeddings_model}
               onChange={(e) => updateConfig("ai_openai_embeddings_model", e.target.value)}
               disabled={saving === "ai_openai_embeddings_model"}
@@ -171,8 +174,9 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">API Key</label>
+            <label htmlFor="ai-anthropic-key" className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">API Key</label>
             <input
+              id="ai-anthropic-key"
               type="password"
               value={config.ai_anthropic_api_key}
               onChange={(e) => setConfig((prev) => ({ ...prev, ai_anthropic_api_key: e.target.value }))}
@@ -192,8 +196,9 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
             )}
           </div>
           <div>
-            <label className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo para resúmenes</label>
+            <label htmlFor="ai-anthropic-summary-model" className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo para resúmenes</label>
             <select
+              id="ai-anthropic-summary-model"
               value={config.ai_anthropic_model}
               onChange={(e) => updateConfig("ai_anthropic_model", e.target.value)}
               disabled={saving === "ai_anthropic_model"}
@@ -215,8 +220,9 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">API Key</label>
+            <label htmlFor="ai-openrouter-key" className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">API Key</label>
             <input
+              id="ai-openrouter-key"
               type="password"
               value={config.ai_openrouter_api_key}
               onChange={(e) => setConfig((prev) => ({ ...prev, ai_openrouter_api_key: e.target.value }))}
@@ -236,8 +242,9 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
             )}
           </div>
           <div>
-            <label className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo</label>
+            <label htmlFor="ai-openrouter-model" className="text-[12.5px] font-semibold text-text-2 mb-1.5 block">Modelo</label>
             <input
+              id="ai-openrouter-model"
               type="text"
               value={config.ai_openrouter_model}
               onChange={(e) => setConfig((prev) => ({ ...prev, ai_openrouter_model: e.target.value }))}

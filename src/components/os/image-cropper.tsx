@@ -113,7 +113,7 @@ export function ImageCropper({ file, onCancel, onSave }: {
             {imgUrl && natural.w > 0 && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={imgUrl} alt="" draggable={false}
+                src={imgUrl} alt="Foto que estás recortando" draggable={false}
                 style={{
                   position: "absolute", left: "50%", top: "50%",
                   width: natural.w * scale, height: natural.h * scale,

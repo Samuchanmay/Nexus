@@ -153,7 +153,7 @@ export function ThreadPanel({ open, onClose, root, myId, peopleById, onSend }: {
           value={draft} onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } }}
         />
-        <button className="btn-primary px-3 py-2 text-[13px] shrink-0" disabled={!draft.trim()} onClick={enviar}>
+        <button className="btn-primary px-3 py-2 text-[13px] shrink-0" disabled={!draft.trim()} onClick={enviar} aria-label="Enviar">
           <Icon name="send" size={14} />
         </button>
       </div>

@@ -11,7 +11,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Sheet, Select, SlidingSegments, useToast } from "@/components/ui";
 import { Badge, EmptyState } from "@/components/os/ui";
-import { Icon } from "@/components/os/icons";
 import { notifyUser } from "@/lib/notify";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -131,8 +130,8 @@ export default function SoporteAdminClient({ adminId, initialTickets }: { adminI
               />
             </div>
             <div>
-              <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Respuesta (opcional)</label>
-              <textarea className="field-input resize-none" rows={4} placeholder="Explica qué se hizo o qué falta…"
+              <label htmlFor="soporte-respuesta" className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Respuesta (opcional)</label>
+              <textarea id="soporte-respuesta" className="field-input resize-none" rows={4} placeholder="Explica qué se hizo o qué falta…"
                 value={response} onChange={(e) => setResponse(e.target.value)} />
             </div>
             <div className="flex gap-2.5 mt-1">

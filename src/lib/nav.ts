@@ -5,7 +5,7 @@ export type NavItem = {
   label: string;
   icon: string;
   roles: Role[] | "all";
-  section: "inicio" | "trabajo" | "chat" | "personas" | "tiempo" | "reportes" | "recorridos" | "config";
+  section: "inicio" | "trabajo" | "chat" | "personas" | "tiempo" | "reportes" | "recorridos" | "soporte" | "config";
 };
 
 /** Navegación única de EMET, organizada por dominio de negocio (no por
@@ -39,6 +39,9 @@ export const NAV: NavItem[] = [
   // esta entrada, solo el overlay resultante en su primer login.
   { key: "recorridos", label: "Recorridos", icon: "layers", roles: ["admin"], section: "recorridos" },
 
+  // Soporte — bandeja interna de reportes (FASE W8). Un clic, ambos roles.
+  { key: "soporte", label: "Soporte", icon: "info", roles: ["admin", "empleado"], section: "soporte" },
+
   { key: "config", label: "Configuración", icon: "settings", roles: ["admin"], section: "config" },
 ];
 
@@ -50,6 +53,7 @@ export const SECTIONS: { id: NavItem["section"]; label: string }[] = [
   { id: "tiempo", label: "Tiempo" },
   { id: "reportes", label: "Reportes" },
   { id: "recorridos", label: "Recorridos" },
+  { id: "soporte", label: "Soporte" },
   { id: "config", label: "Configuración" },
 ];
 
@@ -94,6 +98,7 @@ export const HREF: Record<Role, Record<string, string>> = {
     asistencia: "/admin/asistencia",
     "dias-inhabiles": "/admin/dias-inhabiles",
     recorridos: "/preptour",
+    soporte: "/admin/soporte",
   },
   empleado: {
     hoy: "/comunicacion",
@@ -105,6 +110,7 @@ export const HREF: Record<Role, Record<string, string>> = {
     jornada: "/comunicacion/jornada",
     vacaciones: "/comunicacion/vacaciones",
     incidencias: "/comunicacion/incidencias",
+    soporte: "/comunicacion/soporte",
   },
   coordinador: { hoy: "/coordinador" },
   departamento: { hoy: "/coordinador" },

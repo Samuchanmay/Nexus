@@ -668,21 +668,21 @@ export default function EmpleadosClient({
           </Field>
 
           <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo Google *</label>
-            <input className="field-input" placeholder="nombre@cert.edu.mx" type="email" aria-required="true"
+            <label htmlFor="emp-add-email" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Correo Google *</label>
+            <input id="emp-add-email" className="field-input" placeholder="nombre@cert.edu.mx" type="email" aria-required="true"
               aria-invalid={attemptedSave && !form.email.trim() ? "true" : undefined}
               value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo *</label>
-              <input className="field-input" placeholder="Nombre Apellido" aria-required="true"
+              <label htmlFor="emp-add-fullname" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo *</label>
+              <input id="emp-add-fullname" className="field-input" placeholder="Nombre Apellido" aria-required="true"
                 aria-invalid={attemptedSave && !form.full_name.trim() ? "true" : undefined}
                 value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
             </div>
             <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
-              <input className="field-input" placeholder="Como aparece en la app"
+              <label htmlFor="emp-add-displayname" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
+              <input id="emp-add-displayname" className="field-input" placeholder="Como aparece en la app"
                 value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
             </div>
           </div>
@@ -690,13 +690,13 @@ export default function EmpleadosClient({
           {!isEquipo && (
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
-                <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
+                <label htmlFor="emp-add-honorific" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
+                <input id="emp-add-honorific" className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
                   value={form.honorific} onChange={(e) => setForm({ ...form, honorific: e.target.value })} />
               </div>
               <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
-                <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
+                <label htmlFor="emp-add-title" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                <input id="emp-add-title" className="field-input" placeholder="Ej. Coordinador en Enfermería"
                   value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </div>
             </div>
@@ -705,8 +705,8 @@ export default function EmpleadosClient({
           {isEquipo && (
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
-                <input className="field-input" placeholder="Ej. Coordinador de Video"
+                <label htmlFor="emp-add-title-equipo" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                <input id="emp-add-title-equipo" className="field-input" placeholder="Ej. Coordinador de Video"
                   value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </div>
               <div>
@@ -728,8 +728,8 @@ export default function EmpleadosClient({
                 onChange={(v) => setForm({ ...form, area_id: v })} />
             : isEquipo ? (
               <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Área</label>
-                <input className="field-input" placeholder="Comunicación"
+                <label htmlFor="emp-add-area" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Área</label>
+                <input id="emp-add-area" className="field-input" placeholder="Comunicación"
                   value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
               </div>
             ) : null}
@@ -772,14 +772,14 @@ export default function EmpleadosClient({
                     onChange={(v) => setForm({ ...form, end: v })} />
                 </div>
                 <div>
-                  <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Objetivo (horas)</label>
-                  <input type="number" step="0.5" min="1" max="16" className="field-input" value={form.targetHours}
+                  <label htmlFor="emp-add-target-hours" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Objetivo (horas)</label>
+                  <input id="emp-add-target-hours" type="number" step="0.5" min="1" max="16" className="field-input" value={form.targetHours}
                     onChange={(e) => setForm({ ...form, targetHours: e.target.value })} />
                 </div>
               </div>
               <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Saldo vacaciones</label>
-                <input type="number" className="field-input" value={form.balance}
+                <label htmlFor="emp-add-balance" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Saldo vacaciones</label>
+                <input id="emp-add-balance" type="number" className="field-input" value={form.balance}
                   onChange={(e) => setForm({ ...form, balance: e.target.value })} />
               </div>
             </>
@@ -917,37 +917,37 @@ export default function EmpleadosClient({
                   <div className="flex flex-col gap-2.5 mt-3">
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
-                        <input className="field-input" value={editForm.fullName}
+                        <label htmlFor="emp-edit-fullname" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre completo</label>
+                        <input id="emp-edit-fullname" className="field-input" value={editForm.fullName}
                           onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
                       </div>
                       <div>
-                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
-                        <input className="field-input" value={editForm.displayName}
+                        <label htmlFor="emp-edit-displayname" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Nombre corto</label>
+                        <input id="emp-edit-displayname" className="field-input" value={editForm.displayName}
                           onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
-                        <input className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
+                        <label htmlFor="emp-edit-honorific" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Honorífico</label>
+                        <input id="emp-edit-honorific" className="field-input" placeholder="Dr., Dra., Mtro., Mtra."
                           value={editForm.honorific} onChange={(e) => setEditForm({ ...editForm, honorific: e.target.value })} />
                       </div>
                       <div>
-                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
-                        <input className="field-input" placeholder="Ej. Coordinador en Enfermería"
+                        <label htmlFor="emp-edit-title" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Cargo</label>
+                        <input id="emp-edit-title" className="field-input" placeholder="Ej. Coordinador en Enfermería"
                           value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Teléfono</label>
-                        <input className="field-input" value={editForm.phone}
+                        <label htmlFor="emp-edit-phone" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Teléfono</label>
+                        <input id="emp-edit-phone" className="field-input" value={editForm.phone}
                           onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
                       </div>
                       <div>
-                        <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Extensión</label>
-                        <input className="field-input" value={editForm.extension}
+                        <label htmlFor="emp-edit-extension" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Extensión</label>
+                        <input id="emp-edit-extension" className="field-input" value={editForm.extension}
                           onChange={(e) => setEditForm({ ...editForm, extension: e.target.value })} />
                       </div>
                     </div>

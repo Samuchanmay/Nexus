@@ -1124,7 +1124,7 @@ export default function CalendarioClient({
           ) : (
             <div className="flex gap-2.5 mt-1">
               {editingEvent && (
-                <button className="btn-secondary px-3.5 py-3 text-[14px]" onClick={() => setConfirmDeleteEvent(true)}>
+                <button className="btn-secondary px-3.5 py-3 text-[14px]" onClick={() => setConfirmDeleteEvent(true)} aria-label="Eliminar evento">
                   <IconTrash className="w-3.5 h-3.5" />
                 </button>
               )}

@@ -224,7 +224,12 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       .update({ status: "completada", completed_at: new Date().toISOString() })
       .eq("id", projectId);
     if (error) { toast("No se pudo marcar como completada", "danger"); return; }
-    if (adminId) logAdminAction(supabase, adminId, "Marcó actividad como completada", title);
+    if (adminId) {
+      logAdminAction(supabase, adminId, "Marcó actividad como completada", title);
+      await supabase.from("project_history").insert({
+        project_id: projectId, admin_id: adminId, action: "Completó actividad", details: "Estado: en revisión → completada",
+      });
+    }
     toast("Actividad completada");
 
     // Auditoría de notificaciones: quien hizo el trabajo (los asignados de
@@ -280,7 +285,12 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       .update({ status: "en_progreso" }).eq("id", projectId);
     if (uErr) { setReturnSaving(false); toast("No se pudo devolver la actividad", "danger"); return; }
 
-    if (adminId) logAdminAction(supabase, adminId, "Devolvió actividad con cambios", `${title}: ${note}`);
+    if (adminId) {
+      logAdminAction(supabase, adminId, "Devolvió actividad con cambios", `${title}: ${note}`);
+      await supabase.from("project_history").insert({
+        project_id: projectId, admin_id: adminId, action: "Devolvió actividad", details: `Estado: en revisión → en progreso. ${note}`,
+      });
+    }
 
     const { data: assigned } = await supabase
       .from("project_assignments").select("user_id").eq("project_id", projectId);
@@ -316,6 +326,45 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
   const [editPriority, setEditPriority] = useState<Priority>("normal");
   const [editSaving, setEditSaving] = useState(false);
 
+  // ── W8 (6 ago 2026): historial de cambios de la actividad ──
+  // project_history (migración 0047) — mismo patrón que event_history en
+  // admin/calendario/client.tsx: sin trigger de BD, el cliente arma el
+  // resumen legible y hace el insert justo después de guardar.
+  type ProjectHistoryRow = {
+    id: string; action: string; details: string | null; created_at: string;
+    admin: { display_name: string } | { display_name: string }[] | null;
+  };
+  const [projectHistory, setProjectHistory] = useState<ProjectHistoryRow[]>([]);
+  const [projectHistoryLoading, setProjectHistoryLoading] = useState(false);
+  const [projectHistoryOpen, setProjectHistoryOpen] = useState(false);
+
+  const loadProjectHistory = async (projectId: string) => {
+    setProjectHistoryLoading(true);
+    const { data, error } = await createClient()
+      .from("project_history")
+      .select("id, action, details, created_at, admin:admin_id(display_name)")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+    setProjectHistoryLoading(false);
+    if (!error && data) setProjectHistory(data as unknown as ProjectHistoryRow[]);
+  };
+  const historyAdminName = (row: ProjectHistoryRow) =>
+    Array.isArray(row.admin) ? row.admin[0]?.display_name : row.admin?.display_name;
+
+  /** Compara la actividad antes/después del guardado y arma un resumen
+      legible para project_history — mismo criterio que buildEventChanges()
+      en admin/calendario/client.tsx. */
+  const buildProjectChanges = (
+    before: ProjectRow,
+    payload: { priority: Priority; deadline: string | null },
+  ): string[] => {
+    const changes: string[] = [];
+    if (before.priority !== payload.priority) changes.push(`Prioridad: ${before.priority} → ${payload.priority}`);
+    if ((before.deadline ?? null) !== payload.deadline)
+      changes.push(`Fecha de entrega: ${before.deadline ?? "sin definir"} → ${payload.deadline ?? "sin definir"}`);
+    return changes;
+  };
+
   // Evento vinculado — se edita aparte de lo de arriba porque vive en otra
   // tabla (institutional_events), con su propio guardado.
   const [eventPicked, setEventPicked] = useState(""); // id elegido en el <Select> cuando no hay vínculo todavía
@@ -345,6 +394,8 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     setEditDeadline(p.deadline ?? "");
     setEditPriority(p.priority as Priority);
     setEventPicked("");
+    setProjectHistoryOpen(false);
+    loadProjectHistory(p.id);
     if (p.institutional_events) {
       setEventForm2({
         title: p.institutional_events.title, start_date: p.institutional_events.start_date,
@@ -378,6 +429,18 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     const { error } = await supabase.from("projects")
       .update({ deadline: editDeadline || null, priority: editPriority }).eq("id", editingProject.id);
     if (error) { setEditSaving(false); toast("No se pudo guardar", "danger"); return; }
+
+    // Historial (W8): solo se deja rastro si de verdad cambió algo — evita
+    // llenar project_history de filas vacías cuando el admin abre y guarda
+    // sin tocar nada.
+    if (adminId) {
+      const changes = buildProjectChanges(editingProject, { priority: editPriority, deadline: editDeadline || null });
+      if (changes.length > 0) {
+        await supabase.from("project_history").insert({
+          project_id: editingProject.id, admin_id: adminId, action: "Editó actividad", details: changes.join(". "),
+        });
+      }
+    }
 
     // Diff de asignados contra lo que ya había — inserta los nuevos, borra
     // los que se quitaron, y siempre deja el is_lead correcto (aunque no
@@ -602,7 +665,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
               <Menu
                 align="right"
                 trigger={({ onClick }) => (
-                  <button className="h-9 w-9 rounded-lg grid place-items-center hover:bg-hover transition-colors" onClick={onClick}>
+                  <button className="h-9 w-9 rounded-lg grid place-items-center hover:bg-hover transition-colors" onClick={onClick} aria-label="Más opciones">
                     <Icon name="more" size={18} />
                   </button>
                 )}
@@ -809,7 +872,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
           evento institucional vinculado. A pedido del usuario (6 ago
           2026): antes no había NINGUNA forma de editar una actividad ya
           creada, y el evento del Calendario vivía en otra pantalla. */}
-      <Sheet open={!!editingProject} onClose={() => setEditingProject(null)}
+      <Sheet open={!!editingProject} onClose={() => { setEditingProject(null); setProjectHistory([]); setProjectHistoryOpen(false); }}
         title={editingProject ? titleOf(editingProject) : "Editar"} subtitle="Editar actividad">
         {editingProject && (
           <div className="flex flex-col gap-5">
@@ -951,6 +1014,36 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* W8 — Historial de cambios de la actividad (project_history).
+                Mismo patrón colapsable que event_history en Calendario. */}
+            <div className="border-t border-border pt-4">
+              <button type="button" onClick={() => setProjectHistoryOpen((o) => !o)}
+                className="flex items-center justify-between w-full text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+                <span>Historial {projectHistory.length > 0 ? `(${projectHistory.length})` : ""}</span>
+                <Icon name="chevron" size={12} style={{ transform: projectHistoryOpen ? "rotate(90deg)" : undefined }} />
+              </button>
+              {projectHistoryOpen && (
+                <div className="flex flex-col gap-1.5 mt-2">
+                  {projectHistoryLoading && <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Cargando…</p>}
+                  {!projectHistoryLoading && projectHistory.length === 0 && (
+                    <p className="text-[12.5px]" style={{ color: "var(--text-3)" }}>Sin movimientos registrados.</p>
+                  )}
+                  {projectHistory.map((h) => (
+                    <div key={h.id} className="rounded-sm px-2.5 py-2" style={{ background: "var(--surface-2)" }}>
+                      <p className="text-[12.5px]">
+                        <span className="font-semibold">{h.action}</span>
+                        {" · "}
+                        <span style={{ color: "var(--text-3)" }}>
+                          {historyAdminName(h) ?? "—"} · {new Date(h.created_at).toLocaleString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </p>
+                      {h.details && <p className="text-[12px] mt-0.5" style={{ color: "var(--text-2)" }}>{h.details}</p>}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

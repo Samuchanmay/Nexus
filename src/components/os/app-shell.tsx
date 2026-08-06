@@ -19,7 +19,7 @@ export { roleLabel } from "@/lib/nav";
 const TITLES: Record<string, string> = {
   hoy: "Inicio", actividades: "Actividades", solicitudes: "Solicitudes", calendario: "Calendario",
   biblioteca: "Biblioteca", chat: "Chat", personas: "Personas", tiempo: "Tiempo",
-  reportes: "Reportes", config: "Configuración",
+  reportes: "Reportes", config: "Configuración", soporte: "Soporte",
 };
 
 // FASE W1 — antes, cualquier sub-página de Configuración (Colores,

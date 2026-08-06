@@ -1169,6 +1169,7 @@ export default function EnlaceConversationClient({
             <button
               onClick={(e) => { e.stopPropagation(); togglePin(pinnedMessage.id); }}
               className="shrink-0 p-1 rounded-full hover:opacity-70"
+              aria-label="Desanclar mensaje"
             >
               <Icon name="close" size={12} style={{ color: "var(--text-3)" }} />
             </button>
@@ -1353,7 +1354,7 @@ export default function EnlaceConversationClient({
             <Icon name="close" size={13} style={{ color: "var(--danger)" }} />
             <span className="text-[12px] font-medium flex-1" style={{ color: "var(--danger)" }}>{upload.error}</span>
             <button onClick={upload.retry} className="text-[12px] font-semibold shrink-0" style={{ color: "var(--danger)" }}>Reintentar</button>
-            <button onClick={upload.reset}><Icon name="close" size={12} style={{ color: "var(--text-3)" }} /></button>
+            <button onClick={upload.reset} aria-label="Descartar archivo"><Icon name="close" size={12} style={{ color: "var(--text-3)" }} /></button>
           </div>
         )}
 
@@ -1374,7 +1375,7 @@ export default function EnlaceConversationClient({
                   {messagePreview(replyTo)}
                 </p>
               </div>
-              <button onClick={() => setReplyTo(null)} className="shrink-0 p-1 -m-1 rounded-full hover:bg-hover">
+              <button onClick={() => setReplyTo(null)} className="shrink-0 p-1 -m-1 rounded-full hover:bg-hover" aria-label="Cancelar respuesta">
                 <Icon name="close" size={12} style={{ color: "var(--text-3)" }} />
               </button>
             </div>

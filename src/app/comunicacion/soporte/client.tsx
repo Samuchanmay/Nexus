@@ -108,13 +108,13 @@ export default function SoporteClient({ userId, initialTickets }: { userId: stri
             />
           </div>
           <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Título</label>
-            <input className="field-input" placeholder="Resumen breve del problema"
+            <label htmlFor="soporte-titulo" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Título</label>
+            <input id="soporte-titulo" className="field-input" placeholder="Resumen breve del problema"
               value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
           </div>
           <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Descripción</label>
-            <textarea className="field-input resize-none" rows={4} placeholder="Qué pasó, cuándo, y qué esperabas que pasara…"
+            <label htmlFor="soporte-descripcion" className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Descripción</label>
+            <textarea id="soporte-descripcion" className="field-input resize-none" rows={4} placeholder="Qué pasó, cuándo, y qué esperabas que pasara…"
               value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           </div>
           <div className="flex gap-2.5 mt-1">
