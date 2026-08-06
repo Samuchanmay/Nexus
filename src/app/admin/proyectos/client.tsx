@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Avatar, Pill, Sheet, useToast, CheckBox, DatePicker, Menu, MenuItem, Select, SlidingSegments } from "@/components/ui";
 import { EmptyState, Field } from "@/components/shared";
 import { Icon } from "@/components/os/icons";
-import { IconDownload } from "@/components/icons";
+import { IconDownload, IconTrash } from "@/components/icons";
 import { logAdminAction } from "@/lib/admin-log";
 import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
@@ -669,7 +669,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       ) : (
         <PipelineBoard
           projects={projects} pendingRequests={pendingRequests} typeLabel={typeLabel}
-          onMarkCompleted={markCompleted} onGoToList={() => setView("Lista")}
+          onMarkCompleted={markCompleted} onGoToList={() => setView("Lista")} onEdit={openEditProject}
         />
       )}
 
@@ -1017,9 +1017,10 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit }: {
    ═══════════════════════════════════════════════════════════════ */
 const COMPLETADA_VISIBLE = 8;
 
-function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, onGoToList }: {
+function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, onGoToList, onEdit }: {
   projects: ProjectRow[]; pendingRequests: PendingRequestRow[]; typeLabel: Record<string, string>;
   onMarkCompleted: (id: string, title: string) => void; onGoToList: () => void;
+  onEdit: (p: ProjectRow) => void;
 }) {
   const byStage = useMemo(() => {
     const m = new Map<string, ProjectRow[]>();
@@ -1078,7 +1079,14 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
     const asgs = p.project_assignments ?? [];
     const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
     return (
-      <div className="group p-4 rounded-2xl bg-surface hover:bg-surface-2 border border-border hover:border-border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer">
+      <div
+        className="group p-4 rounded-2xl bg-surface hover:bg-surface-2 border border-border hover:border-border-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer"
+        onClick={() => onEdit(p)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(p); } }}
+        role="button"
+        tabIndex={0}
+        aria-label="Editar actividad"
+      >
         <div className="flex items-center gap-2 flex-wrap mb-2">
           <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
             {p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}
@@ -1105,7 +1113,7 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
           <button 
             className="w-full mt-3 text-[12px] font-semibold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02]"
             style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
-            onClick={() => onMarkCompleted(p.id, p.requests?.title ?? "Actividad")}
+            onClick={(e) => { e.stopPropagation(); onMarkCompleted(p.id, p.requests?.title ?? "Actividad"); }}
           >
             <Icon name="check" size={12} /> Marcar completada
           </button>

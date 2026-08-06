@@ -196,7 +196,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
       .select("requests(requester_id)")
       .eq("id", t.projectId)
       .maybeSingle();
-    const requesterId = (prj?.requests as { requester_id: string | null } | null)?.requester_id ?? null;
+    const requesterId = (prj?.requests as unknown as { requester_id: string | null } | null)?.requester_id ?? null;
     if (requesterId) {
       notifyUser(supabase, requesterId, "Actividad enviada a revisión", t.title, "request", `/admin/proyectos?task=${t.projectId}`);
     }
