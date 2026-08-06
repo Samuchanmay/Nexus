@@ -50,7 +50,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         style={{
           position: "fixed", left: "50%", zIndex: 9999,
           display: "flex", alignItems: "center", gap: 8,
-          borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap",
+          borderRadius: 999, padding: "12px 20px", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap",
           top: "max(18px, env(safe-area-inset-top))",
           background: bg, color: fg,
           boxShadow: "0 16px 48px rgba(0,0,0,0.10)",

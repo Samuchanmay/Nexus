@@ -43,14 +43,14 @@ function printIndividualReport(m: Member, vacs: Vacation[]) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte — ${m.full_name}</title>
     <style>
       body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;color:#1D1D1F;margin:32px;}
-      h1{font-size:20px;margin:0 0 4px}
-      p.sub{color:#6E6E73;margin:0 0 24px;font-size:13px}
+      h1{font-size:21px;margin:0 0 4px}
+      p.sub{color:#6E6E73;margin:0 0 24px;font-size:13.5px}
       .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:28px}
       .box{border:1px solid #E5E7EB;border-radius:10px;padding:14px;text-align:center}
-      .box b{display:block;font-size:22px}
-      .box span{font-size:11px;color:#6E6E73;text-transform:uppercase;font-weight:600}
-      table{width:100%;border-collapse:collapse;font-size:13px}
-      th{text-align:left;color:#6E6E73;font-size:11px;text-transform:uppercase;padding:8px 6px;border-bottom:2px solid #E5E7EB}
+      .box b{display:block;font-size:21px}
+      .box span{font-size:12px;color:#6E6E73;text-transform:uppercase;font-weight:600}
+      table{width:100%;border-collapse:collapse;font-size:13.5px}
+      th{text-align:left;color:#6E6E73;font-size:12px;text-transform:uppercase;padding:8px 6px;border-bottom:2px solid #E5E7EB}
       td{padding:8px 6px;border-bottom:1px solid #F1F5F9}
       @media print{ button{display:none} }
     </style></head><body>
@@ -90,8 +90,8 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
       <td style="padding:12px 14px;text-align:center">${used}</td>
       <td style="padding:12px 14px;text-align:center;font-weight:800;color:${color}">${m.vacation_balance}</td>
       <td style="padding:12px 14px;text-align:center">${pctUsed}%</td>
-      <td style="padding:12px 14px"><span style="background:${estadoBg};color:${estadoFg};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${estado}</span></td>
-      <td style="padding:12px 14px;color:#6B7280;font-size:13px">${m.hire_date ? dmy(nextAnniversary(m.hire_date)) : "—"}</td>
+      <td style="padding:12px 14px"><span style="background:${estadoBg};color:${estadoFg};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">${estado}</span></td>
+      <td style="padding:12px 14px;color:#6B7280;font-size:13.5px">${m.hire_date ? dmy(nextAnniversary(m.hire_date)) : "—"}</td>
       <td style="padding:12px 14px;text-align:center">${total}</td>
     </tr>`;
   }).join("");
@@ -104,7 +104,7 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
     (groups.get(key) ?? groups.set(key, []).get(key)!).push(v);
   }
   const historialRows = [...groups.entries()].map(([label, items]) => {
-    const header = `<tr><td colspan="5" style="padding:10px 14px;background:#F1F5F9;font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.6px">${label}</td></tr>`;
+    const header = `<tr><td colspan="5" style="padding:10px 14px;background:#F1F5F9;font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.6px">${label}</td></tr>`;
     const rows = items.map((v) => {
       const m = byMember.get(v.user_id)!;
       const color = m.nexus_color || "#5856D6";
@@ -116,7 +116,7 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
         <td style="padding:11px 14px;color:#374151">${dmy(v.start_date)}</td>
         <td style="padding:11px 14px;color:#374151">${dmy(v.end_date)}</td>
         <td style="padding:11px 14px;text-align:center;font-weight:800;color:${color}">${v.days}</td>
-        <td style="padding:11px 14px"><span style="background:${estadoBg};color:${estadoFg};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${v.status}</span></td>
+        <td style="padding:11px 14px"><span style="background:${estadoBg};color:${estadoFg};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700">${v.status}</span></td>
       </tr>`;
     }).join("");
     return header + rows;
@@ -127,7 +127,7 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
       *{box-sizing:border-box}body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
       .wrap{max-width:860px;margin:0 auto}
       .header{background:linear-gradient(135deg,#1E293B,#334155);border-radius:16px;padding:28px 32px;margin-bottom:20px;color:#fff}
-      .header h1{margin:0 0 4px;font-size:22px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13px}
+      .header h1{margin:0 0 4px;font-size:21px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13.5px}
       .card{background:#fff;border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
       .card-titulo{padding:16px 18px;font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.7px;border-bottom:.5px solid #F1F5F9}
       table{width:100%;border-collapse:collapse}tr:last-child td{border-bottom:none}td{border-bottom:.5px solid #F1F5F9}
@@ -136,7 +136,7 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
     </style></head><body><div class="wrap">
     <div class="header"><h1>Reporte de Vacaciones</h1><p>CERT Comunicación · Generado el ${fechaLarga}</p></div>
     <div class="no-print" style="text-align:right;margin-bottom:12px">
-      <button onclick="window.print()" style="padding:10px 22px;background:#1E293B;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Imprimir / Guardar PDF</button>
+      <button onclick="window.print()" style="padding:10px 22px;background:#1E293B;color:#fff;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer">Imprimir / Guardar PDF</button>
     </div>
     <div class="card"><div class="card-titulo">Resumen por empleado</div>
       <table><thead><tr><th>Empleado</th><th>Tomados</th><th>Restantes</th><th>%</th><th>Estado</th><th>Reinicio</th><th>Días/año</th></tr></thead>

@@ -306,7 +306,7 @@ body {
 
 /* ═══ v6 · Empleado "Mi Día" — componentes fieles al mockup del cliente (U2) ═══ */
 .v6-hero{ padding:34px 0 26px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
-.v6-hero-eyebrow{ font-size:13px; color:var(--text-3); font-weight:500; margin-bottom:6px; text-transform:capitalize; }
+.v6-hero-eyebrow{ font-size:13.5px; color:var(--text-3); font-weight:500; margin-bottom:6px; text-transform:capitalize; }
 .v6-hero-h1{ font-size:clamp(26px,5vw,32px); font-weight:700; letter-spacing:-0.02em; line-height:1.1; }
 .v6-hero-sub{ font-size:13.5px; color:var(--text-2); margin-top:8px; }
 .v6-timer-box{ text-align:right; flex-shrink:0; }
@@ -325,7 +325,7 @@ body {
 .v6-wl{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-3); margin-bottom:4px; }
 .v6-wn{ font-size:15px; font-weight:650; }
 
-.v6-sec-title{ font-size:18px; font-weight:700; letter-spacing:-0.015em; margin-bottom:13px; }
+.v6-sec-title{ font-size:19px; font-weight:700; letter-spacing:-0.015em; margin-bottom:13px; }
 
 .v6-active-card{ background:color-mix(in srgb, var(--surface) 75%, transparent); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5); border:0.5px solid var(--border); border-radius:var(--radius-l); padding:22px; margin-bottom:28px; position:relative; overflow:hidden; box-shadow:var(--shadow-2); }
 .v6-active-card::before{ content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--accent),#30D158); }
@@ -333,8 +333,8 @@ body {
 .v6-live.paused{ color:var(--warn); }
 .v6-live-dot{ width:7px; height:7px; background:currentColor; border-radius:50%; animation:v6pulse 1.4s ease-in-out infinite; }
 @keyframes v6pulse{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.35; transform:scale(.7); } }
-.v6-active-card h3{ font-size:17px; font-weight:700; letter-spacing:-0.01em; margin-bottom:4px; }
-.v6-active-card .v6-meta{ font-size:13px; color:var(--text-2); margin-bottom:18px; }
+.v6-active-card h3{ font-size:16px; font-weight:700; letter-spacing:-0.01em; margin-bottom:4px; }
+.v6-active-card .v6-meta{ font-size:13.5px; color:var(--text-2); margin-bottom:18px; }
 .v6-btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
 .v6-ac-btn{ display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:100px; border:0.5px solid var(--border-2); background:var(--surface-2); font-size:12.5px; font-weight:650; cursor:pointer; font-family:inherit; color:var(--text-1); transition:transform .2s var(--spring), background .2s; }
 .v6-ac-btn:hover{ transform:translateY(-2px); background:var(--surface-3); }

@@ -236,13 +236,13 @@ export function EditAttendanceSheet({
                 Movimientos del día
               </p>
               {visibles.length === 0 && (
-                <p className="text-[13px] mb-2" style={{ color: "var(--text-3)" }}>Sin movimientos registrados.</p>
+                <p className="text-[13.5px] mb-2" style={{ color: "var(--text-3)" }}>Sin movimientos registrados.</p>
               )}
               <div className="space-y-2">
                 {movements.filter((m) => !m.deleted).map((m) => (
                   <div key={m.key} className="flex items-center gap-2 rounded-m p-2" style={{ background: "var(--surface-2)" }}>
                     <Icon name={m.type === "Entrada" ? "login" : "logout"} size={14} className="shrink-0" style={{ color: "var(--text-3)" }} />
-                    <span className="text-[13px] font-medium flex-1">{REASON_LABEL_OF.get(m.reason) ?? m.reason}</span>
+                    <span className="text-[13.5px] font-medium flex-1">{REASON_LABEL_OF.get(m.reason) ?? m.reason}</span>
                     <TimePicker value={m.time} onChange={(v) => updateTime(m.key, v)} />
                     <button type="button" onClick={() => toggleDelete(m.key)} aria-label="Eliminar movimiento"
                       className="h-7 w-7 rounded-full grid place-items-center hover:bg-surface-3 shrink-0" style={{ color: "var(--danger)" }}>
@@ -268,7 +268,7 @@ export function EditAttendanceSheet({
                 </select>
                 <TimePicker value={addTime} onChange={setAddTime} />
                 <button type="button" onClick={agregarMovimiento}
-                  className="px-3 h-9 rounded-m text-[13px] font-semibold shrink-0"
+                  className="px-3 h-9 rounded-m text-[13.5px] font-semibold shrink-0"
                   style={{ background: "var(--accent)", color: "#fff" }}>
                   Agregar
                 </button>

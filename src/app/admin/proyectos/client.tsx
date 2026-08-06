@@ -89,7 +89,7 @@ function printByEmployeeReport(
       return `<tr>
         <td style="padding:9px 12px">${p.requests?.title ?? "Actividad"}</td>
         <td style="padding:9px 12px;color:#6B7280">${p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—"}</td>
-        <td style="padding:9px 12px"><span style="background:${statusBg};color:${statusFg};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${STATUS_LABELS[p.status as RequestStatus] ?? p.status}</span></td>
+        <td style="padding:9px 12px"><span style="background:${statusBg};color:${statusFg};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700">${STATUS_LABELS[p.status as RequestStatus] ?? p.status}</span></td>
         <td style="padding:9px 12px;text-transform:capitalize">${p.priority}</td>
         <td style="padding:9px 12px;color:#6B7280">${p.deadline ? p.deadline.split("-").reverse().join("/") : "—"}</td>
       </tr>`;
@@ -97,7 +97,7 @@ function printByEmployeeReport(
     return `<div class="card">
       <div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;background:${color}14">
         <span style="display:flex;align-items:center;gap:10px">
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:${color};color:#fff;font-size:13px;font-weight:800">${initial}</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:${color};color:#fff;font-size:13.5px;font-weight:800">${initial}</span>
           <strong style="font-size:14px">${m.full_name}</strong>
         </span>
         <span style="font-size:12px;color:#6B7280">${mine.length} actividad${mine.length === 1 ? "" : "es"} · <strong style="color:${color}">${horasTxt}</strong> registradas</span>
@@ -112,7 +112,7 @@ function printByEmployeeReport(
       *{box-sizing:border-box}body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
       .wrap{max-width:900px;margin:0 auto}
       .header{background:linear-gradient(135deg,#1E293B,#334155);border-radius:16px;padding:28px 32px;margin-bottom:20px;color:#fff}
-      .header h1{margin:0 0 4px;font-size:22px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13px}
+      .header h1{margin:0 0 4px;font-size:21px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13.5px}
       .card{background:#fff;border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
       table{width:100%;border-collapse:collapse;font-size:12.5px}
       th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6B7280;border-bottom:1px solid #F1F5F9}
@@ -121,7 +121,7 @@ function printByEmployeeReport(
     </style></head><body><div class="wrap">
     <div class="header"><h1>Actividades por empleado</h1><p>CERT Comunicación · Generado el ${today}</p></div>
     <div class="no-print" style="text-align:right;margin-bottom:12px">
-      <button onclick="window.print()" style="padding:10px 22px;background:#1E293B;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Imprimir / Guardar PDF</button>
+      <button onclick="window.print()" style="padding:10px 22px;background:#1E293B;color:#fff;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer">Imprimir / Guardar PDF</button>
     </div>
     ${sections}
     </div></body></html>`;

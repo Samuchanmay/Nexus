@@ -2,6 +2,20 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · W2/W3 cerrados: retrofit tipográfico completo + última pasada de tamaños sueltos
+
+### Última pasada (6 archivos, 18 tamaños normalizados)
+- `src/app/admin/calendario/client.tsx`: 3 tamaños (13px→13.5px, 2× 11px→12px)
+- `src/components/os/edit-attendance-sheet.tsx`: 3 tamaños (13px→13.5px)
+- `src/components/ui.tsx`: 1 tamaño (fontSize: 13 → 13.5)
+- `src/app/globals.css`: 4 tamaños en v6 (13px→13.5px, 18px→19px, 17px→16px)
+- `src/app/admin/proyectos/client.tsx`: 4 tamaños en plantillas de impresión (13px→13.5px, 22px→21px)
+- `src/app/rh/client.tsx`: 9 tamaños en reportes (11px→12px, 13px→13.5px, 20px→21px, 22px→21px)
+
+### Auditoría final
+- **0 tamaños fuera de escala** en todo `src/` (excepciones <11px documentadas en `TYPOGRAPHY.md`)
+- Escala canónica `--fs-*` aplicada consistentemente: 12/12.5/13.5/14/15/16/19/21/24/28/42
+
 ## 2026-08-05 · Chat Fase 3: "Leído por …" en grupos + "Eliminar para mí" + cierre Fase 3
 
 ### Qué cambió

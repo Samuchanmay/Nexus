@@ -986,13 +986,13 @@ export default function CalendarioClient({
                 <div key={p.user_id} className="flex items-center gap-2 rounded-sm px-2.5 py-2" style={{ background: "var(--surface-2)" }}>
                   <Avatar name={p.display_name} color={team.find((t) => t.id === p.user_id)?.nexus_color ?? null} size={26} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold truncate">
+                    <p className="text-[13.5px] font-semibold truncate">
                       {p.display_name}
                       {p.role === "responsable" && (
                         <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>RESPONSABLE</span>
                       )}
                     </p>
-                    <p className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                    <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                       {p.check_in_at
                         ? p.check_out_at ? `Cobertura completa` : `En cobertura desde ${p.check_in_at.slice(11, 16)}`
                         : p.status === "confirmado" ? "Confirmado, sin check-in" : p.status === "cancelado" ? "Cancelado" : "Pendiente de confirmar"}
@@ -1000,7 +1000,7 @@ export default function CalendarioClient({
                   </div>
                   {p.status !== "confirmado" && (
                     <button type="button" onClick={() => setParticipantStatus(p.user_id, "confirmado")}
-                      className="text-[11px] font-bold px-2 py-1 rounded-full shrink-0" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
+                      className="text-[12px] font-bold px-2 py-1 rounded-full shrink-0" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
                       Confirmar
                     </button>
                   )}
