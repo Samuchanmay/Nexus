@@ -72,6 +72,7 @@ export function messageNotificationBody(m: {
   if (m.type === "file") return "📎 Adjuntó un archivo";
   if (m.type === "location") return "📍 Compartió una ubicación";
   if (m.type === "sticker") return "🎨 Envió un sticker";
+  if (m.type === "poll") return "📊 Creó una encuesta";
   if (m.type === "system") return "Mensaje del sistema";
   return "Nuevo mensaje";
 }

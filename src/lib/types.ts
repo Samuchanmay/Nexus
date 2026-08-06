@@ -191,7 +191,7 @@ export interface EnlaceParticipant {
   users?: { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null } | null;
 }
 
-export type EnlaceMessageType = "text" | "image" | "file" | "system" | "location" | "sticker";
+export type EnlaceMessageType = "text" | "image" | "file" | "system" | "location" | "sticker" | "poll";
 export type EnlaceMessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";
 
 export interface EnlaceMessage {
@@ -220,6 +220,48 @@ export interface EnlaceMessage {
       como columna `client_id` para que el outbox pueda reconciliar sin
       duplicar si un reintento sí había llegado la primera vez. */
   client_id?: string | null;
+  /** FASE W7 — cuántas respuestas tiene este mensaje (trigger en BD,
+      migración 0045). Solo tiene sentido en el mensaje raíz de un hilo. */
+  reply_count?: number;
+  /** FASE W7 — sticker con imagen generada por IA (migración 0046). Si es
+      null/undefined en un mensaje type="sticker", el contenido sigue
+      siendo el emoji clásico (compatibilidad con lo ya enviado). */
+  sticker_image_path?: string | null;
+}
+
+/** FASE W7 — Encuesta colgada de un mensaje (type="poll"). */
+export interface ChatPoll {
+  id: string;
+  message_id: string;
+  conversation_id: string;
+  creator_id: string;
+  question: string;
+  multiple_choice: boolean;
+  created_at: string;
+}
+
+export interface ChatPollOption {
+  id: string;
+  poll_id: string;
+  label: string;
+  position: number;
+}
+
+export interface ChatPollVote {
+  id: string;
+  poll_id: string;
+  option_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+/** Encuesta completa con sus opciones y votos — lo que el cliente arma para
+    renderizar (mismo criterio que attachmentsByMessage/reactionsByMessage:
+    un mapa aparte keyed por message_id, no todo embebido en EnlaceMessage). */
+export interface ChatPollFull {
+  poll: ChatPoll;
+  options: ChatPollOption[];
+  votes: ChatPollVote[];
 }
 
 export interface EnlaceReaction {

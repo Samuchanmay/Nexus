@@ -84,8 +84,9 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
         client_id: message.client_id,
         lat: message.lat ?? null,
         lng: message.lng ?? null,
+        sticker_image_path: message.sticker_image_path ?? null,
       })
-      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at")
+      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at, sticker_image_path, reply_count")
       .single();
 
     if (!error && data) {
@@ -108,7 +109,7 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     if (error?.code === "23505") {
       const { data: existing } = await supabase
         .from("messages")
-        .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at")
+        .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at, sticker_image_path, reply_count")
         .eq("client_id", message.client_id!)
         .maybeSingle();
       pendingRef.current.delete(message.client_id!);
@@ -165,6 +166,15 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
   const sendSticker = useCallback((emoji: string, replyToId: string | null = null) => {
     const clientId = crypto.randomUUID();
     return enqueue({ ...base(clientId, emoji), type: "sticker", reply_to_id: replyToId });
+  }, [enqueue, base]);
+
+  /** FASE W7 — sticker con imagen (Emu generado por IA). La imagen ya existe
+      en Storage (generate-sticker la subió) antes de llamar esto — acá solo
+      se manda el mensaje que la referencia, mismo mecanismo optimista que
+      el resto. */
+  const sendStickerImage = useCallback((imagePath: string, replyToId: string | null = null) => {
+    const clientId = crypto.randomUUID();
+    return enqueue({ ...base(clientId, null), type: "sticker", sticker_image_path: imagePath, reply_to_id: replyToId });
   }, [enqueue, base]);
 
   /** Ubicación (FASE cierre): lat/lng en columnas, sin content. */
@@ -245,5 +255,5 @@ export function useOutbox(conversationId: string, myId: string, initialMessages:
     };
   }, [conversationId]);
 
-  return { messages, setMessages, send, sendSticker, sendLocation, retry };
+  return { messages, setMessages, send, sendSticker, sendStickerImage, sendLocation, retry };
 }

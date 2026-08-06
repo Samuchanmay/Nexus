@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient, getAuthedUser } from "@/lib/supabase/server";
-import type { EnlaceAttachment, EnlaceConversation, EnlaceMessage, EnlaceReaction } from "@/lib/types";
+import type { EnlaceAttachment, EnlaceConversation, EnlaceMessage, EnlaceReaction, ChatPollFull } from "@/lib/types";
 import type { ParticipantLite } from "../client";
 import EnlaceConversationClient from "./client";
 
@@ -97,7 +97,7 @@ export default async function EnlaceConversationPage({
   // eliminado" para todos (borrado suave, no desaparición).
   const { data: messagesDesc } = await supabase
     .from("messages")
-    .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at")
+    .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at, sticker_image_path, reply_count")
     .eq("conversation_id", id)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE + 1);
@@ -111,7 +111,7 @@ export default async function EnlaceConversationPage({
       ? supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, thumb_path, thumb_size, thumb_mime, medium_path, medium_size, medium_mime").in("message_id", messageIds)
       : Promise.resolve({ data: [] as EnlaceAttachment[] }),
     conversation.pinned_message_id
-      ? supabase.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at").eq("id", conversation.pinned_message_id).maybeSingle()
+      ? supabase.from("messages").select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at, sticker_image_path, reply_count").eq("id", conversation.pinned_message_id).maybeSingle()
       : Promise.resolve({ data: null }),
     // Archivos recientes de TODA la conversación (no solo la página cargada) — para el panel derecho.
     supabase.from("message_attachments").select("id, message_id, file_name, file_path, file_size, mime_type, created_at, thumb_path, thumb_size, thumb_mime, medium_path, medium_size, medium_mime, messages!inner(conversation_id)")
@@ -126,6 +126,32 @@ export default async function EnlaceConversationPage({
 
   const reactionsByMessage: Record<string, EnlaceReaction[]> = {};
   for (const r of (reactionsRaw ?? []) as EnlaceReaction[]) (reactionsByMessage[r.message_id] ??= []).push(r);
+
+  // FASE W7 — encuestas de los mensajes ya cargados en esta página (mismo
+  // criterio que attachments/reactions: un mapa aparte keyed por
+  // message_id, armado con 3 consultas en lote en vez de una por mensaje).
+  const pollMessageIds = messages.filter((m) => m.type === "poll").map((m) => m.id);
+  const { data: pollsRaw } = pollMessageIds.length > 0
+    ? await supabase.from("chat_polls").select("*").in("message_id", pollMessageIds)
+    : { data: [] as ChatPollFull["poll"][] };
+  const pollRows = (pollsRaw ?? []) as ChatPollFull["poll"][];
+  const pollIds = pollRows.map((p) => p.id);
+  const [{ data: pollOptionsRaw }, { data: pollVotesRaw }] = await Promise.all([
+    pollIds.length > 0
+      ? supabase.from("chat_poll_options").select("*").in("poll_id", pollIds).order("position")
+      : Promise.resolve({ data: [] as ChatPollFull["options"] }),
+    pollIds.length > 0
+      ? supabase.from("chat_poll_votes").select("*").in("poll_id", pollIds)
+      : Promise.resolve({ data: [] as ChatPollFull["votes"] }),
+  ]);
+  const pollsByMessage: Record<string, ChatPollFull> = {};
+  for (const poll of pollRows) {
+    pollsByMessage[poll.message_id] = {
+      poll,
+      options: ((pollOptionsRaw ?? []) as ChatPollFull["options"]).filter((o) => o.poll_id === poll.id),
+      votes: ((pollVotesRaw ?? []) as ChatPollFull["votes"]).filter((v) => v.poll_id === poll.id),
+    };
+  }
 
   const otherProfile = (otherProfileRaw ?? null) as { area: string | null; phone: string | null; title: string | null } | null;
   const creatorName = (creatorRaw?.display_name ?? null) as string | null;
@@ -150,6 +176,7 @@ export default async function EnlaceConversationPage({
       creatorName={creatorName}
       otherProfile={otherProfile}
       initialJumpTarget={msg ?? null}
+      initialPollsByMessage={pollsByMessage}
     />
   );
 }

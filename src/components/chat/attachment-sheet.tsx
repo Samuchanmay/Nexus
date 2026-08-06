@@ -20,7 +20,7 @@ import { Icon } from "@/components/os/icons";
  * tintado del acento — patrón iOS/Signal, con estados hover/pressed/focus.
  */
 export function AttachmentSheet({
-  open, onClose, onPickGallery, onPickDocument, onPickAudio, onPickCamera, onPickLocation, onPickSticker,
+  open, onClose, onPickGallery, onPickDocument, onPickAudio, onPickCamera, onPickLocation, onPickSticker, onPickPoll,
 }: {
   open: boolean;
   onClose: () => void;
@@ -30,6 +30,8 @@ export function AttachmentSheet({
   onPickCamera: () => void;
   onPickLocation: () => void;
   onPickSticker: () => void;
+  /** FASE W7 — abre la hoja de creación de encuesta. */
+  onPickPoll: () => void;
 }) {
   const galleryRef = useRef<HTMLInputElement>(null);
   const documentRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,7 @@ export function AttachmentSheet({
     { key: "document", icon: "fileText", label: "Documento", onClick: () => documentRef.current?.click() },
     { key: "location", icon: "pin", label: "Ubicación", onClick: onPickLocation },
     { key: "sticker", icon: "smile", label: "Stickers", onClick: onPickSticker },
+    { key: "poll", icon: "chart", label: "Encuesta", onClick: onPickPoll },
     { key: "audio", icon: "mic", label: "Nota de audio", onClick: onPickAudio },
   ];
 

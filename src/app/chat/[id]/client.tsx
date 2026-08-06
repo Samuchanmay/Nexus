@@ -20,10 +20,14 @@ import { AttachmentSheet } from "@/components/chat/attachment-sheet";
 import { ConversationSearch } from "@/components/chat/conversation-search";
 import { ForwardSheet } from "@/components/chat/forward-sheet";
 import { StickerPicker } from "@/components/chat/sticker-picker";
+import { ThreadPanel } from "@/components/chat/thread-panel";
 import { CameraCapture } from "@/components/chat/camera-capture";
 import { SmartImage } from "@/components/chat/smart-image";
 import { TypingDots } from "@/components/chat/typing-indicator";
-import type { EnlaceAttachment, EnlaceConversation, EnlaceMessage, EnlaceReaction } from "@/lib/types";
+import type { EnlaceAttachment, EnlaceConversation, EnlaceMessage, EnlaceReaction, ChatPollFull } from "@/lib/types";
+import { PollMessage } from "@/components/chat/poll-message";
+import { CreatePollSheet } from "@/components/chat/create-poll-sheet";
+import { getErrorMessage } from "@/lib/errors";
 import type { ParticipantLite } from "../client";
 
 const MAX_MESSAGES_BEFORE_TRIM = 400; // ver nota en loadMore()
@@ -75,6 +79,7 @@ function messagePreview(m?: EnlaceMessage | null): string {
   if (m.type === "location") return "Ubicación";
   if (m.type === "image") return "Foto";
   if (m.type === "file") return m.content ?? "Archivo adjunto";
+  if (m.type === "poll") return "📊 Encuesta";
   return m.content ?? "";
 }
 
@@ -88,6 +93,7 @@ export default function EnlaceConversationClient({
   myId, myRole, initialMuted, initialMutedUntil, conversation, participants, initialMessages, hasMoreOlder,
   attachmentsByMessage: initialAttachments, reactionsByMessage: initialReactions,
   initialPinnedMessage, recentFiles, creatorName, otherProfile, initialJumpTarget,
+  initialPollsByMessage,
 }: {
   myId: string;
   myRole: "admin" | "member";
@@ -106,11 +112,16 @@ export default function EnlaceConversationClient({
   /** Deep-link de la búsqueda cross-conversación (?msg=...): al montar,
       salta y resalta este mensaje aunque esté fuera de la página cargada. */
   initialJumpTarget: string | null;
+  /** FASE W7 — encuestas de los mensajes ya cargados, keyed por message_id
+      (mismo criterio que attachmentsByMessage/reactionsByMessage). */
+  initialPollsByMessage: Record<string, ChatPollFull>;
 }) {
   const router = useRouter();
-  const { messages, setMessages, send, sendSticker, sendLocation, retry } = useOutbox(conversation.id, myId, initialMessages);
+  const { messages, setMessages, send, sendSticker, sendStickerImage, sendLocation, retry } = useOutbox(conversation.id, myId, initialMessages);
   const [attachmentsByMessage, setAttachmentsByMessage] = useState(initialAttachments);
   const [reactionsByMessage, setReactionsByMessage] = useState(initialReactions);
+  const [pollsByMessage, setPollsByMessage] = useState<Record<string, ChatPollFull>>(initialPollsByMessage);
+  const [pollOpen, setPollOpen] = useState(false);
   // Quién leyó cada mensaje visible — para "Leído por …" en grupos.
   const [readersByMessage, setReadersByMessage] = useState<Record<string, MessageRead[]>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -125,6 +136,8 @@ export default function EnlaceConversationClient({
   const [infoOpen, setInfoOpen] = useState(true);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<EnlaceMessage | null>(null);
+  /** FASE W7 — mensaje raíz del hilo abierto en el panel lateral; null = cerrado. */
+  const [threadRoot, setThreadRoot] = useState<EnlaceMessage | null>(null);
   const [attachSheetOpen, setAttachSheetOpen] = useState(false);
   const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(hasMoreOlder);
@@ -351,6 +364,13 @@ export default function EnlaceConversationClient({
       if (!signedUrls[`${a.id}:thumb`] && a.thumb_path) needed.push({ key: `${a.id}:thumb`, path: a.thumb_path });
       if (!signedUrls[`${a.id}:medium`] && a.medium_path) needed.push({ key: `${a.id}:medium`, path: a.medium_path });
     }
+    // FASE W7 — stickers Emu con imagen: mismo mecanismo de firma bajo
+    // demanda, clave `${message.id}:sticker`.
+    for (const m of messages) {
+      if (m.type === "sticker" && m.sticker_image_path && !signedUrls[`${m.id}:sticker`]) {
+        needed.push({ key: `${m.id}:sticker`, path: m.sticker_image_path });
+      }
+    }
     if (needed.length === 0) return;
     let active = true;
     const supabase = createClient();
@@ -369,7 +389,7 @@ export default function EnlaceConversationClient({
       });
     })();
     return () => { active = false; };
-  }, [attachmentsByMessage, signedUrls]);
+  }, [attachmentsByMessage, signedUrls, messages]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -427,7 +447,9 @@ export default function EnlaceConversationClient({
         (payload) => {
           const row = payload.new as EnlaceMessage;
           setMessages((cur) => cur.map((m) =>
-            m.id === row.id ? { ...m, status: row.status, content: row.content, edited: row.edited, deleted_at: row.deleted_at, read_at: row.read_at } : m
+            m.id === row.id
+              ? { ...m, status: row.status, content: row.content, edited: row.edited, deleted_at: row.deleted_at, read_at: row.read_at, reply_count: row.reply_count }
+              : m
           ));
           // Si el fijado se editó/eliminó, reflejarlo en el banner superior.
           setPinnedMessage((cur) => (cur?.id === row.id ? { ...cur, content: row.content, deleted_at: row.deleted_at } : cur));
@@ -505,10 +527,209 @@ export default function EnlaceConversationClient({
           });
         }
       )
+      .on(
+        // FASE W7 — encuesta creada por OTRO participante: chat_polls sí
+        // tiene conversation_id (a diferencia de reactions/reads), así que
+        // se puede filtrar en el servidor. Al llegar, se trae la fila con
+        // sus opciones en una sola consulta y se agrega al mapa — el
+        // creador ya la agregó localmente al crearla (ver createPoll), así
+        // que este evento es solo para el resto.
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_polls", filter: `conversation_id=eq.${conversation.id}` },
+        (payload) => {
+          const poll = payload.new as ChatPollFull["poll"];
+          setPollsByMessage((cur) => (cur[poll.message_id] ? cur : { ...cur, [poll.message_id]: { poll, options: [], votes: [] } }));
+          supabase.from("chat_poll_options").select("id, poll_id, label, position").eq("poll_id", poll.id).order("position")
+            .then(({ data }) => {
+              setPollsByMessage((cur) => {
+                const existing = cur[poll.message_id];
+                if (!existing) return cur;
+                return { ...cur, [poll.message_id]: { ...existing, options: (data ?? []) as ChatPollFull["options"] } };
+              });
+            });
+        }
+      )
+      .on(
+        // Votos — igual que reactions/reads, la tabla no tiene
+        // conversation_id (solo poll_id), así que se filtra en cliente
+        // buscando a qué encuesta ya cargada pertenece el voto.
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_poll_votes" },
+        (payload) => {
+          const row = payload.new as ChatPollFull["votes"][number];
+          setPollsByMessage((cur) => {
+            const entry = Object.entries(cur).find(([, v]) => v.poll.id === row.poll_id);
+            if (!entry) return cur;
+            const [msgId, full] = entry;
+            if (full.votes.some((v) => v.id === row.id)) return cur;
+            return { ...cur, [msgId]: { ...full, votes: [...full.votes, row] } };
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "chat_poll_votes" },
+        (payload) => {
+          const row = payload.old as ChatPollFull["votes"][number];
+          setPollsByMessage((cur) => {
+            const entry = Object.entries(cur).find(([, v]) => v.poll.id === row.poll_id);
+            if (!entry) return cur;
+            const [msgId, full] = entry;
+            const next = full.votes.filter((v) => v.id !== row.id);
+            if (next.length === full.votes.length) return cur;
+            return { ...cur, [msgId]: { ...full, votes: next } };
+          });
+        }
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id, myId]);
+
+  // FASE W7 — carga perezosa de encuestas que no llegaron en la carga
+  // inicial (mensajes traídos por loadMore, o un mensaje type="poll" que
+  // llegó por Realtime antes de que el listener de arriba alcanzara a
+  // resolver su fila de chat_polls). Se dispara solo para los ids nuevos
+  // que hagan falta, nunca repite trabajo ya hecho.
+  useEffect(() => {
+    const missing = messages.filter((m) => m.type === "poll" && !pollsByMessage[m.id]).map((m) => m.id);
+    if (missing.length === 0) return;
+    const supabase = createClient();
+    (async () => {
+      const { data: polls } = await supabase.from("chat_polls").select("*").in("message_id", missing);
+      const rows = (polls ?? []) as ChatPollFull["poll"][];
+      if (rows.length === 0) return;
+      const pollIds = rows.map((p) => p.id);
+      const [{ data: options }, { data: votes }] = await Promise.all([
+        supabase.from("chat_poll_options").select("*").in("poll_id", pollIds).order("position"),
+        supabase.from("chat_poll_votes").select("*").in("poll_id", pollIds),
+      ]);
+      const optionsByPoll = new Map<string, ChatPollFull["options"]>();
+      for (const o of (options ?? []) as ChatPollFull["options"]) {
+        const list = optionsByPoll.get(o.poll_id) ?? [];
+        list.push(o);
+        optionsByPoll.set(o.poll_id, list);
+      }
+      const votesByPoll = new Map<string, ChatPollFull["votes"]>();
+      for (const v of (votes ?? []) as ChatPollFull["votes"]) {
+        const list = votesByPoll.get(v.poll_id) ?? [];
+        list.push(v);
+        votesByPoll.set(v.poll_id, list);
+      }
+      setPollsByMessage((cur) => {
+        const next = { ...cur };
+        for (const poll of rows) {
+          next[poll.message_id] = {
+            poll,
+            options: optionsByPoll.get(poll.id) ?? [],
+            votes: votesByPoll.get(poll.id) ?? [],
+          };
+        }
+        return next;
+      });
+    })();
+  }, [messages, pollsByMessage]);
+
+  /** FASE W7 — crea el mensaje type="poll" + su fila chat_polls + sus
+      opciones. No pasa por useOutbox: el outbox está diseñado para el
+      insert de una sola fila `messages` con reintento optimista, y una
+      encuesta necesita 3 inserts encadenados (mensaje → poll → opciones)
+      que solo tienen sentido como unidad — si el mensaje se creó pero la
+      encuesta falló, mejor mostrar el error y no dejar un mensaje "poll"
+      huérfano sin pregunta. Riesgo aceptado (documentado): sin reintento
+      automático si se corta la conexión a medio camino; a la escala real
+      de Emet (~20 usuarios) es preferible a la complejidad de meter este
+      flujo de 3 pasos dentro del contrato de outbox de una sola tabla. */
+  const createPoll = useCallback(async (question: string, options: string[], multipleChoice: boolean) => {
+    const supabase = createClient();
+    const { data: msgRow, error: msgErr } = await supabase
+      .from("messages")
+      .insert({ conversation_id: conversation.id, sender_id: myId, type: "poll", content: null, client_id: crypto.randomUUID() })
+      .select("id, conversation_id, sender_id, type, content, reply_to_id, edited, created_at, status, client_id, deleted_at, lat, lng, read_at, sticker_image_path, reply_count")
+      .single();
+    if (msgErr || !msgRow) throw new Error(msgErr?.message ?? "No se pudo crear el mensaje de la encuesta");
+
+    const { data: pollRow, error: pollErr } = await supabase
+      .from("chat_polls")
+      .insert({ message_id: msgRow.id, conversation_id: conversation.id, creator_id: myId, question, multiple_choice: multipleChoice })
+      .select("*")
+      .single();
+    if (pollErr || !pollRow) throw new Error(pollErr?.message ?? "No se pudo crear la encuesta");
+
+    const { data: optionRows, error: optErr } = await supabase
+      .from("chat_poll_options")
+      .insert(options.map((label, i) => ({ poll_id: pollRow.id, label, position: i })))
+      .select("*");
+    if (optErr) throw new Error(optErr.message);
+
+    setMessages((cur) => [...cur, msgRow as EnlaceMessage]);
+    setPollsByMessage((cur) => ({
+      ...cur,
+      [msgRow.id]: { poll: pollRow as ChatPollFull["poll"], options: (optionRows ?? []) as ChatPollFull["options"], votes: [] },
+    }));
+  }, [conversation.id, myId, setMessages]);
+
+  /** FASE W7 — votar/desmarcar una opción. Opción única: votar en una
+      opción retira automáticamente cualquier voto previo mío en esa misma
+      encuesta (nunca dos opciones marcadas a la vez). Opción múltiple: solo
+      alterna la opción tocada. Actualiza el estado local de inmediato
+      (optimista) — si Realtime también trae el mismo cambio, el dedupe por
+      id en los handlers de arriba lo ignora. */
+  const votePoll = useCallback(async (messageId: string, optionId: string) => {
+    const full = pollsByMessage[messageId];
+    if (!full) return;
+    const supabase = createClient();
+    const myExisting = full.votes.filter((v) => v.user_id === myId);
+    const alreadyOnThis = myExisting.some((v) => v.option_id === optionId);
+
+    if (alreadyOnThis) {
+      // Desmarcar esta opción.
+      setPollsByMessage((cur) => {
+        const f = cur[messageId];
+        if (!f) return cur;
+        return { ...cur, [messageId]: { ...f, votes: f.votes.filter((v) => !(v.user_id === myId && v.option_id === optionId)) } };
+      });
+      await supabase.from("chat_poll_votes").delete().eq("poll_id", full.poll.id).eq("option_id", optionId).eq("user_id", myId);
+      return;
+    }
+
+    // Opción única: primero se retiran mis otros votos en esta encuesta.
+    if (!full.poll.multiple_choice && myExisting.length > 0) {
+      setPollsByMessage((cur) => {
+        const f = cur[messageId];
+        if (!f) return cur;
+        return { ...cur, [messageId]: { ...f, votes: f.votes.filter((v) => v.user_id !== myId) } };
+      });
+      await supabase.from("chat_poll_votes").delete().eq("poll_id", full.poll.id).eq("user_id", myId);
+    }
+
+    const optimisticId = `local-${crypto.randomUUID()}`;
+    setPollsByMessage((cur) => {
+      const f = cur[messageId];
+      if (!f) return cur;
+      return { ...cur, [messageId]: { ...f, votes: [...f.votes, { id: optimisticId, poll_id: full.poll.id, option_id: optionId, user_id: myId, created_at: new Date().toISOString() }] } };
+    });
+    const { data, error } = await supabase
+      .from("chat_poll_votes")
+      .insert({ poll_id: full.poll.id, option_id: optionId, user_id: myId })
+      .select("*")
+      .single();
+    if (error) {
+      // Reversa del optimista si el insert falló (p. ej. constraint de unicidad ya cubierto arriba, pero cualquier otro error de red).
+      setPollsByMessage((cur) => {
+        const f = cur[messageId];
+        if (!f) return cur;
+        return { ...cur, [messageId]: { ...f, votes: f.votes.filter((v) => v.id !== optimisticId) } };
+      });
+      toast(getErrorMessage(error, "No se pudo registrar el voto"), "danger");
+      return;
+    }
+    setPollsByMessage((cur) => {
+      const f = cur[messageId];
+      if (!f) return cur;
+      return { ...cur, [messageId]: { ...f, votes: f.votes.map((v) => (v.id === optimisticId ? (data as ChatPollFull["votes"][number]) : v)) } };
+    });
+  }, [pollsByMessage, myId, toast]);
 
   useEffect(() => () => {
     if (arrivalTimer.current) clearTimeout(arrivalTimer.current);
@@ -548,6 +769,12 @@ export default function EnlaceConversationClient({
     sendSticker(emoji, replyTo?.id ?? null);
     setReplyTo(null);
   }, [sendSticker, replyTo]);
+
+  // FASE W7 — sticker Emu (imagen generada por IA o ya reusada de la biblioteca).
+  const sendStickerImageMsg = useCallback((imagePath: string) => {
+    sendStickerImage(imagePath, replyTo?.id ?? null);
+    setReplyTo(null);
+  }, [sendStickerImage, replyTo]);
 
   // Compartir ubicación: Geolocation del dispositivo → mensaje type=location.
   // Se avisa con un toast mientras se busca; la burbuja (mapa) aparece al
@@ -787,6 +1014,13 @@ export default function EnlaceConversationClient({
         onPickCamera={() => { setAttachSheetOpen(false); setCameraOpen(true); }}
         onPickLocation={() => { setAttachSheetOpen(false); shareLocation(); }}
         onPickSticker={() => { setAttachSheetOpen(false); setStickerOpen(true); }}
+        onPickPoll={() => { setAttachSheetOpen(false); setPollOpen(true); }}
+      />
+
+      <CreatePollSheet
+        open={pollOpen}
+        onClose={() => setPollOpen(false)}
+        onCreate={createPoll}
       />
 
       <CameraCapture
@@ -799,6 +1033,19 @@ export default function EnlaceConversationClient({
         open={stickerOpen}
         onClose={() => setStickerOpen(false)}
         onPick={(emoji) => { setStickerOpen(false); sendStickerMsg(emoji); }}
+        onPickImage={(path) => { setStickerOpen(false); sendStickerImageMsg(path); }}
+      />
+
+      {/* FASE W7 — panel de hilo; su propio composer reutiliza el mismo
+          send() del outbox principal, así la respuesta entra por el camino
+          optimista normal y también aparece en la línea de tiempo general. */}
+      <ThreadPanel
+        open={!!threadRoot}
+        onClose={() => setThreadRoot(null)}
+        root={threadRoot}
+        myId={myId}
+        peopleById={peopleById}
+        onSend={(content, replyToId) => send(content, replyToId)}
       />
 
       {/* Columna de conversación — permiso explícito del usuario para romper
@@ -1033,7 +1280,21 @@ export default function EnlaceConversationClient({
                     onOpenReactionPicker={() => setReactionPickerFor(reactionPickerFor === m.id ? null : m.id)}
                     onPickReaction={(emoji) => toggleReaction(m.id, emoji)}
                     onRetry={() => m.client_id && retry(m.client_id)}
+                    pollFull={pollsByMessage[m.id]}
+                    onVotePoll={(optionId) => votePoll(m.id, optionId)}
                   />
+                )}
+                {/* FASE W7 — afiliación siempre visible del hilo, independiente
+                    del menú ⋯: si ya hay respuestas, un tap abre el panel. */}
+                {!m.deleted_at && !!m.reply_count && m.reply_count > 0 && (
+                  <button
+                    onClick={() => setThreadRoot(m)}
+                    className={`mt-0.5 inline-flex items-center gap-1 text-[11.5px] font-semibold rounded-full px-2 py-0.5 transition-colors hover:brightness-95 ${mine ? "ml-auto mr-1" : "ml-9"}`}
+                    style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
+                  >
+                    <Icon name="reply" size={11} />
+                    {m.reply_count} {m.reply_count === 1 ? "respuesta" : "respuestas"}
+                  </button>
                 )}
                 {menuFor === m.id && !m.deleted_at && (
                   <MessageMenu
@@ -1048,6 +1309,7 @@ export default function EnlaceConversationClient({
                     edited={!!m.edited}
                     onReact={() => setReactionPickerFor(reactionPickerFor === m.id ? null : m.id)}
                     onReply={() => setReplyTo(m)}
+                    onOpenThread={() => { setThreadRoot(m); setMenuFor(null); }}
                     onCopy={() => copyMessage(m)}
                     onEdit={() => beginEdit(m)}
                     onTogglePin={() => togglePin(m.id)}
@@ -1250,6 +1512,7 @@ function MessageBubble({
   message: m, mine, myId, sender, showAvatar, showName, prevSameSender, attachment, urls,
   isPinned, puedoFijar, reactions, repliedTo, reactionPickerOpen, menuOpen, isGroup, readersLabel,
   onOpenMenu, onTogglePin, onReply, onOpenReactionPicker, onPickReaction, onRetry,
+  pollFull, onVotePoll,
 }: {
   message: EnlaceMessage; mine: boolean; myId: string; sender?: PersonLite; showAvatar: boolean; showName: boolean;
   prevSameSender: boolean; attachment?: EnlaceAttachment; urls: Record<string, string>; isPinned: boolean; puedoFijar: boolean;
@@ -1257,6 +1520,11 @@ function MessageBubble({
   isGroup: boolean; readersLabel: string | null;
   onOpenMenu: () => void; onTogglePin: () => void; onReply: () => void; onOpenReactionPicker: () => void;
   onPickReaction: (emoji: string) => void; onRetry: () => void;
+  /** FASE W7 — encuesta de este mensaje (solo si m.type === "poll") y el
+      callback de voto; ambos vienen del padre, que es quien tiene
+      pollsByMessage y hace los inserts/deletes reales. */
+  pollFull?: ChatPollFull;
+  onVotePoll: (optionId: string) => void;
 }) {
   // URLs firmadas por tamaño (ver efecto de firma): `${id}:original|thumb|medium`.
   const originalUrl = attachment ? urls[`${attachment.id}:original`] : undefined;
@@ -1445,20 +1713,45 @@ function MessageBubble({
                   )}
 
                   {m.type === "sticker" && (
-                    <div className="min-w-[84px] min-h-[84px] grid place-items-center px-1 py-0.5">
-                      <span
-                        className="text-[80px] leading-none select-none"
-                        style={{ filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.18))" }}
-                        aria-label="Sticker"
-                        role="img"
-                      >
-                        {m.content ?? "😀"}
-                      </span>
-                    </div>
+                    m.sticker_image_path ? (
+                      // FASE W7 — sticker Emu con imagen real (generada por IA).
+                      <div className="w-[112px] h-[112px] grid place-items-center px-1 py-0.5">
+                        {signedUrls[`${m.id}:sticker`] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={signedUrls[`${m.id}:sticker`]}
+                            alt="Sticker de Emu"
+                            className="w-full h-full object-contain"
+                            style={{ filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.18))" }}
+                          />
+                        ) : (
+                          <div className="w-full h-full rounded-[12px] animate-pulse" style={{ background: "var(--surface-2)" }} />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="min-w-[84px] min-h-[84px] grid place-items-center px-1 py-0.5">
+                        <span
+                          className="text-[80px] leading-none select-none"
+                          style={{ filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.18))" }}
+                          aria-label="Sticker"
+                          role="img"
+                        >
+                          {m.content ?? "😀"}
+                        </span>
+                      </div>
+                    )
                   )}
 
                   {m.type === "text" && (
                     <p className="text-[14px] leading-snug whitespace-pre-wrap break-words">{m.content}</p>
+                  )}
+
+                  {m.type === "poll" && (
+                    pollFull ? (
+                      <PollMessage full={pollFull} myId={myId} mine={mine} onVote={onVotePoll} />
+                    ) : (
+                      <div className="min-w-[200px] min-h-[70px] rounded-[10px] animate-pulse" style={{ background: mine ? "rgba(255,255,255,0.14)" : "var(--surface-2)" }} />
+                    )
                   )}
                   <div className="flex items-center justify-end gap-1 mt-0.5">
                     {m.edited && (
@@ -1791,7 +2084,7 @@ function EditMessageInline({
     su confirmación. */
 function MessageMenu({
   mine, editable, deletable, isPinned, puedoFijar, confirming, sentLabel, statusLabel, edited,
-  onReact, onReply, onCopy, onEdit, onTogglePin, onForward, onAskDelete, onCancelDelete, onDelete, onHide, onClose,
+  onReact, onReply, onOpenThread, onCopy, onEdit, onTogglePin, onForward, onAskDelete, onCancelDelete, onDelete, onHide, onClose,
 }: {
   mine: boolean;
   editable: boolean;
@@ -1804,6 +2097,8 @@ function MessageMenu({
   edited: boolean;
   onReact: () => void;
   onReply: () => void;
+  /** FASE W7 — abre el panel de hilo para este mensaje como raíz. */
+  onOpenThread: () => void;
   onCopy: () => void;
   onEdit: () => void;
   onTogglePin: () => void;
@@ -1857,6 +2152,7 @@ function MessageMenu({
               <Item icon="smile" label="Reaccionar" onClick={() => { onReact(); onClose(); }} />
             )}
             <Item icon="reply" label="Responder" onClick={() => { onReply(); onClose(); }} />
+            <Item icon="message" label="Responder en hilo" onClick={() => { onOpenThread(); onClose(); }} />
             {deletable && <Item icon="send" label="Reenviar" onClick={() => { onForward(); onClose(); }} />}
             <Item icon="copy" label="Copiar" onClick={() => { onCopy(); }} />
             {puedoFijar && (
