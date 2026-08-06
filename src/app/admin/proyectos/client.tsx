@@ -242,6 +242,59 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     router.refresh();
   };
 
+  /* ═══════════════════════════════════════════════════════════════
+     Devolver actividad "con cambios" — gap de producto detectado en la
+     auditoría de notificaciones: antes de esto, cuando una actividad
+     llegaba a "en_revision" el coordinador solo podía aprobarla o
+     dejarla ahí colgada para siempre (no existía un "no, corregí esto").
+     Decisión de producto (confirmada por el usuario): vuelve a
+     "en_progreso" (mismo estado donde vive mientras el empleado la
+     trabaja — no se inventa un status nuevo), el motivo queda guardado
+     como comentario visible (tabla comments, la misma que usa el botón
+     "Comentar" del lado del empleado en comunicacion/tasks.tsx), y se
+     notifica a cada asignado. El comentario es obligatorio: sin decir
+     qué corregir, el empleado no tiene forma de saber qué cambiar.
+     ═══════════════════════════════════════════════════════════════ */
+  const [returningProject, setReturningProject] = useState<{ id: string; title: string } | null>(null);
+  const [returnNote, setReturnNote] = useState("");
+  const [returnSaving, setReturnSaving] = useState(false);
+
+  const openReturn = (id: string, title: string) => {
+    setReturningProject({ id, title });
+    setReturnNote("");
+  };
+
+  const confirmReturn = async () => {
+    if (!returningProject) return;
+    const note = returnNote.trim();
+    if (!note) { toast("Escribe qué hay que corregir", "danger"); return; }
+    setReturnSaving(true);
+    const supabase = createClient();
+    const { id: projectId, title } = returningProject;
+
+    const { error: cErr } = await supabase.from("comments")
+      .insert({ project_id: projectId, user_id: adminId, body: `Devuelta con cambios: ${note}` });
+    if (cErr) { setReturnSaving(false); toast("No se pudo guardar el comentario", "danger"); return; }
+
+    const { error: uErr } = await supabase.from("projects")
+      .update({ status: "en_progreso" }).eq("id", projectId);
+    if (uErr) { setReturnSaving(false); toast("No se pudo devolver la actividad", "danger"); return; }
+
+    if (adminId) logAdminAction(supabase, adminId, "Devolvió actividad con cambios", `${title}: ${note}`);
+
+    const { data: assigned } = await supabase
+      .from("project_assignments").select("user_id").eq("project_id", projectId);
+    for (const a of assigned ?? []) {
+      notifyUser(supabase, a.user_id, "Te devolvieron una actividad", `${title}: ${note}`, "request", `/comunicacion?task=${projectId}`);
+    }
+
+    setReturnSaving(false);
+    setReturningProject(null);
+    setReturnNote("");
+    toast("Actividad devuelta al empleado");
+    router.refresh();
+  };
+
   const openAdd = () => {
     setForm({ title: "", type: types[0]?.key ?? "", priority: "normal", deadline: "" });
     setAssignees([]);
@@ -649,7 +702,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
               {/* Filas de actividades */}
               <div className="flex flex-col">
                 {active.map((p) => (
-                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} onEdit={openEditProject} />
+                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} onEdit={openEditProject} onReturn={openReturn} />
                 ))}
               </div>
             </div>
@@ -660,7 +713,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
               <h2 className="text-[19px] font-bold mb-3" style={{ color: "var(--text-2)" }}>Cerrados</h2>
               <div className="flex flex-col opacity-60">
                 {done.map((p) => (
-                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} onEdit={openEditProject} />
+                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} onEdit={openEditProject} onReturn={openReturn} />
                 ))}
               </div>
             </>
@@ -669,7 +722,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       ) : (
         <PipelineBoard
           projects={projects} pendingRequests={pendingRequests} typeLabel={typeLabel}
-          onMarkCompleted={markCompleted} onGoToList={() => setView("Lista")} onEdit={openEditProject}
+          onMarkCompleted={markCompleted} onGoToList={() => setView("Lista")} onEdit={openEditProject} onReturn={openReturn}
         />
       )}
 
@@ -878,6 +931,32 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
           </div>
         )}
       </Sheet>
+
+      {/* Devolver actividad con cambios — gap de producto cerrado a pedido
+          del usuario. Comentario obligatorio: sin decir qué corregir, el
+          empleado no sabe qué cambiar. */}
+      <Sheet open={!!returningProject} onClose={() => setReturningProject(null)}
+        title="Devolver actividad" subtitle={returningProject?.title ?? ""}>
+        <div className="p-4 space-y-3">
+          <Field label="¿Qué hay que corregir? (obligatorio)">
+            {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
+            <textarea
+              autoFocus value={returnNote} onChange={(e) => setReturnNote(e.target.value)}
+              rows={4} placeholder="Ej: falta adjuntar la evidencia del cierre, revisar el punto 3…"
+              className="field-input w-full resize-none"
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-1">
+            <button className="btn-secondary py-2 px-4 text-[13px]" onClick={() => setReturningProject(null)}>Cancelar</button>
+            <button
+              className="btn-primary py-2 px-4 text-[13px]" disabled={returnSaving || !returnNote.trim()}
+              onClick={confirmReturn}
+            >
+              {returnSaving ? "Devolviendo…" : "Devolver actividad"}
+            </button>
+          </div>
+        </div>
+      </Sheet>
     </>
   );
 }
@@ -885,10 +964,11 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
 /* ═══════════════════════════════════════════════════════════════
    ProjectRow — Fila tipo Notion para la vista Lista
    ═══════════════════════════════════════════════════════════════ */
-function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit }: {
+function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit, onReturn }: {
   p: ProjectRow; deps: DepRow[]; typeLabel: Record<string, string>;
   onMarkCompleted: (id: string, title: string) => void;
   onEdit: (p: ProjectRow) => void;
+  onReturn: (id: string, title: string) => void;
 }) {
   const asgs = p.project_assignments ?? [];
   const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
@@ -998,8 +1078,15 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit }: {
 
       {/* Acciones rápidas para "En revisión" */}
       {p.status === "en_revision" && (
-        <div className="md:col-span-6 flex justify-end">
-          <button 
+        <div className="md:col-span-6 flex justify-end gap-2">
+          <button
+            className="text-[12px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-200 hover:scale-105"
+            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+            onClick={(e) => { e.stopPropagation(); onReturn(p.id, title); }}
+          >
+            <Icon name="reply" size={12} /> Devolver con cambios
+          </button>
+          <button
             className="text-[12px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-200 hover:scale-105"
             style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
             onClick={(e) => { e.stopPropagation(); onMarkCompleted(p.id, title); }}
@@ -1017,10 +1104,11 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit }: {
    ═══════════════════════════════════════════════════════════════ */
 const COMPLETADA_VISIBLE = 8;
 
-function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, onGoToList, onEdit }: {
+function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, onGoToList, onEdit, onReturn }: {
   projects: ProjectRow[]; pendingRequests: PendingRequestRow[]; typeLabel: Record<string, string>;
   onMarkCompleted: (id: string, title: string) => void; onGoToList: () => void;
   onEdit: (p: ProjectRow) => void;
+  onReturn: (id: string, title: string) => void;
 }) {
   const byStage = useMemo(() => {
     const m = new Map<string, ProjectRow[]>();
@@ -1110,13 +1198,22 @@ function PipelineBoard({ projects, pendingRequests, typeLabel, onMarkCompleted, 
         </div>
 
         {p.status === "en_revision" && (
-          <button 
-            className="w-full mt-3 text-[12px] font-semibold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02]"
-            style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
-            onClick={(e) => { e.stopPropagation(); onMarkCompleted(p.id, p.requests?.title ?? "Actividad"); }}
-          >
-            <Icon name="check" size={12} /> Marcar completada
-          </button>
+          <div className="flex gap-1.5 mt-3">
+            <button
+              className="flex-1 text-[12px] font-semibold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02]"
+              style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+              onClick={(e) => { e.stopPropagation(); onReturn(p.id, p.requests?.title ?? "Actividad"); }}
+            >
+              <Icon name="reply" size={12} /> Devolver
+            </button>
+            <button
+              className="flex-1 text-[12px] font-semibold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02]"
+              style={{ background: "var(--ok-tint)", color: "var(--ok)" }}
+              onClick={(e) => { e.stopPropagation(); onMarkCompleted(p.id, p.requests?.title ?? "Actividad"); }}
+            >
+              <Icon name="check" size={12} /> Completar
+            </button>
+          </div>
         )}
       </div>
     );

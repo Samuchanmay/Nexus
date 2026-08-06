@@ -3,7 +3,7 @@ import { summarizeDay, scheduleFor } from "@/lib/hours";
 import type { JornadaState } from "@/lib/hours";
 import type { AttendanceRow, Schedule } from "@/lib/types";
 import { todayMerida, addDays } from "@/lib/tz";
-import AsistenciaClient, { type PersonDay, type WeekRow, type PendingValidation } from "./client";
+import AsistenciaClient, { type PersonDay, type WeekRow, type PendingValidation, type PendingCorrection } from "./client";
 import type { WeekBlock, DayDetail } from "./xlsx-weekly-report";
 import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
 
@@ -83,7 +83,7 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
   const selectedDate = params.date ?? today; // Fecha seleccionada (por defecto hoy)
   const since = addDays(today, -56); // 8 semanas
 
-  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }, { data: incs }, { data: holidayRows }, { data: restDayRows }, { data: vacsHist }, { data: incsHist }, { data: holidaysHist }, { data: restDaysHist }, { data: eventCoverage }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: scheds }, { data: jornadaStates }, { data: weekAtt }, { data: settingsRows }, { data: vacs }, meRes, { data: pendingExits }, { data: incs }, { data: holidayRows }, { data: restDayRows }, { data: vacsHist }, { data: incsHist }, { data: holidaysHist }, { data: restDaysHist }, { data: eventCoverage }, { data: correctionRequests }] = await Promise.all([
     supabase.from("users").select("id, display_name, full_name, nexus_color, area, title, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]),
     supabase.from("attendance").select("*").eq("date", selectedDate).order("time"),
     supabase.from("schedules").select("*"),
@@ -131,6 +131,12 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
       .eq("status", "confirmado")
       .eq("institutional_events.status", "confirmado")
       .lte("institutional_events.start_date", selectedDate).gte("institutional_events.end_date", selectedDate),
+    // Solicitudes de corrección de asistencia pendientes de revisar (gap de
+    // producto cerrado a pedido del usuario) — mismo patrón que pending_exits
+    // arriba, pero para "el empleado dice que algo está mal en su asistencia".
+    supabase.from("attendance_correction_requests")
+      .select("id, user_id, date, note, created_at, users:user_id(display_name, avatar_url, nexus_color)")
+      .eq("status", "pendiente").order("created_at", { ascending: true }),
   ]);
   // "Próximo" = arranca en los próximos 3 días (mismo umbral que "Saldo
   // bajo" en Vacaciones admin) — ventana corta, solo lo inminente.
@@ -273,11 +279,20 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
     userName: p.users?.display_name ?? "—", avatarUrl: p.users?.avatar_url ?? null, color: p.users?.nexus_color ?? null,
   }));
 
+  type CorrectionRequestRow = {
+    id: string; user_id: string; date: string; note: string; created_at: string;
+    users: { display_name: string; avatar_url: string | null; nexus_color: string | null } | null;
+  };
+  const pendingCorrections: PendingCorrection[] = ((correctionRequests ?? []) as unknown as CorrectionRequestRow[]).map((r) => ({
+    id: r.id, userId: r.user_id, date: r.date, note: r.note,
+    userName: r.users?.display_name ?? "—", avatarUrl: r.users?.avatar_url ?? null, color: r.users?.nexus_color ?? null,
+  }));
+
   return (
     <AsistenciaClient
       people={people} states={states} weekRows={weekRows} weekBlocks={weekBlocks}
       reportSettings={reportSettings} today={today} selectedDate={selectedDate} adminId={meRes?.data?.id ?? ""}
-      pendingValidations={pendingValidations} isHoliday={isHoliday}
+      pendingValidations={pendingValidations} isHoliday={isHoliday} pendingCorrections={pendingCorrections}
     />
   );
 }

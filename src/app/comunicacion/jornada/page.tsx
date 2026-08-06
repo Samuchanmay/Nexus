@@ -7,6 +7,7 @@ import { Pill } from "@/components/ui";
 import { todayMerida, addDays } from "@/lib/tz";
 import { syncPendingExits, getPendingExitsMap, exitPillFor } from "@/lib/pending-exits";
 import { ResolvePendingExit } from "@/components/os/resolve-pending-exit";
+import { RequestAttendanceCorrection } from "@/components/os/request-attendance-correction";
 import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
 import { DomainTabs } from "@/components/os/domain-tabs";
 
@@ -204,6 +205,14 @@ export default async function Jornada() {
                       <ResolvePendingExit userId={profile!.id} date={d.date} />
                     </div>
                   )}
+
+                  {/* Pedir corrección — gap de producto cerrado a pedido del
+                      usuario: antes no había forma de avisar un error de
+                      asistencia dentro de EMET, solo hablando con un admin
+                      fuera del sistema. */}
+                  <div className="px-5 py-2" style={{ borderTop: "1px solid var(--border)" }}>
+                    <RequestAttendanceCorrection userId={profile!.id} userName={profile!.display_name} date={d.date} />
+                  </div>
                 </div>
               </details>
             );

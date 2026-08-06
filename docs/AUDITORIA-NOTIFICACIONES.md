@@ -141,26 +141,37 @@ campana.
 
 ## Qué falta (de verdad no implementado — son features nuevas, no huecos de notificación)
 
-Todo lo que era "falta conectar un notifyUser" ya se cerró (9 fixes en
-total, ver abajo). Lo único que sigue sin resolver son cambios de producto
-que no son "arreglar una notificación" sino construir algo que hoy no
-existe:
+Todo lo que era "falta conectar un notifyUser" ya se cerró (9 fixes, ver
+abajo). De los 3 gaps de producto detectados en esta auditoría, 2 ya se
+cerraron (decisión confirmada por el usuario, 6 ago 2026) y 1 queda
+diferido a propósito:
 
-1. **"Devuelta con cambios" como estado de actividad** — hoy no existe
-   ese paso en el flujo (`en_revision` solo puede pasar a `completada`);
-   agregarlo requiere decidir quién puede devolver, si queda historial,
-   etc.
-2. **Corrección de asistencia solicitada por el empleado** (vs. aplicada
-   directamente por el admin, que ya notifica) — no existe como feature;
-   sería un flujo nuevo completo (formulario + tabla de solicitud +
-   aprobación).
-3. **Roles intermedios (Director/Coordinador/Supervisor/RH) como
-   destinatarios distintos de "admin"** — el sistema solo tiene
-   `admin`/`empleado` hoy; filtrar notificaciones por sub-rol requiere
-   ese modelo de datos primero.
-
-Avísame si quieres que diseñe alguno de estos tres — son conversaciones de
-producto, no algo que deba decidir solo.
+1. ✅ **"Devuelta con cambios" como estado de actividad** — cerrado.
+   Coordinador puede devolver una actividad en `en_revision` con
+   comentario obligatorio; vuelve a `en_progreso`, el motivo queda como
+   comentario visible (tabla `comments`) y se notifica a los asignados.
+   Botón "Devolver con cambios" en Lista y Pipeline
+   (`src/app/admin/proyectos/client.tsx`, `confirmReturn()`). No se
+   inventó un estado nuevo — se reutiliza `en_progreso`, que ya es donde
+   vive una actividad mientras el empleado la trabaja.
+2. ✅ **Corrección de asistencia solicitada por el empleado** — cerrado.
+   Tabla nueva `attendance_correction_requests` (migración 0043, no
+   `requests` — esa tabla es específicamente el pipeline de Actividades,
+   con checklist/asignados/deadline, no encaja para un pedido de "esta
+   hora está mal"). Empleado pide desde `/comunicacion/jornada`
+   (`request-attendance-correction.tsx`), admin revisa desde
+   `/admin/asistencia` y al aprobar abre el mismo Sheet de corrección que
+   ya existía (`edit-attendance-sheet.tsx` — no se duplicó esa lógica),
+   o rechaza con motivo obligatorio que se notifica al empleado.
+3. ⏸️ **Roles intermedios (Director/Coordinador/Supervisor/RH) como
+   destinatarios distintos de "admin"** — diferido a propósito, decisión
+   del usuario (no es prioridad ahora). El sistema tiene `admin`/
+   `empleado`/`rh` (confirmado vía RLS de `vacations`, `my_role()`), sin
+   granularidad más fina. Implementar un rol real tipo Coordinador toca
+   ~19 políticas RLS que hoy chequean `role = 'admin'` literal en
+   `projects`, `requests`, `attendance`, etc. — alcance de semanas, no de
+   una sesión, y cualquier error en una política RLS puede filtrar datos
+   que no debería ver. Queda documentado aquí para cuando se priorice.
 
 ## Cambios aplicados (código) — 9 huecos cerrados
 

@@ -23,9 +23,17 @@ import { adminResolvePendingExit, adminMarkNoRegistro } from "@/lib/pending-exit
 import { TimePicker } from "@/components/select";
 import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
 import { EditAttendanceSheet } from "@/components/os/edit-attendance-sheet";
+import { notifyUser } from "@/lib/notify";
 
 export interface PendingValidation {
   id: string; userId: string; date: string; note: string | null;
+  userName: string; avatarUrl: string | null; color: string | null;
+}
+
+/** Solicitud de corrección de asistencia hecha por el propio empleado desde
+    /comunicacion/jornada — gap de producto cerrado a pedido del usuario. */
+export interface PendingCorrection {
+  id: string; userId: string; date: string; note: string;
   userName: string; avatarUrl: string | null; color: string | null;
 }
 
@@ -161,10 +169,10 @@ function estadoStatus(
   return estadoOf(day, vacation, incident, isHoliday, restDay, externalEvent);
 }
 
-export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, selectedDate, adminId, pendingValidations, isHoliday = false }: {
+export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, selectedDate, adminId, pendingValidations, isHoliday = false, pendingCorrections }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[]; weekBlocks: WeekBlock[];
   reportSettings: { enabled: boolean; email: string }; today: string; selectedDate: string; adminId: string;
-  pendingValidations: PendingValidation[]; isHoliday?: boolean;
+  pendingValidations: PendingValidation[]; isHoliday?: boolean; pendingCorrections: PendingCorrection[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -180,6 +188,48 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
 
   // Estado para edición de asistencia (siempre disponible para el admin)
   const [editingPerson, setEditingPerson] = useState<PersonDay | null>(null);
+
+  /* ═══════════════════════════════════════════════════════════════
+     Solicitudes de corrección de asistencia (gap de producto cerrado a
+     pedido del usuario) — al aprobar, se abre EditAttendanceSheet para
+     el usuario/fecha exactos de la solicitud (no necesariamente
+     selectedDate, por eso es un Sheet aparte de editingPerson) y al
+     guardar ahí se marca la solicitud como resuelta. Al rechazar, se
+     pide motivo y se notifica al empleado.
+     ═══════════════════════════════════════════════════════════════ */
+  const [corrections, setCorrections] = useState(pendingCorrections);
+  useEffect(() => setCorrections(pendingCorrections), [pendingCorrections]);
+  const [resolvingCorrection, setResolvingCorrection] = useState<PendingCorrection | null>(null);
+  const [rejectingCorrectionId, setRejectingCorrectionId] = useState<string | null>(null);
+
+  const approveCorrection = (c: PendingCorrection) => {
+    setResolvingCorrection(c);
+  };
+
+  const finishApproveCorrection = async () => {
+    if (!resolvingCorrection) return;
+    const c = resolvingCorrection;
+    const supabase = createClient();
+    await supabase.from("attendance_correction_requests")
+      .update({ status: "aprobada", admin_id: adminId, resolved_at: new Date().toISOString() })
+      .eq("id", c.id);
+    setCorrections((cs) => cs.filter((x) => x.id !== c.id));
+    setResolvingCorrection(null);
+  };
+
+  const rejectCorrection = async (c: PendingCorrection) => {
+    const motivo = window.prompt("¿Por qué se rechaza esta solicitud? (se le avisa a la persona)");
+    if (motivo === null) return; // canceló el prompt
+    const supabase = createClient();
+    const { error } = await supabase.from("attendance_correction_requests")
+      .update({ status: "rechazada", admin_id: adminId, admin_note: motivo.trim() || null, resolved_at: new Date().toISOString() })
+      .eq("id", c.id);
+    if (error) { toast("No se pudo rechazar", "danger"); return; }
+    if (adminId) logAdminAction(supabase, adminId, "Rechazó corrección de asistencia", `${c.userName} · ${c.date}`);
+    notifyUser(supabase, c.userId, "Tu solicitud de corrección fue rechazada", motivo.trim() ? `${c.date}: ${motivo.trim()}` : c.date, "info", "/comunicacion/jornada");
+    setCorrections((cs) => cs.filter((x) => x.id !== c.id));
+    toast("Solicitud rechazada");
+  };
 
   const handleDateChange = (newDate: string) => {
     router.push(`/admin/asistencia?date=${newDate}`);
@@ -350,6 +400,44 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Solicitudes de corrección de asistencia — gap de producto cerrado a
+          pedido del usuario: el empleado pide, el admin aprueba (abre el
+          Sheet real de corrección) o rechaza (motivo obligatorio, notifica). */}
+      {corrections.length > 0 && (
+        <div className="card p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <IconClock className="w-4 h-4 text-[var(--warn)]" />
+            <p className="text-[13.5px] font-bold">Solicitudes de corrección de asistencia</p>
+            <span className="text-[12px]" style={{ color: "var(--text-3)" }}>
+              — {corrections.length} {corrections.length === 1 ? "pendiente" : "pendientes"}
+            </span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {corrections.map((c) => (
+              <div key={c.id} className="rounded-m border border-border p-3" style={{ background: "var(--surface)" }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Avatar name={c.userName} color={c.color} avatarUrl={c.avatarUrl} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13.5px] font-semibold truncate">{c.userName}</p>
+                    <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
+                      {dmy(c.date)} — &quot;{c.note}&quot;
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button className="btn-secondary px-3 py-1.5 text-[12.5px]" onClick={() => approveCorrection(c)}>
+                      Revisar y corregir
+                    </button>
+                    <button className="btn-tertiary px-3 py-1.5 text-[12.5px]" onClick={() => rejectCorrection(c)}>
+                      Rechazar
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -697,6 +785,26 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           adminId={adminId}
           onSuccess={() => {
             setEditingPerson(null);
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Modal de edición para una solicitud de corrección — mismo Sheet de
+          arriba, pero con fecha/usuario de la solicitud (no de selectedDate).
+          Al guardar con éxito, marca la solicitud como aprobada y resuelta. */}
+      {resolvingCorrection && (
+        <EditAttendanceSheet
+          open={!!resolvingCorrection}
+          onClose={() => setResolvingCorrection(null)}
+          userId={resolvingCorrection.userId}
+          userName={resolvingCorrection.userName}
+          date={resolvingCorrection.date}
+          firstIn={null}
+          lastOut={null}
+          adminId={adminId}
+          onSuccess={() => {
+            finishApproveCorrection();
             window.location.reload();
           }}
         />
