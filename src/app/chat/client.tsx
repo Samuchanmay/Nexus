@@ -10,9 +10,16 @@ import { ConversationRowWithTyping } from "@/components/chat/conversation-row";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/chat/context-menu";
 import { chatNotificationsSupported, requestChatNotificationPermission } from "@/lib/chat/notify";
 import { nudgePushRegistration } from "@/lib/use-push-notifications";
+import { getPresenceInfo } from "@/lib/chat/format-presence";
+import { PresenceStatusMenu } from "@/components/chat/presence-status-menu";
 import type { EnlaceConversation } from "@/lib/types";
 
-export type ParticipantLite = { id: string; display_name: string; avatar_url: string | null; nexus_color: string | null; last_seen_at?: string | null };
+export type ParticipantLite = {
+  id: string; display_name: string; avatar_url: string | null; nexus_color: string | null;
+  last_seen_at?: string | null;
+  /** Estado manual de presencia (FASE W7.1) — "ausente" | "no_molestar" | null. */
+  manual_status?: string | null;
+};
 export type MyConvState = { muted: boolean; muted_until: string | null; pinned: boolean; archived: boolean; last_read_at: string };
 
 type MessageHit = {
@@ -72,12 +79,15 @@ const NOTIF_BANNER_KEY = "emet:chat-notif-banner-dismissed";
 // recargar al abrir/cerrar una conversación: la lista, su suscripción de
 // tiempo real y el estado de scroll quedan intactos.
 export default function ChatShell({
-  myId, initialConversations, participantsByConv, myStateByConv, children,
+  myId, initialConversations, participantsByConv, myStateByConv, myManualStatus, children,
 }: {
   myId: string;
   initialConversations: EnlaceConversation[];
   participantsByConv: Record<string, ParticipantLite[]>;
   myStateByConv: Record<string, MyConvState>;
+  /** Mi propio estado manual de presencia (FASE W7.1 + Fase 5) — controla el
+      selector del encabezado. null = automático/Disponible. */
+  myManualStatus: "active" | "away" | "busy" | "offline" | "ausente" | "no_molestar" | null;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -413,8 +423,7 @@ export default function ChatShell({
     const preview = c.last_message_preview ? `${mine ? "Tú: " : ""}${c.last_message_preview}` : "Sin mensajes todavía";
     const st = stateFor(c.id);
     const other = (participants[c.id] ?? []).find((p) => p.id !== myId);
-    const online = c.type === "direct" && !!other?.last_seen_at &&
-      Date.now() - new Date(other.last_seen_at).getTime() < 2 * 60 * 1000;
+    const presence = c.type === "direct" ? getPresenceInfo(other?.last_seen_at, other?.manual_status).dot : null;
     return (
       <div
         key={c.id}
@@ -433,7 +442,7 @@ export default function ChatShell({
           active={c.id === selectedId}
           muted={isMuted(st)}
           pinned={st.pinned}
-          online={online}
+          presence={presence}
           onOpen={() => { if (isUnread(c)) markRead(c.id); router.push(`/chat/${c.id}`); }}
           onToggleMute={() => toggleMute(c.id)}
           onTogglePin={() => togglePin(c.id)}
@@ -465,6 +474,7 @@ export default function ChatShell({
                   <p className="text-[19px] font-bold tracking-tight">Chat</p>
                   <p className="text-[12px]" style={{ color: "var(--text-2)" }}>Mensajes con tu equipo</p>
                 </div>
+                <PresenceStatusMenu myId={myId} initialStatus={myManualStatus} />
               </div>
 
               <button

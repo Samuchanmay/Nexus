@@ -2,6 +2,26 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Chat Fase 5: estados de presencia (Activo/Ausente/No molestar)
+
+### Qué cambió
+- **Migración 0039** (`supabase/migrations/0039_presence_status.sql`):
+  - Columna `users.presence_status` (active/away/busy/offline, default 'offline')
+  - RPC `nx_set_presence_status(text)` para cambiar estado manualmente
+  - Vista `users_directory` actualizada para incluir `presence_status`
+- **Selector de estado en UserMenu**: al hacer clic en el avatar del header, aparece un selector con 4 estados (Activo/Ausente/No molestar/Desconectado), cada uno con su color (verde/amarillo/rojo/gris).
+- **Indicador de presencia en avatar**: el avatar del header muestra un punto de color según el estado actual.
+- **Presencia en chat**: la lista de participantes del chat muestra el estado de presencia con punto de color + texto (ej. "Activo", "Ausente", "No molestar"). El estado manual tiene prioridad sobre el heartbeat automático.
+- **`getPresenceInfo` actualizado**: soporta los nuevos estados (active/away/busy/offline) y mantiene compatibilidad con valores legacy (ausente/no_molestar).
+
+### Archivos
+- `supabase/migrations/0039_presence_status.sql`, `docs/MIGRACIONES-APLICAR-0039-PRESENCE-STATUS.sql`
+- `src/components/os/shell.tsx` (UserMenu + indicador en avatar)
+- `src/lib/chat/format-presence.ts` (getPresenceInfo actualizado)
+- `src/app/chat/[id]/page.tsx` (carga presence_status)
+- `src/app/chat/[id]/client.tsx` (muestra presencia con punto de color)
+- `docs/03-ROADMAP.md`
+
 ## 2026-08-05 · Chat Fase 4: miniatura en responder + estado "Conectado" + vibración
 
 ### Qué cambió

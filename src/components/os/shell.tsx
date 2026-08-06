@@ -38,6 +38,7 @@ export function Shell({
   const [spot, setSpot] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [avatarMenu, setAvatarMenu] = useState(false);
+  const [presenceStatus, setPresenceStatus] = useState<"active" | "away" | "busy" | "offline">("offline");
   const hasConfig = items.some((i) => i.key === "config");
   const router = useRouter();
   const signOut = async () => {
@@ -45,6 +46,22 @@ export function Shell({
     router.push("/login");
   };
   const { theme, toggle } = useTheme();
+
+  // Cargar estado de presencia inicial
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("users").select("presence_status").eq("id", user.id).maybeSingle().then(({ data }) => {
+      if (data?.presence_status) {
+        setPresenceStatus(data.presence_status as "active" | "away" | "busy" | "offline");
+      }
+    });
+  }, [user.id]);
+
+  const updatePresence = async (status: "active" | "away" | "busy" | "offline") => {
+    setPresenceStatus(status);
+    const supabase = createClient();
+    await supabase.rpc("nx_set_presence_status", { p_status: status });
+  };
 
   // ⌘K / Ctrl+K abre el Spotlight — excepto en /chat, donde el buscador de
   // conversaciones se queda con el atajo (ver ChatShell en chat/client.tsx).
@@ -108,12 +125,20 @@ export function Shell({
           <IconButton icon={theme === "dark" ? "sun" : "moon"} label="Cambiar tema" onClick={toggle} />
           <NotificationBell userId={user.id} />
           <button
-            className="ml-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-            title={user.name}
+            className="ml-1 relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            title={`${user.name} — ${presenceStatus === "active" ? "Activo" : presenceStatus === "away" ? "Ausente" : presenceStatus === "busy" ? "No molestar" : "Desconectado"}`}
             data-ripple
             onClick={() => setAvatarMenu(true)}
           >
             <Avatar name={user.name} color={user.color} size={32} avatarUrl={user.avatarUrl} birthday={isBirthdayToday(user.birthDate, todayISO())} />
+            {/* Indicador de estado de presencia */}
+            <span
+              className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
+              style={{
+                background: presenceStatus === "active" ? "var(--ok)" : presenceStatus === "away" ? "var(--warn)" : presenceStatus === "busy" ? "var(--danger)" : "var(--text-3)",
+                borderColor: "var(--bg)",
+              }}
+            />
           </button>
         </header>
 
@@ -123,12 +148,14 @@ export function Shell({
           hasVacaciones={items.some((i) => i.key === "vacaciones")}
           hasConfig={hasConfig}
           theme={theme}
+          presenceStatus={presenceStatus}
+          onPresenceChange={updatePresence}
           onProfile={() => { setAvatarMenu(false); setProfileOpen(true); }}
-          onJornada={() => { setAvatarMenu(false); go("jornada"); }}
-          onVacaciones={() => { setAvatarMenu(false); go("vacaciones"); }}
-          onConfig={() => { setAvatarMenu(false); go("config"); }}
-          onToggleTheme={() => { setAvatarMenu(false); toggle(); }}
-          onSignOut={() => { setAvatarMenu(false); signOut(); }}
+          onJornada={() => { setAvatarMenu(false); router.push("/comunicacion/jornada"); }}
+          onVacaciones={() => { setAvatarMenu(false); router.push("/rh"); }}
+          onConfig={() => { setAvatarMenu(false); router.push("/config"); }}
+          onToggleTheme={toggle}
+          onSignOut={signOut}
           onClose={() => setAvatarMenu(false)}
         />
 
@@ -242,10 +269,13 @@ function MobileBottomNav({ items, active, onGo, ficharAction, badge }: {
    al perfil inferior del Sidebar — ya no hay dos lugares para lo mismo. */
 function UserMenu({
   open, hasJornada, hasVacaciones, hasConfig, theme,
+  presenceStatus, onPresenceChange,
   onProfile, onJornada, onVacaciones, onConfig, onToggleTheme, onSignOut, onClose,
 }: {
   open: boolean;
   hasJornada: boolean; hasVacaciones: boolean; hasConfig: boolean; theme: "light" | "dark";
+  presenceStatus: "active" | "away" | "busy" | "offline";
+  onPresenceChange: (status: "active" | "away" | "busy" | "offline") => void;
   onProfile: () => void; onJornada: () => void; onVacaciones: () => void;
   onConfig: () => void; onToggleTheme: () => void; onSignOut: () => void; onClose: () => void;
 }) {
@@ -263,6 +293,13 @@ function UserMenu({
 
   if (!mounted) return null;
 
+  const presenceOptions = [
+    { value: "active" as const, label: "Activo", color: "var(--ok)" },
+    { value: "away" as const, label: "Ausente", color: "var(--warn)" },
+    { value: "busy" as const, label: "No molestar", color: "var(--danger)" },
+    { value: "offline" as const, label: "Desconectado", color: "var(--text-3)" },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 nx-fade"
       style={{ pointerEvents: visible ? "all" : "none", opacity: visible ? 1 : 0, transition: "opacity .2s ease" }}
@@ -272,6 +309,26 @@ function UserMenu({
         className="absolute top-[60px] right-3 w-[230px] rounded-lg bg-panel border border-border shadow-nx overflow-hidden nx-pop"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Selector de estado de presencia */}
+        <div className="px-3.5 py-3 border-b border-border">
+          <p className="text-[12px] font-bold text-text-3 mb-2">Estado</p>
+          <div className="space-y-1">
+            {presenceOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => { onPresenceChange(opt.value); }}
+                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-[13px] font-medium hover:bg-hover transition-colors"
+                style={{
+                  background: presenceStatus === opt.value ? "var(--hover)" : "transparent",
+                  color: presenceStatus === opt.value ? "var(--text-1)" : "var(--text-2)",
+                }}
+              >
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: opt.color }} />
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <button onClick={onProfile} className="w-full flex items-center gap-2.5 px-3.5 h-11 text-[13.5px] font-semibold text-text-1 hover:bg-hover transition-colors">
           <Icon name="person" size={16} className="text-text-3" /> Mi perfil
         </button>

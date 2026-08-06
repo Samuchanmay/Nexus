@@ -61,18 +61,32 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
       ? await supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color").in("id", userIds)
       : { data: [] as ParticipantLite[] };
     const { data: heartbeats } = userIds.length > 0
-      ? await supabase.from("user_heartbeats").select("user_id, last_seen_at").in("user_id", userIds)
-      : { data: [] as { user_id: string; last_seen_at: string }[] };
+      ? await supabase.from("user_heartbeats").select("user_id, last_seen_at, manual_status").in("user_id", userIds)
+      : { data: [] as { user_id: string; last_seen_at: string; manual_status: string | null }[] };
     const lastSeenByUser = new Map((heartbeats ?? []).map((h) => [h.user_id, h.last_seen_at]));
+    const manualStatusByUser = new Map((heartbeats ?? []).map((h) => [h.user_id, h.manual_status]));
     const peopleById = new Map((people ?? []).map((p) => [p.id, p]));
 
     participantsByConv = {};
     for (const p of participants ?? []) {
       const person = peopleById.get(p.user_id);
       if (!person) continue;
-      (participantsByConv[p.conversation_id] ??= []).push({ ...person, last_seen_at: lastSeenByUser.get(person.id) ?? null });
+      (participantsByConv[p.conversation_id] ??= []).push({
+        ...person,
+        last_seen_at: lastSeenByUser.get(person.id) ?? null,
+        manual_status: manualStatusByUser.get(person.id) ?? null,
+      });
     }
   }
+
+  // Mi propio estado de presencia (Fase 5) — alimenta el selector
+  // Activo/Ausente/No molestar/Desconectado del encabezado del chat.
+  // Prioridad: users.presence_status (nuevo) > user_heartbeats.manual_status (legacy).
+  const { data: myHeartbeat } = await supabase
+    .from("user_heartbeats").select("manual_status").eq("user_id", myId).maybeSingle();
+  const myManualStatus = (profile.presence_status as "active" | "away" | "busy" | "offline" | null)
+    ?? (myHeartbeat?.manual_status as "ausente" | "no_molestar" | null)
+    ?? null;
 
   // Mi propia fila de participante por conversación — silenciado/fijado/
   // archivado/último leído son por usuario (ver migración
@@ -114,6 +128,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
           initialConversations={(conversations ?? []) as EnlaceConversation[]}
           participantsByConv={participantsByConv}
           myStateByConv={myStateByConv}
+          myManualStatus={myManualStatus}
         >
           {children}
         </ChatShell>

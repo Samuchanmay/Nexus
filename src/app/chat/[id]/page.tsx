@@ -51,7 +51,7 @@ export default async function EnlaceConversationPage({
     : null;
   const [{ data: people }, { data: heartbeats }, { data: otherProfileRaw }, { data: creatorRaw }] = await Promise.all([
     userIds.length > 0
-      ? supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color").in("id", userIds)
+      ? supabase.from("users_directory").select("id, display_name, avatar_url, nexus_color, presence_status").in("id", userIds)
       : Promise.resolve({ data: [] as ParticipantLite[] }),
     // Presencia — reusa user_heartbeats, que ya alimenta la presencia del
     // dashboard admin; no es infraestructura nueva, solo un consumidor más.
@@ -78,6 +78,7 @@ export default async function EnlaceConversationPage({
     ...p,
     role: roleByUser.get(p.id) ?? "member",
     last_seen_at: presenceVisible ? (lastSeenByUser.get(p.id) ?? null) : null,
+    manual_status: (p as unknown as { presence_status?: string }).presence_status ?? null,
   }));
 
   // Últimos PAGE_SIZE mensajes — el resto se trae bajo demanda al hacer

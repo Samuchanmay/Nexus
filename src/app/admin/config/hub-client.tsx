@@ -49,6 +49,8 @@ const QUICK_LINKS: { title: string; items: QuickLink[] }[] = [
         desc: "Solicitudes y actividades agregadas por tipo, coordinación y tiempo." },
       { href: "/admin/dev-mode", title: "Modo desarrollador", icon: "layers",
         desc: "Mapa de todas las pantallas de Emet, agrupadas por rol." },
+      { href: "/admin/config/backups", title: "Respaldos", icon: "download",
+        desc: "Generar y descargar respaldos de los datos operativos, y restaurar por tabla." },
     ],
   },
 ];

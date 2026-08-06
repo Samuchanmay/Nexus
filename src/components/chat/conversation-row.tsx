@@ -4,6 +4,13 @@ import { Icon } from "@/components/os/icons";
 import { useSwipeGesture } from "@/lib/chat/use-swipe-gesture";
 import { useTyping } from "@/lib/chat/use-typing";
 import { TypingDots } from "@/components/chat/typing-indicator";
+import { PRESENCE_DOT_COLOR, type PresenceDot } from "@/lib/chat/format-presence";
+
+const PRESENCE_LABEL: Record<Exclude<PresenceDot, null>, string> = {
+  online: "En línea",
+  away: "Ausente",
+  dnd: "No molestar",
+};
 
 /** Ancho fijo de cada acción (spec Signal: 72–80 px). La franja completa
     mide dos acciones; al deslizar la tarjeta se revela entera. */
@@ -52,12 +59,14 @@ function ActionButton({ icon, label, background, onClick }: {
  * · Resistencia (rubber band) al final del arrastre + retorno con resorte.
  */
 export function ConversationRow({
-  name, avatarUrl, color, preview, time, unread, unreadCount = 0, active, muted, pinned, online,
+  name, avatarUrl, color, preview, time, unread, unreadCount = 0, active, muted, pinned, presence,
   typingLabel, recording = false, onOpen, onToggleMute, onTogglePin, onMarkRead, onToggleArchive,
 }: {
   name: string; avatarUrl: string | null; color: string | null; preview: string; time: string;
   unread: boolean; unreadCount?: number; active: boolean; muted: boolean; pinned: boolean;
-  online?: boolean;
+  /** Punto de presencia del interlocutor (solo directas) — En línea/Ausente/
+      No molestar, o null/undefined si no aplica (grupos, sin heartbeat). */
+  presence?: PresenceDot;
   typingLabel?: string | null;
   recording?: boolean;
   onOpen: () => void; onToggleMute: () => void; onTogglePin: () => void;
@@ -109,11 +118,11 @@ export function ConversationRow({
       >
         <div className="relative shrink-0">
           <Avatar name={name} avatarUrl={avatarUrl} color={color} size={48} />
-          {online && (
+          {presence && (
             <span
               className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2"
-              style={{ background: "var(--ok)", borderColor: "var(--chat-list-bg)" }}
-              aria-label="En línea"
+              style={{ background: PRESENCE_DOT_COLOR[presence], borderColor: "var(--chat-list-bg)" }}
+              aria-label={PRESENCE_LABEL[presence]}
             />
           )}
         </div>

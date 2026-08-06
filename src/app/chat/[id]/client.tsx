@@ -10,7 +10,7 @@ import { useAttachmentUpload } from "@/lib/chat/use-attachment-upload";
 import { useAudioRecorder } from "@/lib/chat/use-audio-recorder";
 import { useTyping } from "@/lib/chat/use-typing";
 import { useSwipeGesture } from "@/lib/chat/use-swipe-gesture";
-import { formatPresence } from "@/lib/chat/format-presence";
+import { getPresenceInfo } from "@/lib/chat/format-presence";
 import { playMessageReceived } from "@/lib/chat/sound";
 import { showIncomingChatNotification, messageNotificationBody } from "@/lib/chat/notify";
 import { MessageStatusIcon } from "@/components/chat/message-status";
@@ -188,7 +188,7 @@ export default function EnlaceConversationClient({
   const title = conversation.type === "announcement" ? (conversation.name ?? "Anuncios")
     : conversation.type === "group" ? (conversation.name ?? "Grupo")
     : (other?.display_name ?? "Conversación");
-  const presence = other ? formatPresence(other.last_seen_at) : null;
+  const presence = other ? getPresenceInfo(other.last_seen_at, other.manual_status).label : null;
   const subtitle = conversation.type === "announcement"
     ? (myRole === "admin" ? "Solo tú y otros admins pueden publicar" : "Solo administradores pueden publicar")
     : recordingText
@@ -1562,16 +1562,27 @@ function InfoPanel({
             separadas, nunca tarjetas). */}
         <div className="mb-5 px-1 space-y-3">
           {participants.map((p) => {
-            const presence = formatPresence(p.last_seen_at);
+            const presenceInfo = getPresenceInfo(p.last_seen_at, p.manual_status);
             return (
               <div key={p.id} className="flex items-center gap-2">
-                <Avatar name={p.display_name} avatarUrl={p.avatar_url} color={p.nexus_color} size={30} />
+                <div className="relative shrink-0">
+                  <Avatar name={p.display_name} avatarUrl={p.avatar_url} color={p.nexus_color} size={30} />
+                  {presenceInfo.dot && (
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+                      style={{
+                        background: presenceInfo.dot === "online" ? "var(--ok)" : presenceInfo.dot === "away" ? "var(--warn)" : "var(--danger)",
+                        borderColor: "var(--chat-list-bg)",
+                      }}
+                    />
+                  )}
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[12.5px] font-medium truncate" style={{ color: "var(--text-1)" }}>
                     {p.id === myId ? "Tú" : p.display_name}
                   </p>
-                  {presence && p.id !== myId && (
-                    <p className="text-[10.5px] truncate" style={{ color: "var(--text-3)" }}>{presence}</p>
+                  {presenceInfo.label && p.id !== myId && (
+                    <p className="text-[10.5px] truncate" style={{ color: "var(--text-3)" }}>{presenceInfo.label}</p>
                   )}
                 </div>
                 {p.role === "admin" && (
