@@ -2,6 +2,32 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-05 · Infraestructura documentada para despliegue
+
+### Documentos creados
+- **`docs/DEPLOY-INFRASTRUCTURE.md`**: Guía completa de despliegue con checklist paso a paso
+  - Migraciones SQL 0025-0038 (6 documentos unificados)
+  - Secrets de Google Calendar (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+  - Secrets VAPID para push notifications (3 claves)
+  - Despliegue de 8 Edge Functions (7 gcal-* + send-chat-push)
+  - Checklist de verificaciones manuales con 2 cuentas
+
+- **`docs/MIGRACIONES-APLICAR-0037b-0038-ATTENDANCE-FIX.sql`**: Script unificado para:
+  - 0037b: Policy att_admin_delete (admin/RH pueden eliminar movimientos)
+  - 0038: Fix de RLS en attendance_corrections (usaba auth.uid() incorrectamente)
+
+### Estado de migraciones pendientes
+Todas las migraciones 0025-0038 están documentadas y listas para aplicar en el SQL Editor de Supabase:
+- `docs/MIGRACIONES-APLICAR-0025-0034.sql` (script unificado)
+- `docs/MIGRACIONES-APLICAR-0035-ATTENDANCE-RLS.sql`
+- `docs/MIGRACIONES-APLICAR-0036-CHAT-SEARCH.sql`
+- `docs/MIGRACIONES-APLICAR-0037-CHAT-LECTURAS-Y-OCULTAR.sql`
+- `docs/MIGRACIONES-APLICAR-0037b-0038-ATTENDANCE-FIX.sql` (nuevo)
+
+### Archivos
+- `docs/DEPLOY-INFRASTRUCTURE.md` (nuevo)
+- `docs/MIGRACIONES-APLICAR-0037b-0038-ATTENDANCE-FIX.sql` (nuevo)
+
 ## 2026-08-05 · W2/W3 cerrados: retrofit tipográfico completo + última pasada de tamaños sueltos
 
 ### Última pasada (6 archivos, 18 tamaños normalizados)
