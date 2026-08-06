@@ -808,8 +808,8 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Añadir proyecto" subtitle="Crea una actividad directamente, sin pasar por Solicitudes">
         <div className="flex flex-col gap-4">
           <div>
-            <label className="text-[12px] font-semibold mb-1.5 block" style={{ color: "var(--text-2)" }}>Nombre de la actividad</label>
-            <input className="field-input" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            <label htmlFor="proy-add-title" className="text-[12px] font-semibold mb-1.5 block" style={{ color: "var(--text-2)" }}>Nombre de la actividad</label>
+            <input id="proy-add-title" className="field-input" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="Ej. Actualización del sitio web" />
           </div>
 
@@ -943,8 +943,8 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
               ) : (
                 <div className="flex flex-col gap-3">
                   <div>
-                    <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Título</label>
-                    <input className="field-input" value={eventForm2.title}
+                    <label htmlFor="proy-event-title" className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Título</label>
+                    <input id="proy-event-title" className="field-input" value={eventForm2.title}
                       onChange={(e) => setEventForm2((f) => ({ ...f, title: e.target.value }))} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -968,8 +968,8 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Lugar (opcional)</label>
-                    <input className="field-input" value={eventForm2.location_name}
+                    <label htmlFor="proy-event-location" className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Lugar (opcional)</label>
+                    <input id="proy-event-location" className="field-input" value={eventForm2.location_name}
                       onChange={(e) => setEventForm2((f) => ({ ...f, location_name: e.target.value }))} />
                   </div>
                   <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
