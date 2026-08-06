@@ -1,11 +1,28 @@
 {
   "manifest_version": 3,
   "name": "EMET Recorridos — Grabadora de demos",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Captura pantallas de EMET paso a paso y las sube como un recorrido (demo) para el onboarding de empleados.",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Recorridos EMET"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "capture-screen": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E"
+      },
+      "description": "Capturar la pantalla actual al recorrido en curso"
+    },
+    "open-popup": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R"
+      },
+      "description": "Abrir el popup de Recorridos EMET"
+    }
   },
   "permissions": ["activeTab", "scripting", "tabs", "storage"],
   "host_permissions": [

@@ -66,6 +66,21 @@ let currentEditingTour = null;
 let currentPreviewTour = null;
 let currentPreviewIndex = 0;
 
+// ── Sync con capturas del service worker (atajos de teclado) ─────
+chrome.runtime.onMessage.addListener((msg) => {
+  if (!msg || msg.type !== "recording-updated") return;
+  const editing = !els.recordingView.classList.contains("hidden");
+  if (!editing) return;
+  getStoredRecording().then((recording) => {
+    if (recording) renderRecording(recording);
+  });
+  if (msg.captured) {
+    showStatus(`Pantalla ${msg.index + 1} capturada (atajo).`, "ok");
+  } else if (msg.error) {
+    showStatus(msg.error, "error");
+  }
+});
+
 // ── Utilidades ───────────────────────────────────────────────────
 function showStatus(message, kind) {
   els.statusLine.textContent = message;
@@ -197,6 +212,22 @@ async function captureCurrentScreen() {
     throw new Error("La captura no devolvió contenido (¿la página bloqueó el script?).");
   }
 
+  let viewport;
+  try {
+    const vp = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => ({
+        x: window.scrollX,
+        y: window.scrollY,
+        width: window.innerWidth,
+        height: window.innerHeight,
+      }),
+    });
+    viewport = vp && vp[0] && vp[0].result;
+  } catch {
+    viewport = null;
+  }
+
   let thumbnail = null;
   try {
     thumbnail = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
@@ -208,6 +239,12 @@ async function captureCurrentScreen() {
     snapshot,
     thumbnail,
     interaction_ctx: { url: tab.url, captured_at: new Date().toISOString() },
+    scroll: viewport
+      ? { x: viewport.x, y: viewport.y }
+      : { x: 0, y: 0 },
+    viewport: viewport
+      ? { width: viewport.width, height: viewport.height }
+      : { width: 1920, height: 1080 },
     highlights: [],
     blurs: [],
   };
@@ -335,6 +372,7 @@ function renderEditorScreens(screens) {
       </div>
       <div class="edit-screen-item-actions">
         <button class="subtle" data-action="edit-screen" title="Editar highlights/blurs">✏️</button>
+        <button class="subtle" data-action="insert-after" title="Insertar captura después de esta pantalla">➕</button>
         <button class="subtle" data-action="move-up" title="Mover arriba" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="subtle" data-action="move-down" title="Mover abajo" ${i === screens.length - 1 ? 'disabled' : ''}>↓</button>
         <button class="danger" data-action="delete-screen" title="Eliminar pantalla">🗑️</button>
@@ -345,6 +383,7 @@ function renderEditorScreens(screens) {
       btn.addEventListener('click', () => {
         const action = btn.dataset.action;
         if (action === 'edit-screen') editScreen(i);
+        else if (action === 'insert-after') insertScreen(i);
         else if (action === 'move-up') moveScreen(i, i - 1);
         else if (action === 'move-down') moveScreen(i, i + 1);
         else if (action === 'delete-screen') deleteScreen(i);
@@ -373,7 +412,14 @@ async function editScreen(index) {
   
   await chrome.tabs.update(tab.id, { url });
   await new Promise(resolve => setTimeout(resolve, 2000));
-  
+
+  const scroll = screen.scroll || { x: 0, y: 0 };
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (sx, sy) => window.scrollTo(sx, sy),
+    args: [scroll.x, scroll.y],
+  }).catch(() => {});
+
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     files: ["select-mode.js"],
@@ -423,6 +469,18 @@ async function editScreen(index) {
       }
     }
   }, 1000);
+}
+
+async function insertScreen(index) {
+  const tour = currentEditingTour;
+  try {
+    const screen = await captureCurrentScreen();
+    tour.screens.splice(index + 1, 0, screen);
+    renderEditorScreens(tour.screens);
+    showStatus(`Pantalla insertada después de la ${index + 1}.`, "ok");
+  } catch (err) {
+    showStatus(err instanceof Error ? err.message : "No se pudo capturar la pantalla.", "error");
+  }
 }
 
 function moveScreen(fromIndex, toIndex) {
@@ -513,9 +571,10 @@ function renderPreview() {
   els.previewHighlights.innerHTML = "";
   
   const imgRect = els.previewImage.getBoundingClientRect();
-  
-  const scaleX = imgRect.width / (screen.snapshot?.viewport?.width || 1920);
-  const scaleY = imgRect.height / (screen.snapshot?.viewport?.height || 1080);
+
+  const vp = screen.viewport || screen.snapshot?.viewport || { width: 1920, height: 1080 };
+  const scaleX = imgRect.width / (vp.width || 1920);
+  const scaleY = imgRect.height / (vp.height || 1080);
   
   (screen.highlights || []).forEach(h => {
     const div = document.createElement("div");

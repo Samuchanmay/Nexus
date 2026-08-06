@@ -166,8 +166,8 @@
       selector,
       type: mode,
       rect: {
-        top: rect.top + window.scrollY,
-        left: rect.left + window.scrollX,
+        top: rect.top,
+        left: rect.left,
         width: rect.width,
         height: rect.height,
       },
@@ -179,7 +179,10 @@
     if (mode === 'highlight') {
       element.style.boxShadow = '0 0 0 3px #3B82F6, 0 0 20px rgba(59, 130, 246, 0.5)';
     } else {
-      element.style.filter = 'blur(8px)';
+      // Blur adaptivo al tamaño del elemento (mejor a pequeña escala)
+      const area = rect.width * rect.height;
+      const blur = Math.min(Math.ceil(6 + Math.sqrt(area) * 0.006), 16);
+      element.style.filter = `blur(${blur}px)`;
       element.style.transition = 'filter 0.3s ease';
     }
     

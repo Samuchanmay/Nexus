@@ -2,6 +2,23 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-06 · Extensión de recorridos v4: pulido (rediseño + atajos de teclado + editor)
+
+### Qué cambió
+- **Rediseño v3 del popup**: tema oscuro alineado con Emet (variables CSS, accent `#3b82f6`, superficies `#1a1a1a`, gradientes y sombras), header con `backdrop-filter`, tabs con `aria-selected` y ripple en botones, badges borrador/publicado, scrollbar personalizado y animaciones de entrada (fade/slide/scale).
+- **Service worker + atajos globales**: nueva `background.js` con `chrome.commands`. `Ctrl+Shift+E` captura la pantalla actual al recorrido en curso sin abrir el popup; `Ctrl+Shift+R` abre el popup. El popup se refresca solo vía mensaje `recording-updated`.
+- **Insertar paso en medio**: botón ➕ en el editor de screens para capturar la pestaña activa e insertarla después del paso seleccionado (sin perder el resto).
+- **Scroll y viewport persistidos por pantalla**: cada captura guarda `scroll`/`viewport`; al editar highlights/blurs se restaura el scroll del paso; la preview escala los rects con el viewport real capturado.
+- **Blur adaptivo**: el desenfoque se calcula según el tamaño del elemento (6–16px) en vez de fijo de 8px.
+- **Rects relativos al viewport**: los highlights/blurs ahora se alinean con la miniatura capturada aunque la página estuviera scrolleada.
+
+### Archivos
+- `recorridos-extension/background.js` (nuevo)
+- `recorridos-extension/manifest.json` (service worker, commands, versión 1.1.0)
+- `recorridos-extension/popup.html`, `popup.css`, `popup.js`
+- `recorridos-extension/select-mode.js`
+- `recorridos-extension/README.md`
+
 ## 2026-08-06 · Extensión de recorridos v2: biblioteca, editor visual, highlights/blurs
 
 ### Qué cambió

@@ -37,6 +37,31 @@ directo por Chrome.
 7. El recorrido queda como **borrador** (o publicado, según elegiste) y
    aparece en `/preptour` para revisarlo/publicarlo.
 
+## Atajos de teclado (grabar sin abrir el popup)
+
+Mientras una grabación está en curso puedes capturar pantallas desde la
+página, sin tener el popup abierto:
+
+- `Ctrl+Shift+E` — capturar la pantalla actual como paso nuevo.
+- `Ctrl+Shift+R` — abrir el popup (para revisar / finalizar).
+
+El popup se refresca solo cuando capturas con el atajo. Si no hay una
+grabación en curso, el atajo de captura simplemente abre el popup.
+
+## Editor de pasos
+
+Desde "Mis recorridos" → "Editar" puedes:
+
+- **Reordenar** (↑/↓) y **eliminar** pasos.
+- **Insertar** una captura nueva en medio de un recorrido ya guardado
+  (el botón ➕ captura la pestaña activa y la coloca después del paso
+  seleccionado).
+- **Editar highlights/blurs** de un paso: la extensión recuerda el
+  scroll de ese paso, lo restaura y entra en modo selección (H para
+  resaltar, B para ocultar, Esc para terminar).
+- **Vista previa** de cada paso con los highlights/blurs escalados al
+  tamaño real de la captura.
+
 ## Qué captura exactamente
 
 Cada pantalla se serializa a un árbol `SerNode` (mismo formato que
@@ -67,8 +92,10 @@ porque el iframe del reproductor no tiene URL base propia.
 
 ```
 recorridos-extension/
-├── manifest.json        Manifest V3, sin service worker (todo corre en el popup)
-├── popup.html/.css/.js  UI del popup y orquestación de captura/subida
+├── manifest.json        Manifest V3, service worker (atajos globales) + popup
+├── background.js        Service worker: captura con Ctrl+Shift+E y abre popup
+├── popup.html/.css/.js  UI del popup y orquestación de captura/subida/edición
 ├── content-capture.js   Serializador DOM → SerNode, inyectado bajo demanda
+├── select-mode.js       Modo selección: highlights/blurs por clic sobre el DOM
 └── README.md
 ```
