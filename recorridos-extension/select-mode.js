@@ -69,15 +69,26 @@
         ${mode === 'highlight' ? '🔆 Resaltar' : '🔒 Ocultar'}
       </span>
       <span>Haz clic en elementos para ${modeText}</span>
+      <button id="emet-select-autoredact" style="background: #F59E0B; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">
+        🔒 Auto-redactar
+      </button>
       <button id="emet-select-done" style="background: #10B981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;">
         Listo
       </button>
+      <span id="emet-select-count" style="font-size: 12px; color: #b0b0b0;">${selectedElements.length}</span>
     `;
     
     const doneBtn = tooltip.querySelector('#emet-select-done');
     if (doneBtn) {
       doneBtn.addEventListener('click', () => {
         window.__emetRecorridosExitSelectMode();
+      });
+    }
+    const arBtn = tooltip.querySelector('#emet-select-autoredact');
+    if (arBtn) {
+      arBtn.addEventListener('click', () => {
+        window.__emetRecorridosAutoRedact();
+        updateTooltip();
       });
     }
   }
@@ -223,8 +234,89 @@
     } else if (e.key === 'b' || e.key === 'B') {
       mode = 'blur';
       updateTooltip();
+    } else if (e.key === 'a' || e.key === 'A') {
+      window.__emetRecorridosAutoRedact();
+      updateTooltip();
     }
   }
+
+  // ── Auto-redactar datos sensibles (emails, precios, números) ─────
+  function getDirectText(el) {
+    let text = '';
+    for (let c = 0; c < el.childNodes.length; c++) {
+      if (el.childNodes[c].nodeType === Node.TEXT_NODE) text += el.childNodes[c].textContent;
+    }
+    return text;
+  }
+
+  window.__emetRecorridosAutoRedact = function () {
+    const patterns = [
+      /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/, // emails
+      /\$\s?\d[\d.,]*/,                // precios ($12,450.50)
+      /\b\d{10,}\b/,                   // teléfonos / tarjetas (10+ dígitos)
+    ];
+
+    const candidates = [];
+    const all = document.querySelectorAll('body *');
+    for (let i = 0; i < all.length; i++) {
+      const el = all[i];
+      if (el.closest && el.closest('#emet-select-tooltip, #emet-select-overlay')) continue;
+
+      const directText = getDirectText(el);
+      if (!directText) continue;
+
+      let matched = false;
+      for (let p = 0; p < patterns.length; p++) {
+        if (patterns[p].test(directText)) { matched = true; break; }
+      }
+      if (!matched) continue;
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) continue;
+      candidates.push({ el, rect, area: rect.width * rect.height });
+    }
+
+    // Los más pequeños primero; descartar los que caigan dentro de otro ya añadido
+    candidates.sort((a, b) => a.area - b.area);
+
+    let added = 0;
+    const coverage = [];
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      const inside = coverage.some((r) =>
+        r.left <= c.rect.left + 1 && r.top <= c.rect.top + 1 &&
+        r.right >= c.rect.right - 1 && r.bottom >= c.rect.bottom - 1
+      );
+      if (inside) continue;
+
+      selectedElements.push({
+        selector: getSelector(c.el),
+        type: 'blur',
+        rect: {
+          top: c.rect.top,
+          left: c.rect.left,
+          width: c.rect.width,
+          height: c.rect.height,
+        },
+        text: c.el.textContent?.slice(0, 50) || '',
+        auto: true,
+      });
+      coverage.push({
+        left: c.rect.left,
+        top: c.rect.top,
+        right: c.rect.right,
+        bottom: c.rect.bottom,
+      });
+
+      const blur = Math.min(Math.ceil(6 + Math.sqrt(c.area) * 0.006), 16);
+      c.el.style.transition = 'filter 0.3s ease';
+      c.el.style.filter = `blur(${blur}px)`;
+      setTimeout(() => { c.el.style.filter = ''; }, 500);
+      added += 1;
+    }
+
+    return added;
+  };
 
   // ── API pública ─────────────────────────────────────────────────
   window.__emetRecorridosEnterSelectMode = function(initialMode = 'highlight') {

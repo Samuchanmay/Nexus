@@ -60,6 +60,16 @@
         </select>
       </label>
       <label>
+        Ventana de grabación
+        <select id="f-size">
+          <option value="">No redimensionar</option>
+          <option value="1366,768">Laptop 1366×768</option>
+          <option value="1280,720">HD 1280×720</option>
+          <option value="1440,900">1440×900</option>
+          <option value="1920,1080">Full HD 1920×1080</option>
+        </select>
+      </label>
+      <label>
         Servidor de EMET
         <input id="f-server" type="text" placeholder="https://emet.uno" />
       </label>
@@ -79,6 +89,7 @@
       <ol id="rec-list" class="rec-list" aria-label="Pantallas capturadas"></ol>
       <div class="rec-actions">
         <button id="btn-capture" class="primary">📸 Capturar pantalla</button>
+        <button id="btn-cover" class="subtle">🏷 Portada</button>
         <button id="btn-undo" class="subtle">↶ Deshacer</button>
       </div>
       <div class="rec-actions">
@@ -136,6 +147,27 @@
           </label>
         </div>
 
+        <!-- Branding del player -->
+        <div class="editor-section">
+          <h3>Presentación</h3>
+          <label>
+            Color principal
+            <input id="edit-color" type="color" value="#3b82f6" />
+          </label>
+          <label class="edit-check">
+            <input id="edit-stepno" type="checkbox" checked />
+            Mostrar «Paso X de Y»
+          </label>
+          <label>
+            Texto botón «Siguiente»
+            <input id="edit-next" type="text" placeholder="Siguiente" />
+          </label>
+          <label>
+            Texto botón «Anterior»
+            <input id="edit-prev" type="text" placeholder="Anterior" />
+          </label>
+        </div>
+
         <!-- Screens -->
         <div class="editor-section">
           <h3>Pantallas (<span id="edit-screen-count">0</span>)</h3>
@@ -163,6 +195,10 @@
       </header>
 
       <div class="preview-body">
+        <div id="preview-cover" class="preview-cover hidden">
+          <p id="preview-cover-title" class="preview-cover-title"></p>
+          <p id="preview-cover-text" class="preview-cover-text"></p>
+        </div>
         <div id="preview-container" class="preview-container">
           <img id="preview-image" class="preview-image" alt="Captura de pantalla" />
           <div id="preview-highlights" class="preview-highlights" aria-hidden="true"></div>

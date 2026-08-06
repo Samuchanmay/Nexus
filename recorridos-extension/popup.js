@@ -20,6 +20,7 @@ const els = {
   description: $("f-description"),
   role: $("f-role"),
   status: $("f-status"),
+  size: $("f-size"),
   server: $("f-server"),
   btnStart: $("btn-start"),
   
@@ -28,6 +29,7 @@ const els = {
   recCount: $("rec-count"),
   recList: $("rec-list"),
   btnCapture: $("btn-capture"),
+  btnCover: $("btn-cover"),
   btnUndo: $("btn-undo"),
   btnFinish: $("btn-finish"),
   btnCancel: $("btn-cancel"),
@@ -43,6 +45,10 @@ const els = {
   editTitle: $("edit-title"),
   editDescription: $("edit-description"),
   editRole: $("edit-role"),
+  editColor: $("edit-color"),
+  editStepno: $("edit-stepno"),
+  editNext: $("edit-next"),
+  editPrev: $("edit-prev"),
   editScreenCount: $("edit-screen-count"),
   editScreensList: $("edit-screens-list"),
   editorDelete: $("editor-delete"),
@@ -56,6 +62,9 @@ const els = {
   previewCounter: $("preview-counter"),
   previewImage: $("preview-image"),
   previewHighlights: $("preview-highlights"),
+  previewCover: $("preview-cover"),
+  previewCoverTitle: $("preview-cover-title"),
+  previewCoverText: $("preview-cover-text"),
   previewCaption: $("preview-caption"),
   
   statusLine: $("status-line"),
@@ -108,6 +117,24 @@ function slugify(text) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
+}
+
+// ── Redimensionar la ventana a un preset antes de grabar ─────────
+async function resizeWindowTo(width, height) {
+  try {
+    await chrome.windows.update(chrome.windows.WINDOW_ID_CURRENT, { width, height });
+    return true;
+  } catch (e) {
+    console.warn("[recorridos] no se pudo redimensionar la ventana:", e);
+    return false;
+  }
+}
+
+function parseSize(value) {
+  if (!value) return null;
+  const [w, h] = value.split(",").map((n) => parseInt(n, 10));
+  if (!w || !h) return null;
+  return { width: w, height: h };
 }
 
 async function getStoredRecording() {
@@ -180,7 +207,9 @@ function renderRecording(recording) {
     idx.textContent = String(i + 1);
     const url = document.createElement("span");
     url.className = "url";
-    url.textContent = (screen.interaction_ctx && screen.interaction_ctx.url) || "(sin URL)";
+    url.textContent = screen.cover
+      ? `🏷 ${screen.cover_title || "Portada"}`
+      : (screen.interaction_ctx && screen.interaction_ctx.url) || "(sin URL)";
     li.appendChild(idx);
     if (screen.thumbnail) {
       const img = document.createElement("img");
@@ -277,6 +306,32 @@ async function runCountdown(seconds = 3) {
 // ── Subida final ─────────────────────────────────────────────────
 async function uploadRecording(recording) {
   const server = (recording.server || DEFAULT_SERVER).replace(/\/+$/, "");
+
+  // Highlights, blurs, scroll, viewport y opciones de presentación se
+  // persisten dentro de interaction_ctx (jsonb que el servidor ya guarda
+  // por pantalla) para que sobrevivan a la subida. El player puede
+  // consumirlos más adelante.
+  const screens = recording.screens.map((s, i) => {
+    const ctx = {
+      ...(s.interaction_ctx || {}),
+      highlights: s.highlights || [],
+      blurs: s.blurs || [],
+      scroll: s.scroll || null,
+      viewport: s.viewport || null,
+    };
+    if (s.cover) {
+      ctx.cover = true;
+      ctx.cover_title = s.cover_title || "";
+      ctx.cover_text = s.cover_text || "";
+    }
+    if (i === 0) ctx.tour_options = recording.options || null;
+    return {
+      snapshot: s.snapshot ?? {},
+      thumbnail: s.thumbnail || undefined,
+      interaction_ctx: ctx,
+    };
+  });
+
   const res = await fetch(`${server}/api/demos/ingest`, {
     method: "POST",
     credentials: "include",
@@ -287,7 +342,7 @@ async function uploadRecording(recording) {
       description: recording.description || undefined,
       target_role: recording.target_role,
       status: recording.status,
-      screens: recording.screens,
+      screens,
     }),
   });
 
@@ -323,6 +378,7 @@ async function renderLibrary() {
     item.className = "library-item";
     
     const screenCount = tour.screens?.length || 0;
+    const failed = !!tour.uploadError;
     const date = new Date(tour.created_at).toLocaleDateString('es-MX', { 
       day: '2-digit', month: 'short', year: 'numeric' 
     });
@@ -330,16 +386,17 @@ async function renderLibrary() {
     item.innerHTML = `
       <div class="library-item-header">
         <span class="library-item-title">${tour.title}</span>
-        <span class="library-item-badge ${tour.status}">${tour.status}</span>
+        <span class="library-item-badge ${failed ? 'fallida' : tour.status}">${failed ? 'subida fallida' : tour.status}</span>
       </div>
       <div class="library-item-meta">
         <span>📸 ${screenCount} pantalla${screenCount !== 1 ? 's' : ''}</span>
         <span>📅 ${date}</span>
       </div>
+      ${failed ? `<div class="library-item-error">⚠️ ${tour.uploadError}</div>` : ''}
       <div class="library-item-actions">
         <button class="subtle" data-action="preview">👁️ Ver</button>
         <button class="subtle" data-action="edit">✏️ Editar</button>
-        <button class="subtle" data-action="upload">📤 Subir</button>
+        <button class="subtle" data-action="upload">${failed ? '↻ Reintentar' : '📤 Subir'}</button>
         <button class="danger" data-action="delete">🗑️ Eliminar</button>
       </div>
     `;
@@ -363,10 +420,15 @@ async function renderLibrary() {
 function openEditor(tour, index) {
   currentEditingTour = { ...tour, index };
   
+  const options = tour.options || {};
   els.editorTitle.textContent = "Editar recorrido";
   els.editTitle.value = tour.title;
   els.editDescription.value = tour.description || "";
   els.editRole.value = tour.target_role;
+  els.editColor.value = options.color || "#3b82f6";
+  els.editStepno.checked = options.showStepNo !== false;
+  els.editNext.value = options.nextBtnText || "";
+  els.editPrev.value = options.prevBtnText || "";
   
   renderEditorScreens(tour.screens || []);
   
@@ -383,19 +445,22 @@ function renderEditorScreens(screens) {
     
     const highlightCount = screen.highlights?.length || 0;
     const blurCount = screen.blurs?.length || 0;
+    const isCover = !!screen.cover;
     
     item.innerHTML = `
-      ${screen.thumbnail ? `<img src="${screen.thumbnail}" alt="Pantalla ${i + 1}" />` : ''}
+      ${!isCover && screen.thumbnail ? `<img src="${screen.thumbnail}" alt="Pantalla ${i + 1}" />` : ''}
       <div class="edit-screen-item-info">
-        <div class="edit-screen-item-title">Pantalla ${i + 1}</div>
+        <div class="edit-screen-item-title">${isCover
+          ? `🏷 Portada${screen.cover_title ? ': ' + screen.cover_title : ''}`
+          : `Pantalla ${i + 1}`}</div>
         <div class="edit-screen-item-meta">
-          ${highlightCount > 0 ? `🔆 ${highlightCount}` : ''}
-          ${blurCount > 0 ? `🔒 ${blurCount}` : ''}
-          ${highlightCount === 0 && blurCount === 0 ? 'Sin ediciones' : ''}
+          ${isCover
+            ? 'Sin captura'
+            : `${highlightCount > 0 ? `🔆 ${highlightCount}` : ''}${blurCount > 0 ? ` 🔒 ${blurCount}` : ''}${highlightCount === 0 && blurCount === 0 ? 'Sin ediciones' : ''}`}
         </div>
       </div>
       <div class="edit-screen-item-actions">
-        <button class="subtle" data-action="edit-screen" title="Editar highlights/blurs">✏️</button>
+        <button class="subtle" data-action="edit-screen" title="Editar highlights/blurs" ${isCover ? 'disabled' : ''}>✏️</button>
         <button class="subtle" data-action="insert-after" title="Insertar captura después de esta pantalla">➕</button>
         <button class="subtle" data-action="move-up" title="Mover arriba" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="subtle" data-action="move-down" title="Mover abajo" ${i === screens.length - 1 ? 'disabled' : ''}>↓</button>
@@ -421,6 +486,11 @@ function renderEditorScreens(screens) {
 async function editScreen(index) {
   const tour = currentEditingTour;
   const screen = tour.screens[index];
+
+  if (screen.cover) {
+    showStatus("Las portadas no llevan highlights ni blurs.", "info");
+    return;
+  }
   
   const url = screen.interaction_ctx?.url;
   if (!url) {
@@ -456,7 +526,7 @@ async function editScreen(index) {
     },
   });
   
-  showStatus("Modo edición activado. Haz clic en elementos para resaltarlos o ocultarlos. Presiona 'H' para highlight, 'B' para blur, 'Esc' para terminar.", "info");
+  showStatus("Modo edición activado. Clic para resaltar (H) u ocultar (B), 'A' auto-redacta emails/precios/números, Esc para terminar.", "info");
   
   els.editorOverlay.classList.add("hidden");
   
@@ -540,6 +610,12 @@ els.editorSave.addEventListener("click", async () => {
   tour.title = els.editTitle.value.trim();
   tour.description = els.editDescription.value.trim();
   tour.target_role = els.editRole.value;
+  tour.options = {
+    color: els.editColor.value || "#3b82f6",
+    showStepNo: els.editStepno.checked,
+    nextBtnText: els.editNext.value.trim(),
+    prevBtnText: els.editPrev.value.trim(),
+  };
   tour.updated_at = new Date().toISOString();
   
   const library = await getLibrary();
@@ -584,6 +660,21 @@ function renderPreview() {
   const screen = tour.screens[currentPreviewIndex];
   
   els.previewCounter.textContent = `${currentPreviewIndex + 1} / ${tour.screens.length}`;
+
+  if (screen.cover) {
+    els.previewImage.style.display = "none";
+    els.previewHighlights.style.display = "none";
+    els.previewCaption.textContent = "";
+    els.previewCover.classList.remove("hidden");
+    els.previewCoverTitle.textContent = screen.cover_title || tour.title;
+    els.previewCoverText.textContent = screen.cover_text || "";
+    els.previewPrev.disabled = currentPreviewIndex === 0;
+    els.previewNext.disabled = currentPreviewIndex === tour.screens.length - 1;
+    return;
+  }
+
+  els.previewCover.classList.add("hidden");
+  els.previewHighlights.style.display = "";
   
   if (screen.thumbnail) {
     els.previewImage.src = screen.thumbnail;
@@ -657,12 +748,19 @@ async function uploadTour(tour, index) {
     const library = await getLibrary();
     library[index].uploaded = true;
     library[index].uploaded_at = new Date().toISOString();
+    delete library[index].uploadError;
     await setLibrary(library);
     
     renderLibrary();
     showStatus(`Recorrido subido (${data.screens} pantallas, estado: ${data.status}).`, "ok");
   } catch (err) {
-    showStatus(err instanceof Error ? err.message : "No se pudo subir el recorrido.", "error");
+    const message = err instanceof Error ? err.message : "No se pudo subir el recorrido.";
+    const library = await getLibrary();
+    library[index].uploaded = false;
+    library[index].uploadError = message;
+    await setLibrary(library);
+    renderLibrary();
+    showStatus(message, "error");
   }
 }
 
@@ -678,6 +776,25 @@ async function deleteTour(tour, index) {
   showStatus("Recorrido eliminado.", "ok");
 }
 
+// ── Portada (paso de presentación sin captura) ───────────────────
+function addCoverScreen() {
+  const title = prompt("Título de la portada", "Bienvenido");
+  if (title === null) return null;
+  const text = prompt("Texto de la portada (opcional)", "");
+  return {
+    cover: true,
+    cover_title: title.trim() || "Portada",
+    cover_text: (text || "").trim(),
+    snapshot: {},
+    thumbnail: null,
+    interaction_ctx: { cover: true, url: null, captured_at: new Date().toISOString() },
+    scroll: { x: 0, y: 0 },
+    viewport: { width: 1920, height: 1080 },
+    highlights: [],
+    blurs: [],
+  };
+}
+
 // ── Eventos de UI (grabación) ────────────────────────────────────
 els.btnStart.addEventListener("click", async () => {
   clearStatus();
@@ -688,6 +805,12 @@ els.btnStart.addEventListener("click", async () => {
 
   if (!title) return showStatus("Falta el título del recorrido.", "error");
   if (!slug) return showStatus("El slug quedó vacío; usa letras y números.", "error");
+
+  const size = parseSize(els.size.value);
+  if (size) {
+    const ok = await resizeWindowTo(size.width, size.height);
+    if (!ok) showStatus("No se pudo redimensionar la ventana; se continúa igual.", "info");
+  }
 
   const server = els.server.value.trim() || DEFAULT_SERVER;
   await chrome.storage.local.set({ server_base: server });
@@ -728,6 +851,18 @@ els.btnCapture.addEventListener("click", async () => {
   } finally {
     els.btnCapture.disabled = false;
   }
+});
+
+els.btnCover.addEventListener("click", async () => {
+  clearStatus();
+  const recording = await getStoredRecording();
+  if (!recording) return renderSetup();
+  const cover = addCoverScreen();
+  if (!cover) return;
+  recording.screens.push(cover);
+  await setStoredRecording(recording);
+  renderRecording(recording);
+  showStatus("Portada añadida.", "ok");
 });
 
 els.btnUndo.addEventListener("click", async () => {

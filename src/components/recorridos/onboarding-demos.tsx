@@ -13,6 +13,13 @@ import { SerPlayerFrame } from "@/components/recorridos/ser-player";
 type DemoRow = { id: string; slug: string; title: string; description: string | null; target_role: string };
 type ScreenRow = { index: number; snapshot_url: string; thumbnail_url: string | null; interaction_ctx: Record<string, unknown> };
 
+type TourOptions = {
+  color?: string;
+  showStepNo?: boolean;
+  nextBtnText?: string;
+  prevBtnText?: string;
+};
+
 type LoadedDemo = DemoRow & { screens: ScreenRow[]; thumbs: (string | null)[] };
 
 const SEEN_KEY = (userId: string) => `nexus:recorridos:visto:${userId}`;
@@ -80,6 +87,19 @@ export function OnboardingDemos({ userId }: { userId: string }) {
   const totalScreens = Math.max(demo.screens.length, 1);
   const isLast = demoIdx === demos.length - 1 && screenIdx === demo.screens.length - 1;
 
+  // Branding / opciones guardadas por la extensión en la 1ª pantalla
+  const options = (demo.screens[0]?.interaction_ctx?.tour_options ?? {}) as TourOptions;
+  const accent = options.color || "var(--accent)";
+  const nextText = options.nextBtnText || "Siguiente";
+  const prevText = options.prevBtnText || "Anterior";
+  const showStepNo = options.showStepNo !== false;
+
+  // Portada: pantalla de presentación capturada sin URL ni snapshot
+  const currentCtx = (demo.screens[screenIdx]?.interaction_ctx ?? {}) as Record<string, unknown>;
+  const isCover = !!currentCtx.cover;
+  const coverTitle = typeof currentCtx.cover_title === "string" ? currentCtx.cover_title : demo.title;
+  const coverText = typeof currentCtx.cover_text === "string" ? currentCtx.cover_text : "";
+
   const next = () => {
     if (screenIdx < demo.screens.length - 1) {
       setScreenIdx(screenIdx + 1);
@@ -108,7 +128,7 @@ export function OnboardingDemos({ userId }: { userId: string }) {
         {/* Cabecera */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--accent)" }} />
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: accent }} />
             <span className="text-[13.5px] font-bold text-text-1">Recorridos</span>
           </div>
           <button
@@ -127,16 +147,26 @@ export function OnboardingDemos({ userId }: { userId: string }) {
 
         {/* Pantalla */}
         <div className="px-5 py-4">
-          <div className="aspect-[16/9] w-full rounded-m overflow-hidden bg-white border border-border">
-            <SerPlayerFrame
-              key={`${demo.id}:${demo.screens.length}`}
-              screens={demo.screens}
-              screenIdx={screenIdx}
-              className="w-full h-full"
-            />
-          </div>
+          {isCover ? (
+            <div className="aspect-[16/9] w-full rounded-m overflow-hidden border border-border grid place-items-center p-6 text-center" style={{ background: "var(--card)" }}>
+              <div>
+                <h3 className="text-[19px] font-bold text-text-1">{coverTitle}</h3>
+                {coverText && <p className="text-[13.5px] text-text-2 mt-2">{coverText}</p>}
+              </div>
+            </div>
+          ) : (
+            <div className="aspect-[16/9] w-full rounded-m overflow-hidden bg-white border border-border">
+              <SerPlayerFrame
+                key={`${demo.id}:${demo.screens.length}`}
+                screens={demo.screens}
+                screenIdx={screenIdx}
+                className="w-full h-full"
+              />
+            </div>
+          )}
           <p className="text-[12px] text-text-3 text-center mt-3">
-            {demo.title} · Pantalla {screenIdx + 1} de {totalScreens}
+            {demo.title}
+            {showStepNo && <> · Pantalla {screenIdx + 1} de {totalScreens}</>}
             {demos.length > 1 && <> · Demo {demoIdx + 1} de {demos.length}</>}
           </p>
         </div>
@@ -172,6 +202,7 @@ export function OnboardingDemos({ userId }: { userId: string }) {
             <span
               key={i}
               className={cxDot(i === screenIdx)}
+              style={i === screenIdx && accent !== "var(--accent)" ? { background: accent } : undefined}
             />
           ))}
         </div>
@@ -179,10 +210,10 @@ export function OnboardingDemos({ userId }: { userId: string }) {
         {/* Acciones */}
         <div className="flex items-center justify-between px-5 py-4 border-t border-border">
           <Button variant="subtle" size="sm" disabled={demoIdx === 0 && screenIdx === 0} onClick={back}>
-            Anterior
+            {prevText}
           </Button>
           <Button variant="primary" size="sm" onClick={next}>
-            {isLast ? "Listo" : "Siguiente"}
+            {isLast ? "Listo" : nextText}
           </Button>
         </div>
       </div>

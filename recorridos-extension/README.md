@@ -70,8 +70,33 @@ Desde "Mis recorridos" → "Editar" puedes:
 - **Editar highlights/blurs** de un paso: la extensión recuerda el
   scroll de ese paso, lo restaura y entra en modo selección (H para
   resaltar, B para ocultar, Esc para terminar).
+- **Auto-redactar datos sensibles** (tecla `A` o botón "Auto-redactar"
+  en el tooltip del modo selección): detecta emails, precios (`$12,450`)
+  y números largos (teléfonos/tarjetas) en la página y les aplica blur
+  automáticamente.
 - **Vista previa** de cada paso con los highlights/blurs escalados al
   tamaño real de la captura.
+- **Portadas**: botón "🏷 Portada" durante la grabación añade un paso de
+  presentación sin captura (título + texto). En el player del onboarding
+  se muestra como panel de bienvenida.
+- **Presentación**: color principal, mostrar/ocultar "Paso X de Y" y
+  textos de los botones Anterior/Siguiente (se aplican en el player).
+
+## Subida y recuperación
+
+Al subir un recorrido se persisten en el servidor (dentro de
+`interaction_ctx`, sin migraciones nuevas) los highlights, blurs, scroll,
+viewport de cada pantalla y las opciones de presentación.
+
+Si la subida falla, el recorrido no se pierde: queda marcado como
+"subida fallida" con el error real y un botón "↻ Reintentar".
+
+## Redimensionar la ventana
+
+Antes de iniciar puedes elegir un tamaño de ventana de grabación
+(Laptop 1366×768, HD, 1440×900, Full HD). La ventana se redimensiona
+automáticamente al pulsar "Iniciar grabación" para que todas las
+capturas tengan el mismo viewport.
 
 ## Qué captura exactamente
 
@@ -103,11 +128,11 @@ porque el iframe del reproductor no tiene URL base propia.
 
 ```
 recorridos-extension/
-├── manifest.json        Manifest V3, service worker (atajos globales) + popup
+├── manifest.json        Manifest V3, service worker (atajos globales) + popup + íconos
 ├── background.js        Service worker: captura con Ctrl+Shift+E y abre popup
 ├── popup.html/.css/.js  UI del popup y orquestación de captura/subida/edición
 ├── content-capture.js   Serializador DOM → SerNode, inyectado bajo demanda
 ├── countdown.js         Contador 3-2-1 de preparación antes de cada captura
-├── select-mode.js       Modo selección: highlights/blurs por clic sobre el DOM
-└── README.md
+├── select-mode.js       Modo selección: highlights/blurs + auto-redactado por clic
+└── icons/               Íconos 16/48/128 de la extensión
 ```

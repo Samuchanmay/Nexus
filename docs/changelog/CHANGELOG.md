@@ -2,6 +2,22 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-06 · Extensión de recorridos: cierre de features (auto-redactado, portadas, branding, resize, recuperación, íconos)
+
+### Qué cambió
+- **Auto-redactado de datos sensibles** (`select-mode.js`): tecla `A` o botón "Auto-redactar" en el tooltip de selección. Detecta emails, precios (`$12,450`) y números largos (teléfonos/tarjetas) en la página y les aplica blur automático (descartando elementos contenidos dentro de otros ya cubiertos).
+- **Pasos portada**: botón "🏷 Portada" durante la grabación crea un paso de presentación sin captura (título + texto). El editor los muestra con badge "Portada" y sin edición de highlights; la vista previa los muestra como panel. En el onboarding (`onboarding-demos.tsx`) se renderiza una portada estática en vez del iframe.
+- **Branding del player**: sección "Presentación" en el editor (color principal, mostrar "Paso X de Y", textos Anterior/Siguiente). Se persisten en `interaction_ctx.tour_options` de la 1ª pantalla y el onboarding los aplica (color del indicador/dots, textos de botones, captión de paso).
+- **Persistencia de highlights/blurs**: al subir, cada pantalla incluye `highlights`, `blurs`, `scroll` y `viewport` dentro de su `interaction_ctx` (jsonb ya persistido) — sin migraciones nuevas.
+- **Redimensionar ventana**: presets (Laptop 1366×768, HD 1280×720, 1440×900, Full HD 1920×1080) que se aplican al iniciar la grabación.
+- **Recuperación de subidas fallidas**: si la subida falla, el recorrido queda marcado "subida fallida" con el error real y botón "↻ Reintentar".
+- **Íconos propios** 16/48/128 generados (fondo oscuro + círculo accent + punto de grabación).
+
+### Archivos
+- `recorridos-extension/select-mode.js`, `popup.js`, `popup.html`, `popup.css`, `manifest.json` (versión 1.3.0), `README.md`
+- `recorridos-extension/icons/icon{16,48,128}.png` (nuevos)
+- `src/components/recorridos/onboarding-demos.tsx`
+
 ## 2026-08-06 · Extensión de recorridos: contador de preparación pre-captura
 
 ### Qué cambió
