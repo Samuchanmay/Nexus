@@ -252,6 +252,6 @@ Con eso, el chat pasa de "apartado de mensajería" a plataforma de comunicación
 
 ## Próximo hito sugerido
 
-**Fase 5 en progreso** (2026-08-05): estados de presencia ✅, configuración de IA ✅ (migración 0040, UI en /admin/config/ia, Edge Functions ai-summarize y ai-embed). Pendiente: aplicar migración 0040 en Supabase, desplegar Edge Functions, y habilitar pgvector para búsqueda semántica.
+**Fase 5 completa** (2026-08-06): estados de presencia ✅, configuración de IA ✅, extensión de recorridos mejorada ✅. Pendiente: aplicar migraciones 0039-0040 en Supabase, desplegar Edge Functions ai-summarize y ai-embed.
 
-Siguiente: mejorar la extensión de recorridos (visualizar, editar, eliminar) y completar la página /preptour con preview y gestión completa.
+Siguiente: aplicar migraciones pendientes en Supabase y desplegar Edge Functions para que la IA funcione en producción.

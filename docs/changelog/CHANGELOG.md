@@ -2,6 +2,23 @@
 
 > Formato: `[fecha] - descripción (commit)`. El historial por migraciones de DB está en `docs/changelog/MIGRATIONS.md`.
 
+## 2026-08-06 · Extensión de recorridos v2: biblioteca, editor visual, highlights/blurs
+
+### Qué cambió
+- **Sistema de resaltado (highlight)**: nuevo content script `select-mode.js` que permite seleccionar elementos del DOM para resaltarlos con un borde brillante y glow effect. Los elementos seleccionados se guardan con su selector CSS y se aplican al reproducir el recorrido.
+- **Sistema de blur**: mismo mecanismo de selección pero para ocultar elementos sensibles (datos personales, contraseñas, etc.) con `filter: blur(8px)`.
+- **Vista de "Mis recorridos"**: nueva pestaña en el popup que lista todos los recorridos guardados localmente con opciones de preview, editar, subir al servidor y eliminar.
+- **Editor visual**: overlay con editor de metadata (título, descripción, role) y editor de screens (reordenar con flechas ↑↓, eliminar, editar highlights/blurs de cada pantalla).
+- **Preview interactivo**: visor que muestra las pantallas en secuencia con los highlights (borde azul brillante con animación pulse) y blurs (efecto de desenfoque) aplicados. Navegación con botones ◀ ▶.
+- **Tabs de navegación**: el popup ahora tiene dos pestañas: "Grabar" (flujo original) y "Mis recorridos" (biblioteca).
+- **Inspirado en Fable**: sistema de selección y visualización inspirado en Fable (proyecto open source con licencia Apache 2.0).
+
+### Archivos
+- `recorridos-extension/select-mode.js` (nuevo)
+- `recorridos-extension/popup.html` (actualizado con tabs, editor, preview)
+- `recorridos-extension/popup.js` (lógica completa de biblioteca, editor, preview)
+- `recorridos-extension/popup.css` (estilos para tabs, editor, preview, highlights, blurs)
+
 ## 2026-08-05 · Chat Fase 5: IA configurable (resúmenes + búsqueda semántica)
 
 ### Qué cambió
