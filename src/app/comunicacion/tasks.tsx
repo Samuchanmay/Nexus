@@ -246,6 +246,10 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
     const supabase = createClient();
     const { error } = await supabase.from("comments").insert({ project_id: t.projectId, user_id: profile.id, body });
     toast(error ? "No se pudo comentar" : "Comentario agregado", error ? "danger" : "ok");
+    // Auditoría de notificaciones: un comentario se quedaba solo en la BD,
+    // nadie se enteraba de que había uno nuevo salvo que reabriera la
+    // actividad por su cuenta.
+    if (!error) notifyAdmins(supabase, `Nuevo comentario en "${t.title}"`, body, "request", `/admin/proyectos?task=${t.projectId}`);
   };
 
   // ── Agregar actividad (manual, queda en_revision) ──

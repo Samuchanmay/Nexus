@@ -2,30 +2,36 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Recorridos EMET</title>
 <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
+  <!-- Header con branding -->
   <header class="hd">
-    <span class="hd-dot"></span>
+    <span class="hd-dot" aria-hidden="true"></span>
     <h1>Recorridos EMET</h1>
   </header>
 
-  <!-- ── Tabs de navegación ── -->
-  <nav class="tabs">
-    <button class="tab active" data-tab="record">Grabar</button>
-    <button class="tab" data-tab="library">Mis recorridos</button>
+  <!-- Navegación por tabs -->
+  <nav class="tabs" role="tablist" aria-label="Secciones principales">
+    <button class="tab active" data-tab="record" role="tab" aria-selected="true" aria-controls="tab-record">
+      🎬 Grabar
+    </button>
+    <button class="tab" data-tab="library" role="tab" aria-selected="false" aria-controls="tab-library">
+      📚 Mis recorridos
+    </button>
   </nav>
 
   <!-- ══════════════════════════════════════════════════════════════ -->
   <!-- TAB 1: GRABAR                                                 -->
   <!-- ══════════════════════════════════════════════════════════════ -->
-  <section id="tab-record" class="tab-content active">
+  <section id="tab-record" class="tab-content active" role="tabpanel" aria-labelledby="tab-record">
     <!-- Vista: configurar y arrancar una grabación nueva -->
     <div id="setup-view">
       <label>
         Título del recorrido
-        <input id="f-title" type="text" placeholder="Cómo fichar tu entrada" />
+        <input id="f-title" type="text" placeholder="Cómo fichar tu entrada" required />
       </label>
       <label>
         Slug (URL)
@@ -57,29 +63,27 @@
         Servidor de EMET
         <input id="f-server" type="text" placeholder="https://emet.uno" />
       </label>
-      <button id="btn-start" class="primary">Iniciar grabación</button>
+      <button id="btn-start" class="primary">🎥 Iniciar grabación</button>
       <p class="hint">
-        Abre la pestaña donde vas a grabar antes de iniciar. Cada clic en
-        «Capturar pantalla» guarda el estado actual de esa pestaña como un
-        paso del recorrido.
+        💡 <strong>Tip:</strong> Abre la pestaña donde vas a grabar antes de iniciar. Cada clic en «Capturar pantalla» guarda el estado actual de esa pestaña como un paso del recorrido.
       </p>
     </div>
 
     <!-- Vista: grabación en curso -->
     <div id="recording-view" class="hidden">
       <div class="rec-title">
-        <span class="rec-dot"></span>
+        <span class="rec-dot" aria-hidden="true"></span>
         <strong id="rec-title-text">—</strong>
       </div>
       <p class="rec-count"><span id="rec-count">0</span> pantalla(s) capturadas</p>
-      <ol id="rec-list" class="rec-list"></ol>
+      <ol id="rec-list" class="rec-list" aria-label="Pantallas capturadas"></ol>
       <div class="rec-actions">
-        <button id="btn-capture" class="primary">Capturar pantalla actual</button>
-        <button id="btn-undo" class="subtle">Deshacer última</button>
+        <button id="btn-capture" class="primary">📸 Capturar pantalla</button>
+        <button id="btn-undo" class="subtle">↶ Deshacer</button>
       </div>
       <div class="rec-actions">
-        <button id="btn-finish" class="primary">Finalizar y guardar</button>
-        <button id="btn-cancel" class="danger">Cancelar grabación</button>
+        <button id="btn-finish" class="primary">✓ Finalizar y guardar</button>
+        <button id="btn-cancel" class="danger">✕ Cancelar</button>
       </div>
     </div>
   </section>
@@ -87,24 +91,24 @@
   <!-- ══════════════════════════════════════════════════════════════ -->
   <!-- TAB 2: MIS RECORRIDOS                                         -->
   <!-- ══════════════════════════════════════════════════════════════ -->
-  <section id="tab-library" class="tab-content">
+  <section id="tab-library" class="tab-content" role="tabpanel" aria-labelledby="tab-library">
     <div id="library-empty" class="empty-state">
       <p class="empty-icon">📹</p>
       <p class="empty-title">No hay recorridos guardados</p>
-      <p class="empty-hint">Graba tu primer recorrido en la pestaña "Grabar"</p>
+      <p class="empty-hint">Graba tu primer recorrido en la pestaña "Grabar" y aparecerá aquí</p>
     </div>
 
-    <div id="library-list" class="library-list hidden"></div>
+    <div id="library-list" class="library-list hidden" aria-label="Lista de recorridos guardados"></div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════ -->
   <!-- EDITOR DE RECORRIDO (overlay)                                 -->
   <!-- ══════════════════════════════════════════════════════════════ -->
-  <div id="editor-overlay" class="overlay hidden">
+  <div id="editor-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="editor-title">
     <div class="editor-panel">
       <header class="editor-header">
         <h2 id="editor-title">Editar recorrido</h2>
-        <button id="editor-close" class="icon-btn" title="Cerrar">✕</button>
+        <button id="editor-close" class="icon-btn" title="Cerrar" aria-label="Cerrar editor">✕</button>
       </header>
 
       <div class="editor-body">
@@ -113,7 +117,7 @@
           <h3>Información</h3>
           <label>
             Título
-            <input id="edit-title" type="text" />
+            <input id="edit-title" type="text" required />
           </label>
           <label>
             Descripción
@@ -135,13 +139,13 @@
         <!-- Screens -->
         <div class="editor-section">
           <h3>Pantallas (<span id="edit-screen-count">0</span>)</h3>
-          <ol id="edit-screens-list" class="edit-screens-list"></ol>
+          <ol id="edit-screens-list" class="edit-screens-list" aria-label="Lista de pantallas"></ol>
         </div>
       </div>
 
       <footer class="editor-footer">
-        <button id="editor-delete" class="danger">Eliminar recorrido</button>
-        <button id="editor-save" class="primary">Guardar cambios</button>
+        <button id="editor-delete" class="danger">🗑️ Eliminar</button>
+        <button id="editor-save" class="primary">💾 Guardar</button>
       </footer>
     </div>
   </div>
@@ -149,26 +153,27 @@
   <!-- ══════════════════════════════════════════════════════════════ -->
   <!-- PREVIEW DE RECORRIDO (overlay)                                -->
   <!-- ══════════════════════════════════════════════════════════════ -->
-  <div id="preview-overlay" class="overlay hidden">
+  <div id="preview-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Vista previa del recorrido">
     <div class="preview-panel">
       <header class="preview-header">
-        <button id="preview-prev" class="icon-btn" title="Anterior">◀</button>
+        <button id="preview-prev" class="icon-btn" title="Anterior" aria-label="Pantalla anterior">◀</button>
         <span id="preview-counter">1 / 1</span>
-        <button id="preview-next" class="icon-btn" title="Siguiente">▶</button>
-        <button id="preview-close" class="icon-btn" title="Cerrar">✕</button>
+        <button id="preview-next" class="icon-btn" title="Siguiente" aria-label="Pantalla siguiente">▶</button>
+        <button id="preview-close" class="icon-btn" title="Cerrar" aria-label="Cerrar vista previa">✕</button>
       </header>
 
       <div class="preview-body">
         <div id="preview-container" class="preview-container">
-          <img id="preview-image" class="preview-image" />
-          <div id="preview-highlights" class="preview-highlights"></div>
+          <img id="preview-image" class="preview-image" alt="Captura de pantalla" />
+          <div id="preview-highlights" class="preview-highlights" aria-hidden="true"></div>
         </div>
         <p id="preview-caption" class="preview-caption"></p>
       </div>
     </div>
   </div>
 
-  <p id="status-line" class="status hidden"></p>
+  <!-- Mensajes de estado -->
+  <p id="status-line" class="status hidden" role="status" aria-live="polite"></p>
 
   <script src="popup.js"></script>
 </body>

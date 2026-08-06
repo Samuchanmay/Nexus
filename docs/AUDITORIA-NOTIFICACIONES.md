@@ -42,7 +42,7 @@ vacaciones.
 | Actividad asignada (desde Solicitud aprobada) | Admin (admin/solicitudes/client.tsx) | Asignados | Campana | ✅ Funcionaba | ✅ Sin cambios |
 | Actividad asignada (creación directa por admin) | Admin (`createProject`, admin/proyectos/client.tsx) | Asignados | Campana | ❌ Nunca notificaba (ruta paralela a la de arriba, se les olvidó ahí) | ✅ Corregido |
 | Actividad iniciada/pausada/reanudada | Empleado (sesiones de tiempo) | — (nadie necesita saberlo en vivo) | — | Sin canal, correcto por diseño | Sin cambios |
-| Actividad con comentario nuevo | Empleado o admin (`comments`) | El resto de involucrados | Campana | ❌ Nunca notificaba | ⚠️ Pendiente — ver Hallazgos |
+| Actividad con comentario nuevo | Empleado o admin (`comments`) | Admins (el lado admin todavía no tiene su propio comentario) | Campana | ❌ Nunca notificaba | ✅ Corregido |
 | Actividad "devuelta con cambios" | — | — | — | ❌ Este estado **no existe** en el sistema (solo hay en_revision→completada, sin vuelta atrás) | ⚠️ Gap de producto, no solo de notificación |
 | Actividad cancelada | — | — | — | ⚠️ No se confirmó que el estado exista para proyectos ya creados | ⚠️ Sin verificar — no se tocó por falta de evidencia clara |
 | **Solicitudes** | | | | | |
@@ -63,18 +63,18 @@ vacaciones.
 | Rechazada | Admin | Empleado | Campana | ✅ Funcionaba | Sin cambios |
 | Comentario agregado | — | — | — | No existe la función | N/A |
 | **Asistencia** | | | | | |
-| Corrección enviada por empleado | — | — | — | Esta función **no existe** — hoy solo el admin corrige asistencia directamente (`edit-attendance-sheet.tsx`), no hay flujo de "el empleado pide, el admin aprueba" | ⚠️ Gap de producto |
-| Corrección aplicada por admin | Admin | Empleado afectado | Campana | ❌ Queda registrada en `attendance_corrections` (bitácora) pero el empleado nunca se entera de que le cambiaron su asistencia | ⚠️ Pendiente — ver Hallazgos |
-| Jornada corregida | Ídem | Ídem | Ídem | Ídem | Ídem |
+| Corrección enviada por empleado | — | — | — | Esta función **no existe** — hoy solo el admin corrige asistencia directamente (`edit-attendance-sheet.tsx`), no hay flujo de "el empleado pide, el admin aprueba" | ⚠️ Gap de producto, sin implementar |
+| Corrección aplicada por admin | Admin | Empleado afectado | Campana | ❌ Quedaba registrada en `attendance_corrections` (bitácora) pero el empleado nunca se enteraba | ✅ Corregido |
+| Jornada corregida | Ídem | Ídem | Ídem | Ídem | ✅ Corregido (mismo fix) |
 | **Calendario** | | | | | |
 | Evento creado | Admin | — | — | Sin canal — razonable, el admin es quien lo crea | Sin cambios |
-| Evento actualizado | Admin | Participantes ya invitados | Campana | ❌ Nunca notificaba | ⚠️ Pendiente — ver Hallazgos |
-| Evento cancelado | Admin | Participantes | Campana | ❌ Nunca notificaba | ⚠️ Pendiente — ver Hallazgos |
+| Evento actualizado | Admin | Participantes ya invitados | Campana | ❌ Nunca notificaba | ✅ Corregido |
+| Evento cancelado (status→cancelado, o eliminado del todo) | Admin | Participantes | Campana | ❌ Nunca notificaba | ✅ Corregido (ambos casos) |
 | Invitación a evento (agregar participante) | Admin (`addParticipant`) | Persona invitada | Campana | ❌ Nunca notificaba | ✅ Corregido |
 | **Administración** | | | | | |
 | Usuario creado | Admin | — | — | Sin canal | ⚠️ Decisión de producto, no implementado (ver Hallazgos) |
 | Usuario desactivado | Admin | — | — | Sin canal | Ídem |
-| Cambio de rol | Admin | El propio usuario | Campana | ❌ Nunca notificaba | ⚠️ Pendiente, no implementado |
+| Cambio de rol | Admin | El propio usuario | Campana | ❌ Nunca notificaba | ✅ Corregido (solo dispara si el rol realmente cambió, no en cada edición de perfil) |
 | Cambio de permisos | — | — | — | No existe como acción separada de "cambio de rol" | N/A |
 
 ## Destinatarios por rol
@@ -139,42 +139,36 @@ campana.
   es síncrono desde el cliente. Un solo Edge Function de notificación real
   (`notify-vacation`, correo). No se encontraron errores en su código.
 
-## Qué falta (no implementado en esta pasada, requiere decisión de producto)
+## Qué falta (de verdad no implementado — son features nuevas, no huecos de notificación)
 
-Estos NO se implementaron porque no son "conectar un notifyUser que
-faltaba" sino features nuevas o decisiones de diseño:
+Todo lo que era "falta conectar un notifyUser" ya se cerró (9 fixes en
+total, ver abajo). Lo único que sigue sin resolver son cambios de producto
+que no son "arreglar una notificación" sino construir algo que hoy no
+existe:
 
-1. **Comentarios en actividades notifican a los involucrados** — mecánico,
-   se puede agregar rápido si se confirma (avisar a lead + admins, mismo
-   patrón usado en el resto).
-2. **Corrección de asistencia por admin notifica al empleado afectado** —
-   mecánico también, mismo patrón.
-3. **Actualizar/cancelar evento notifica a los participantes ya
-   invitados** — requiere iterar `event_participants` en `updateEvent`/
-   `deleteEvent` (no localizado con precisión en esta pasada, el archivo
-   `admin/calendario/client.tsx` es de 1000+ líneas).
-4. **Cambio de rol notifica al propio usuario** — mecánico.
-5. **"Devuelta con cambios" como estado de actividad** — hoy no existe
+1. **"Devuelta con cambios" como estado de actividad** — hoy no existe
    ese paso en el flujo (`en_revision` solo puede pasar a `completada`);
-   agregarlo es una decisión de producto (¿quién puede devolver? ¿queda
-   historial?), no un fix de notificaciones.
-6. **Corrección de asistencia solicitada por el empleado** (vs. aplicada
-   directamente por el admin) — no existe como feature; es un flujo
-   nuevo completo (formulario + tabla de solicitud + aprobación), no un
-   ajuste de notificaciones.
-7. **Roles intermedios (Director/Coordinador/Supervisor/RH) como
+   agregarlo requiere decidir quién puede devolver, si queda historial,
+   etc.
+2. **Corrección de asistencia solicitada por el empleado** (vs. aplicada
+   directamente por el admin, que ya notifica) — no existe como feature;
+   sería un flujo nuevo completo (formulario + tabla de solicitud +
+   aprobación).
+3. **Roles intermedios (Director/Coordinador/Supervisor/RH) como
    destinatarios distintos de "admin"** — el sistema solo tiene
    `admin`/`empleado` hoy; filtrar notificaciones por sub-rol requiere
    ese modelo de datos primero.
 
-Si quieres que siga con 1, 2 o 4 (los tres mecánicos, mismo patrón que ya
-usé en los 5 fixes de hoy), lo hago en la misma sesión — son rápidos. 3, 5,
-6 y 7 valen una conversación aparte antes de tocar código.
+Avísame si quieres que diseñe alguno de estos tres — son conversaciones de
+producto, no algo que deba decidir solo.
 
-## Cambios aplicados hoy (código)
+## Cambios aplicados (código) — 9 huecos cerrados
 
 - `src/app/comunicacion/tasks.tsx` — `markReview()`: notifica al
-  solicitante (si tiene cuenta interna) + a todos los admins.
+  solicitante (si tiene cuenta interna) + a todos los admins. **Este era
+  el bug reportado.**
+- `src/app/comunicacion/tasks.tsx` — `addComment()`: notifica a los
+  admins cuando se comenta una actividad.
 - `src/app/admin/proyectos/client.tsx` — `markCompleted()`: notifica a
   todos los asignados del proyecto.
 - `src/app/admin/proyectos/client.tsx` — `createProject()`: notifica a
@@ -184,8 +178,45 @@ usé en los 5 fixes de hoy), lo hago en la misma sesión — son rápidos. 3, 5,
   empleado.
 - `src/app/admin/calendario/client.tsx` — `addParticipant()`: notifica a
   la persona invitada a un evento.
+- `src/app/admin/calendario/client.tsx` — `saveEvent()`: notifica a los
+  participantes cuando se edita un evento existente, con mensaje distinto
+  si el cambio fue justo pasar el status a "cancelado".
+- `src/app/admin/calendario/client.tsx` — `deleteEvent()`: notifica a los
+  participantes cuando se elimina el evento por completo (la lista de a
+  quién avisar se guarda ANTES de borrar, porque el borrado en cascada se
+  lleva `event_participants` junto con el evento).
+- `src/components/os/edit-attendance-sheet.tsx` — al guardar una
+  corrección de asistencia: notifica al empleado afectado.
+- `src/app/admin/empleados/client.tsx` — `saveEdit()`: notifica al propio
+  usuario cuando su rol cambia (solo si el rol realmente cambió — editar
+  el teléfono no dispara nada).
 
-Los 5 siguen exactamente el patrón ya establecido (`notifyUser`/
+Los 9 siguen exactamente el patrón ya establecido (`notifyUser`/
 `notifyAdmins` desde `src/lib/notify.ts`, mismo `kind`, mismo estilo de
 `link`) — cero infraestructura nueva, solo cerrar las llamadas que
 faltaban.
+
+## Infraestructura de IA — verificado y corregido (fuera del alcance original de esta auditoría, pero el usuario trajo un checklist a revisar)
+
+Se encontró que `docs/DEPLOY-INFRASTRUCTURE.md` tenía información
+desactualizada: afirmaba que las migraciones 0025-0039 (lecturas/ocultar
+en chat, corrección de asistencia, eventos con participantes) estaban
+"documentadas pero no aplicadas". Verificado contra la base de datos real
+(`list_migrations`): **las 15 sí estaban aplicadas** — el documento no se
+había actualizado después de aplicarlas.
+
+Lo que SÍ era una brecha real y se cerró hoy:
+- pgvector: no estaba habilitado → habilitado.
+- Migración `0040_ai_configuration.sql` (RPCs `nx_get_ai_config`/
+  `nx_set_ai_config`, tabla `message_embeddings`, búsqueda semántica): no
+  estaba aplicada → aplicada.
+- Edge Functions `ai-summarize` y `ai-embed`: no estaban desplegadas →
+  desplegadas y activas.
+- La pantalla `/admin/config/ia` ya estaba bien construida (llama a
+  `/api/admin/ai-config`, que a su vez llama a los RPCs correctos) —
+  ahora sí tiene backend real detrás.
+
+**Encontrado, no resuelto (fuera del checklist original)**: ninguna
+pantalla del chat tiene un botón "Resumir conversación" — `ai-summarize`
+ya funciona si lo llamas, pero no hay ningún lugar en la UI que lo llame
+todavía. Si quieres el botón, es un cambio aparte y rápido.

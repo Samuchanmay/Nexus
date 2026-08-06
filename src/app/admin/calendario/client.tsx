@@ -421,6 +421,22 @@ export default function CalendarioClient({
         }
       }
 
+      // Auditoría de notificaciones: editar o cancelar un evento nunca
+      // avisaba a quienes ya estaban invitados — se enteraban solo si
+      // volvían a abrir el Calendario. Se avisa a los participantes YA
+      // cargados en pantalla (`participants`, del evento que se está
+      // editando) — no a un listado recién consultado, para no depender de
+      // una llamada extra que podría fallar y dejar la notificación a medias.
+      if (editingEvent && payload.status === "cancelado" && editingEvent.status !== "cancelado") {
+        for (const p of participants) {
+          notifyUser(sb, p.user_id, "Se canceló un evento", eventForm.title.trim(), "info", "/comunicacion/calendario");
+        }
+      } else if (editingEvent) {
+        for (const p of participants) {
+          notifyUser(sb, p.user_id, "Se actualizó un evento", eventForm.title.trim(), "info", "/comunicacion/calendario");
+        }
+      }
+
       setEventSheetOpen(false);
       if (adminId) logAdminAction(createClient(), adminId, editingEvent ? "Editó evento institucional" : "Agregó evento institucional", eventForm.title.trim());
       router.refresh();
@@ -428,11 +444,19 @@ export default function CalendarioClient({
   };
   const deleteEvent = async () => {
     if (!editingEvent) return;
+    // Guarda a quién avisar ANTES de borrar — el borrado en cascada se
+    // lleva las filas de event_participants junto con el evento.
+    const participantsToNotify = participants.map((p) => p.user_id);
+    const eventTitle = editingEvent.title;
     const ok = await runDeleteEvent(() => createClient().from("institutional_events").delete().eq("id", editingEvent.id),
       { ok: "Evento institucional eliminado", err: "No se pudo eliminar" });
     if (ok) {
+      const sb = createClient();
+      for (const uid of participantsToNotify) {
+        notifyUser(sb, uid, "Se eliminó un evento", eventTitle, "info", "/comunicacion/calendario");
+      }
       setEventSheetOpen(false);
-      if (adminId) logAdminAction(createClient(), adminId, "Eliminó evento institucional", editingEvent.title);
+      if (adminId) logAdminAction(createClient(), adminId, "Eliminó evento institucional", eventTitle);
       router.refresh();
     }
   };

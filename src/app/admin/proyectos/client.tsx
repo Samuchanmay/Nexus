@@ -27,6 +27,10 @@ import { notifyUser } from "@/lib/notify";
    administra qué depende de qué.
    ═══════════════════════════════════════════════════════════════ */
 
+export type LinkedEvent = {
+  id: string; title: string; start_date: string; end_date: string;
+  start_time: string | null; end_time: string | null; location_name: string | null;
+};
 export type ProjectRow = {
   id: string; status: string; priority: string; deadline: string | null; completed_at: string | null; created_at: string;
   requests: { title: string; type: RequestType } | null;
@@ -35,6 +39,13 @@ export type ProjectRow = {
     users: { id: string; display_name: string; full_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null };
     project_checklist?: { done: boolean }[];
   }[];
+  // A pedido del usuario (6 ago 2026): editar el evento institucional
+  // ligado a la actividad, y sus asignados, directamente desde Proyectos
+  // sin tener que ir a Calendario. institutional_event_id es una columna
+  // nueva (migración 0042) — NO confundir con calendar_event_id/
+  // calendar_id (esos son de la sincronización con Google Calendar).
+  institutional_event_id: string | null;
+  institutional_events: LinkedEvent | null;
 };
 export type DepRow = {
   id: string; project_id: string; depends_on_project_id: string;
@@ -130,9 +141,10 @@ function printByEmployeeReport(
   if (w) { w.document.write(html); w.document.close(); }
 }
 
-export default function ProyectosClient({ projects, dependencies, pendingRequests, typeLabel, types, team, hoursByUserMin, adminId }: {
+export default function ProyectosClient({ projects, dependencies, pendingRequests, typeLabel, types, team, hoursByUserMin, adminId, eventOptions }: {
   projects: ProjectRow[]; dependencies: DepRow[]; pendingRequests: PendingRequestRow[]; typeLabel: Record<string, string>;
   types: ActTypeOpt[]; team: Member[]; hoursByUserMin: Record<string, number>; adminId: string;
+  eventOptions: { id: string; title: string; start_date: string }[];
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -235,6 +247,203 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
     setAssignees([]);
     setLead("");
     setAddOpen(true);
+  };
+
+  /* ═══════════════════════════════════════════════════════════════
+     Editar actividad ya creada — asignados, fecha límite, prioridad,
+     y el evento institucional vinculado (a pedido del usuario: antes
+     esto solo se podía hacer una vez, al crear, y el evento vivía
+     solo en Calendario). Migración 0042 agregó
+     projects.institutional_event_id.
+     ═══════════════════════════════════════════════════════════════ */
+  const [editingProject, setEditingProject] = useState<ProjectRow | null>(null);
+  const [editAssignees, setEditAssignees] = useState<string[]>([]);
+  const [editLead, setEditLead] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [editPriority, setEditPriority] = useState<Priority>("normal");
+  const [editSaving, setEditSaving] = useState(false);
+
+  // Evento vinculado — se edita aparte de lo de arriba porque vive en otra
+  // tabla (institutional_events), con su propio guardado.
+  const [eventPicked, setEventPicked] = useState(""); // id elegido en el <Select> cuando no hay vínculo todavía
+  const [eventForm2, setEventForm2] = useState({ title: "", start_date: "", end_date: "", location_name: "" });
+  const [eventSaving, setEventSaving] = useState(false);
+  type EventParticipant2 = { user_id: string; display_name: string; role: string; status: string };
+  const [eventParticipants, setEventParticipants] = useState<EventParticipant2[]>([]);
+  const [eventParticipantsLoading, setEventParticipantsLoading] = useState(false);
+  const [addEventParticipantId, setAddEventParticipantId] = useState("");
+
+  const loadEventParticipants = async (eventId: string) => {
+    setEventParticipantsLoading(true);
+    const { data, error } = await createClient().rpc("get_event_participants", { p_event_id: eventId });
+    setEventParticipantsLoading(false);
+    if (!error && data) setEventParticipants(data as EventParticipant2[]);
+  };
+
+  const openEditProject = (p: ProjectRow) => {
+    setEditingProject(p);
+    const asgs = p.project_assignments ?? [];
+    setEditAssignees(asgs.map((a) => a.users.id));
+    setEditLead(asgs.find((a) => a.is_lead)?.users.id ?? asgs[0]?.users.id ?? "");
+    setEditDeadline(p.deadline ?? "");
+    setEditPriority(p.priority as Priority);
+    setEventPicked("");
+    if (p.institutional_events) {
+      setEventForm2({
+        title: p.institutional_events.title, start_date: p.institutional_events.start_date,
+        end_date: p.institutional_events.end_date, location_name: p.institutional_events.location_name ?? "",
+      });
+      loadEventParticipants(p.institutional_events.id);
+    } else {
+      setEventForm2({ title: "", start_date: "", end_date: "", location_name: "" });
+      setEventParticipants([]);
+    }
+  };
+
+  const toggleEditAssignee = (id: string) => {
+    setEditAssignees((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      if (!next.includes(editLead)) setEditLead(next[0] ?? "");
+      if (next.length === 1) setEditLead(next[0]);
+      return next;
+    });
+  };
+
+  const saveProjectEdit = async () => {
+    if (!editingProject) return;
+    if (editAssignees.length === 0) { toast("Asigna al menos a una persona"); return; }
+    setEditSaving(true);
+    const supabase = createClient();
+    const title = titleOf(editingProject);
+
+    const { error } = await supabase.from("projects")
+      .update({ deadline: editDeadline || null, priority: editPriority }).eq("id", editingProject.id);
+    if (error) { setEditSaving(false); toast("No se pudo guardar", "danger"); return; }
+
+    // Diff de asignados contra lo que ya había — inserta los nuevos, borra
+    // los que se quitaron, y siempre deja el is_lead correcto (aunque no
+    // haya cambiado quién está, pudo haber cambiado quién es el responsable).
+    const before = (editingProject.project_assignments ?? []).map((a) => a.users.id);
+    const toAdd = editAssignees.filter((id) => !before.includes(id));
+    const toRemove = before.filter((id) => !editAssignees.includes(id));
+
+    if (toRemove.length > 0) {
+      await supabase.from("project_assignments").delete().eq("project_id", editingProject.id).in("user_id", toRemove);
+    }
+    if (toAdd.length > 0) {
+      await supabase.from("project_assignments")
+        .insert(toAdd.map((uid) => ({ project_id: editingProject.id, user_id: uid, is_lead: uid === editLead })));
+      // Mismo criterio que createProject(): a quien se agrega recién ahora
+      // se le avisa — antes esta ruta (editar, no crear) no existía, así
+      // que este hueco de notificación ni se había podido detectar.
+      for (const uid of toAdd) {
+        notifyUser(supabase, uid, "Te asignaron una actividad", title, "request", `/comunicacion?task=${editingProject.id}`);
+      }
+    }
+    // El responsable puede haber cambiado entre gente que YA estaba asignada
+    // (sin pasar por add/remove) — se corrige aparte, por si acaso.
+    for (const uid of editAssignees.filter((id) => !toAdd.includes(id))) {
+      await supabase.from("project_assignments").update({ is_lead: uid === editLead })
+        .eq("project_id", editingProject.id).eq("user_id", uid);
+    }
+
+    if (adminId) logAdminAction(supabase, adminId, "Editó actividad", title);
+    setEditSaving(false);
+    setEditingProject(null);
+    toast("Actividad actualizada");
+    router.refresh();
+  };
+
+  /** Vincula un evento institucional YA existente (elegido en el picker). */
+  const linkExistingEvent = async () => {
+    if (!editingProject || !eventPicked) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("projects").update({ institutional_event_id: eventPicked }).eq("id", editingProject.id);
+    if (error) { toast("No se pudo vincular el evento", "danger"); return; }
+    const picked = eventOptions.find((e) => e.id === eventPicked);
+    toast("Evento vinculado");
+    router.refresh();
+    setEditingProject({ ...editingProject, institutional_event_id: eventPicked,
+      institutional_events: { id: eventPicked, title: picked?.title ?? "", start_date: picked?.start_date ?? "", end_date: picked?.start_date ?? "", start_time: null, end_time: null, location_name: null } });
+    setEventForm2({ title: picked?.title ?? "", start_date: picked?.start_date ?? "", end_date: picked?.start_date ?? "", location_name: "" });
+    loadEventParticipants(eventPicked);
+  };
+
+  /** Crea un evento institucional nuevo (mínimo viable: título + fecha de
+      la actividad) y lo vincula de una vez — atajo para no obligar a ir a
+      Calendario primero solo para crear el evento. */
+  const createAndLinkEvent = async () => {
+    if (!editingProject) return;
+    const title = titleOf(editingProject);
+    const date = editDeadline || todayMerida();
+    setEventSaving(true);
+    const supabase = createClient();
+    const { data: ev, error } = await supabase.from("institutional_events")
+      .insert({ title, kind: "otro", start_date: date, end_date: date, status: "confirmado", priority: "normal" })
+      .select("id, title, start_date, end_date").single();
+    if (error || !ev) { setEventSaving(false); toast("No se pudo crear el evento", "danger"); return; }
+    const { error: linkErr } = await supabase.from("projects").update({ institutional_event_id: ev.id }).eq("id", editingProject.id);
+    setEventSaving(false);
+    if (linkErr) { toast("Evento creado, pero no se pudo vincular", "danger"); return; }
+    toast("Evento creado y vinculado");
+    setEditingProject({ ...editingProject, institutional_event_id: ev.id,
+      institutional_events: { id: ev.id, title: ev.title, start_date: ev.start_date, end_date: ev.end_date, start_time: null, end_time: null, location_name: null } });
+    setEventForm2({ title: ev.title, start_date: ev.start_date, end_date: ev.end_date, location_name: "" });
+    router.refresh();
+  };
+
+  const unlinkEvent = async () => {
+    if (!editingProject) return;
+    const supabase = createClient();
+    await supabase.from("projects").update({ institutional_event_id: null }).eq("id", editingProject.id);
+    setEditingProject({ ...editingProject, institutional_event_id: null, institutional_events: null });
+    setEventParticipants([]);
+    toast("Vínculo quitado (el evento sigue existiendo en Calendario)");
+    router.refresh();
+  };
+
+  /** Guarda los campos básicos del evento vinculado (título, fechas,
+      ubicación) y avisa a los participantes — mismo criterio que
+      saveEvent() en admin/calendario/client.tsx. Campos avanzados (hora,
+      GPS, sincronización con Google, depto, owner) se quedan solo en
+      Calendario para no duplicar esa UI completa aquí. */
+  const saveEventEdit = async () => {
+    const eventId = editingProject?.institutional_events?.id;
+    if (!eventId || !editingProject) return;
+    if (!eventForm2.title.trim() || !eventForm2.start_date) { toast("Título y fecha son obligatorios", "warn"); return; }
+    setEventSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("institutional_events").update({
+      title: eventForm2.title.trim(), start_date: eventForm2.start_date,
+      end_date: eventForm2.end_date || eventForm2.start_date,
+      location_name: eventForm2.location_name.trim() || null,
+    }).eq("id", eventId);
+    setEventSaving(false);
+    if (error) { toast("No se pudo guardar el evento", "danger"); return; }
+    if (adminId) logAdminAction(supabase, adminId, "Editó evento institucional", eventForm2.title.trim());
+    for (const p of eventParticipants) {
+      notifyUser(supabase, p.user_id, "Se actualizó un evento", eventForm2.title.trim(), "info", "/comunicacion/calendario");
+    }
+    toast("Evento actualizado");
+    router.refresh();
+  };
+
+  const addEventParticipant = async () => {
+    const eventId = editingProject?.institutional_events?.id;
+    if (!eventId || !addEventParticipantId) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("event_participants").insert({ event_id: eventId, user_id: addEventParticipantId, role: "participante" });
+    if (error) { toast(error.code === "23505" ? "Esa persona ya está asignada" : "No se pudo agregar", "danger"); return; }
+    notifyUser(supabase, addEventParticipantId, "Te invitaron a un evento", eventForm2.title, "info", "/comunicacion/calendario");
+    setAddEventParticipantId("");
+    loadEventParticipants(eventId);
+  };
+
+  const removeEventParticipant = async (userId: string) => {
+    const eventId = editingProject?.institutional_events?.id;
+    if (!eventId) return;
+    await createClient().from("event_participants").delete().eq("event_id", eventId).eq("user_id", userId);
+    loadEventParticipants(eventId);
   };
 
   const toggleAssignee = (id: string) => {
@@ -440,7 +649,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
               {/* Filas de actividades */}
               <div className="flex flex-col">
                 {active.map((p) => (
-                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} />
+                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} onEdit={openEditProject} />
                 ))}
               </div>
             </div>
@@ -451,7 +660,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
               <h2 className="text-[19px] font-bold mb-3" style={{ color: "var(--text-2)" }}>Cerrados</h2>
               <div className="flex flex-col opacity-60">
                 {done.map((p) => (
-                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} />
+                  <ProjectRow key={p.id} p={p} deps={depsOf.get(p.id) ?? []} typeLabel={typeLabel} onMarkCompleted={markCompleted} onEdit={openEditProject} />
                 ))}
               </div>
             </>
@@ -526,6 +735,149 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
           </button>
         </div>
       </Sheet>
+
+      {/* Editar actividad — asignados, fecha límite, prioridad, y el
+          evento institucional vinculado. A pedido del usuario (6 ago
+          2026): antes no había NINGUNA forma de editar una actividad ya
+          creada, y el evento del Calendario vivía en otra pantalla. */}
+      <Sheet open={!!editingProject} onClose={() => setEditingProject(null)}
+        title={editingProject ? titleOf(editingProject) : "Editar"} subtitle="Editar actividad">
+        {editingProject && (
+          <div className="flex flex-col gap-5">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prioridad">
+                <Select
+                  value={editPriority} onChange={(v) => setEditPriority(v as Priority)}
+                  title="Prioridad" searchable={false}
+                  options={PRIORITIES.map((p) => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) }))}
+                />
+              </Field>
+              <div>
+                <label className="text-[12px] font-semibold mb-1.5 block" style={{ color: "var(--text-2)" }}>Fecha de entrega</label>
+                <DatePicker value={editDeadline} onChange={setEditDeadline} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[12px] font-semibold mb-2 block" style={{ color: "var(--text-2)" }}>Asignado a</label>
+              <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-0.5">
+                {team.map((m) => (
+                  <label key={m.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm cursor-pointer transition-colors"
+                    style={{
+                      background: editAssignees.includes(m.id) ? "var(--accent-tint)" : "var(--surface-2)",
+                      border: editAssignees.includes(m.id) ? "1px solid var(--accent)" : "1px solid transparent",
+                    }}>
+                    <input type="checkbox" className="hidden" checked={editAssignees.includes(m.id)} onChange={() => toggleEditAssignee(m.id)} />
+                    <CheckBox checked={editAssignees.includes(m.id)} />
+                    <Avatar name={m.display_name} color={m.nexus_color} avatarUrl={m.avatar_url} size={26} birthday={isBirthdayToday(m.birth_date, todayISO())} />
+                    <span className="text-[13.5px] font-medium flex-1">{m.display_name}</span>
+                    {editAssignees.includes(m.id) && (
+                      editAssignees.length > 1 ? (
+                        <button className="text-[12px] font-semibold shrink-0"
+                          style={{ color: editLead === m.id ? "var(--accent)" : "var(--text-3)" }}
+                          onClick={(e) => { e.preventDefault(); setEditLead(m.id); }}>
+                          {editLead === m.id ? <span className="inline-flex items-center gap-1"><Icon name="star" size={10} /> responsable</span> : "hacer responsable"}
+                        </button>
+                      ) : null
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button className="btn-primary w-full py-3" disabled={editSaving} onClick={saveProjectEdit}>
+              {editSaving ? "Guardando…" : "Guardar cambios"}
+            </button>
+
+            <div className="border-t border-border pt-4">
+              <label className="text-[12px] font-semibold mb-2 block" style={{ color: "var(--text-2)" }}>Evento del Calendario vinculado</label>
+
+              {!editingProject.institutional_events ? (
+                <div className="flex flex-col gap-2">
+                  <Select
+                    value={eventPicked} onChange={setEventPicked}
+                    title="Elegir evento existente" searchable
+                    options={eventOptions.map((e) => ({ value: e.id, label: `${e.title} · ${dmy(e.start_date)}` }))}
+                  />
+                  <div className="flex gap-2">
+                    <button className="btn-secondary flex-1 py-2 text-[13px]" disabled={!eventPicked} onClick={linkExistingEvent}>
+                      Vincular
+                    </button>
+                    <button className="btn-secondary flex-1 py-2 text-[13px]" disabled={eventSaving} onClick={createAndLinkEvent}>
+                      {eventSaving ? "Creando…" : "+ Crear evento nuevo"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Título</label>
+                    <input className="field-input" value={eventForm2.title}
+                      onChange={(e) => setEventForm2((f) => ({ ...f, title: e.target.value }))} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Desde</label>
+                      <DatePicker value={eventForm2.start_date} onChange={(v) => setEventForm2((f) => ({ ...f, start_date: v }))} />
+                    </div>
+                    <div>
+                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Hasta</label>
+                      <DatePicker value={eventForm2.end_date} onChange={(v) => setEventForm2((f) => ({ ...f, end_date: v }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Lugar (opcional)</label>
+                    <input className="field-input" value={eventForm2.location_name}
+                      onChange={(e) => setEventForm2((f) => ({ ...f, location_name: e.target.value }))} />
+                  </div>
+                  <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+                    Hora, GPS, sincronización con Google y departamento se editan desde{" "}
+                    <a href="/admin/calendario" className="font-semibold" style={{ color: "var(--accent)" }}>Calendario</a>.
+                  </p>
+
+                  <div className="flex gap-2">
+                    <button className="btn-primary flex-1 py-2 text-[13px]" disabled={eventSaving} onClick={saveEventEdit}>
+                      {eventSaving ? "Guardando…" : "Guardar evento"}
+                    </button>
+                    <button className="btn-secondary py-2 px-3 text-[13px]" onClick={unlinkEvent}>Quitar vínculo</button>
+                  </div>
+
+                  <div className="border-t border-border pt-3">
+                    <label className="text-[11.5px] font-semibold mb-2 block" style={{ color: "var(--text-3)" }}>
+                      Invitados al evento
+                    </label>
+                    {eventParticipantsLoading ? (
+                      <p className="text-[12.5px] text-text-3">Cargando…</p>
+                    ) : (
+                      <div className="flex flex-col gap-1.5 mb-2">
+                        {eventParticipants.length === 0 && <p className="text-[12.5px] text-text-3">Nadie invitado todavía.</p>}
+                        {eventParticipants.map((ep) => (
+                          <div key={ep.user_id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: "var(--surface-2)" }}>
+                            <span className="text-[13px] font-medium">{ep.display_name}</span>
+                            <button onClick={() => removeEventParticipant(ep.user_id)} aria-label="Quitar">
+                              <IconTrash className="w-3.5 h-3.5 text-text-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Select
+                        value={addEventParticipantId} onChange={setAddEventParticipantId}
+                        title="Agregar persona" searchable
+                        options={team.filter((m) => !eventParticipants.some((ep) => ep.user_id === m.id)).map((m) => ({ value: m.id, label: m.display_name }))}
+                      />
+                      <button className="btn-secondary py-2 px-3 text-[13px]" disabled={!addEventParticipantId} onClick={addEventParticipant}>
+                        Agregar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Sheet>
     </>
   );
 }
@@ -533,9 +885,10 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
 /* ═══════════════════════════════════════════════════════════════
    ProjectRow — Fila tipo Notion para la vista Lista
    ═══════════════════════════════════════════════════════════════ */
-function ProjectRow({ p, deps, typeLabel, onMarkCompleted }: { 
+function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit }: {
   p: ProjectRow; deps: DepRow[]; typeLabel: Record<string, string>;
   onMarkCompleted: (id: string, title: string) => void;
+  onEdit: (p: ProjectRow) => void;
 }) {
   const asgs = p.project_assignments ?? [];
   const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
@@ -632,9 +985,13 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted }: {
         )}
       </div>
 
-      {/* Acciones en hover */}
+      {/* Acciones en hover — "más" abre el panel de edición (asignados,
+          fecha, prioridad, evento vinculado). Antes este botón no hacía
+          nada; era la única forma de "editar" que faltaba en toda la
+          pantalla. */}
       <div className="hidden md:flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-        <button className="h-7 w-7 rounded-lg grid place-items-center hover:bg-surface-2 transition-colors">
+        <button className="h-7 w-7 rounded-lg grid place-items-center hover:bg-surface-2 transition-colors"
+          onClick={(e) => { e.stopPropagation(); onEdit(p); }} aria-label="Editar actividad">
           <Icon name="more" size={14} className="text-text-3" />
         </button>
       </div>

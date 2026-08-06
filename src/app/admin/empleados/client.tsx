@@ -13,6 +13,7 @@ import { ImageCropper } from "@/components/os/image-cropper";
 import { Dialog } from "@/components/os/ui";
 import { todayMerida } from "@/lib/tz";
 import { PALETTE, nextAvailableColor } from "@/lib/colors";
+import { notifyUser } from "@/lib/notify";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { useHeaderAction } from "@/lib/header-actions";
 import { logAdminAction } from "@/lib/admin-log";
@@ -312,10 +313,17 @@ export default function EmpleadosClient({
     }).eq("id", editing.id);
     setEditSaving(false);
     if (error) { toast("No se pudo actualizar", "danger"); return; }
+    const roleChanged = editForm.role !== editing.role;
     if (adminId) {
-      const roleChanged = editForm.role !== editing.role;
       logAdminAction(supabase, adminId, roleChanged ? "Cambió el rol de una persona" : "Editó el perfil de una persona",
         `${editing.full_name ?? editing.display_name ?? ""}${roleChanged ? ` → ${ROLE_LABELS[editForm.role] ?? editForm.role}` : ""}`.trim());
+    }
+    // Auditoría de notificaciones: cambiar el rol de alguien nunca se lo
+    // avisaba — se enteraba solo si notaba que veía pantallas distintas.
+    // Solo dispara con el rol (no en cada edición de perfil — cambiar el
+    // teléfono no amerita una notificación).
+    if (roleChanged) {
+      notifyUser(supabase, editing.id, "Tu rol cambió", `Ahora eres: ${ROLE_LABELS[editForm.role] ?? editForm.role}`, "info", "/");
     }
     toast("Perfil actualizado");
     setEditing(null);

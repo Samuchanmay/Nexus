@@ -1,20 +1,6 @@
 // ══════════════════════════════════════════════════════════════════
-//  EMET Recorridos — lógica del popup (v2 con biblioteca y editor)
+//  EMET Recorridos — lógica del popup (v3 - Diseño profesional)
 //  ══════════════════════════════════════════════════════════════════
-//  El popup de una extensión se destruye cada vez que se cierra, así que
-//  TODO el estado de la grabación en curso vive en chrome.storage.local
-//  bajo la clave "recording" — sobrevive a que el usuario cierre el
-//  popup para navegar entre pantallas de la app y lo vuelva a abrir.
-//
-//  Los recorridos terminados se guardan en "library" como un array.
-//
-//  Contrato de subida (POST {server}/api/demos/ingest, ver
-//  src/app/api/demos/ingest/route.ts): requiere sesión de admin ya
-//  iniciada en el navegador (se manda con credentials:"include", nunca
-//  se le pide al usuario ninguna contraseña ni token aquí). Devuelve
-//  { error } con el mensaje real cuando falla — ese mensaje se muestra
-//  tal cual, nunca "[object Object]" ni un genérico que oculte la causa.
-// ══════════════════════════════════════════════════════════════════
 
 const DEFAULT_SERVER = "https://emet.uno";
 
@@ -85,6 +71,11 @@ function showStatus(message, kind) {
   els.statusLine.textContent = message;
   els.statusLine.className = `status ${kind}`;
   els.statusLine.classList.remove("hidden");
+  
+  // Auto-ocultar después de 5 segundos
+  setTimeout(() => {
+    els.statusLine.classList.add("hidden");
+  }, 5000);
 }
 
 function clearStatus() {
@@ -133,8 +124,12 @@ els.tabs.forEach(tab => {
   tab.addEventListener('click', () => {
     const target = tab.dataset.tab;
     
-    els.tabs.forEach(t => t.classList.remove('active'));
+    els.tabs.forEach(t => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
     tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
     
     els.tabRecord.classList.remove('active');
     els.tabLibrary.classList.remove('active');
@@ -172,6 +167,7 @@ function renderRecording(recording) {
     if (screen.thumbnail) {
       const img = document.createElement("img");
       img.src = screen.thumbnail;
+      img.alt = `Captura ${i + 1}`;
       li.appendChild(img);
     }
     li.appendChild(url);
@@ -276,14 +272,14 @@ async function renderLibrary() {
         <span class="library-item-badge ${tour.status}">${tour.status}</span>
       </div>
       <div class="library-item-meta">
-        <span>${screenCount} pantalla${screenCount !== 1 ? 's' : ''}</span>
-        <span>${date}</span>
+        <span>📸 ${screenCount} pantalla${screenCount !== 1 ? 's' : ''}</span>
+        <span>📅 ${date}</span>
       </div>
       <div class="library-item-actions">
-        <button class="subtle" data-action="preview">Ver</button>
-        <button class="subtle" data-action="edit">Editar</button>
-        <button class="subtle" data-action="upload">Subir</button>
-        <button class="danger" data-action="delete">Eliminar</button>
+        <button class="subtle" data-action="preview">👁️ Ver</button>
+        <button class="subtle" data-action="edit">✏️ Editar</button>
+        <button class="subtle" data-action="upload">📤 Subir</button>
+        <button class="danger" data-action="delete">🗑️ Eliminar</button>
       </div>
     `;
     
@@ -328,12 +324,12 @@ function renderEditorScreens(screens) {
     const blurCount = screen.blurs?.length || 0;
     
     item.innerHTML = `
-      ${screen.thumbnail ? `<img src="${screen.thumbnail}" />` : ''}
+      ${screen.thumbnail ? `<img src="${screen.thumbnail}" alt="Pantalla ${i + 1}" />` : ''}
       <div class="edit-screen-item-info">
         <div class="edit-screen-item-title">Pantalla ${i + 1}</div>
         <div class="edit-screen-item-meta">
-          ${highlightCount > 0 ? `${highlightCount} highlight${highlightCount !== 1 ? 's' : ''}` : ''}
-          ${blurCount > 0 ? `${blurCount} blur${blurCount !== 1 ? 's' : ''}` : ''}
+          ${highlightCount > 0 ? `🔆 ${highlightCount}` : ''}
+          ${blurCount > 0 ? `🔒 ${blurCount}` : ''}
           ${highlightCount === 0 && blurCount === 0 ? 'Sin ediciones' : ''}
         </div>
       </div>
@@ -363,7 +359,6 @@ async function editScreen(index) {
   const tour = currentEditingTour;
   const screen = tour.screens[index];
   
-  // Abrir la pestaña donde se capturó esta pantalla
   const url = screen.interaction_ctx?.url;
   if (!url) {
     showStatus("No se puede editar esta pantalla (sin URL).", "error");
@@ -376,19 +371,14 @@ async function editScreen(index) {
     return;
   }
   
-  // Navegar a la URL de la pantalla
   await chrome.tabs.update(tab.id, { url });
-  
-  // Esperar a que cargue
   await new Promise(resolve => setTimeout(resolve, 2000));
   
-  // Inyectar el modo de selección
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     files: ["select-mode.js"],
   });
   
-  // Entrar en modo highlight
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => {
@@ -398,10 +388,8 @@ async function editScreen(index) {
   
   showStatus("Modo edición activado. Haz clic en elementos para resaltarlos o ocultarlos. Presiona 'H' para highlight, 'B' para blur, 'Esc' para terminar.", "info");
   
-  // Cerrar el editor
   els.editorOverlay.classList.add("hidden");
   
-  // Monitorear cuando el usuario termine el modo de selección
   const checkInterval = setInterval(async () => {
     const result = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -411,7 +399,6 @@ async function editScreen(index) {
     if (result && result[0] && result[0].result) {
       clearInterval(checkInterval);
       
-      // Obtener los elementos seleccionados
       const selectedResult = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => window.__emetRecorridosExitSelectMode(),
@@ -420,20 +407,16 @@ async function editScreen(index) {
       if (selectedResult && selectedResult[0]) {
         const selectedElements = selectedResult[0].result || [];
         
-        // Separar highlights y blurs
         const highlights = selectedElements.filter(e => e.type === 'highlight');
         const blurs = selectedElements.filter(e => e.type === 'blur');
         
-        // Actualizar la pantalla
         tour.screens[index].highlights = highlights;
         tour.screens[index].blurs = blurs;
         
-        // Guardar en la biblioteca
         const library = await getLibrary();
         library[tour.index] = tour;
         await setLibrary(library);
         
-        // Reabrir el editor
         openEditor(tour, tour.index);
         
         showStatus(`Pantalla ${index + 1} actualizada: ${highlights.length} highlights, ${blurs.length} blurs.`, "ok");
@@ -527,17 +510,13 @@ function renderPreview() {
     els.previewImage.style.display = "none";
   }
   
-  // Renderizar highlights y blurs
   els.previewHighlights.innerHTML = "";
   
-  // Calcular escala de la imagen
   const imgRect = els.previewImage.getBoundingClientRect();
-  const containerRect = els.previewHighlights.parentElement.getBoundingClientRect();
   
   const scaleX = imgRect.width / (screen.snapshot?.viewport?.width || 1920);
   const scaleY = imgRect.height / (screen.snapshot?.viewport?.height || 1080);
   
-  // Renderizar highlights
   (screen.highlights || []).forEach(h => {
     const div = document.createElement("div");
     div.className = "preview-highlight";
@@ -548,7 +527,6 @@ function renderPreview() {
     els.previewHighlights.appendChild(div);
   });
   
-  // Renderizar blurs
   (screen.blurs || []).forEach(b => {
     const div = document.createElement("div");
     div.className = "preview-blur";
@@ -561,7 +539,6 @@ function renderPreview() {
   
   els.previewCaption.textContent = screen.interaction_ctx?.url || "";
   
-  // Actualizar botones de navegación
   els.previewPrev.disabled = currentPreviewIndex === 0;
   els.previewNext.disabled = currentPreviewIndex === tour.screens.length - 1;
 }
@@ -594,7 +571,6 @@ async function uploadTour(tour, index) {
   try {
     const data = await uploadRecording(tour);
     
-    // Marcar como subido
     const library = await getLibrary();
     library[index].uploaded = true;
     library[index].uploaded_at = new Date().toISOString();
@@ -683,7 +659,6 @@ els.btnFinish.addEventListener("click", async () => {
     return showStatus("Captura al menos una pantalla antes de guardar.", "error");
   }
   
-  // Guardar en la biblioteca
   const library = await getLibrary();
   library.push({
     ...recording,
@@ -692,18 +667,15 @@ els.btnFinish.addEventListener("click", async () => {
   });
   await setLibrary(library);
   
-  // Limpiar la grabación en curso
   await setStoredRecording(null);
   renderSetup();
   
-  // Limpiar el formulario
   els.title.value = "";
   els.slug.value = "";
   els.description.value = "";
   
   showStatus(`Recorrido guardado en "Mis recorridos" (${recording.screens.length} pantallas).`, "ok");
   
-  // Cambiar a la pestaña de biblioteca
   setTimeout(() => {
     document.querySelector('.tab[data-tab="library"]').click();
   }, 1000);

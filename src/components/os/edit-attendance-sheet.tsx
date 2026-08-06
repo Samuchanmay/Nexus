@@ -8,6 +8,7 @@ import { Icon } from "@/components/os/icons";
 import { scheduleFor } from "@/lib/hours";
 import { logAdminAction } from "@/lib/admin-log";
 import { getErrorMessage } from "@/lib/errors";
+import { notifyUser } from "@/lib/notify";
 import type { Schedule, AttendanceReason } from "@/lib/types";
 
 interface EditAttendanceSheetProps {
@@ -188,6 +189,10 @@ export function EditAttendanceSheet({
         });
         if (errHistorial) throw errHistorial;
         logAdminAction(supabase, adminId, "Corrigió asistencia", `${userName} · ${date} · ${cambios.join(", ")}`);
+        // Auditoría de notificaciones: quedaba en attendance_corrections
+        // (bitácora que solo ve un admin) pero el propio empleado nunca se
+        // enteraba de que le cambiaron su asistencia.
+        notifyUser(supabase, userId, "Se corrigió tu asistencia", `${date} · ${cambios.join(", ")}`, "info", "/comunicacion");
       }
 
       toast(cambios.length > 0 ? "Asistencia corregida" : "Sin cambios");
