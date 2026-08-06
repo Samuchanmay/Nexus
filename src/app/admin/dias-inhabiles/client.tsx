@@ -18,9 +18,9 @@ const KIND_ICON: Record<HolidayKind, React.ComponentType<{ className?: string }>
   nacional: IconCalendar, estatal: IconMapPin, empresa: IconFolder, puente: IconSun,
 };
 
-type Holiday = { id: string; date: string; name: string; kind: string; notes: string | null };
-type HolidayForm = { date: string; name: string; kind: string; notes: string };
-const EMPTY_FORM: HolidayForm = { date: "", name: "", kind: "empresa", notes: "" };
+type Holiday = { id: string; date: string; name: string; kind: string };
+type HolidayForm = { date: string; name: string; kind: string };
+const EMPTY_FORM: HolidayForm = { date: "", name: "", kind: "empresa" };
 
 // ── Task 6 — Descanso asignado por admin (rest_days) ──
 type RestDay = { id: string; userId: string; userName: string; startDate: string; endDate: string; note: string | null };
@@ -88,13 +88,15 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
 
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setConfirmDelete(false); setDrawerOpen(true); };
   const openEdit = (h: Holiday) => {
-    setEditing(h); setForm({ date: h.date, name: h.name, kind: h.kind, notes: h.notes ?? "" });
+    setEditing(h); setForm({ date: h.date, name: h.name, kind: h.kind });
     setConfirmDelete(false); setDrawerOpen(true);
   };
 
   const save = async () => {
     if (!form.date || !form.name.trim()) { toast("Fecha y nombre son obligatorios", "warn"); return; }
-    const payload = { date: form.date, name: form.name.trim(), kind: form.kind, notes: form.notes.trim() || null };
+    // `holidays` no tiene columna `notes` (solo date/name/kind) — enviar un
+    // campo inexistente hace fallar TODO el guardado vía PostgREST.
+    const payload = { date: form.date, name: form.name.trim(), kind: form.kind };
     const ok = await run(async () => {
       const sb = createClient();
       const { error } = editing
@@ -381,10 +383,6 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
           <Field label="Nombre">
             <input className="field-input" placeholder="Ej. Día de la Independencia"
               value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </Field>
-          <Field label="Notas (opcional)">
-            <textarea className="field-input min-h-[80px] resize-none" placeholder="Contexto adicional…"
-              value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </Field>
 
           {editing && confirmDelete ? (

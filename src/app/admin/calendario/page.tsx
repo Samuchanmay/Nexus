@@ -26,11 +26,19 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: projects }, { data: efemSetting }, { data: activitySetting }, { data: instEvents }, { data: departments }] = await Promise.all([
+  const [{ data: team }, { data: att }, { data: vacs }, { data: hols }, { data: incs }, { data: rests }, { data: projects }, { data: efemSetting }, { data: activitySetting }, { data: instEvents }, { data: departments }] = await Promise.all([
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, birth_date").eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("attendance").select("user_id, date").gte("date", first).lte("date", last),
     supabase.from("vacations").select("user_id, start_date, end_date").eq("status", "Aprobada").is("archived_at", null).lte("start_date", yLast).gte("end_date", yFirst),
     supabase.from("holidays").select("date, name, kind").gte("date", yFirst).lte("date", yLast),
+    // Incidencias autorizadas y descansos asignados (rest_days) dentro del mes
+    // en pantalla — la vista Asistencia los excluye de los "días hábiles",
+    // igual que vacaciones/feriados (auditoría A.8, ago 2026).
+    supabase.from("incidents").select("user_id, start_date, end_date")
+      .eq("status", "Autorizado").is("archived_at", null)
+      .lte("start_date", last).gte("end_date", first),
+    supabase.from("rest_days").select("user_id, start_date, end_date")
+      .lte("start_date", last).gte("end_date", first),
     supabase.from("projects")
       .select("id, deadline, status, requests(title, type), project_assignments(is_lead, users(display_name, nexus_color))")
       .not("deadline", "is", null).gte("deadline", yFirst).lte("deadline", yLast).order("deadline"),
@@ -88,6 +96,8 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
       attendance={(att ?? []) as { user_id: string; date: string }[]}
       vacations={(vacs ?? []) as VacationRange[]}
       holidays={(hols ?? []) as { date: string; name: string; kind: string }[]}
+      incidents={(incs ?? []) as { user_id: string; start_date: string; end_date: string }[]}
+      restDays={(rests ?? []) as { user_id: string; start_date: string; end_date: string }[]}
       deadlines={(projects ?? []) as unknown as ProjectDeadline[]}
       efemerides={efemerides.map((e) => e.title)}
       gcalEvents={gcalEvents}

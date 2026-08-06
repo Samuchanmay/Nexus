@@ -47,6 +47,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
     vacation: { today: boolean; soonDays: number | null; returnedRecently: boolean };
     isHoliday: boolean;
     incidentToday?: boolean;
+    restDayToday?: boolean;
   };
   day: {
     totalMin: number; targetMin: number; isOpen: boolean; hasEntry: boolean;
@@ -398,6 +399,7 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
             // Mismo placeholder de kind que el resto de call sites migrados —
             // esta pantalla solo sabe "hay incidencia hoy" (booleano), no cuál.
             incident: context.incidentToday && !myFirstIn ? { kind: "permiso" } : null,
+            restDay: context.restDayToday && !myFirstIn ? { note: "Descanso asignado" } : null,
             isHoliday: context.isHoliday, isBusinessDay: true,
           });
           const dotColor = myPresence.key === "trabajando" ? "var(--ok)" : myPresence.color;

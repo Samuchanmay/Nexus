@@ -1716,10 +1716,10 @@ function MessageBubble({
                     m.sticker_image_path ? (
                       // FASE W7 — sticker Emu con imagen real (generada por IA).
                       <div className="w-[112px] h-[112px] grid place-items-center px-1 py-0.5">
-                        {signedUrls[`${m.id}:sticker`] ? (
+                        {urls[`${m.id}:sticker`] ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={signedUrls[`${m.id}:sticker`]}
+                            src={urls[`${m.id}:sticker`]}
                             alt="Sticker de Emu"
                             className="w-full h-full object-contain"
                             style={{ filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.18))" }}

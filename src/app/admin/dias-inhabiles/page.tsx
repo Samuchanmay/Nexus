@@ -20,7 +20,7 @@ export default async function DiasInhabiles() {
   type RestDayRow = { id: string; user_id: string; start_date: string; end_date: string; note: string | null; users: { display_name: string } | null };
   return (
     <DiasClient
-      holidays={(data ?? []) as { id: string; date: string; name: string; kind: string; notes: string | null }[]}
+      holidays={(data ?? []) as { id: string; date: string; name: string; kind: string }[]}
       adminId={meRow?.id ?? ""}
       team={(team ?? []) as { id: string; display_name: string }[]}
       restDays={((restDays ?? []) as unknown as RestDayRow[]).map((r) => ({

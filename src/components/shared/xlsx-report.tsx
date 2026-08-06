@@ -24,7 +24,7 @@ export interface WeekBlock {
   color: string;
   weekStart: string; // lunes, YYYY-MM-DD
   weekLabel: string;  // "29 junio al 04 de julio"
-  days: DayDetail[];  // Lunes..Sábado
+  days: DayDetail[];  // Lunes..Viernes
 }
 
 const HEADERS = ["Día", "Fecha", "Hora Entrada", "Hora Salida", "Hora Entrada", "Hora Salida", "Horas Trabajadas", "Horas Extra", "Comentarios"];

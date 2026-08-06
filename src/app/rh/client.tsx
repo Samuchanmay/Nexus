@@ -154,10 +154,11 @@ function printTeamReport(team: Member[], vacs: Vacation[]) {
 const PERIODS = ["Semana", "Quincena", "Mes", "Trimestre"];
 const PERIOD_DAYS: Record<string, number> = { Semana: 7, Quincena: 15, Mes: 30, Trimestre: 92 };
 
-export default function RHClient({ team, attendance, schedules, vacations, holidays, states, incidents }: {
+export default function RHClient({ team, attendance, schedules, vacations, holidays, states, incidents, restDays = [] }: {
   team: Member[]; attendance: AttendanceRow[]; schedules: Schedule[];
   vacations: Vacation[]; holidays: { date: string; name: string }[]; states: JornadaState[];
   incidents: { user_id: string; kind: string; note: string | null; start_date: string; end_date: string }[];
+  restDays?: { user_id: string; start_date: string; end_date: string; note: string | null }[];
 }) {
   const [period, setPeriod] = usePersistedView("rh.period", PERIODS, "Quincena");
 
@@ -271,6 +272,10 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
     const inc = incidents.find((i) => i.user_id === userId && i.start_date <= date && i.end_date >= date);
     const isHoliday = holidays.some((h) => h.date === date);
     const wd = new Date(date + "T12:00:00Z").getUTCDay();
+    // Descanso real asignado por admin (rest_days) — antes el domingo estaba
+    // hardcodeado como descanso y un descanso entre semana se marcaba como
+    // "Falta injustificada" (auditoría A.8, ago 2026).
+    const onRestDay = restDays.some((r) => r.user_id === userId && r.start_date <= date && r.end_date >= date);
     const s = getAttendanceStatus({
       date,
       today: todayMerida(),
@@ -280,8 +285,8 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       vacation: vac ? { start: vac.start_date, end: vac.end_date } : null,
       incident: inc ? { kind: inc.kind as IncidentKind, note: inc.note } : null,
       isHoliday,
-      restDay: wd === 0 ? { note: "Descanso" } : null,
-      isBusinessDay: wd !== 0,
+      restDay: onRestDay ? { note: restDays.find((r) => r.user_id === userId && r.start_date <= date && r.end_date >= date)?.note ?? "Descanso asignado" } : null,
+      isBusinessDay: wd !== 0 && wd !== 6 && !onRestDay, // la semana hábil es Lun-Vie
     });
     return s.showInReports ? s.label : undefined;
   };
@@ -342,8 +347,9 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
         const memberRows = attendance.filter((r) => r.user_id === member.id);
         const days: DayDetail[] = [];
         
-        // Lunes a Sábado
-        for (let i = 0; i < 6; i++) {
+        // Lunes a Viernes (criterio único lun-vie, auditoría A.8 — antes
+        // incluía sábado y un sábado sin fichaje salía como falta)
+        for (let i = 0; i < 5; i++) {
           const date = addDays(weekStart, i);
           const sched = scheduleFor(schedules, member.id, date) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
           const dayRows = memberRows.filter((r) => r.date === date);

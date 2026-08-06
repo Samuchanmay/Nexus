@@ -188,7 +188,7 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
       vacation: vac ? { start: vac.start_date, end: vac.end_date } : null,
       incident: inc ? { kind: inc.kind as IncidentKind, note: inc.note } : null,
       isHoliday: holidaySet.has(date), restDay: rd ? { note: rd.note } : null,
-      isBusinessDay: wd !== 0, // el bloque semanal ya solo itera Lunes..Sábado
+      isBusinessDay: wd !== 0 && wd !== 6, // la semana hábil es Lun-Vie (criterio único, auditoría A.8)
     });
     // Solo interesa el motivo cuando de verdad explica la ausencia —
     // showInReports ya excluye "sin iniciar"/"fuera de horario" (no son un
@@ -260,7 +260,7 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
     const mondays = [...new Set(myRows.map((r) => mondayOf(r.date)))].sort().reverse().slice(0, 6);
     for (const wk of mondays) {
       const days: DayDetail[] = [];
-      for (let i = 0; i < 6; i++) { // Lunes..Sábado
+      for (let i = 0; i < 5; i++) { // Lunes..Viernes — antes incluía sábado y un sábado sin fichaje salía como falta (auditoría A.8)
         const date = addDays(wk, i);
         const daySched = scheduleFor((scheds ?? []) as Schedule[], u.id, date) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
         days.push(buildDayDetail(date, myRows, daySched, states, (d) => absenceReasonFor(u.id, d)));

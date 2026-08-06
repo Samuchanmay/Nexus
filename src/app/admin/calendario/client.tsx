@@ -22,6 +22,7 @@ type Granularity = (typeof GRANULARITIES)[number];
 
 export type TeamMember = { id: string; display_name: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null };
 export type VacationRange = { user_id: string; start_date: string; end_date: string };
+export type CoverageRange = { user_id: string; start_date: string; end_date: string };
 export type ProjectDeadline = {
   id: string; deadline: string; status: string;
   requests: { title: string; type: string } | null;
@@ -43,13 +44,14 @@ export type InstitutionalEvent = {
 
 export default function CalendarioClient({
   ym, year, month, daysInMonth, today, prevHref, nextHref,
-  team, attendance, vacations, holidays, deadlines, efemerides, gcalEvents, gcalError,
+  team, attendance, vacations, holidays, incidents = [], restDays = [], deadlines, efemerides, gcalEvents, gcalError,
   initialFocusDate, institutionalEvents, departments, adminId,
 }: {
   ym: string; year: number; month: number; daysInMonth: number; today: string;
   prevHref: string; nextHref: string;
   team: TeamMember[]; attendance: { user_id: string; date: string }[];
   vacations: VacationRange[]; holidays: { date: string; name: string; kind: string }[];
+  incidents?: CoverageRange[]; restDays?: CoverageRange[];
   deadlines: ProjectDeadline[]; efemerides?: string[]; gcalEvents?: GcalEvent[];
   gcalError?: string | null;
   initialFocusDate?: string;
@@ -528,13 +530,20 @@ export default function CalendarioClient({
     if (newYm !== ym) router.push(`/admin/calendario?m=${newYm}`);
   };
 
-  type Cell = { kind: "fichaje" | "vacacion" | "inhabil" | "sin" | "off" | "futuro"; tip: string };
+  type Cell = { kind: "fichaje" | "vacacion" | "inhabil" | "permiso" | "descanso" | "sin" | "off" | "futuro"; tip: string };
   const grid = useMemo(() => team.map((u) => {
     const cells: Cell[] = attendanceDays.map((d) => {
       const onVac = vacations.some((v) => v.user_id === u.id && v.start_date <= d.date && v.end_date >= d.date);
       if (onVac) return { kind: "vacacion", tip: `${dmy(d.date)} · Vacaciones` };
       if (d.holiday) return { kind: "inhabil", tip: `${dmy(d.date)} · ${d.holiday}` };
       if (d.isWeekend) return { kind: "off", tip: `${dmy(d.date)} · Fin de semana` };
+      // Incidencia autorizada / descanso asignado: no se cuentan como
+      // "hábiles" — antes un permiso sin fichaje bajaba el % de asistencia
+      // (auditoría A.8, ago 2026).
+      if (incidents.some((i) => i.user_id === u.id && i.start_date <= d.date && i.end_date >= d.date))
+        return { kind: "permiso", tip: `${dmy(d.date)} · Incidencia autorizada` };
+      if (restDays.some((r) => r.user_id === u.id && r.start_date <= d.date && r.end_date >= d.date))
+        return { kind: "descanso", tip: `${dmy(d.date)} · Descanso asignado` };
       if (attSet.has(`${u.id}|${d.date}`)) return { kind: "fichaje", tip: `${dmy(d.date)} · Con registro` };
       if (d.date > today) return { kind: "futuro", tip: dmy(d.date) };
       return { kind: "sin", tip: `${dmy(d.date)} · Sin registro (informativo)` };
@@ -542,12 +551,14 @@ export default function CalendarioClient({
     const habiles = cells.filter((c) => c.kind === "fichaje" || c.kind === "sin").length;
     const conRegistro = cells.filter((c) => c.kind === "fichaje").length;
     return { user: u, cells, habiles, conRegistro };
-  }), [team, attendanceDays, vacations, attSet, today]);
+  }), [team, attendanceDays, vacations, incidents, restDays, attSet, today]);
 
   const CELL: Record<Cell["kind"], { bg: string; border?: string }> = {
     fichaje:  { bg: "linear-gradient(155deg,#34D058,#2FB344)" },
     vacacion: { bg: "linear-gradient(155deg,#A78BFA,#8E5CF7)" },
     inhabil:  { bg: "var(--accent-tint)", border: "1px solid var(--accent)" },
+    permiso:  { bg: "linear-gradient(155deg,#38BDF8,#0EA5E9)" },
+    descanso: { bg: "var(--surface-2)", border: "1px dashed var(--border)" },
     sin:      { bg: "var(--warn-tint)", border: "1px dashed var(--warn)" },
     off:      { bg: "var(--surface-2)" },
     futuro:   { bg: "transparent", border: "1px dashed var(--border)" },
@@ -747,6 +758,12 @@ export default function CalendarioClient({
               </span>
               <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
                 <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.vacacion.bg }} /> Vacaciones
+              </span>
+              <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.permiso.bg }} /> Incidencia
+              </span>
+              <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
+                <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.descanso.bg, border: CELL.descanso.border }} /> Descanso
               </span>
               <span className="flex items-center gap-2 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
                 <span className="inline-block w-4 h-4 rounded-md" style={{ background: CELL.inhabil.bg, border: CELL.inhabil.border }} /> Día inhábil

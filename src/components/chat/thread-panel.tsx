@@ -17,7 +17,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, IconButton } from "@/components/ui";
+import { Avatar } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import type { EnlaceMessage } from "@/lib/types";
 import type { ParticipantLite } from "@/app/chat/client";
@@ -96,7 +96,13 @@ export function ThreadPanel({ open, onClose, root, myId, peopleById, onSend }: {
     >
       <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
         <p className="text-[15px] font-bold">Hilo</p>
-        <IconButton icon="close" onClick={onClose} label="Cerrar hilo" />
+        <button
+          onClick={onClose}
+          aria-label="Cerrar hilo"
+          className="grid w-7 h-7 place-items-center rounded-full transition-colors hover:bg-surface-2"
+        >
+          <Icon name="close" size={15} style={{ color: "var(--text-2)" }} />
+        </button>
       </div>
 
       <div ref={listRef} className="flex-1 overflow-y-auto nx-scroll px-4 py-3 flex flex-col gap-3">

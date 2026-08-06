@@ -46,7 +46,7 @@ export default async function AdminDashboard() {
     { data: team }, { data: teamAtt }, { data: allScheds },
     { data: vacsToday }, { data: urgentReqs }, { data: holidayToday }, { data: incsToday },
     { data: jornadaStates }, { data: myActionsToday },
-    { data: vacsSoon },
+    { data: vacsSoon }, { data: restsToday },
   ] = await Promise.all([
     supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "solicitada"),
     supabase.from("vacations").select("id", { count: "exact", head: true }).eq("status", "Pendiente").is("archived_at", null),
@@ -72,6 +72,9 @@ export default async function AdminDashboard() {
     // todavía puede no pasar.
     supabase.from("vacations").select("user_id, start_date").eq("status", "Aprobada").is("archived_at", null)
       .gt("start_date", today).lte("start_date", addDays(today, 3)),
+    // Descansos asignados por admin vigentes hoy (auditoría A.8): alguien
+    // con descanso hoy NO está "Sin iniciar" ni en "fuera" del pulso.
+    supabase.from("rest_days").select("user_id").lte("start_date", today).gte("end_date", today),
   ]);
 
   // Regreso de vacaciones: propias, que hayan terminado en los últimos 2
@@ -140,6 +143,7 @@ export default async function AdminDashboard() {
   const nameOf = new Map((team ?? []).map((u) => [u.id, u.display_name]));
   const onVacation = new Set((vacsToday ?? []).map((v) => v.user_id));
   const onIncident = new Set((incsToday ?? []).map((i) => i.user_id));
+  const onRestToday = new Set((restsToday ?? []).map((r) => r.user_id));
   const soonDaysOf = new Map((vacsSoon ?? []).map((v) => {
     const days = Math.round((new Date(v.start_date + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getTime()) / 86400000);
     return [v.user_id, days];
@@ -170,6 +174,7 @@ export default async function AdminDashboard() {
       // usuario aparece marcado.
       incident: onIncident.has(u.id) && !firstIn ? { kind: "permiso" } : null,
       isHoliday: !!holidayToday,
+      restDay: onRestToday.has(u.id) && !firstIn ? { note: "Descanso asignado" } : null,
       isBusinessDay: true,
     });
     const status = done ? "Terminó" : presenceStatus.label;
@@ -317,6 +322,7 @@ export default async function AdminDashboard() {
             date: today, today, firstIn: myDay.firstIn, isOpen: myDay.isOpen, noRegistroSalida: false,
             vacation: onVacation.has(me!.id) ? { start: today, end: today } : null,
             incident: onIncident.has(me!.id) && !myDay.firstIn ? { kind: "permiso" } : null,
+            restDay: onRestToday.has(me!.id) && !myDay.firstIn ? { note: "Descanso asignado" } : null,
             isBusinessDay: true,
           });
           const dotColor = myPresence.key === "trabajando" ? "var(--ok)" : myPresence.color;
