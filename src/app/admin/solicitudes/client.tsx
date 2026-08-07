@@ -178,7 +178,7 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
       <header className="pt-6 pb-6">
         <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
           <div>
-            <h1 className="text-[40px] font-bold tracking-tight text-text-1 leading-none">Solicitudes</h1>
+            <h1 className="text-[28px] font-bold tracking-tight text-text-1 leading-none">Solicitudes</h1>
             <p className="text-[16px] font-medium mt-2" style={{ color: "var(--text-2)" }}>
               Aprueba, asigna y prioriza el trabajo
             </p>

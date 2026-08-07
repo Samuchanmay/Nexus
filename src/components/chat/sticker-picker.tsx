@@ -122,7 +122,7 @@ export function StickerPicker({ open, onClose, onPick, onPickImage }: {
               onKeyDown={(e) => { if (e.key === "Enter" && !generating) generar(); }}
               maxLength={200}
             />
-            <button className="btn-primary px-3 py-2 text-[13px] shrink-0" disabled={generating || !prompt.trim()} onClick={generar}>
+            <button className="btn-primary px-3 py-2 text-[13.5px] shrink-0" disabled={generating || !prompt.trim()} onClick={generar}>
               {generating ? "Generando…" : "Generar"}
             </button>
           </div>

@@ -86,11 +86,11 @@ export default function SoporteClient({ userId, initialTickets }: { userId: stri
               </div>
               <Pill tone={STATUS_TONE[t.status]}>{SUPPORT_STATUS_LABEL[t.status]}</Pill>
             </div>
-            <p className="text-[13px] mt-2" style={{ color: "var(--text-2)" }}>{t.description}</p>
+            <p className="text-[13.5px] mt-2" style={{ color: "var(--text-2)" }}>{t.description}</p>
             {t.admin_response && (
               <div className="mt-3 rounded-lg px-3 py-2.5" style={{ background: "var(--surface-2)" }}>
-                <p className="text-[11.5px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Respuesta</p>
-                <p className="text-[13px]">{t.admin_response}</p>
+                <p className="text-[12px] font-semibold mb-1" style={{ color: "var(--text-3)" }}>Respuesta</p>
+                <p className="text-[13.5px]">{t.admin_response}</p>
               </div>
             )}
           </div>

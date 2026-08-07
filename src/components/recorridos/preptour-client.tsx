@@ -137,7 +137,7 @@ export function PrepTourClient({ initialDemos }: { initialDemos: PrepTourDemo[] 
       </Card>
 
       <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-text-2">Recorridos guardados</p>
+        <p className="text-[13.5px] font-semibold text-text-2">Recorridos guardados</p>
         <Button variant="subtle" size="sm" icon="chart" onClick={() => setActivityOpen(true)}>
           Ver actividad
         </Button>
@@ -456,7 +456,7 @@ function ActivityOverlay({ onClose }: { onClose: () => void }) {
               {data.demos.length === 0 ? (
                 <p className="text-[13.5px] text-text-3">Todavía no hay visualizaciones registradas.</p>
               ) : (
-                <table className="w-full text-[13px]">
+                <table className="w-full text-[13.5px]">
                   <thead>
                     <tr className="text-left text-text-3 text-[12px]">
                       <th className="pb-2 pr-3 font-semibold">Recorrido</th>
@@ -491,7 +491,7 @@ function ActivityOverlay({ onClose }: { onClose: () => void }) {
                   <p className="text-[12.5px] font-bold text-text-3 mt-5 mb-2">Actividad reciente</p>
                   <ul className="space-y-1.5">
                     {data.activity.map((a, i) => (
-                      <li key={i} className="flex items-center justify-between gap-3 text-[13px]">
+                      <li key={i} className="flex items-center justify-between gap-3 text-[13.5px]">
                         <span className="flex items-center gap-2 min-w-0">
                           <span
                             className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -519,8 +519,8 @@ function ActivityOverlay({ onClose }: { onClose: () => void }) {
 function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-m border border-border bg-card px-4 py-3">
-      <p className="text-[11.5px] text-text-3">{label}</p>
-      <p className="text-[20px] font-bold text-text-1 leading-tight">{value}</p>
+      <p className="text-[12px] text-text-3">{label}</p>
+      <p className="text-[21px] font-bold text-text-1 leading-tight">{value}</p>
     </div>
   );
 }

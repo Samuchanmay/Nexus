@@ -661,7 +661,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
       <header className="pt-4 pb-6 md:pt-8 md:pb-8">
         <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
           <div>
-            <h1 className="text-[28px] md:text-[40px] font-bold tracking-tight text-text-1 leading-none">Actividades</h1>
+            <h1 className="text-[28px] font-bold tracking-tight text-text-1 leading-none">Actividades</h1>
             <p className="text-[15px] md:text-[16px] mt-2" style={{ color: "var(--text-2)" }}>
               Gestiona las actividades y proyectos del equipo
             </p>
@@ -937,10 +937,10 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                     options={eventOptions.map((e) => ({ value: e.id, label: `${e.title} · ${dmy(e.start_date)}` }))}
                   />
                   <div className="flex gap-2">
-                    <button className="btn-secondary flex-1 py-2 text-[13px]" disabled={!eventPicked} onClick={linkExistingEvent}>
+                    <button className="btn-secondary flex-1 py-2 text-[13.5px]" disabled={!eventPicked} onClick={linkExistingEvent}>
                       Vincular
                     </button>
-                    <button className="btn-secondary flex-1 py-2 text-[13px]" disabled={eventSaving} onClick={createAndLinkEvent}>
+                    <button className="btn-secondary flex-1 py-2 text-[13.5px]" disabled={eventSaving} onClick={createAndLinkEvent}>
                       {eventSaving ? "Creando…" : "+ Crear evento nuevo"}
                     </button>
                   </div>
@@ -971,16 +971,16 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                     <input className="field-input" value={eventForm2.location_name}
                       onChange={(e) => setEventForm2((f) => ({ ...f, location_name: e.target.value }))} />
                   </Field>
-                  <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
+                  <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
                     GPS, sincronización con Google y departamento se editan desde{" "}
                     <a href="/admin/calendario" className="font-semibold" style={{ color: "var(--accent)" }}>Calendario</a>.
                   </p>
 
                   <div className="flex gap-2">
-                    <button className="btn-primary flex-1 py-2 text-[13px]" disabled={eventSaving} onClick={saveEventEdit}>
+                    <button className="btn-primary flex-1 py-2 text-[13.5px]" disabled={eventSaving} onClick={saveEventEdit}>
                       {eventSaving ? "Guardando…" : "Guardar evento"}
                     </button>
-                    <button className="btn-secondary py-2 px-3 text-[13px]" onClick={unlinkEvent}>Quitar vínculo</button>
+                    <button className="btn-secondary py-2 px-3 text-[13.5px]" onClick={unlinkEvent}>Quitar vínculo</button>
                   </div>
 
                   <div className="border-t border-border pt-3">
@@ -992,7 +992,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                         {eventParticipants.length === 0 && <p className="text-[12.5px] text-text-3">Nadie invitado todavía.</p>}
                         {eventParticipants.map((ep) => (
                           <div key={ep.user_id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: "var(--surface-2)" }}>
-                            <span className="text-[13px] font-medium">{ep.display_name}</span>
+                            <span className="text-[13.5px] font-medium">{ep.display_name}</span>
                             <button onClick={() => removeEventParticipant(ep.user_id)} aria-label="Quitar">
                               <IconTrash className="w-3.5 h-3.5 text-text-3" />
                             </button>
@@ -1006,7 +1006,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                         title="Agregar persona" searchable
                         options={team.filter((m) => !eventParticipants.some((ep) => ep.user_id === m.id)).map((m) => ({ value: m.id, label: m.display_name }))}
                       />
-                      <button className="btn-secondary py-2 px-3 text-[13px]" disabled={!addEventParticipantId} onClick={addEventParticipant}>
+                      <button className="btn-secondary py-2 px-3 text-[13.5px]" disabled={!addEventParticipantId} onClick={addEventParticipant}>
                         Agregar
                       </button>
                     </div>
@@ -1064,9 +1064,9 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
             />
           </Field>
           <div className="flex justify-end gap-2 pt-1">
-            <button className="btn-secondary py-2 px-4 text-[13px]" onClick={() => setReturningProject(null)}>Cancelar</button>
+            <button className="btn-secondary py-2 px-4 text-[13.5px]" onClick={() => setReturningProject(null)}>Cancelar</button>
             <button
-              className="btn-primary py-2 px-4 text-[13px]" disabled={returnSaving || !returnNote.trim()}
+              className="btn-primary py-2 px-4 text-[13.5px]" disabled={returnSaving || !returnNote.trim()}
               onClick={confirmReturn}
             >
               {returnSaving ? "Devolviendo…" : "Devolver actividad"}

@@ -317,7 +317,7 @@ function UserMenu({
               <button
                 key={opt.value}
                 onClick={() => { onPresenceChange(opt.value); }}
-                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-[13px] font-medium hover:bg-hover transition-colors"
+                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-[13.5px] font-medium hover:bg-hover transition-colors"
                 style={{
                   background: presenceStatus === opt.value ? "var(--hover)" : "transparent",
                   color: presenceStatus === opt.value ? "var(--text-1)" : "var(--text-2)",

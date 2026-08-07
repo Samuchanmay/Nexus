@@ -110,7 +110,7 @@ export function MonthView({
                 {/* Número del día */}
                 <div className="flex items-center justify-between">
                   <span
-                    className="text-[11.5px] sm:text-[13.5px] font-bold tabular-nums w-5 h-5 sm:w-6 sm:h-6 grid place-items-center rounded-full"
+                    className="text-[12px] sm:text-[13.5px] font-bold tabular-nums w-5 h-5 sm:w-6 sm:h-6 grid place-items-center rounded-full"
                     style={{
                       color: isToday ? "#fff" : c.inMonth ? "var(--text-1)" : "var(--text-3)",
                       background: isToday ? "var(--accent)" : "transparent",

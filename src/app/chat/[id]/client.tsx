@@ -1289,7 +1289,7 @@ export default function EnlaceConversationClient({
                 {!m.deleted_at && !!m.reply_count && m.reply_count > 0 && (
                   <button
                     onClick={() => setThreadRoot(m)}
-                    className={`mt-0.5 inline-flex items-center gap-1 text-[11.5px] font-semibold rounded-full px-2 py-0.5 transition-colors hover:brightness-95 ${mine ? "ml-auto mr-1" : "ml-9"}`}
+                    className={`mt-0.5 inline-flex items-center gap-1 text-[12px] font-semibold rounded-full px-2 py-0.5 transition-colors hover:brightness-95 ${mine ? "ml-auto mr-1" : "ml-9"}`}
                     style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
                   >
                     <Icon name="reply" size={11} />

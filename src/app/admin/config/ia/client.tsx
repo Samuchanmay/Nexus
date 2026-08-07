@@ -75,7 +75,7 @@ export default function AIConfigClient({ initialConfig }: { initialConfig: AICon
       {/* Provider activo */}
       <div className="rounded-xl p-5" style={{ background: "var(--surface-2)" }}>
         <h3 className="text-[15px] font-bold text-text-1 mb-3">Proveedor activo</h3>
-        <p className="text-[13px] text-text-2 mb-4">
+        <p className="text-[13.5px] text-text-2 mb-4">
           Qué proveedor de IA se usa para resúmenes de conversación y búsqueda semántica.
         </p>
         <div className="grid gap-2">

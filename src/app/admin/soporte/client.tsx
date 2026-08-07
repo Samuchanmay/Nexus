@@ -103,7 +103,7 @@ export default function SoporteAdminClient({ adminId, initialTickets }: { adminI
                 </div>
                 <Badge tone={STATUS_BADGE[t.status]}>{SUPPORT_STATUS_LABEL[t.status]}</Badge>
               </div>
-              <p className="text-[13px] text-text-2 mt-2 line-clamp-2">{t.description}</p>
+              <p className="text-[13.5px] text-text-2 mt-2 line-clamp-2">{t.description}</p>
             </button>
           ))}
         </div>
@@ -116,7 +116,7 @@ export default function SoporteAdminClient({ adminId, initialTickets }: { adminI
               <Avatar name={active.requester?.display_name ?? "?"} avatarUrl={active.requester?.avatar_url} color={active.requester?.nexus_color} size={32} />
               <div>
                 <p className="text-[13.5px] font-semibold">{active.requester?.display_name ?? "Alguien"}</p>
-                <p className="text-[11.5px] text-text-3">{fmtDateTime(active.created_at)}</p>
+                <p className="text-[12px] text-text-3">{fmtDateTime(active.created_at)}</p>
               </div>
             </div>
             <div className="rounded-lg px-3 py-2.5" style={{ background: "var(--surface-2)" }}>

@@ -102,7 +102,7 @@ export default function BackupsClient({ adminId }: { adminId: string }) {
       </div>
 
       {loading ? (
-        <p className="text-[13px]" style={{ color: "var(--text-3)" }}>Cargando…</p>
+        <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>Cargando…</p>
       ) : backups.length === 0 ? (
         <EmptyState icon={<Icon name="download" size={22} />} title="Sin respaldos todavía" hint="Genera el primero con el botón de arriba." />
       ) : (
@@ -225,7 +225,7 @@ function RestorePanel({ backup, adminId, onDone }: { backup: BackupRow; adminId:
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder={table}
-              className="mt-1 w-full h-9 px-3 rounded-md text-[13px]"
+              className="mt-1 w-full h-9 px-3 rounded-md text-[13.5px]"
               style={{ border: "1px solid var(--border)", background: "var(--bg)" }}
             />
           </label>

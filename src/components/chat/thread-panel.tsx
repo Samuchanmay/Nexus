@@ -138,7 +138,7 @@ export function ThreadPanel({ open, onClose, root, myId, peopleById, onSend }: {
                   {m.sender_id === myId ? "Tú" : (sender?.display_name ?? "Alguien")}
                   <span className="ml-2 text-[10.5px] font-normal" style={{ color: "var(--text-3)" }}>{timeOnly(m.created_at)}</span>
                 </p>
-                <p className="text-[13px] mt-0.5 whitespace-pre-wrap break-words">
+                <p className="text-[13.5px] mt-0.5 whitespace-pre-wrap break-words">
                   {m.deleted_at ? "Mensaje eliminado" : (m.content ?? (m.type === "sticker" ? "Sticker" : ""))}
                 </p>
               </div>
@@ -153,7 +153,7 @@ export function ThreadPanel({ open, onClose, root, myId, peopleById, onSend }: {
           value={draft} onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } }}
         />
-        <button className="btn-primary px-3 py-2 text-[13px] shrink-0" disabled={!draft.trim()} onClick={enviar} aria-label="Enviar">
+        <button className="btn-primary px-3 py-2 text-[13.5px] shrink-0" disabled={!draft.trim()} onClick={enviar} aria-label="Enviar">
           <Icon name="send" size={14} />
         </button>
       </div>
