@@ -6,7 +6,7 @@
  * Eliminar — sin obligar a entrar al detalle.
  */
 import { useEffect, useState } from "react";
-import { Badge, Button, Card, EmptyState, Dialog } from "@/components/os/ui";
+import { Badge, Button, Card, EmptyState, Dialog, Field } from "@/components/os/ui";
 import { Menu, MenuItem, useToast } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { SerPlayerFrame } from "@/components/recorridos/ser-player";
@@ -315,9 +315,7 @@ function PreviewOverlay({ demo, onClose }: { demo: PrepTourDemo; onClose: () => 
               {demo.status === "publicado" ? "Publicado" : "Borrador"}
             </Badge>
           </div>
-          <button className="text-[12.5px] text-text-3 hover:text-text-1 transition-colors" onClick={onClose}>
-            Cerrar
-          </button>
+          <Button variant="ghost" size="sm" onClick={onClose}>Cerrar</Button>
         </div>
 
         <div className="px-5 py-4">
@@ -432,9 +430,7 @@ function ActivityOverlay({ onClose }: { onClose: () => void }) {
       <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-card border border-border rounded-m shadow-nx overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <span className="text-[13.5px] font-bold text-text-1">Actividad de los recorridos</span>
-          <button className="text-[12.5px] text-text-3 hover:text-text-1 transition-colors" onClick={onClose}>
-            Cerrar
-          </button>
+          <Button variant="ghost" size="sm" onClick={onClose}>Cerrar</Button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -559,26 +555,21 @@ function EditSheet({ demo, onClose, onSaved }: {
       <div className="relative w-full max-w-md bg-card border border-border rounded-m shadow-nx overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <span className="text-[14px] font-bold text-text-1">Editar recorrido</span>
-          <button className="text-[12.5px] text-text-3 hover:text-text-1 transition-colors" onClick={onClose}>
-            Cerrar
-          </button>
+          <Button variant="ghost" size="sm" onClick={onClose}>Cerrar</Button>
         </div>
         <div className="px-5 py-4 flex flex-col gap-3">
           {err && <p className="text-[12.5px] text-white px-3 py-1.5 rounded-sm" style={{ background: "var(--danger)" }}>{err}</p>}
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12.5px] font-semibold text-text-2">Título</span>
+          <Field label="Título">
             <input className="field-input" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12.5px] font-semibold text-text-2">Descripción</span>
+          </Field>
+          <Field label="Descripción">
             <textarea className="field-input resize-none" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12.5px] font-semibold text-text-2">Dirigido a</span>
+          </Field>
+          <Field label="Dirigido a">
             <select className="field-input" value={targetRole} onChange={(e) => setTargetRole(e.target.value)}>
               {ROLE_KEYS.map((k) => <option key={k} value={k}>{ROLE_LABEL[k]}</option>)}
             </select>
-          </label>
+          </Field>
         </div>
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-border">
           <Button variant="subtle" size="sm" onClick={onClose} disabled={busy}>Cancelar</Button>
