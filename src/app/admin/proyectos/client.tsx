@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Pill, Sheet, useToast, CheckBox, DatePicker, Menu, MenuItem, Select, SlidingSegments, TimePicker } from "@/components/ui";
 import { EmptyState, Field } from "@/components/shared";
+import { Button } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { IconDownload, IconTrash } from "@/components/icons";
 import { logAdminAction } from "@/lib/admin-log";
@@ -710,14 +711,10 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
             </div>
 
             {/* Botón principal */}
-            <button 
-              className="h-10 px-5 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
-              onClick={openAdd}
-            >
-              <Icon name="plus" size={16} />
+            <Button variant="primary" icon="plus" onClick={openAdd}>
               <span className="hidden sm:inline">Añadir proyecto</span>
               <span className="sm:hidden">Nuevo</span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -950,36 +947,30 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <div>
-                    <label htmlFor="proy-event-title" className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Título</label>
-                    <input id="proy-event-title" className="field-input" value={eventForm2.title}
+                  <Field label="Título">
+                    <input className="field-input" value={eventForm2.title}
                       onChange={(e) => setEventForm2((f) => ({ ...f, title: e.target.value }))} />
-                  </div>
+                  </Field>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Desde</label>
+                    <Field label="Desde">
                       <DatePicker value={eventForm2.start_date} onChange={(v) => setEventForm2((f) => ({ ...f, start_date: v }))} />
-                    </div>
-                    <div>
-                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Hasta</label>
+                    </Field>
+                    <Field label="Hasta">
                       <DatePicker value={eventForm2.end_date} onChange={(v) => setEventForm2((f) => ({ ...f, end_date: v }))} />
-                    </div>
+                    </Field>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Hora inicio (opcional)</label>
+                    <Field label="Hora inicio (opcional)">
                       <TimePicker value={eventForm2.startTime} onChange={(v) => setEventForm2((f) => ({ ...f, startTime: v }))} />
-                    </div>
-                    <div>
-                      <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Hora fin (opcional)</label>
+                    </Field>
+                    <Field label="Hora fin (opcional)">
                       <TimePicker value={eventForm2.endTime} onChange={(v) => setEventForm2((f) => ({ ...f, endTime: v }))} />
-                    </div>
+                    </Field>
                   </div>
-                  <div>
-                    <label htmlFor="proy-event-location" className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Lugar (opcional)</label>
-                    <input id="proy-event-location" className="field-input" value={eventForm2.location_name}
+                  <Field label="Lugar (opcional)">
+                    <input className="field-input" value={eventForm2.location_name}
                       onChange={(e) => setEventForm2((f) => ({ ...f, location_name: e.target.value }))} />
-                  </div>
+                  </Field>
                   <p className="text-[11.5px]" style={{ color: "var(--text-3)" }}>
                     GPS, sincronización con Google y departamento se editan desde{" "}
                     <a href="/admin/calendario" className="font-semibold" style={{ color: "var(--accent)" }}>Calendario</a>.
@@ -993,9 +984,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                   </div>
 
                   <div className="border-t border-border pt-3">
-                    <label className="text-[11.5px] font-semibold mb-2 block" style={{ color: "var(--text-3)" }}>
-                      Invitados al evento
-                    </label>
+                    <Field label="Invitados al evento">
                     {eventParticipantsLoading ? (
                       <p className="text-[12.5px] text-text-3">Cargando…</p>
                     ) : (
@@ -1021,6 +1010,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                         Agregar
                       </button>
                     </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -1102,18 +1092,6 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit, onReturn }: {
   const pending = deps.filter((d) => d.projects && d.projects.status !== "completada");
   const title = p.requests?.title ?? "Actividad";
 
-  // Colores por estado
-  const statusColors: Record<string, { bg: string; fg: string }> = {
-    solicitada: { bg: "#F1F5F9", fg: "#475569" },
-    aprobada: { bg: "#DBEAFE", fg: "#1D4ED8" },
-    en_progreso: { bg: "#E9D5FF", fg: "#6B21A8" },
-    en_revision: { bg: "#FEF3C7", fg: "#92400E" },
-    completada: { bg: "#D1FAE5", fg: "#065F46" },
-    cancelada: { bg: "#FEE2E2", fg: "#991B1B" },
-    pausada: { bg: "#F1F5F9", fg: "#475569" },
-  };
-
-  const statusColor = statusColors[p.status] || { bg: "#F1F5F9", fg: "#475569" };
   const statusLabel = STATUS_LABELS[p.status as RequestStatus] ?? p.status;
 
   const priorityColors: Record<string, string> = {
@@ -1154,9 +1132,7 @@ function ProjectRow({ p, deps, typeLabel, onMarkCompleted, onEdit, onReturn }: {
 
       {/* Estado */}
       <div className="flex items-center">
-        <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full" style={{ background: statusColor.bg, color: statusColor.fg }}>
-          {statusLabel}
-        </span>
+        <Pill tone={STATUS_TONE[p.status as RequestStatus] ?? "muted"}>{statusLabel}</Pill>
       </div>
 
       {/* Responsable */}

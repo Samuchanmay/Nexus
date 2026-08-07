@@ -241,8 +241,8 @@ export function EmptyState({ icon = "sparkle", title, hint, action }: {
    Móvil: fila compacta estilo Mercado Pago — icono sólido arriba a la
    izquierda, chip con el número arriba a la derecha, título debajo y un
    botón circular de flecha para reforzar que la tarjeta navega a algo. */
-export function StatCard({ label, value, icon, tone = "accent", delta }: {
-  label: string; value: string; icon: string; tone?: Tone; delta?: string;
+export function StatCard({ label, value, icon, tone = "accent", delta, children }: {
+  label: string; value: string; icon: string; tone?: Tone; delta?: string; children?: ReactNode;
 }) {
   const t = TONE[tone];
   return (
@@ -261,6 +261,7 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
           </span>
           <Icon name="arrow" size={13} className="shrink-0" style={{ color: t.fg }} />
         </div>
+        {children && <div className="text-[12px] text-text-3">{children}</div>}
       </div>
 
       {/* Escritorio — sin cambios */}
@@ -273,6 +274,7 @@ export function StatCard({ label, value, icon, tone = "accent", delta }: {
         </div>
         <p className="mt-3 text-[28px] font-bold leading-none text-text-1">{value}</p>
         <p className="mt-1 text-[13.5px] text-text-3">{label}</p>
+        {children && <div className="mt-1.5">{children}</div>}
       </div>
     </Card>
   );

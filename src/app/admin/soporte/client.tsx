@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, Sheet, Select, SlidingSegments, useToast } from "@/components/ui";
 import { Badge, EmptyState } from "@/components/os/ui";
+import { Field } from "@/components/shared";
 import { notifyUser } from "@/lib/notify";
 import { getErrorMessage } from "@/lib/errors";
 import {
@@ -121,19 +122,17 @@ export default function SoporteAdminClient({ adminId, initialTickets }: { adminI
             <div className="rounded-lg px-3 py-2.5" style={{ background: "var(--surface-2)" }}>
               <p className="text-[13.5px] whitespace-pre-wrap">{active.description}</p>
             </div>
-            <div>
-              <label className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Estado</label>
+            <Field label="Estado">
               <Select
                 value={status} onChange={(v) => setStatus(v as SupportTicketStatus)}
                 title="Estado" searchable={false}
                 options={(Object.keys(SUPPORT_STATUS_LABEL) as SupportTicketStatus[]).map((k) => ({ value: k, label: SUPPORT_STATUS_LABEL[k] }))}
               />
-            </div>
-            <div>
-              <label htmlFor="soporte-respuesta" className="text-[11.5px] font-semibold mb-1 block" style={{ color: "var(--text-3)" }}>Respuesta (opcional)</label>
-              <textarea id="soporte-respuesta" className="field-input resize-none" rows={4} placeholder="Explica qué se hizo o qué falta…"
+            </Field>
+            <Field label="Respuesta (opcional)">
+              <textarea className="field-input resize-none" rows={4} placeholder="Explica qué se hizo o qué falta…"
                 value={response} onChange={(e) => setResponse(e.target.value)} />
-            </div>
+            </Field>
             <div className="flex gap-2.5 mt-1">
               <button className="btn-secondary flex-1 py-3 text-[14px]" onClick={() => setActive(null)}>Cancelar</button>
               <button className="btn-primary flex-[2] py-3 text-[14px]" disabled={saving} onClick={save}>

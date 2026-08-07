@@ -4,7 +4,7 @@ import type { ActivityType, RequestStatus, AttendanceRow, Schedule } from "@/lib
 import { seniorityLabel, todayMerida, dmy } from "@/lib/tz";
 import { STATUS_TONE } from "@/lib/ui-maps";
 import { PageHeader } from "@/components/shared";
-import { IconClock, IconUsers, IconFolder } from "@/components/icons";
+import { StatCard } from "@/components/os/ui";
 import { PrintButton } from "./print-button";
 import { CsvLink } from "./csv-link";
 import { Pill } from "@/components/ui";
@@ -337,37 +337,11 @@ export default async function Reportes() {
             </div>
           </div>
         </div>
-        <div className="card p-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Actividades creadas</p>
-            <p className="text-[28px] font-bold tabular-nums text-text-1 mt-1">{projs.length}</p>
-          </div>
-          <div className="w-12 h-12 rounded-xl grid place-items-center" style={{ background: "var(--accent-tint)", color: "var(--accent)" }}>
-            <IconFolder className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="card p-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Tiempo prom. aprobación</p>
-            <p className="text-[28px] font-bold tabular-nums text-text-1 mt-1">
-              {avgApprovalHours == null ? "—" : avgApprovalHours < 24
-                ? `${avgApprovalHours.toFixed(1)}h`
-                : `${(avgApprovalHours / 24).toFixed(1)}d`}
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl grid place-items-center" style={{ background: "var(--ok-tint)", color: "var(--ok)" }}>
-            <IconClock className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="card p-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[12px] font-bold" style={{ color: "var(--text-3)" }}>Áreas solicitantes</p>
-            <p className="text-[28px] font-bold tabular-nums text-text-1 mt-1">{topAreas.length}</p>
-          </div>
-          <div className="w-12 h-12 rounded-xl grid place-items-center" style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>
-            <IconUsers className="w-5 h-5" />
-          </div>
-        </div>
+        <StatCard icon="layers" tone="accent" value={String(projs.length)} label="Actividades creadas" />
+        <StatCard icon="clock" tone="ok" value={avgApprovalHours == null ? "—" : avgApprovalHours < 24
+          ? `${avgApprovalHours.toFixed(1)}h`
+          : `${(avgApprovalHours / 24).toFixed(1)}d`} label="Tiempo prom. aprobación" />
+        <StatCard icon="users" tone="purple" value={String(topAreas.length)} label="Áreas solicitantes" />
       </div>
 
       {/* Tendencia + Resumen */}

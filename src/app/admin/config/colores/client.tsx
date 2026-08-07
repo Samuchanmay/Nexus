@@ -40,7 +40,7 @@ function Swatches({ value, used, onPick }: {
         style={{
           background: c,
           boxShadow: selected
-            ? "0 0 0 2px var(--surface-1), 0 0 0 4px var(--accent)"
+            ? "0 0 0 2px var(--surface), 0 0 0 4px var(--accent)"
             : "inset 0 0 0 1px rgba(0,0,0,0.08)",
         }}>
         {selected && (

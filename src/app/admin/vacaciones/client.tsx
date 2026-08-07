@@ -2,10 +2,11 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Vacation } from "@/lib/types";
-import { useToast, Pill, Avatar, Sheet, DateRangeCalendar, DateRangeField, Select } from "@/components/ui";
+import { useToast, Pill, Avatar, Sheet, DateRangeCalendar, DateRangeField, Select, CheckBox } from "@/components/ui";
 import { IconDownload } from "@/components/icons";
 import { Icon } from "@/components/os/icons";
 import { useSupabaseMutation, Field } from "@/components/shared";
+import { Button, StatCard } from "@/components/os/ui";
 import { VACATION_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { vacationCalendarUrl as calendarUrl } from "@/lib/gcal";
 import { seniorityLabel, addDays, shortDate, dmy, nextAnniversary, todayMerida } from "@/lib/tz";
@@ -415,52 +416,22 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
 
       {/* Indicadores con más jerarquía */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--warn-tint)" }}>
-              <Icon name="clock" size={18} className="text-warn" />
-            </div>
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1">{pending.length}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Pendientes</p>
-        </div>
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--ok-tint)" }}>
-              <Icon name="check" size={18} className="text-ok" />
-            </div>
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1">{futuras}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Programadas</p>
-        </div>
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--danger-tint)" }}>
-              <Icon name="alert" size={18} className="text-danger" />
-            </div>
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1" style={{ color: criticos > 0 ? "var(--danger)" : undefined }}>{criticos}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Saldo bajo</p>
+        <StatCard icon="clock" tone="warn" value={String(pending.length)} label="Pendientes" />
+        <StatCard icon="check" tone="ok" value={String(futuras)} label="Programadas" />
+        <StatCard icon="alert" tone="danger" value={String(criticos)} label="Saldo bajo">
           {criticos > 0 && (
-            <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-3)" }} title={criticosTeam.map((t) => t.display_name).join(", ")}>
+            <p className="text-[12px] truncate" title={criticosTeam.map((t) => t.display_name).join(", ")}>
               {criticosTeam.slice(0, 2).map((t) => t.display_name).join(", ")}{criticos > 2 ? ` +${criticos - 2}` : ""}
             </p>
           )}
-        </div>
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "var(--accent-tint)" }}>
-              <Icon name="calendar" size={18} className="text-accent" />
-            </div>
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1">{diasParaReinicio ?? "—"}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Próx. reinicio</p>
+        </StatCard>
+        <StatCard icon="calendar" tone="accent" value={String(diasParaReinicio ?? "—")} label="Próx. reinicio">
           {proximoReinicio && (
-            <p className="text-[12px] mt-1 truncate" style={{ color: "var(--text-3)" }}>
+            <p className="text-[12px] truncate">
               {proximoReinicio.t.display_name} · {shortDate(proximoReinicio.next)}
             </p>
           )}
-        </div>
+        </StatCard>
       </div>
 
       {/* Alertas de traslape - más visibles */}
@@ -502,7 +473,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         ) : (
           <div className="flex flex-col gap-3">
             {pending.map((v) => (
-              <div key={v.id} className="group flex items-center justify-between gap-4 p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
+              <div key={v.id} className="group flex items-center justify-between gap-4 p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-2 hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="flex items-center gap-4">
                   <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} size={48} avatarUrl={v.users?.avatar_url} birthday={isBirthdayToday(v.users?.birth_date, todayISO())} />
                   <div>
@@ -512,11 +483,9 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
                     </p>
                   </div>
                 </div>
-                <button 
-                  className="h-10 px-6 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5"
-                  onClick={() => { setSel(v); setNote(""); }}>
+                <Button variant="primary" onClick={() => { setSel(v); setNote(""); }}>
                   Revisar
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -592,7 +561,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
             const seniority = seniorityLabel(t.hire_date);
             const nextReset = t.hire_date ? nextAnniversary(t.hire_date) : null;
             return (
-              <div key={t.id} className="group p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
+              <div key={t.id} className="group p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-2 hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar name={t.display_name} color={t.nexus_color} size={40} avatarUrl={t.avatar_url} birthday={isBirthdayToday(t.birth_date, todayISO())} />
                   <div className="min-w-0 flex-1">
@@ -696,7 +665,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           <h2 className="text-[19px] font-bold text-text-1 mb-4">Próximamente</h2>
           <div className="flex flex-col gap-2">
             {proximamente.map(({ v, daysUntil }, i) => (
-              <div key={v.id} className="group flex items-center gap-4 p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200" style={{ background: "var(--surface)" }}>
+              <div key={v.id} className="group flex items-center gap-4 p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-2 transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={40} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[15px] font-bold truncate text-text-1">{v.users?.display_name}</p>
@@ -738,7 +707,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
           </div>
           <div className="flex flex-col gap-2">
             {(historyOpen ? rest : rest.slice(0, 5)).map((v) => (
-              <div key={v.id} className="group flex items-center justify-between gap-4 p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200" style={{ background: "var(--surface)" }}>
+              <div key={v.id} className="group flex items-center justify-between gap-4 p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-2 transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar name={v.users?.display_name ?? "?"} color={v.users?.nexus_color} avatarUrl={v.users?.avatar_url} size={36} />
                   <div className="min-w-0">
@@ -810,16 +779,13 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
             <div className="rounded-sm px-4 py-3 text-[12.5px]" style={{ background: "var(--warn-tint)", color: "var(--warn)" }}>
               Recuerda: la aprobación aquí es el paso final, después de tu gestión del VoBo por fuera.
             </div>
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-                Nota <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(opcional, visible para el empleado)</span>
-              </label>
+            <Field label="Nota (opcional, visible para el empleado)">
               <input className="field-input" placeholder="Ej. Aprobado con VoBo de dirección"
                 value={note} onChange={(e) => setNote(e.target.value)} />
-            </div>
+            </Field>
             <label className="flex items-center gap-2.5 text-[13.5px] font-semibold cursor-pointer">
-              <input type="checkbox" checked={addToCalendar} onChange={(e) => setAddToCalendar(e.target.checked)}
-                className="w-[18px] h-[18px] accent-[var(--accent)]" />
+              <input type="checkbox" className="hidden" checked={addToCalendar} onChange={(e) => setAddToCalendar(e.target.checked)} />
+              <CheckBox checked={addToCalendar} />
               Crear evento en Google Calendar al aprobar
             </label>
             <div className="flex gap-2.5">

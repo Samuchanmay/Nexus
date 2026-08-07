@@ -59,7 +59,7 @@ function WeekStrip({ userId, schedules, today }: { userId: string; schedules: Sc
             style={{
               background: row ? (isOverride ? "var(--accent)" : "var(--text-3)") : "transparent",
               border: row ? "none" : "1px solid var(--border-2)",
-              boxShadow: isToday ? "0 0 0 2px var(--surface-1), 0 0 0 3px var(--border-2)" : "none",
+              boxShadow: isToday ? "0 0 0 2px var(--surface), 0 0 0 3px var(--border-2)" : "none",
             }}
           />
         );

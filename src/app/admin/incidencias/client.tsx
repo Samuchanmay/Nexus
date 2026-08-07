@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Incident } from "@/lib/types";
 import { useToast, Pill, Sheet, DatePicker, Select } from "@/components/ui";
-import { useSupabaseMutation, EmptyState } from "@/components/shared";
-import { IconPlus } from "@/components/icons";
+import { useSupabaseMutation, EmptyState, Field } from "@/components/shared";
+import { Button, StatCard } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { KIND_LABELS, KIND_ICON, KIND_DESC, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { logAdminAction } from "@/lib/admin-log";
@@ -73,47 +73,19 @@ export default function IncAdminClient({ incidents, team, adminId }: {
               Las incidencias autorizadas nunca generan falta
             </p>
           </div>
-          <button 
-            onClick={() => setOpen(true)} 
-            className="h-10 px-5 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
-          >
-            <IconPlus className="w-4 h-4" />
+          <Button variant="primary" icon="plus" onClick={() => setOpen(true)}>
             <span className="hidden sm:inline">Registrar incidencia</span>
             <span className="sm:hidden">Nueva</span>
-          </button>
+          </Button>
         </div>
       </header>
 
       {/* Indicadores */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: "var(--warn-tint)" }}>
-            <Icon name="clock" size={18} className="text-warn" />
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1">{pending.length}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Pendientes</p>
-        </div>
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: "var(--ok-tint)" }}>
-            <Icon name="check" size={18} className="text-ok" />
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1">{incidents.filter(i => i.status === "Autorizado").length}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Autorizadas</p>
-        </div>
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: "var(--danger-tint)" }}>
-            <Icon name="x" size={18} className="text-danger" />
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1">{incidents.filter(i => i.status === "Rechazado").length}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Rechazadas</p>
-        </div>
-        <div className="p-5 rounded-2xl" style={{ background: "var(--surface-2)" }}>
-          <div className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: "var(--accent-tint)" }}>
-            <Icon name="calendar" size={18} className="text-accent" />
-          </div>
-          <p className="text-[28px] font-bold tabular-nums text-text-1">{incidents.length}</p>
-          <p className="text-[13.5px] mt-1" style={{ color: "var(--text-3)" }}>Este mes</p>
-        </div>
+        <StatCard icon="clock" tone="warn" value={String(pending.length)} label="Pendientes" />
+        <StatCard icon="check" tone="ok" value={String(incidents.filter(i => i.status === "Autorizado").length)} label="Autorizadas" />
+        <StatCard icon="x" tone="danger" value={String(incidents.filter(i => i.status === "Rechazado").length)} label="Rechazadas" />
+        <StatCard icon="calendar" tone="accent" value={String(incidents.length)} label="Este mes" />
       </div>
 
       {/* Pendientes */}
@@ -135,7 +107,7 @@ export default function IncAdminClient({ incidents, team, adminId }: {
         ) : (
           <div className="flex flex-col gap-3">
             {pending.map((i) => (
-              <div key={i.id} className="group flex items-center justify-between gap-4 p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
+              <div key={i.id} className="group flex items-center justify-between gap-4 p-5 rounded-2xl border border-border hover:border-border-2 hover:shadow-2 hover:-translate-y-[2px] transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-[16px] font-bold text-text-1">{i.users?.full_name}</p>
@@ -205,16 +177,14 @@ export default function IncAdminClient({ incidents, team, adminId }: {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Registrar incidencia">
         <div className="flex flex-col gap-3">
-          <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Persona</label>
+          <Field label="Persona">
             <Select
               value={form.userId} onChange={(v) => setForm({ ...form, userId: v })}
               title="Seleccionar empleado" placeholder="— elige a la persona —"
               options={team.map((t) => ({ value: t.id, label: t.display_name }))}
             />
-          </div>
-          <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Tipo</label>
+          </Field>
+          <Field label="Tipo">
             <Select
               value={form.kind} onChange={(v) => setForm({ ...form, kind: v })}
               title="Tipo de incidencia" searchable={false}
@@ -223,26 +193,19 @@ export default function IncAdminClient({ incidents, team, adminId }: {
                 return { value: k, label: KIND_LABELS[k], sublabel: KIND_DESC[k], icon: <KindIcon className="w-4 h-4" /> };
               })}
             />
-          </div>
+          </Field>
           <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Desde</label>
+            <Field label="Desde">
               <DatePicker value={form.start} onChange={(v) => setForm({ ...form, start: v })} />
-            </div>
-            <div>
-              <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-                Hasta <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(opcional)</span>
-              </label>
+            </Field>
+            <Field label="Hasta (opcional)">
               <DatePicker value={form.end} onChange={(v) => setForm({ ...form, end: v })} />
-            </div>
+            </Field>
           </div>
-          <div>
-            <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>
-              Nota <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(opcional)</span>
-            </label>
+          <Field label="Nota (opcional)">
             <textarea className="field-input resize-none" rows={2} placeholder="Detalle breve…"
               value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-          </div>
+          </Field>
           <p className="text-[12px]" style={{ color: "var(--text-3)" }}>
             Al registrarla aquí queda Autorizada de inmediato — es el admin quien la está dando de alta.
           </p>

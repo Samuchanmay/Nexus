@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast, SlidingSegments, DatePicker, Sheet, Select } from "@/components/ui";
 import { dmy } from "@/lib/tz";
 import { useSupabaseMutation, EmptyState, Field } from "@/components/shared";
+import { Button } from "@/components/os/ui";
 import { IconPlus, IconCalendar, IconMapPin, IconFolder, IconSun, IconDownload, IconTrash } from "@/components/icons";
 import { mexicanHolidays } from "@/lib/holidays";
 import { MONTHS, DOW, shiftMonth, monthBounds, buildMonthGrid } from "@/lib/calendar-grid";
@@ -192,13 +193,10 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
               <span className="hidden sm:inline">Asignar descanso</span>
               <span className="sm:hidden">Descanso</span>
             </button>
-            <button 
-              className="h-10 px-5 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
-              onClick={openAdd}>
-              <IconPlus className="w-4 h-4" />
+            <Button variant="primary" icon="plus" onClick={openAdd}>
               <span className="hidden sm:inline">Agregar día inhábil</span>
               <span className="sm:hidden">Agregar</span>
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -209,7 +207,7 @@ export default function DiasClient({ holidays, adminId, team = [], restDays = []
           <h2 className="text-[14px] font-semibold mb-3" style={{ color: "var(--text-3)" }}>Descansos asignados</h2>
           <div className="flex flex-col gap-2">
             {restDays.map((r) => (
-              <div key={r.id} className="group flex items-center justify-between p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200" style={{ background: "var(--surface)" }}>
+              <div key={r.id} className="group flex items-center justify-between p-4 rounded-2xl border border-border hover:border-border-2 hover:shadow-2 transition-all duration-200" style={{ background: "var(--surface)" }}>
                 <div className="min-w-0 flex-1">
                   <span className="text-[14px] font-semibold">{r.userName}</span>
                   <span className="text-[13.5px] ml-2" style={{ color: "var(--text-2)" }}>

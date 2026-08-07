@@ -432,7 +432,7 @@ export default function EmpleadosClient({
     return (
       <div
         onClick={() => openEdit(u)}
-        className="group relative w-full text-left flex items-center gap-4 px-5 py-4 rounded-2xl border border-border cursor-pointer hover:border-[var(--border-2)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-[2px]"
+        className="group relative w-full text-left flex items-center gap-4 px-5 py-4 rounded-2xl border border-border cursor-pointer hover:border-[var(--border-2)] hover:shadow-2 hover:-translate-y-[2px]"
         style={{
           background: "var(--surface)", 
           opacity: u.active ? 1 : 0.55,

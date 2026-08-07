@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, SlidingSegments, Sheet, DateRangeField, Select, useToast, TimePicker } from "@/components/ui";
+import { Avatar, SlidingSegments, Sheet, DateRangeField, Select, useToast, TimePicker, CheckBox } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { MONTHS, dayLongLabel, weekRangeLabel, weekStartOf, daysInRange } from "@/lib/calendar-core";
 import { shiftMonth } from "@/lib/calendar-grid";
@@ -554,10 +554,10 @@ export default function CalendarioClient({
   }), [team, attendanceDays, vacations, incidents, restDays, attSet, today]);
 
   const CELL: Record<Cell["kind"], { bg: string; border?: string }> = {
-    fichaje:  { bg: "linear-gradient(155deg,#34D058,#2FB344)" },
-    vacacion: { bg: "linear-gradient(155deg,#A78BFA,#8E5CF7)" },
+    fichaje:  { bg: "var(--ev-green)" },
+    vacacion: { bg: "var(--ev-purple)" },
     inhabil:  { bg: "var(--accent-tint)", border: "1px solid var(--accent)" },
-    permiso:  { bg: "linear-gradient(155deg,#38BDF8,#0EA5E9)" },
+    permiso:  { bg: "var(--ev-blue)" },
     descanso: { bg: "var(--surface-2)", border: "1px dashed var(--border)" },
     sin:      { bg: "var(--warn-tint)", border: "1px dashed var(--warn)" },
     off:      { bg: "var(--surface-2)" },
@@ -959,9 +959,9 @@ export default function CalendarioClient({
                 </Field>
                 <div className="flex items-end pb-1">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={eventForm.allowAnyLocation}
-                      onChange={(e) => setEventForm({ ...eventForm, allowAnyLocation: e.target.checked })}
-                      className="w-4 h-4 rounded" />
+                    <input type="checkbox" className="hidden" checked={eventForm.allowAnyLocation}
+                      onChange={(e) => setEventForm({ ...eventForm, allowAnyLocation: e.target.checked })} />
+                    <CheckBox checked={eventForm.allowAnyLocation} />
                     <span className="text-[12px]" style={{ color: "var(--text-2)" }}>Sin GPS</span>
                   </label>
                 </div>
@@ -986,10 +986,11 @@ export default function CalendarioClient({
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
+                className="hidden"
                 checked={eventForm.syncToGoogle}
                 onChange={(e) => setEventForm({ ...eventForm, syncToGoogle: e.target.checked })}
-                className="w-4 h-4 rounded mt-0.5"
               />
+              <span className="mt-0.5"><CheckBox checked={eventForm.syncToGoogle} /></span>
               <div className="flex-1">
                 <p className="text-[13.5px] font-semibold" style={{ color: "var(--text-1)" }}>
                   Sincronizar con Google Calendar

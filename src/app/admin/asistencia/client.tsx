@@ -11,6 +11,7 @@ import { IconDownload, IconClock, IconX } from "@/components/icons";
 import { usePersistedView } from "@/lib/persisted-view";
 import { PageHeader, Switch } from "@/components/shared";
 import { DomainTabs } from "@/components/os/domain-tabs";
+import { Dialog, Input } from "@/components/os/ui";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
@@ -200,7 +201,9 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
   const [corrections, setCorrections] = useState(pendingCorrections);
   useEffect(() => setCorrections(pendingCorrections), [pendingCorrections]);
   const [resolvingCorrection, setResolvingCorrection] = useState<PendingCorrection | null>(null);
-  const [rejectingCorrectionId, setRejectingCorrectionId] = useState<string | null>(null);
+  const [rejectingCorrection, setRejectingCorrection] = useState<PendingCorrection | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
+  const [savingReject, setSavingReject] = useState(false);
 
   const approveCorrection = (c: PendingCorrection) => {
     setResolvingCorrection(c);
@@ -217,17 +220,25 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
     setResolvingCorrection(null);
   };
 
-  const rejectCorrection = async (c: PendingCorrection) => {
-    const motivo = window.prompt("¿Por qué se rechaza esta solicitud? (se le avisa a la persona)");
-    if (motivo === null) return; // canceló el prompt
+  const rejectCorrection = (c: PendingCorrection) => {
+    setRejectNote("");
+    setRejectingCorrection(c);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectingCorrection) return;
+    const c = rejectingCorrection;
+    setSavingReject(true);
     const supabase = createClient();
     const { error } = await supabase.from("attendance_correction_requests")
-      .update({ status: "rechazada", admin_id: adminId, admin_note: motivo.trim() || null, resolved_at: new Date().toISOString() })
+      .update({ status: "rechazada", admin_id: adminId, admin_note: rejectNote.trim() || null, resolved_at: new Date().toISOString() })
       .eq("id", c.id);
+    setSavingReject(false);
     if (error) { toast("No se pudo rechazar", "danger"); return; }
     if (adminId) logAdminAction(supabase, adminId, "Rechazó corrección de asistencia", `${c.userName} · ${c.date}`);
-    notifyUser(supabase, c.userId, "Tu solicitud de corrección fue rechazada", motivo.trim() ? `${c.date}: ${motivo.trim()}` : c.date, "info", "/comunicacion/jornada");
+    notifyUser(supabase, c.userId, "Tu solicitud de corrección fue rechazada", rejectNote.trim() ? `${c.date}: ${rejectNote.trim()}` : c.date, "info", "/comunicacion/jornada");
     setCorrections((cs) => cs.filter((x) => x.id !== c.id));
+    setRejectingCorrection(null);
     toast("Solicitud rechazada");
   };
 
@@ -644,7 +655,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
                               left: `${pct(s.from)}%`,
                               width: `${Math.max(0.6, pct(s.to) - pct(s.from))}%`,
                               background: s.kind === "presente"
-                                ? "linear-gradient(155deg,#34D058,#2FB344)"
+                                ? "var(--ev-green)"
                                 : s.kind === "comida" ? "var(--accent-tint)" : "var(--warn-tint)",
                               border: s.kind === "comida" ? "1px dashed var(--accent)"
                                 : s.kind === "fuera" ? "1px dashed var(--warn)" : "none",
@@ -678,7 +689,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
             {/* Leyenda */}
             <div className="flex items-center gap-4 mt-3 text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "linear-gradient(155deg,#34D058,#2FB344)" }} /> Presente
+                <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "var(--ev-green)" }} /> Presente
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-2 rounded-[3px]" style={{ background: "var(--accent-tint)", border: "1px dashed var(--accent)" }} /> Comida
@@ -785,7 +796,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           adminId={adminId}
           onSuccess={() => {
             setEditingPerson(null);
-            window.location.reload();
+            router.refresh();
           }}
         />
       )}
@@ -805,9 +816,31 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           adminId={adminId}
           onSuccess={() => {
             finishApproveCorrection();
-            window.location.reload();
+            router.refresh();
           }}
         />
+      )}
+
+      {/* Diálogo de rechazo con motivo obligatorio-opcional */}
+      {rejectingCorrection && (
+        <Dialog
+          open={!!rejectingCorrection}
+          onClose={() => setRejectingCorrection(null)}
+          onConfirm={confirmReject}
+          variant="danger"
+          title="Rechazar solicitud de corrección"
+          description={`${rejectingCorrection.userName} · ${dmy(rejectingCorrection.date)} — se le notificará a la persona.`}
+          confirmLabel={savingReject ? "Rechazando…" : "Rechazar"}
+          busy={savingReject}
+        >
+          <Input
+            className="mt-3 text-[14px]"
+            placeholder="Motivo (opcional)"
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+            autoFocus
+          />
+        </Dialog>
       )}
     </>
   );

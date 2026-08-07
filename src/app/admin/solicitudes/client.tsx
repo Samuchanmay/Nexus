@@ -5,8 +5,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useToast, Sheet, Pill, Avatar, SlidingSegments, DatePicker, Select } from "@/components/ui";
-import { EmptyState } from "@/components/shared";
+import { useToast, Sheet, Pill, Avatar, SlidingSegments, DatePicker, Select, CheckBox } from "@/components/ui";
+import { EmptyState, Field } from "@/components/shared";
+import { Button } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import { STATUS_LABELS } from "@/lib/types";
 import type { CommRequest, Priority, RequestStatus } from "@/lib/types";
@@ -343,12 +344,9 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
 
                 {/* Acción */}
                 {r.status === "solicitada" && (
-                  <button 
-                    className="h-10 px-6 rounded-xl bg-accent hover:bg-accent/90 text-white font-semibold text-[14px] shadow-lg shadow-accent/20 hover:shadow-xl hover:shadow-accent/30 transition-all duration-200 hover:-translate-y-0.5 shrink-0"
-                    onClick={(e) => { e.stopPropagation(); openApproval(r); }}
-                  >
+                  <Button variant="primary" onClick={(e) => { e.stopPropagation(); openApproval(r); }}>
                     Revisar
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -405,23 +403,21 @@ export default function SolicitudesClient({ requests, team, typeLabel, minHours,
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Prioridad</label>
+              <Field label="Prioridad">
                 <Select
                   value={priority} onChange={(v) => setPriority(v as Priority)}
                   title="Prioridad" searchable={false}
                   options={PRIORITIES.map((p) => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1) }))}
                 />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold block mb-1.5" style={{ color: "var(--text-2)" }}>Fecha de entrega</label>
+              </Field>
+              <Field label="Fecha de entrega">
                 <DatePicker value={deadline} onChange={setDeadline} />
-              </div>
+              </Field>
             </div>
             {sel.event_date && (
               <label className="flex items-center gap-2.5 text-[13.5px] font-semibold cursor-pointer">
-                <input type="checkbox" checked={addToCalendar} onChange={(e) => setAddToCalendar(e.target.checked)}
-                  className="w-[18px] h-[18px] accent-[var(--accent)]" />
+                <input type="checkbox" className="hidden" checked={addToCalendar} onChange={(e) => setAddToCalendar(e.target.checked)} />
+                <CheckBox checked={addToCalendar} />
                 Crear evento en Google Calendar
               </label>
             )}

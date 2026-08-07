@@ -14,7 +14,12 @@ export default {
         purple: "var(--purple)", blue: "var(--blue)",
       },
       borderRadius: { lg: "22px", m: "16px", sm: "11px" },
-      boxShadow: { nx: "var(--nx-shadow)" },
+      boxShadow: {
+        nx: "var(--nx-shadow)",
+        "1": "var(--shadow-1)",
+        "2": "var(--shadow-2)",
+        "3": "var(--shadow-3)",
+      },
       transitionTimingFunction: {
         apple: "cubic-bezier(.22,.61,.36,1)",
         spring: "cubic-bezier(.34,1.4,.64,1)",
