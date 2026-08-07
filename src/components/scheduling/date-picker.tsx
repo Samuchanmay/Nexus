@@ -15,7 +15,7 @@
    - Cambio de mes animado (emet-month-in).
    ═══════════════════════════════════════════════════════════════ */
 import { useEffect, useRef, useState } from "react";
-import { addDays, todayMerida } from "@/lib/tz";
+import { addDays, todayMerida, dmy } from "@/lib/tz";
 import { IconCalendar } from "../icons";
 import { SchedulingOverlay, PickerFooter } from "./primitives";
 import { DateGrid, type RangeState } from "./date-grid";
@@ -24,12 +24,9 @@ import { DateGrid, type RangeState } from "./date-grid";
 export function DateField({ value, onChange, className, placeholder = "dd/mm/aaaa" }: {
   value: string; onChange: (iso: string) => void; className?: string; placeholder?: string;
 }) {
-  const isoToDmy = (iso: string) => {
-    const [y, m, d] = iso.split("-");
-    return y && m && d ? `${d}/${m}/${y}` : "";
-  };
-  const [text, setText] = useState(value ? isoToDmy(value) : "");
-  useEffect(() => { setText(value ? isoToDmy(value) : ""); }, [value]);
+  // dd/mm/aaaa — mismo helper único que el resto de EMET (§171/172).
+  const [text, setText] = useState(value ? dmy(value) : "");
+  useEffect(() => { setText(value ? dmy(value) : ""); }, [value]);
 
   const handle = (raw: string) => {
     const digits = raw.replace(/\D/g, "").slice(0, 8);
@@ -84,11 +81,7 @@ function useGridKeys({
   }, [open, focused, onMove, onEnter]);
 }
 
-const dmyFull = (iso: string | null) => {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
-};
+const dmyFull = (iso: string | null) => (iso ? dmy(iso) : "");
 
 /* ── DatePicker: día único. ── */
 export function DatePicker({ value, onChange, placeholder = "dd/mm/aaaa", className, minDate, maxDate, disabled }: {

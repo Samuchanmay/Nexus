@@ -23,7 +23,12 @@ export function MonthView({
   onDayClick,
   onEventClick,
   cellTint,
-  minWidth = "min-w-[640px]",
+  // Backlog #135 (7 ago 2026): antes forzaba min-w-[640px] SIEMPRE, así que
+  // en celular la rejilla de 7 columnas nunca cabía y quedaba con scroll
+  // horizontal. Un mes con solo número+puntos sí cabe en una pantalla
+  // angosta si se le permite encogerse — el min-width grande ahora solo
+  // aplica desde `sm:` (≥640px), donde ya hay espacio real que aprovechar.
+  minWidth = "sm:min-w-[640px]",
 }: {
   ym: string;
   onDayClick?: (date: string) => void;
@@ -66,17 +71,17 @@ export function MonthView({
   };
 
   return (
-    <div className="card p-5 overflow-x-auto">
+    <div className="card p-3 sm:p-5 overflow-x-auto">
       <div className={minWidth}>
         {/* Días de la semana */}
-        <div className="grid grid-cols-7 gap-2 mb-3">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-3">
           {DOW.map((d) => (
-            <p key={d} className="text-center text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{d}</p>
+            <p key={d} className="text-center text-[10.5px] sm:text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>{d}</p>
           ))}
         </div>
-        
+
         {/* Celdas del calendario */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {cells.map((c) => {
             const evs = eventsByDate.get(c.date) ?? [];
             const tint = cellTint?.(c.date);
@@ -92,7 +97,7 @@ export function MonthView({
                   else select(c.date);
                 }}
                 onMouseEnter={() => setCursor(c.date)}
-                className="rounded-xl p-2.5 min-h-[88px] flex flex-col gap-1.5 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
+                className="rounded-xl p-1.5 sm:p-2.5 min-h-[56px] sm:min-h-[88px] flex flex-col gap-1 sm:gap-1.5 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md"
                 style={{
                   background: tint ?? (isSelected ? "var(--accent-tint)" : "var(--surface-2)"),
                   opacity: c.inMonth ? 1 : 0.35,
@@ -104,8 +109,8 @@ export function MonthView({
               >
                 {/* Número del día */}
                 <div className="flex items-center justify-between">
-                  <span 
-                    className="text-[13.5px] font-bold tabular-nums w-6 h-6 grid place-items-center rounded-full"
+                  <span
+                    className="text-[11.5px] sm:text-[13.5px] font-bold tabular-nums w-5 h-5 sm:w-6 sm:h-6 grid place-items-center rounded-full"
                     style={{
                       color: isToday ? "#fff" : c.inMonth ? "var(--text-1)" : "var(--text-3)",
                       background: isToday ? "var(--accent)" : "transparent",
