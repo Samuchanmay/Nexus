@@ -173,9 +173,9 @@ function estadoStatus(
   return estadoOf(day, vacation, incident, isHoliday, restDay, externalEvent);
 }
 
-export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, selectedDate, adminId, pendingValidations, isHoliday = false, pendingCorrections }: {
+export default function AsistenciaClient({ people, states, weekRows, weekBlocks, reportSettings, today, selectedDate, adminId, generatedBy, pendingValidations, isHoliday = false, pendingCorrections }: {
   people: PersonDay[]; states: JornadaState[]; weekRows: WeekRow[]; weekBlocks: WeekBlock[];
-  reportSettings: { enabled: boolean; email: string }; today: string; selectedDate: string; adminId: string;
+  reportSettings: { enabled: boolean; email: string }; today: string; selectedDate: string; adminId: string; generatedBy: string;
   pendingValidations: PendingValidation[]; isHoliday?: boolean; pendingCorrections: PendingCorrection[];
 }) {
   const router = useRouter();
@@ -307,6 +307,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
         title: "Asistencia",
         periodLabel: buildPeriodLabel(range),
         generatedAtLabel: buildGeneratedAtLabel(),
+        generatedByLabel: generatedBy,
         appliedFilters: [
           { label: "Empleado", value: "Todos" },
           { label: "Departamento", value: "Todos" },
@@ -331,6 +332,7 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
         title: "Asistencia semanal",
         periodLabel: buildPeriodLabel(range),
         generatedAtLabel: buildGeneratedAtLabel(),
+        generatedByLabel: generatedBy,
         appliedFilters: [
           { label: "Empleado", value: "Todos" },
           { label: "Departamento", value: "Todos" },

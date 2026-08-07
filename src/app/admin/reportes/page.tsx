@@ -20,15 +20,17 @@ export default async function Reportes() {
     supabase.from("users").select("id, display_name, nexus_color, avatar_url, area, area_id, departments(id, nombre)")
       .eq("active", true).in("role", ["admin", "empleado"]).order("display_name"),
     supabase.from("departments").select("id, nombre, tipo").order("nombre"),
-    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+    user ? supabase.from("users").select("id, display_name").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
   ]);
   const adminId = meRes?.data?.id ?? "";
+  const generatedBy = meRes?.data?.display_name ?? "EMET";
 
   return (
     <ReportesClient
       team={team ?? []}
       departments={departments ?? []}
       adminId={adminId}
+      generatedBy={generatedBy}
     />
   );
 }

@@ -95,7 +95,7 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
     // la tarjeta de Asistencia coincidan con la realidad (Plano Maestro §10).
     supabase.from("vacations").select("user_id, start_date, end_date")
       .eq("status", "Aprobada").is("archived_at", null).gte("end_date", selectedDate),
-    user ? supabase.from("users").select("id").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
+    user ? supabase.from("users").select("id, display_name").eq("auth_id", user.id).single() : Promise.resolve({ data: null }),
     // Salidas olvidadas que la propia persona ya no puede confirmar y pidió
     // validación manual — antes era un flujo exclusivo de RH sin pantalla
     // real; ahora Administrador también lo resuelve desde Asistencia
@@ -292,6 +292,7 @@ export default async function AsistenciaEquipo({ searchParams }: { searchParams:
     <AsistenciaClient
       people={people} states={states} weekRows={weekRows} weekBlocks={weekBlocks}
       reportSettings={reportSettings} today={today} selectedDate={selectedDate} adminId={meRes?.data?.id ?? ""}
+      generatedBy={meRes?.data?.display_name ?? "EMET"}
       pendingValidations={pendingValidations} isHoliday={isHoliday} pendingCorrections={pendingCorrections}
     />
   );

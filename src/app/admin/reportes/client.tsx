@@ -44,8 +44,8 @@ const TABS: { key: ReportTab; label: string }[] = [
   { key: "eventos", label: "Eventos por persona" },
 ];
 
-export function ReportesClient({ team, departments, adminId }: {
-  team: TeamRow[]; departments: DeptRow[]; adminId: string;
+export function ReportesClient({ team, departments, adminId, generatedBy }: {
+  team: TeamRow[]; departments: DeptRow[]; adminId: string; generatedBy: string;
 }) {
   const [tab, setTab] = useState<ReportTab>("asistencia");
 
@@ -63,10 +63,10 @@ export function ReportesClient({ team, departments, adminId }: {
         ))}
       </div>
 
-      {tab === "asistencia" && <AsistenciaTab team={team} departments={departments} adminId={adminId} />}
-      {tab === "vacaciones" && <VacacionesTab team={team} departments={departments} adminId={adminId} />}
-      {tab === "pendientes" && <PendientesTab departments={departments} adminId={adminId} />}
-      {tab === "eventos" && <EventosTab team={team} adminId={adminId} />}
+      {tab === "asistencia" && <AsistenciaTab team={team} departments={departments} adminId={adminId} generatedBy={generatedBy} />}
+      {tab === "vacaciones" && <VacacionesTab team={team} departments={departments} adminId={adminId} generatedBy={generatedBy} />}
+      {tab === "pendientes" && <PendientesTab departments={departments} adminId={adminId} generatedBy={generatedBy} />}
+      {tab === "eventos" && <EventosTab team={team} adminId={adminId} generatedBy={generatedBy} />}
     </>
   );
 }
@@ -164,8 +164,8 @@ const deptOptions = (departments: DeptRow[]): SelectOption[] => [
 /* ────────────────────────────────────────────────────────────────
    Reporte 1 · Asistencia
    ──────────────────────────────────────────────────────────────── */
-function AsistenciaTab({ team, departments, adminId }: {
-  team: TeamRow[]; departments: DeptRow[]; adminId: string;
+function AsistenciaTab({ team, departments, adminId, generatedBy }: {
+  team: TeamRow[]; departments: DeptRow[]; adminId: string; generatedBy: string;
 }) {
   const [dateFilter, setDateFilter] = useDateRangeFilter("asistencia");
   const [employeeId, setEmployeeId] = useState("");
@@ -186,6 +186,7 @@ function AsistenciaTab({ team, departments, adminId }: {
     title: "Asistencia",
     periodLabel: buildPeriodLabel(dateFilter.range),
     generatedAtLabel: buildGeneratedAtLabel(),
+    generatedByLabel: generatedBy,
     appliedFilters: appliedFilters([
       { label: "Empleado", value: employeeId },
       { label: "Departamento", value: departmentId },
@@ -227,8 +228,8 @@ function AsistenciaTab({ team, departments, adminId }: {
 /* ────────────────────────────────────────────────────────────────
    Reporte 2 · Vacaciones
    ──────────────────────────────────────────────────────────────── */
-function VacacionesTab({ team, departments, adminId }: {
-  team: TeamRow[]; departments: DeptRow[]; adminId: string;
+function VacacionesTab({ team, departments, adminId, generatedBy }: {
+  team: TeamRow[]; departments: DeptRow[]; adminId: string; generatedBy: string;
 }) {
   const [dateFilter, setDateFilter] = useDateRangeFilter("vacaciones");
   const [employeeId, setEmployeeId] = useState("");
@@ -257,6 +258,7 @@ function VacacionesTab({ team, departments, adminId }: {
     title: "Vacaciones",
     periodLabel: year ? `Año ${year}` : buildPeriodLabel(dateFilter.range),
     generatedAtLabel: buildGeneratedAtLabel(),
+    generatedByLabel: generatedBy,
     appliedFilters: appliedFilters([
       { label: "Empleado", value: employeeId },
       { label: "Departamento", value: departmentId },
@@ -312,8 +314,8 @@ function VacacionesTab({ team, departments, adminId }: {
 /* ────────────────────────────────────────────────────────────────
    Reporte 3 · Pendientes por coordinación
    ──────────────────────────────────────────────────────────────── */
-function PendientesTab({ departments, adminId }: {
-  departments: DeptRow[]; adminId: string;
+function PendientesTab({ departments, adminId, generatedBy }: {
+  departments: DeptRow[]; adminId: string; generatedBy: string;
 }) {
   const [dateFilter, setDateFilter] = useDateRangeFilter("pendientes");
   const [departmentId, setDepartmentId] = useState("");
@@ -333,6 +335,7 @@ function PendientesTab({ departments, adminId }: {
     title: "Pendientes por coordinación",
     periodLabel: buildPeriodLabel(dateFilter.range),
     generatedAtLabel: buildGeneratedAtLabel(),
+    generatedByLabel: generatedBy,
     appliedFilters: appliedFilters([
       { label: "Coordinación", value: departmentId },
       { label: "Estado de solicitud", value: status },
@@ -421,8 +424,8 @@ function Sparkline({ values, color, weeks }: { values: number[]; color: string; 
 /* ────────────────────────────────────────────────────────────────
    Reporte 4 · Eventos por persona
    ──────────────────────────────────────────────────────────────── */
-function EventosTab({ team, adminId }: {
-  team: TeamRow[]; adminId: string;
+function EventosTab({ team, adminId, generatedBy }: {
+  team: TeamRow[]; adminId: string; generatedBy: string;
 }) {
   const [dateFilter, setDateFilter] = useDateRangeFilter("eventos");
   const [employeeId, setEmployeeId] = useState("");
@@ -451,6 +454,7 @@ function EventosTab({ team, adminId }: {
     title: "Eventos por persona",
     periodLabel: buildPeriodLabel(dateFilter.range),
     generatedAtLabel: buildGeneratedAtLabel(),
+    generatedByLabel: generatedBy,
     appliedFilters: appliedFilters([
       { label: "Empleado", value: employeeId },
       { label: "Rol", value: role },

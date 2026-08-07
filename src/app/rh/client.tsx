@@ -34,9 +34,9 @@ const MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "jul
 const PERIODS = ["Semana", "Quincena", "Mes", "Trimestre"];
 const PERIOD_DAYS: Record<string, number> = { Semana: 7, Quincena: 15, Mes: 30, Trimestre: 92 };
 
-export default function RHClient({ team, attendance, schedules, vacations, states }: {
+export default function RHClient({ team, attendance, schedules, vacations, states, generatedBy }: {
   team: Member[]; attendance: AttendanceRow[]; schedules: Schedule[];
-  vacations: Vacation[]; states: JornadaState[];
+  vacations: Vacation[]; states: JornadaState[]; generatedBy: string;
 }) {
   const [period, setPeriod] = usePersistedView("rh.period", PERIODS, "Quincena");
 
@@ -118,6 +118,7 @@ export default function RHClient({ team, attendance, schedules, vacations, state
         title: "Asistencia",
         periodLabel: buildPeriodLabel(range),
         generatedAtLabel: buildGeneratedAtLabel(),
+        generatedByLabel: generatedBy,
         appliedFilters: [
           { label: "Periodo", value: period },
           { label: "Empleado", value: "Todos" },
@@ -141,6 +142,7 @@ export default function RHClient({ team, attendance, schedules, vacations, state
         title: "Vacaciones",
         periodLabel: `Año ${year}`,
         generatedAtLabel: buildGeneratedAtLabel(),
+        generatedByLabel: generatedBy,
         appliedFilters: [
           { label: "Empleado", value: employeeId ? (team.find((t) => t.id === employeeId)?.full_name ?? employeeId) : "Todos" },
           { label: "Departamento", value: "Todos" },

@@ -48,6 +48,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
   holidays: string[];
 }) {
   const toast = useToast();
+  const generatedBy = team.find((t) => t.id === adminId)?.display_name ?? "EMET";
   const { run, saving } = useSupabaseMutation();
   const { run: runCancel, saving: cancelling } = useSupabaseMutation();
   const { run: runEdit, saving: editing } = useSupabaseMutation();
@@ -390,6 +391,7 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         title: "Vacaciones",
         periodLabel: `Año ${year}`,
         generatedAtLabel: buildGeneratedAtLabel(),
+        generatedByLabel: generatedBy,
         appliedFilters: [
           { label: "Empleado", value: "Todos" },
           { label: "Departamento", value: "Todos" },

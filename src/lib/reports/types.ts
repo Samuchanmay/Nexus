@@ -107,6 +107,10 @@ export interface ReportHeaderInfo {
   periodLabel: string;
   /** "07/08/2026, 14:32" — fecha y hora de generación, dd/MM/yyyy + 24h. */
   generatedAtLabel: string;
+  /** Nombre de quien genera el reporte (operador logueado) — aparece en el
+      encabezado institucional como "Generado por: …". El archivo debe
+      responder "quién lo generó", no solo cuándo. */
+  generatedByLabel: string;
   /** Cada filtro aplicado como {label, value} — value = "Todos" si no se
       filtró por esa dimensión. Ej: {label:"Departamento", value:"Todos"}. */
   appliedFilters: { label: string; value: string }[];

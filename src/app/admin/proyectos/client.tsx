@@ -11,11 +11,13 @@ import { IconDownload, IconTrash } from "@/components/icons";
 import { logAdminAction } from "@/lib/admin-log";
 import { STATUS_LABELS } from "@/lib/types";
 import type { RequestType, RequestStatus, Priority } from "@/lib/types";
-import { STATUS_TONE, PRIORITY_TONE } from "@/lib/ui-maps";
+import { STATUS_TONE, PRIORITY_TONE, PRIORITY_LABELS } from "@/lib/ui-maps";
 import { dmy, todayMerida } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { usePersistedView } from "@/lib/persisted-view";
 import { notifyUser } from "@/lib/notify";
+import { buildGeneratedAtLabel, downloadReportXlsx } from "@/lib/reports/xlsx-builder";
+import type { ReportColumn, ReportHeaderInfo, ReportWorkbookConfig } from "@/lib/reports/types";
 
 /* ═══════════════════════════════════════════════════════════════
    Dependencias entre Actividades — Plano Maestro §04.
@@ -94,6 +96,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
   const [assignees, setAssignees] = useState<string[]>([]);
   const [lead, setLead] = useState("");
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const activitiesCsvHref = useMemo(() => {
     const rows = [
@@ -103,17 +106,69 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
         const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
         return [
           p.requests?.title ?? "Actividad", p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—",
-          STATUS_LABELS[p.status as RequestStatus] ?? p.status, p.priority,
+          STATUS_LABELS[p.status as RequestStatus] ?? p.status, PRIORITY_LABELS[p.priority as Priority] ?? p.priority,
           p.deadline ?? "", lead?.display_name ?? "", asgs.map((a) => a.users.display_name).join(" · "),
         ];
       }),
     ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join(String.fromCharCode(10));
+    // BOM UTF-8 (\uFEFF): sin él Excel en Windows abre los acentos como "Ã©".
+    const csv = "\uFEFF" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join(String.fromCharCode(10));
     return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   }, [projects, typeLabel]);
 
   const active = projects.filter((p) => !["completada", "cancelada"].includes(p.status));
   const done = projects.filter((p) => ["completada", "cancelada"].includes(p.status));
+
+  // ── Export Excel unificado (ReportEngine) — mismo estándar que el resto
+  //    del sistema: encabezado institucional, filas alternadas, formato de
+  //    fechas/números real y configuración de impresión. El CSV queda solo
+  //    como opción secundaria (ver botones). ──
+  const exportActivitiesExcel = async () => {
+    setExporting(true);
+    try {
+      const supabase = createClient();
+      const header: ReportHeaderInfo = {
+        title: "Actividades",
+        periodLabel: `Al ${dmy(todayMerida())}`,
+        generatedAtLabel: buildGeneratedAtLabel(),
+        generatedByLabel: team.find((t) => t.id === adminId)?.display_name ?? "EMET",
+        appliedFilters: [
+          { label: "Proyectos", value: "Todos" },
+          { label: "Estado", value: "Todos" },
+        ],
+      };
+      const columns: ReportColumn<ProjectRow>[] = [
+        { header: "Actividad", width: 40, align: "left", get: (p) => p.requests?.title ?? "Actividad" },
+        { header: "Tipo", width: 16, align: "left", get: (p) => p.requests ? (typeLabel[p.requests.type] ?? p.requests.type) : "—" },
+        { header: "Estado", width: 16, align: "left", get: (p) => STATUS_LABELS[p.status as RequestStatus] ?? p.status },
+        { header: "Prioridad", width: 12, get: (p) => PRIORITY_LABELS[p.priority as Priority] ?? p.priority },
+        { header: "Entrega", width: 12, format: "date", get: (p) => p.deadline ?? null },
+        {
+          header: "Responsable", width: 20, align: "left", get: (p) => {
+            const asgs = p.project_assignments ?? [];
+            const lead = asgs.find((a) => a.is_lead)?.users ?? asgs[0]?.users ?? null;
+            return lead?.display_name ?? "—";
+          },
+        },
+        { header: "Asignados", width: 30, align: "left", get: (p) => (p.project_assignments ?? []).map((a) => a.users.display_name).join(" · ") },
+      ];
+      const config: ReportWorkbookConfig<ProjectRow> = {
+        header,
+        columns,
+        rows: projects,
+        filenameBase: "actividades",
+        summary: [
+          { label: "Activas", value: active.length },
+          { label: "Completadas", value: done.filter((p) => p.status === "completada").length },
+          { label: "Canceladas", value: done.filter((p) => p.status === "cancelada").length },
+        ],
+      };
+      await downloadReportXlsx(config);
+      if (adminId) logAdminAction(supabase, adminId, "Exportó reporte", "actividades.xlsx");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const depsOf = useMemo(() => {
     const m = new Map<string, DepRow[]>();
@@ -610,6 +665,9 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                   </button>
                 )}
               >
+                <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} onClick={() => { exportActivitiesExcel(); }}>
+                  {exporting ? "Generando…" : "Exportar Excel"}
+                </MenuItem>
                 <MenuItem icon={<IconDownload className="w-3.5 h-3.5" />} href={activitiesCsvHref} download="actividades.csv"
                   onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv"); }}>
                   Exportar CSV
@@ -623,6 +681,10 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
             {/* Escritorio */}
             <div className="hidden md:flex items-center gap-2">
               <button className="h-9 px-3 rounded-lg text-[13.5px] font-medium text-text-2 hover:bg-hover transition-colors flex items-center gap-1.5"
+                onClick={() => exportActivitiesExcel()}>
+                <IconDownload className="w-3.5 h-3.5" /> {exporting ? "Generando…" : "Exportar Excel"}
+              </button>
+              <button className="h-9 px-3 rounded-lg text-[13.5px] font-medium text-text-2 hover:bg-hover transition-colors flex items-center gap-1.5"
                 onClick={() => {
                   if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "actividades.csv");
                   const link = document.createElement('a');
@@ -630,7 +692,7 @@ export default function ProyectosClient({ projects, dependencies, pendingRequest
                   link.download = 'actividades.csv';
                   link.click();
                 }}>
-                <IconDownload className="w-3.5 h-3.5" /> Exportar
+                <IconDownload className="w-3.5 h-3.5" /> CSV
               </button>
             </div>
 
