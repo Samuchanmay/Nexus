@@ -114,6 +114,9 @@ export default function CoordinadorClient({ profile, requests, activityTypes, co
       requester_type: profile.requester_kind ?? (profile.role === "departamento" ? "departamento" : "coordinador"),
       requester_name: profile.full_name,
       requester_area: areaLabel,
+      // Reportes (7 ago 2026): FK real además del snapshot de texto de
+      // arriba — ver migración 0050_requests_department_id.
+      department_id: profile.departments?.id ?? null,
       type, subtype: subtypes,
       title: form.title.trim(),
       event_date: form.date || null,

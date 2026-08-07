@@ -13,8 +13,11 @@ import { Icon } from "@/components/os/icons";
 import { todayMerida, addDays, shortDate, seniorityLabel, dmy, nextAnniversary } from "@/lib/tz";
 import { VACATION_TONE } from "@/lib/ui-maps";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
-import { XlsxReportButton, type WeekBlock, type DayDetail } from "@/components/shared/xlsx-report";
-import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
+import { createClient } from "@/lib/supabase/client";
+import { fetchAttendanceReportRows, ATTENDANCE_COLUMNS, type AttendanceReportRow } from "@/lib/reports/attendance";
+import { fetchVacationReportRows, VACATION_COLUMNS, type VacationReportRow } from "@/lib/reports/vacations";
+import { buildGeneratedAtLabel, buildPeriodLabel, downloadReportXlsx } from "@/lib/reports/xlsx-builder";
+import type { ReportHeaderInfo, ReportWorkbookConfig } from "@/lib/reports/types";
 
 type Member = {
   id: string; full_name: string; display_name: string; nexus_color: string | null; avatar_url: string | null; birth_date: string | null; area: string | null; title: string | null;
@@ -22,143 +25,18 @@ type Member = {
 };
 
 /** Semáforo de saldo — mismos umbrales que admin/vacaciones (verde <50%, amarillo 50-79%, rojo ≥80%). */
-function balanceColor(pctUsed: number): string {
-  return pctUsed < 50 ? "var(--ok)" : pctUsed < 80 ? "var(--warn)" : "var(--danger)";
-}
 function balanceLabel(pctUsed: number): string {
   return pctUsed < 50 ? "Disponible" : pctUsed < 80 ? "Moderado" : "Crítico";
 }
 
 const MESES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-/** Abre una ventana con un reporte individual autónomo (HTML + estilos embebidos) y lanza la
- * impresión — mismo patrón que imprimirReporteIndividual() del checador legado, sin depender del DOM. */
-function printIndividualReport(m: Member, vacs: Vacation[]) {
-  const total = m.vacation_days_per_year || 0;
-  const used = Math.max(0, total - m.vacation_balance);
-  const pctUsed = total > 0 ? Math.round((used / total) * 100) : 0;
-  const mine = vacs.filter((v) => v.user_id === m.id && v.status !== "Rechazada").sort((a, b) => b.start_date.localeCompare(a.start_date));
-  const rows = mine.map((v) =>
-    `<tr><td>${dmy(v.start_date)} &rarr; ${dmy(v.end_date)}</td><td>${v.days} d&iacute;as</td><td>${v.status}</td></tr>`).join("");
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte — ${m.full_name}</title>
-    <style>
-      body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;color:#1D1D1F;margin:32px;}
-      h1{font-size:21px;margin:0 0 4px}
-      p.sub{color:#6E6E73;margin:0 0 24px;font-size:13.5px}
-      .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:28px}
-      .box{border:1px solid #E5E7EB;border-radius:10px;padding:14px;text-align:center}
-      .box b{display:block;font-size:21px}
-      .box span{font-size:12px;color:#6E6E73;text-transform:uppercase;font-weight:600}
-      table{width:100%;border-collapse:collapse;font-size:13.5px}
-      th{text-align:left;color:#6E6E73;font-size:12px;text-transform:uppercase;padding:8px 6px;border-bottom:2px solid #E5E7EB}
-      td{padding:8px 6px;border-bottom:1px solid #F1F5F9}
-      @media print{ button{display:none} }
-    </style></head><body>
-    <h1>${m.full_name}</h1>
-    <p class="sub">${m.area ?? ""}${seniorityLabel(m.hire_date) ? " · " + seniorityLabel(m.hire_date) + " de antigüedad" : ""}</p>
-    <div class="grid">
-      <div class="box"><b>${m.vacation_balance}</b><span>Disponibles</span></div>
-      <div class="box"><b>${used}</b><span>Tomados</span></div>
-      <div class="box"><b>${pctUsed}%</b><span>Usado</span></div>
-    </div>
-    <table><thead><tr><th>Periodo</th><th>D&iacute;as</th><th>Estado</th></tr></thead><tbody>${rows || '<tr><td colspan="3">Sin movimientos</td></tr>'}</tbody></table>
-    <button onclick="window.print()" style="margin-top:24px;padding:10px 18px;border-radius:8px;border:none;background:#5856D6;color:#fff;font-weight:600;cursor:pointer">Guardar como PDF</button>
-  </body></html>`;
-  const w = window.open("", "_blank");
-  if (w) { w.document.write(html); w.document.close(); }
-}
-
-const MESES_CORTOS = MESES_LARGO;
-
-/** Reporte HTML de TODOS los empleados — resumen + historial agrupado por mes,
- * mismo formato que el reporte del sistema legado de vacaciones (vacaciones.html). */
-function printTeamReport(team: Member[], vacs: Vacation[]) {
-  const today = todayMerida();
-  const fechaLarga = `${Number(today.slice(8, 10))}/${Number(today.slice(5, 7))}/${today.slice(0, 4)}`;
-
-  const resumenRows = team.map((m) => {
-    const total = m.vacation_days_per_year || 0;
-    const used = Math.max(0, total - m.vacation_balance);
-    const pctUsed = total > 0 ? Math.round((used / total) * 100) : 0;
-    const color = m.nexus_color || "#5856D6";
-    const initial = (m.display_name || m.full_name || "?").charAt(0).toUpperCase();
-    const estado = balanceLabel(pctUsed);
-    const estadoBg = pctUsed < 50 ? "#D1FAE5" : pctUsed < 80 ? "#FEF3C7" : "#FEE2E2";
-    const estadoFg = pctUsed < 50 ? "#065F46" : pctUsed < 80 ? "#92400E" : "#991B1B";
-    return `<tr style="background:${color}14">
-      <td style="padding:12px 14px"><span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:${color};color:#fff;font-size:12px;font-weight:800;margin-right:8px;vertical-align:middle">${initial}</span><strong>${m.full_name}</strong></td>
-      <td style="padding:12px 14px;text-align:center">${used}</td>
-      <td style="padding:12px 14px;text-align:center;font-weight:800;color:${color}">${m.vacation_balance}</td>
-      <td style="padding:12px 14px;text-align:center">${pctUsed}%</td>
-      <td style="padding:12px 14px"><span style="background:${estadoBg};color:${estadoFg};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">${estado}</span></td>
-      <td style="padding:12px 14px;color:#6B7280;font-size:13.5px">${m.hire_date ? dmy(nextAnniversary(m.hire_date)) : "—"}</td>
-      <td style="padding:12px 14px;text-align:center">${total}</td>
-    </tr>`;
-  }).join("");
-
-  const byMember = new Map(team.map((m) => [m.id, m]));
-  const mine = vacs.filter((v) => v.status !== "Rechazada" && byMember.has(v.user_id)).sort((a, b) => b.start_date.localeCompare(a.start_date));
-  const groups = new Map<string, Vacation[]>();
-  for (const v of mine) {
-    const key = `${MESES_CORTOS[Number(v.start_date.slice(5, 7)) - 1]} ${v.start_date.slice(0, 4)}`;
-    (groups.get(key) ?? groups.set(key, []).get(key)!).push(v);
-  }
-  const historialRows = [...groups.entries()].map(([label, items]) => {
-    const header = `<tr><td colspan="5" style="padding:10px 14px;background:#F1F5F9;font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.6px">${label}</td></tr>`;
-    const rows = items.map((v) => {
-      const m = byMember.get(v.user_id)!;
-      const color = m.nexus_color || "#5856D6";
-      const initial = (m.display_name || m.full_name || "?").charAt(0).toUpperCase();
-      const estadoBg = v.status === "Aprobada" ? "#D1FAE5" : v.status === "Pendiente" ? "#FEF3C7" : "#FEE2E2";
-      const estadoFg = v.status === "Aprobada" ? "#065F46" : v.status === "Pendiente" ? "#92400E" : "#991B1B";
-      return `<tr style="background:${color}14">
-        <td style="padding:11px 14px"><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:${color};color:#fff;font-size:10px;font-weight:800;margin-right:7px;vertical-align:middle">${initial}</span><strong>${m.full_name}</strong></td>
-        <td style="padding:11px 14px;color:#374151">${dmy(v.start_date)}</td>
-        <td style="padding:11px 14px;color:#374151">${dmy(v.end_date)}</td>
-        <td style="padding:11px 14px;text-align:center;font-weight:800;color:${color}">${v.days}</td>
-        <td style="padding:11px 14px"><span style="background:${estadoBg};color:${estadoFg};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700">${v.status}</span></td>
-      </tr>`;
-    }).join("");
-    return header + rows;
-  }).join("");
-
-  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Vacaciones CERT ${fechaLarga}</title>
-    <style>
-      *{box-sizing:border-box}body{font-family:-apple-system,"SF Pro Display","SF Pro Text",Inter,sans-serif;background:#F3F4F6;margin:0;padding:24px;color:#111827}
-      .wrap{max-width:860px;margin:0 auto}
-      .header{background:linear-gradient(135deg,#1E293B,#334155);border-radius:16px;padding:28px 32px;margin-bottom:20px;color:#fff}
-      .header h1{margin:0 0 4px;font-size:21px;font-weight:800}.header p{margin:0;color:#94A3B8;font-size:13.5px}
-      .card{background:#fff;border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-      .card-titulo{padding:16px 18px;font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.7px;border-bottom:.5px solid #F1F5F9}
-      table{width:100%;border-collapse:collapse}tr:last-child td{border-bottom:none}td{border-bottom:.5px solid #F1F5F9}
-      th{padding:11px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fff;background:#1E293B}
-      @media print{body{background:#fff;padding:0}.no-print{display:none}}
-    </style></head><body><div class="wrap">
-    <div class="header"><h1>Reporte de Vacaciones</h1><p>CERT Comunicación · Generado el ${fechaLarga}</p></div>
-    <div class="no-print" style="text-align:right;margin-bottom:12px">
-      <button onclick="window.print()" style="padding:10px 22px;background:#1E293B;color:#fff;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer">Imprimir / Guardar PDF</button>
-    </div>
-    <div class="card"><div class="card-titulo">Resumen por empleado</div>
-      <table><thead><tr><th>Empleado</th><th>Tomados</th><th>Restantes</th><th>%</th><th>Estado</th><th>Reinicio</th><th>Días/año</th></tr></thead>
-      <tbody>${resumenRows || '<tr><td colspan="7" style="padding:14px">Sin personal registrado</td></tr>'}</tbody></table>
-    </div>
-    <div class="card"><div class="card-titulo">Historial de movimientos</div>
-      <table><thead><tr><th>Empleado</th><th>Inicio</th><th>Fin</th><th>Días</th><th>Estado</th></tr></thead>
-      <tbody>${historialRows || '<tr><td colspan="5" style="padding:14px">Sin movimientos</td></tr>'}</tbody></table>
-    </div>
-    </div></body></html>`;
-  const w = window.open("", "_blank");
-  if (w) { w.document.write(html); w.document.close(); }
-}
-
 const PERIODS = ["Semana", "Quincena", "Mes", "Trimestre"];
 const PERIOD_DAYS: Record<string, number> = { Semana: 7, Quincena: 15, Mes: 30, Trimestre: 92 };
 
-export default function RHClient({ team, attendance, schedules, vacations, holidays, states, incidents, restDays = [] }: {
+export default function RHClient({ team, attendance, schedules, vacations, states }: {
   team: Member[]; attendance: AttendanceRow[]; schedules: Schedule[];
-  vacations: Vacation[]; holidays: { date: string; name: string }[]; states: JornadaState[];
-  incidents: { user_id: string; kind: string; note: string | null; start_date: string; end_date: string }[];
-  restDays?: { user_id: string; start_date: string; end_date: string; note: string | null }[];
+  vacations: Vacation[]; states: JornadaState[];
 }) {
   const [period, setPeriod] = usePersistedView("rh.period", PERIODS, "Quincena");
 
@@ -226,154 +104,65 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
     return [...groups.entries()];
   }, [vacations, historyYear]);
 
-  const exportCSV = () => {
-    const sep = ",";
-    const lines = [
-      ["Empleado", "Área", "Días con registro", "Horas laboradas", "Promedio diario", "Tiempo extra", "Objetivo diario"].join(sep),
-      ...stats.map((s) => [
-        `"${s.user.full_name}"`, `"${s.user.area ?? ""}"`, s.daysWorked,
-        (s.totalMin / 60).toFixed(2), (s.avgMin / 60).toFixed(2),
-        (s.extraMin / 60).toFixed(2), (s.targetMin / 60).toFixed(2),
-      ].join(sep)),
-    ];
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `emet-rh-${period.toLowerCase()}-${todayMerida()}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
+  // ── Export Excel unificado (ReportEngine) — RH ya no arma CSV ni Excel
+  //    propios: todo pasa por downloadReportXlsx() (src/lib/reports/*). ──
+  const [exporting, setExporting] = useState<"asistencia" | "vacaciones" | "vacaciones-persona" | null>(null);
 
-  // ── Bloques semanales para el reporte Excel (mismo formato que admin) ──
-  const DIAS_LARGO = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  
-  /** Lunes de la semana ISO que contiene la fecha dada. */
-  const mondayOf = (dateIso: string): string => {
-    const d = new Date(dateIso + "T12:00:00Z");
-    const day = d.getUTCDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    d.setUTCDate(d.getUTCDate() + diff);
-    return d.toISOString().slice(0, 10);
-  };
-
-  /** Etiqueta de semana "29 junio al 04 de julio". */
-  const weekLabelOf = (monday: string): string => {
-    const start = new Date(monday + "T12:00:00Z");
-    const end = new Date(start);
-    end.setUTCDate(end.getUTCDate() + 5);
-    const d1 = start.getUTCDate(), m1 = MESES_LARGO[start.getUTCMonth()];
-    const d2 = end.getUTCDate(), m2 = MESES_LARGO[end.getUTCMonth()];
-    return m1 === m2 ? `${d1} al ${d2} de ${m1}` : `${d1} de ${m1} al ${d2} de ${m2}`;
-  };
-
-  /** Motivo de ausencia para un día usando el Attendance Status Resolver. */
-  const absenceReasonFor = (userId: string, date: string): string | undefined => {
-    const vac = vacations.find((v) => v.user_id === userId && v.start_date <= date && v.end_date >= date && v.status === "Aprobada");
-    const inc = incidents.find((i) => i.user_id === userId && i.start_date <= date && i.end_date >= date);
-    const isHoliday = holidays.some((h) => h.date === date);
-    const wd = new Date(date + "T12:00:00Z").getUTCDay();
-    // Descanso real asignado por admin (rest_days) — antes el domingo estaba
-    // hardcodeado como descanso y un descanso entre semana se marcaba como
-    // "Falta injustificada" (auditoría A.8, ago 2026).
-    const onRestDay = restDays.some((r) => r.user_id === userId && r.start_date <= date && r.end_date >= date);
-    const s = getAttendanceStatus({
-      date,
-      today: todayMerida(),
-      firstIn: null,
-      isOpen: false,
-      noRegistroSalida: false,
-      vacation: vac ? { start: vac.start_date, end: vac.end_date } : null,
-      incident: inc ? { kind: inc.kind as IncidentKind, note: inc.note } : null,
-      isHoliday,
-      restDay: onRestDay ? { note: restDays.find((r) => r.user_id === userId && r.start_date <= date && r.end_date >= date)?.note ?? "Descanso asignado" } : null,
-      isBusinessDay: wd !== 0 && wd !== 6 && !onRestDay, // la semana hábil es Lun-Vie
-    });
-    return s.showInReports ? s.label : undefined;
-  };
-
-  /** Construye el detalle de un día para el reporte. */
-  const buildDayDetail = (date: string, rows: AttendanceRow[], sched: { target_min: number; tolerance_min: number; end_time: string }): DayDetail => {
-    const mv = rows.filter((r) => r.date === date).sort((a, b) => a.time.localeCompare(b.time));
-    const entradas = mv.filter((m) => m.type === "Entrada");
-    const salidas = mv.filter((m) => m.type === "Salida");
-    const entrada = entradas[0]?.time ?? null;
-    const finJornada = salidas.find((s) => s.reason === "Fin de jornada");
-    const salida1Row = salidas.find((s) => s.reason !== "Fin de jornada");
-    const salida1 = salida1Row?.time ?? null;
-    let entrada2: string | null = null;
-    if (salida1Row) {
-      const idx = mv.findIndex((m) => m === salida1Row);
-      entrada2 = mv.slice(idx + 1).find((m) => m.type === "Entrada")?.time ?? null;
+  const exportAttendanceExcel = async () => {
+    setExporting("asistencia");
+    try {
+      const supabase = createClient();
+      const range = { from: cutoff, to: todayMerida() };
+      const rows = await fetchAttendanceReportRows(supabase, { range });
+      const header: ReportHeaderInfo = {
+        title: "Asistencia",
+        periodLabel: buildPeriodLabel(range),
+        generatedAtLabel: buildGeneratedAtLabel(),
+        appliedFilters: [
+          { label: "Periodo", value: period },
+          { label: "Empleado", value: "Todos" },
+          { label: "Departamento", value: "Todos" },
+        ],
+      };
+      const config: ReportWorkbookConfig<AttendanceReportRow> = { header, columns: ATTENDANCE_COLUMNS, rows, filenameBase: "emet-rh-asistencia" };
+      await downloadReportXlsx(config);
+    } finally {
+      setExporting(null);
     }
-    const salidaFinal = finJornada?.time ?? (salidas.length ? salidas[salidas.length - 1].time : null);
-    const summary = entrada ? summarizeDay(date, rows, sched, states) : null;
-    const wd = new Date(date + "T12:00:00Z").getUTCDay();
-    
-    return {
-      dayLabel: DIAS_LARGO[wd],
-      date,
-      entrada: entrada ? entrada.slice(0, 5) : null,
-      salida1: salida1 ? salida1.slice(0, 5) : null,
-      entrada2: entrada2 ? entrada2.slice(0, 5) : null,
-      salidaFinal: salidaFinal ? salidaFinal.slice(0, 5) : null,
-      horasTrabajadas: summary && summary.totalMin > 0 ? Math.round((summary.totalMin / 60) * 10) / 10 : null,
-      horasExtra: summary && summary.extraMin > 0 ? Math.round((summary.extraMin / 60) * 10) / 10 : null,
-      statusLabel: entrada ? undefined : absenceReasonFor("", date),
-    };
   };
 
-  /** Construye los bloques semanales para el reporte Excel. */
-  const weekBlocks = useMemo((): WeekBlock[] => {
-    const blocks: WeekBlock[] = [];
-    const today = todayMerida();
-    const since = addDays(today, -PERIOD_DAYS[period]);
-    
-    // Obtener todas las fechas con asistencia en el periodo
-    const allDates = [...new Set(attendance.filter((r) => r.date >= since).map((r) => r.date))].sort();
-    if (allDates.length === 0) return blocks;
-    
-    // Agrupar por semana
-    const byWeek = new Map<string, Set<string>>();
-    for (const date of allDates) {
-      const wk = mondayOf(date);
-      const dates = byWeek.get(wk) ?? new Set();
-      dates.add(date);
-      byWeek.set(wk, dates);
+  const exportVacationsExcel = async (employeeId?: string) => {
+    setExporting(employeeId ? "vacaciones-persona" : "vacaciones");
+    try {
+      const supabase = createClient();
+      const year = new Date().getFullYear();
+      const { rows, summary } = await fetchVacationReportRows(supabase, { range: { from: `${year}-01-01`, to: `${year}-12-31` }, employeeId: employeeId || null });
+      const header: ReportHeaderInfo = {
+        title: "Vacaciones",
+        periodLabel: `Año ${year}`,
+        generatedAtLabel: buildGeneratedAtLabel(),
+        appliedFilters: [
+          { label: "Empleado", value: employeeId ? (team.find((t) => t.id === employeeId)?.full_name ?? employeeId) : "Todos" },
+          { label: "Departamento", value: "Todos" },
+          { label: "Estatus", value: "Todos" },
+        ],
+      };
+      const config: ReportWorkbookConfig<VacationReportRow> = {
+        header,
+        columns: VACATION_COLUMNS,
+        rows,
+        filenameBase: employeeId ? "emet-rh-vacaciones-individual" : "emet-rh-vacaciones",
+        summary: summary ? [
+          { label: "Tomadas este año", value: summary.tomadasEsteAnio },
+          { label: "Próximos reinicios", value: summary.proximosReinicios },
+          { label: "Saldo bajo (<5 días)", value: summary.saldoBajo },
+        ] : undefined,
+      };
+      await downloadReportXlsx(config);
+    } finally {
+      setExporting(null);
     }
-    
-    // Para cada semana y cada empleado, construir el bloque
-    for (const [weekStart, dates] of byWeek) {
-      for (const member of team) {
-        const memberRows = attendance.filter((r) => r.user_id === member.id);
-        const days: DayDetail[] = [];
-        
-        // Lunes a Viernes (criterio único lun-vie, auditoría A.8 — antes
-        // incluía sábado y un sábado sin fichaje salía como falta)
-        for (let i = 0; i < 5; i++) {
-          const date = addDays(weekStart, i);
-          const sched = scheduleFor(schedules, member.id, date) ?? { target_min: 480, tolerance_min: 15, end_time: "18:00:00" };
-          const dayRows = memberRows.filter((r) => r.date === date);
-          const detail = buildDayDetail(date, dayRows, sched);
-          // Corregir statusLabel con el userId correcto
-          if (!detail.entrada) {
-            detail.statusLabel = absenceReasonFor(member.id, date);
-          }
-          days.push(detail);
-        }
-        
-        blocks.push({
-          userId: member.id,
-          name: member.full_name,
-          color: member.nexus_color || "#5856D6",
-          weekStart,
-          weekLabel: weekLabelOf(weekStart),
-          days,
-        });
-      }
-    }
-    
-    return blocks.sort((a, b) => b.weekStart.localeCompare(a.weekStart) || a.name.localeCompare(b.name));
-  }, [attendance, team, schedules, states, vacations, holidays, incidents, period]);
+  };
 
   return (
     <>
@@ -409,15 +198,10 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-[16px] font-bold">Por empleado</h2>
         <div className="flex gap-2">
-          <XlsxReportButton
-            blocks={weekBlocks}
-            label="Excel semanal"
-            filename="emet-rh-asistencia"
-          />
-          <button onClick={exportCSV}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[12.5px] font-semibold"
-            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
-            <IconDownload className="w-3.5 h-3.5" /> CSV
+          <button onClick={exportAttendanceExcel} disabled={exporting !== null}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-[12.5px] font-semibold whitespace-nowrap"
+            style={{ background: "var(--purple-tint)", color: "var(--purple)" }}>
+            <IconDownload className="w-3.5 h-3.5" /> {exporting === "asistencia" ? "Generando…" : "Exportar Excel"}
           </button>
         </div>
       </div>
@@ -536,11 +320,8 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
           </div>
           <button
             className="btn-primary px-5 py-2.5 text-[13.5px]" disabled={!reportUserId}
-            onClick={() => {
-              const m = team.find((t) => t.id === reportUserId);
-              if (m) printIndividualReport(m, vacations);
-            }}>
-            Reporte individual
+            onClick={() => exportVacationsExcel(reportUserId)}>
+            {exporting === "vacaciones-persona" ? "Generando…" : "Reporte individual"}
           </button>
         </div>
         <div className="flex items-center justify-between gap-3 flex-wrap pt-3" style={{ borderTop: "1px solid var(--border)" }}>
@@ -550,8 +331,8 @@ export default function RHClient({ team, attendance, schedules, vacations, holid
           <button
             className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[13.5px] font-semibold shrink-0"
             style={{ background: "var(--purple-tint)", color: "var(--purple)" }}
-            onClick={() => printTeamReport(team, vacations)}>
-            <IconDownload className="w-3.5 h-3.5" /> Reporte general (todos)
+            onClick={() => exportVacationsExcel(undefined)}>
+            <IconDownload className="w-3.5 h-3.5" /> {exporting === "vacaciones" ? "Generando…" : "Reporte general (todos)"}
           </button>
         </div>
       </div>

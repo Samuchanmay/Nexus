@@ -1,21 +1,9 @@
-"use client";
-import { createClient } from "@/lib/supabase/client";
-import { logAdminAction } from "@/lib/admin-log";
-import { IconDownload } from "@/components/icons";
-
-/** Enlace de exportación CSV (data-URI, sin librerías) que además queda
- * registrado en la bitácora de productividad del admin. */
-export function CsvLink({ rows, filename, adminId, label = "CSV" }: {
-  rows: (string | number)[][]; filename: string; adminId: string; label?: string;
-}) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const href = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-  return (
-    <a
-      href={href} download={filename} className="no-print flex items-center gap-1 text-[12px] font-semibold shrink-0" style={{ color: "var(--accent)" }}
-      onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", filename); }}
-    >
-      <IconDownload className="w-3 h-3" /> {label}
-    </a>
-  );
-}
+// EMET · Export CSV data-URI — OBSOLETO (7 ago 2026).
+//
+// Unificación al ReportEngine (docs/audits/report-system-audit.md): todo
+// export de EMET pasa por downloadReportXlsx() en src/lib/reports/* — nunca
+// CSV, y nunca data-URIs armados a mano. Este componente ya no se importa
+// en ningún módulo; se conserva como marcador para que el historial de git
+// explique el porqué. Si algún día vuelve a necesitarse CSV, debe hacerse
+// dentro del motor, no con un link suelto.
+export {};

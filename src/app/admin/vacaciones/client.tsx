@@ -15,6 +15,9 @@ import { businessDaysBetween } from "@/lib/hours";
 import { logAdminAction } from "@/lib/admin-log";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { notifyUser } from "@/lib/notify";
+import { fetchVacationReportRows, VACATION_COLUMNS, type VacationReportRow } from "@/lib/reports/vacations";
+import { buildGeneratedAtLabel, downloadReportXlsx } from "@/lib/reports/xlsx-builder";
+import type { ReportHeaderInfo, ReportWorkbookConfig } from "@/lib/reports/types";
 
 /** Semáforo de salud del saldo: verde <50% usado, amarillo 50-79%, rojo >=80%. */
 function balanceColor(pctUsed: number): string {
@@ -218,7 +221,14 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
         }
         return { error: null };
       }
-      return supabase.from("vacations").update({ status, admin_note: note || null }).eq("id", target.id);
+      // Rechazo (7 ago 2026, Reporte de Vacaciones): a diferencia de la
+      // aprobación (RPC approve_vacation, que ya guarda resolved_by con
+      // my_user_id()), el rechazo es un update directo — hay que mandar
+      // resolved_by/resolved_at explícitos aquí para que "Quién autorizó"
+      // también quede registrado cuando la decisión fue un rechazo.
+      return supabase.from("vacations")
+        .update({ status, admin_note: note || null, resolved_by: adminId || null, resolved_at: new Date().toISOString() })
+        .eq("id", target.id);
     }, { ok: status === "Aprobada" ? "Vacaciones aprobadas" : "Solicitud rechazada" });
     if (ok) {
       if (adminId) {
@@ -368,17 +378,42 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
     ? `${futuras} ${futuras === 1 ? "vacación ya está programada" : "vacaciones ya están programadas"}.`
     : "No hay vacaciones programadas por ahora.";
 
-  const vacCsvHref = useMemo(() => {
-    const rows = [
-      ["Persona", "Inicio", "Fin", "Días", "Estado", "Nota admin"],
-      ...vacations
-        .slice()
-        .sort((a, b) => b.start_date.localeCompare(a.start_date))
-        .map((v) => [v.users?.full_name ?? v.users?.display_name ?? "—", v.start_date, v.end_date, String(v.days), v.status, v.admin_note ?? ""]),
-    ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join(String.fromCharCode(10));
-    return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-  }, [vacations]);
+  const [exporting, setExporting] = useState(false);
+  const exportRegistro = async () => {
+    setExporting(true);
+    try {
+      const supabase = createClient();
+      const year = new Date().getFullYear();
+      const range = { from: `${year}-01-01`, to: `${year}-12-31` };
+      const { rows, summary } = await fetchVacationReportRows(supabase, { range });
+      const header: ReportHeaderInfo = {
+        title: "Vacaciones",
+        periodLabel: `Año ${year}`,
+        generatedAtLabel: buildGeneratedAtLabel(),
+        appliedFilters: [
+          { label: "Empleado", value: "Todos" },
+          { label: "Departamento", value: "Todos" },
+          { label: "Estatus", value: "Todos" },
+          { label: "Periodo", value: `Año ${year}` },
+        ],
+      };
+      const config: ReportWorkbookConfig<VacationReportRow> = {
+        header,
+        columns: VACATION_COLUMNS,
+        rows,
+        filenameBase: "vacaciones-registro",
+        summary: summary ? [
+          { label: "Tomadas este año", value: summary.tomadasEsteAnio },
+          { label: "Próximos reinicios", value: summary.proximosReinicios },
+          { label: "Saldo bajo (<5 días)", value: summary.saldoBajo },
+        ] : undefined,
+      };
+      await downloadReportXlsx(config);
+      if (adminId) logAdminAction(supabase, adminId, "Exportó reporte", "vacaciones-registro.xlsx");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   /** Estado visual de una vacación aprobada: en curso / programada / pasada — solo para etiqueta, no toca el status real en BD. */
   const approvedPhaseLabel = (v: Vacation) => {
@@ -405,12 +440,11 @@ export default function VacAdminClient({ vacations, team, adminId, vacationCalen
               {heroHeadline}
             </p>
           </div>
-          <a href={vacCsvHref} download="vacaciones-registro.csv" 
+          <button onClick={exportRegistro} disabled={exporting}
             className="h-10 px-4 rounded-lg text-[13.5px] font-semibold transition-all duration-200 hover:bg-hover flex items-center gap-2"
-            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
-            onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "vacaciones-registro.csv"); }}>
-            <IconDownload className="w-4 h-4" /> Exportar
-          </a>
+            style={{ background: "var(--surface-2)", color: "var(--text-2)" }}>
+            <IconDownload className="w-4 h-4" /> {exporting ? "Generando…" : "Exportar Excel"}
+          </button>
         </div>
       </header>
 

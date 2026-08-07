@@ -15,16 +15,19 @@ import { Dialog, Input } from "@/components/os/ui";
 import { createClient } from "@/lib/supabase/client";
 import { fmtMin, fmtTime, stateAfter, TRABAJANDO } from "@/lib/hours";
 import { getAttendanceStatus, type IncidentKind } from "@/lib/domain/attendance/status";
-import { dmy } from "@/lib/tz";
+import { addDays, dmy } from "@/lib/tz";
 import type { JornadaState } from "@/lib/hours";
 import { nowMeridaMinutes } from "@/lib/tz";
 import { isBirthdayToday, todayISO } from "@/lib/birthday";
 import { logAdminAction } from "@/lib/admin-log";
 import { adminResolvePendingExit, adminMarkNoRegistro } from "@/lib/pending-exits";
 import { TimePicker } from "@/components/select";
-import { XlsxWeeklyReportButton, type WeekBlock } from "./xlsx-weekly-report";
+import type { WeekBlock } from "./xlsx-weekly-report";
 import { EditAttendanceSheet } from "@/components/os/edit-attendance-sheet";
 import { notifyUser } from "@/lib/notify";
+import { fetchAttendanceReportRows, ATTENDANCE_COLUMNS, type AttendanceReportRow } from "@/lib/reports/attendance";
+import { buildGeneratedAtLabel, buildPeriodLabel, downloadReportXlsx } from "@/lib/reports/xlsx-builder";
+import type { ReportHeaderInfo, ReportWorkbookConfig } from "@/lib/reports/types";
 
 export interface PendingValidation {
   id: string; userId: string; date: string; note: string | null;
@@ -290,22 +293,57 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
     toast(!error && ok ? "Reporte semanal enviado por correo" : "No se pudo enviar el reporte", !error && ok ? "ok" : "danger");
     if (!error && ok && adminId) logAdminAction(createClient(), adminId, "Envió reporte semanal de asistencia");
   };
-  const weekCsvHref = useMemo(() => {
-    const csv = [
-      "Semana (lunes),Persona,Días trabajados,Horas totales,Horas extra",
-      ...weekRows.map((r) =>
-        `${r.week},"${r.name}",${r.days},${(r.totalMin / 60).toFixed(1)},${(r.extraMin / 60).toFixed(1)}`),
-    ].join("\n");
-    return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-  }, [weekRows]);
-  const dayCsvHref = useMemo(() => {
-    const csv = [
-      "Persona,Puesto,Entrada,Horas laboradas,Objetivo",
-      ...people.map(({ user: u, day }) =>
-        `"${u.display_name}","${u.title ?? u.area ?? ""}",${fmtTime(day.firstIn)},${day.firstIn ? fmtMin(day.totalMin) : "—"},${fmtMin(day.targetMin)}`),
-    ].join("\n");
-    return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
-  }, [people]);
+  // ── Export Excel unificado (ReportEngine) — "CSV del día" / "Excel semanal"
+  //    ya no se arman a mano: ambos descargan el Reporte 1 de asistencia con
+  //    el formato institucional único (src/lib/reports/*). ──
+  const [exporting, setExporting] = useState(false);
+  const exportDayExcel = async () => {
+    setExporting(true);
+    try {
+      const supabase = createClient();
+      const range = { from: selectedDate, to: selectedDate };
+      const rows = await fetchAttendanceReportRows(supabase, { range });
+      const header: ReportHeaderInfo = {
+        title: "Asistencia",
+        periodLabel: buildPeriodLabel(range),
+        generatedAtLabel: buildGeneratedAtLabel(),
+        appliedFilters: [
+          { label: "Empleado", value: "Todos" },
+          { label: "Departamento", value: "Todos" },
+          { label: "Estado del día", value: "Todos" },
+        ],
+      };
+      const config: ReportWorkbookConfig<AttendanceReportRow> = { header, columns: ATTENDANCE_COLUMNS, rows, filenameBase: "asistencia" };
+      await downloadReportXlsx(config);
+      if (adminId) logAdminAction(supabase, adminId, "Exportó reporte", `asistencia-${selectedDate}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
+  };
+  const exportWeekExcel = async () => {
+    const from = addDays(today, -56); // últimas 8 semanas — mismo recorte que la vista "Semana"
+    setExporting(true);
+    try {
+      const supabase = createClient();
+      const range = { from, to: today };
+      const rows = await fetchAttendanceReportRows(supabase, { range });
+      const header: ReportHeaderInfo = {
+        title: "Asistencia semanal",
+        periodLabel: buildPeriodLabel(range),
+        generatedAtLabel: buildGeneratedAtLabel(),
+        appliedFilters: [
+          { label: "Empleado", value: "Todos" },
+          { label: "Departamento", value: "Todos" },
+          { label: "Estado del día", value: "Todos" },
+        ],
+      };
+      const config: ReportWorkbookConfig<AttendanceReportRow> = { header, columns: ATTENDANCE_COLUMNS, rows, filenameBase: "asistencia-semanal" };
+      await downloadReportXlsx(config);
+      if (adminId) logAdminAction(supabase, adminId, "Exportó reporte", "asistencia-semanal.xlsx");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // ── Switch de envío automático + correo destino (app_settings) ──
   const [reportEnabled, setReportEnabled] = useState(reportSettings.enabled);
@@ -358,15 +396,19 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
           />
           <div className="w-full sm:w-[300px] flex justify-end">
             {view === "tabla" && (
-              <a href={dayCsvHref} download={`asistencia-${selectedDate}.csv`}
-                className="btn-secondary px-4 py-2.5 text-[13.5px] whitespace-nowrap flex items-center gap-1.5"
-                onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", `asistencia-${selectedDate}.csv`); }}>
-                <IconDownload className="w-3.5 h-3.5" /> CSV del día
-              </a>
+              <button
+                onClick={exportDayExcel} disabled={exporting}
+                className="btn-secondary px-4 py-2.5 text-[13.5px] whitespace-nowrap flex items-center gap-1.5">
+                <IconDownload className="w-3.5 h-3.5" /> {exporting ? "Generando…" : "Exportar Excel"}
+              </button>
             )}
             {view === "semana" && (
               <div className="flex items-center gap-2">
-                <XlsxWeeklyReportButton blocks={weekBlocks} adminId={adminId} />
+                <button
+                  onClick={exportWeekExcel} disabled={exporting}
+                  className="btn-secondary px-4 py-2.5 text-[13.5px] whitespace-nowrap flex items-center gap-1.5">
+                  <IconDownload className="w-3.5 h-3.5" /> {exporting ? "Generando…" : "Exportar Excel"}
+                </button>
                 <button className="btn-secondary px-4 py-2.5 text-[13.5px] whitespace-nowrap" disabled={sending} onClick={enviarReporte}>
                   {sending ? "Enviando…" : "Enviar ahora"}
                 </button>
@@ -718,11 +760,6 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
         <div className="card p-5">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <p className="text-[12px] font-semibold" style={{ color: "var(--text-3)" }}>Últimas 8 semanas</p>
-            <a href={weekCsvHref} download="asistencia-semanal.csv"
-              className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: "var(--accent)" }}
-              onClick={() => { if (adminId) logAdminAction(createClient(), adminId, "Exportó reporte", "asistencia-semanal.csv"); }}>
-              <IconDownload className="w-3 h-3" /> Exportar CSV
-            </a>
           </div>
           {weekRows.length === 0 ? (
             <p className="text-[13.5px]" style={{ color: "var(--text-3)" }}>Sin registros en las últimas 8 semanas.</p>

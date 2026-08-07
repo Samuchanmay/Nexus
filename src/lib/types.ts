@@ -85,6 +85,11 @@ export interface Vacation {
   calendar_event_id: string | null;
   calendar_id?: string | null;
   created_at: string;
+  /** Quién y cuándo se decidió — migración 0051 (Reporte de Vacaciones,
+      7 ago 2026). NULL en solicitudes pendientes o decididas antes de
+      esta columna (dato real que no existe, no se inventa). */
+  resolved_by?: string | null;
+  resolved_at?: string | null;
   users?: { full_name: string; display_name: string; nexus_color: string | null; avatar_url?: string | null; birth_date?: string | null };
 }
 
@@ -121,6 +126,14 @@ export interface CommRequest {
   requester_id: string | null;
   requester_type: "coordinador" | "departamento" | "externo";
   requester_name: string | null;
+  /** Snapshot de texto libre al crear la solicitud — histórico, no editable.
+      Para agrupar de forma confiable por coordinación/departamento usar
+      `department_id` (FK real, migración 0050). */
+  requester_area?: string | null;
+  /** FK real a `departments` (migración 0050, Reportes 7 ago 2026). Puede
+      ser null en solicitudes viejas o creadas sin coordinación (ej.
+      actividad directa del admin). */
+  department_id?: string | null;
   type: RequestType;
   subtype: string[];
   title: string;
