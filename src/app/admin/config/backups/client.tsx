@@ -206,7 +206,7 @@ function RestorePanel({ backup, adminId, onDone }: { backup: BackupRow; adminId:
         </p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-[1fr,1fr,auto] sm:items-end">
+      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <label className="text-[12px] font-semibold" style={{ color: "var(--text-2)" }}>
           Tabla a restaurar
           <Select

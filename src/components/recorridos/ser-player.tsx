@@ -111,7 +111,8 @@ export function SerPlayerFrame({ screens, screenIdx, onReady, onError, className
   return (
     <div className={`relative overflow-hidden ${className ?? ""}`}>
       {!ready && (
-        <div className="absolute inset-0 z-10 grid place-items-center text-[12px] text-text-3 bg-white">
+        <div className="absolute inset-0 z-10 grid place-items-center text-[12px] text-text-3"
+          style={{ background: "var(--surface-2)" }}>
           Cargando…
         </div>
       )}
