@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui";
+import { Button } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 import type { EnlaceMessage } from "@/lib/types";
 import type { ParticipantLite } from "@/app/chat/client";
@@ -153,9 +154,9 @@ export function ThreadPanel({ open, onClose, root, myId, peopleById, onSend }: {
           value={draft} onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } }}
         />
-        <button className="btn-primary px-3 py-2 text-[13.5px] shrink-0" disabled={!draft.trim()} onClick={enviar} aria-label="Enviar">
+        <Button variant="primary" size="sm" disabled={!draft.trim()} onClick={enviar} aria-label="Enviar">
           <Icon name="send" size={14} />
-        </button>
+        </Button>
       </div>
     </div>
   );

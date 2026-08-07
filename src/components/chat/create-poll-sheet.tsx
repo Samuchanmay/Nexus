@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { Sheet, useToast } from "@/components/ui";
 import { Switch } from "@/components/shared";
+import { Button } from "@/components/os/ui";
 import { Icon } from "@/components/os/icons";
 
 const MAX_OPTIONS = 8;
@@ -112,13 +113,14 @@ export function CreatePollSheet({ open, onClose, onCreate }: {
           <Switch checked={multipleChoice} onChange={() => setMultipleChoice((v) => !v)} />
         </div>
 
-        <button
-          className="btn-primary w-full h-10 text-[13.5px] font-bold mt-1"
+        <Button
+          variant="primary"
+          className="w-full mt-1"
           disabled={creating || !question.trim() || options.filter((o) => o.trim()).length < 2}
           onClick={crear}
         >
           {creating ? "Creando…" : "Crear encuesta"}
-        </button>
+        </Button>
       </div>
     </Sheet>
   );

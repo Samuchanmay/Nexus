@@ -12,6 +12,7 @@
  */
 import { useEffect, useState } from "react";
 import { Sheet, SlidingSegments, useToast } from "@/components/ui";
+import { Button } from "@/components/os/ui";
 import { createClient } from "@/lib/supabase/client";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -122,9 +123,9 @@ export function StickerPicker({ open, onClose, onPick, onPickImage }: {
               onKeyDown={(e) => { if (e.key === "Enter" && !generating) generar(); }}
               maxLength={200}
             />
-            <button className="btn-primary px-3 py-2 text-[13.5px] shrink-0" disabled={generating || !prompt.trim()} onClick={generar}>
+            <Button variant="primary" size="sm" disabled={generating || !prompt.trim()} onClick={generar}>
               {generating ? "Generando…" : "Generar"}
-            </button>
+            </Button>
           </div>
           {gallery.length === 0 && !generating && (
             <p className="text-[12.5px] text-center py-6" style={{ color: "var(--text-3)" }}>

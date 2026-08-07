@@ -15,7 +15,7 @@ import type { AssistantMessage } from "@/lib/assistant";
 import { todayMerida, addDays } from "@/lib/tz";
 import { fmtMin } from "@/lib/hours";
 import { LiveJornadaHero } from "@/components/shared/live-jornada-hero";
-import { Card, SectionTitle, Badge, Button, SegmentPill, EmptyState, Field, Input } from "@/components/os/ui";
+import { Card, SectionTitle, Badge, Button, SegmentPill, EmptyState, Field, Input, Dialog } from "@/components/os/ui";
 import { DatePicker } from "@/components/ui";
 import { Icon } from "@/components/os/icons";
 import { PausaActivaPopup } from "@/components/os/pausa-activa-popup";
@@ -64,6 +64,12 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
   const typeLabel = Object.fromEntries(activityTypes.map((t) => [t.key, t.label]));
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [evidenceTarget, setEvidenceTarget] = useState<Task | null>(null);
+  const [evidenceFallback, setEvidenceFallback] = useState<Task | null>(null);
+  const [evidenceLink, setEvidenceLink] = useState("");
+  const [savingEvidence, setSavingEvidence] = useState(false);
+  const [commentTarget, setCommentTarget] = useState<Task | null>(null);
+  const [commentBody, setCommentBody] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
   const router = useRouter();
   const [activeLog, setActiveLog] = useState<{ id: string; assignmentId: string; startedAt: string } | null>(null);
   const [pausedAssignment, setPausedAssignment] = useState<string | null>(null);
@@ -231,21 +237,44 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
     const { data, error } = await supabase.functions.invoke("drive-upload", {
       body: { fileName: file.name, mimeType: file.type || "application/octet-stream", base64 },
     });
-    let url = (data as { ok?: boolean; url?: string } | null)?.url;
+    const url = (data as { ok?: boolean; url?: string } | null)?.url;
     if (error || !url) {
-      url = window.prompt("No se pudo subir a Drive automáticamente. Pega el enlace de la evidencia:") ?? "";
-      if (!url) return;
+      setEvidenceLink("");
+      setEvidenceFallback(t);
+      return;
     }
     const { error: e2 } = await supabase.from("evidences").insert({ project_id: t.projectId, uploaded_by: profile.id, drive_url: url });
     toast(e2 ? "No se pudo guardar" : "Evidencia registrada", e2 ? "danger" : "ok");
     router.refresh();
   };
 
-  const addComment = async (t: Task) => {
-    const body = window.prompt("Escribe tu comentario:");
-    if (!body) return;
+  const saveEvidenceFallback = async () => {
+    const t = evidenceFallback;
+    const url = evidenceLink.trim();
+    if (!t || !url) return;
+    setSavingEvidence(true);
+    const supabase = createClient();
+    const { error: e2 } = await supabase.from("evidences").insert({ project_id: t.projectId, uploaded_by: profile.id, drive_url: url });
+    setSavingEvidence(false);
+    setEvidenceFallback(null);
+    toast(e2 ? "No se pudo guardar" : "Evidencia registrada", e2 ? "danger" : "ok");
+    router.refresh();
+  };
+
+  const addComment = (t: Task) => {
+    setCommentBody("");
+    setCommentTarget(t);
+  };
+
+  const saveComment = async () => {
+    const t = commentTarget;
+    const body = commentBody.trim();
+    if (!t || !body) return;
+    setSavingComment(true);
     const supabase = createClient();
     const { error } = await supabase.from("comments").insert({ project_id: t.projectId, user_id: profile.id, body });
+    setSavingComment(false);
+    setCommentTarget(null);
     toast(error ? "No se pudo comentar" : "Comentario agregado", error ? "danger" : "ok");
     // Auditoría de notificaciones: un comentario se quedaba solo en la BD,
     // nadie se enteraba de que había uno nuevo salvo que reabriera la
@@ -624,6 +653,39 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
           </Button>
         </div>
       </Sheet>
+
+      <Dialog
+        open={!!evidenceFallback}
+        onClose={() => !savingEvidence && setEvidenceFallback(null)}
+        onConfirm={saveEvidenceFallback}
+        busy={savingEvidence}
+        title="No se pudo subir a Drive"
+        description="Pega el enlace de la evidencia para registrarla manualmente."
+        confirmLabel={savingEvidence ? "Guardando…" : "Guardar evidencia"}
+      >
+        <Input
+          placeholder="https://drive.google.com/…"
+          value={evidenceLink}
+          onChange={(e) => setEvidenceLink(e.target.value)}
+        />
+      </Dialog>
+
+      <Dialog
+        open={!!commentTarget}
+        onClose={() => !savingComment && setCommentTarget(null)}
+        onConfirm={saveComment}
+        busy={savingComment}
+        title={`Comentar en "${commentTarget?.title ?? ""}"`}
+        confirmLabel={savingComment ? "Enviando…" : "Enviar comentario"}
+      >
+        <textarea
+          rows={3}
+          placeholder="Escribe tu comentario…"
+          className="w-full rounded-sm px-3 py-2 text-[14px] bg-input border border-border text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-[var(--ring)] resize-none"
+          value={commentBody}
+          onChange={(e) => setCommentBody(e.target.value)}
+        />
+      </Dialog>
     </div>
   );
 }

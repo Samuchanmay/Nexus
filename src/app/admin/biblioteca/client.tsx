@@ -83,13 +83,13 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
 
       {/* Filtros discretos */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <button onClick={() => setTypeFilter("")}
-          className="text-[13.5px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
-          style={{
-            background: typeFilter === "" ? "var(--accent)" : "var(--surface-2)",
-            color: typeFilter === "" ? "#fff" : "var(--text-2)",
-            boxShadow: typeFilter === "" ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
-          }}>
+          <button onClick={() => setTypeFilter("")}
+            className="text-[13.5px] font-semibold px-4 py-2 rounded-full transition-all duration-200"
+            style={{
+              background: typeFilter === "" ? "var(--accent)" : "var(--surface-2)",
+              color: typeFilter === "" ? "#fff" : "var(--text-2)",
+              boxShadow: typeFilter === "" ? "var(--shadow-2)" : "none"
+            }}>
           Todos
           <span className="ml-1.5 text-[12px] opacity-70">{items.length}</span>
         </button>
@@ -99,7 +99,7 @@ export default function BibliotecaClient({ items, typeLabel, types }: {
             style={{
               background: typeFilter === t.key ? "var(--accent)" : "var(--surface-2)",
               color: typeFilter === t.key ? "#fff" : "var(--text-2)",
-              boxShadow: typeFilter === t.key ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
+              boxShadow: typeFilter === t.key ? "var(--shadow-2)" : "none"
             }}>
             {t.label}
             <span className="ml-1.5 text-[12px] opacity-70">{counts.get(t.key)}</span>
