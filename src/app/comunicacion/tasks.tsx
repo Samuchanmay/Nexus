@@ -310,6 +310,10 @@ export default function MiDiaClient({ profile, context, day, week, assignments, 
         });
       }
     }
+    // Hueco de notificación cerrado (AIOS, 07 ago 2026): antes crear una
+    // actividad manual dejaba la solicitud en "en_revision" sin avisar —
+    // el admin solo la veía si entraba a revisar el pipeline por su cuenta.
+    notifyAdmins(supabase, "Actividad manual para revisar", `${profile.displayName}: ${actForm.title}`, "request", `/admin/proyectos?task=${prj?.id ?? ""}`);
     setSaving(false);
     setOpenSheet(false);
     setActForm({ type: activityTypes[0]?.key ?? "", title: "", date: todayMerida(), minutes: "", requester: "", note: "" });

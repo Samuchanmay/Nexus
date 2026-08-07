@@ -8,6 +8,7 @@ import { IconPlus, IconAlert } from "@/components/icons";
 
 import { KIND_LABELS, KIND_ICON, KIND_DESC, INCIDENT_TONE as STATUS_TONE } from "@/lib/ui-maps";
 import { dmy } from "@/lib/tz";
+import { notifyAdmins } from "@/lib/notify";
 
 export default function IncidenciasClient({ userId, incidents }: { userId: string; incidents: Incident[] }) {
   const toast = useToast();
@@ -27,6 +28,9 @@ export default function IncidenciasClient({ userId, incidents }: { userId: strin
     });
     setSaving(false);
     if (error) { toast("No se pudo enviar — intenta de nuevo", "danger"); return; }
+    // Hueco de notificación cerrado (AIOS, 07 ago 2026): antes el admin solo
+    // se enteraba de una incidencia nueva por el contador del dashboard.
+    notifyAdmins(supabase, "Nueva incidencia", `${KIND_LABELS[form.kind as Incident["kind"]] ?? form.kind} · ${dmy(form.start)}`, "incident", "/admin/incidencias");
     setOpen(false);
     setForm({ kind: "permiso", start: "", end: "", note: "" });
     toast("Incidencia enviada al administrador");

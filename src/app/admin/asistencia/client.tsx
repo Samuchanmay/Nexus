@@ -216,6 +216,12 @@ export default function AsistenciaClient({ people, states, weekRows, weekBlocks,
     await supabase.from("attendance_correction_requests")
       .update({ status: "aprobada", admin_id: adminId, resolved_at: new Date().toISOString() })
       .eq("id", c.id);
+    // Hueco de notificación cerrado (AIOS, 07 ago 2026): EditAttendanceSheet
+    // ya avisa "corregimos tu asistencia" (evento 23), pero eso es genérico
+    // al edit — no confirma que SU solicitud puntual quedó resuelta. Mismo
+    // criterio que confirmReject(): log + aviso dedicado, para simetría.
+    if (adminId) logAdminAction(supabase, adminId, "Aprobó corrección de asistencia", `${c.userName} · ${c.date}`);
+    notifyUser(supabase, c.userId, "Tu solicitud de corrección fue aprobada", c.date, "info", "/comunicacion/jornada");
     setCorrections((cs) => cs.filter((x) => x.id !== c.id));
     setResolvingCorrection(null);
   };
